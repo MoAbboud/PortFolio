@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotlight - Designer Showcase</title>
+    <link rel="stylesheet" href="styles/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Anton:wght@400&family=Trocchi&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app" class="bg main">
+        <header>
+            <nav>
+                <ul>
+                    <li><a class="link-main" href="#main" data-section="main">Main</a></li>
+                    <li><a class="link-manage" href="#manage" data-section="manage">Manage</a></li>
+                </ul>
+            </nav>
+            <div class="transition transition-main"></div>
+            <div class="transition transition-manage"></div>
+            <h1>Spotlight</h1>
+        </header>
+        
+        <div class="dots dots1"></div>
+        <div class="dots dots2"></div>
+        
+        <main id="main-content">
+            <!-- Main Page Content -->
+            <div class="page-content main-page active">
+                <div class="showcase">
+                    <div id="iframes-container" class="iframes-grid">
+                        <!-- iframes will be dynamically loaded here -->
+                    </div>
+                    
+                    <div id="loading" class="loading">
+                        <div class="loading-spinner"></div>
+                        <p>Loading amazing designs...</p>
+                    </div>
+                </div>
+
+                <section class="gradients-section">
+                    <h2 class="gradients-title">Color Palettes</h2>
+                    <div id="gradients-container" class="gradients-grid">
+                        <!-- Color gradients will be displayed here -->
+                    </div>
+                </section>
+            </div>
+            
+            <!-- Manage Page Content -->
+            <div class="page-content manage-page">
+                <div class="manage-section">
+                    <div class="add-site">
+                        <h2>Add New Site</h2>
+                        <div class="info-box" style="background: rgba(226, 105, 97, 0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid var(--dark-peach);">
+                            <h4 style="margin: 0 0 10px 0; color: var(--purple-brown);">💡 Iframe-Friendly Sites</h4>
+                            <p style="margin: 0; font-size: 0.9rem; color: var(--purple-brown); opacity: 0.8;">
+                                Some sites (GitHub, Dribbble, Social Media) block iframe embedding for security. 
+                                These will show beautiful gradient previews instead. 
+                                <strong>Best results:</strong> Portfolio sites, documentation, or simple websites.
+                            </p>
+                        </div>
+                        <form id="add-form" class="add-form">
+                            <input type="url" id="new-url" placeholder="Enter website URL (e.g., https://example.com)" required>
+                            <button type="submit" class="btn-primary">Add Site</button>
+                        </form>
+                    </div>
+
+                    <div class="sites-list">
+                        <h2>Current Sites</h2>
+                        <div id="sites-container" class="sites-grid">
+                            <!-- Current sites will be loaded here -->
+                        </div>
+                    </div>
+
+                    <div class="file-operations">
+                        <h2>File Operations</h2>
+                        <div class="file-controls">
+                            <button id="download-btn" class="btn-secondary">Download store.txt</button>
+                            <input type="file" id="upload-input" accept=".txt" style="display: none;">
+                            <button id="upload-btn" class="btn-secondary">Upload store.txt</button>
+                            <button id="clear-all-btn" class="btn-danger">Clear All Sites</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="notification" class="notification hidden">
+        <span class="notification-text"></span>
+        <button class="notification-close">×</button>
+    </div>
+
+    <script src="js/megamind.js"></script>
+</body>
+</html>

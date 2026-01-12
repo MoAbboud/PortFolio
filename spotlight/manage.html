@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Sites - Spotlight</title>
+    <link rel="stylesheet" href="styles/style.css">
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="animated-background">
+        <svg class="background-text text-1" viewBox="0 0 800 200">
+            <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle">SPOTLIGHT</text>
+        </svg>
+        <svg class="background-text text-2" viewBox="0 0 600 200">
+            <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle">CREATE</text>
+        </svg>
+        <svg class="background-text text-3" viewBox="0 0 700 200">
+            <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle">DESIGN</text>
+        </svg>
+        <svg class="background-text text-4" viewBox="0 0 800 200">
+            <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle">SHOWCASE</text>
+        </svg>
+    </div>
+
+    <div class="container">
+        <header class="header">
+            <h1 class="title">Manage Sites</h1>
+            <p class="subtitle">Add or remove websites from your showcase</p>
+            <a href="main.html" class="back-btn">← Back to Showcase</a>
+        </header>
+
+        <main class="manage-section">
+            <div class="add-site">
+                <h2>Add New Site</h2>
+                <form id="add-form" class="add-form">
+                    <input type="url" id="new-url" placeholder="Enter website URL (e.g., https://example.com)" required>
+                    <button type="submit" class="btn-primary">Add Site</button>
+                </form>
+            </div>
+
+            <div class="sites-list">
+                <h2>Current Sites</h2>
+                <div id="sites-container" class="sites-grid">
+                    <!-- Current sites will be loaded here -->
+                </div>
+            </div>
+
+            <div class="file-operations">
+                <h2>File Operations</h2>
+                <div class="file-controls">
+                    <button id="download-btn" class="btn-secondary">Download store.txt</button>
+                    <input type="file" id="upload-input" accept=".txt" style="display: none;">
+                    <button id="upload-btn" class="btn-secondary">Upload store.txt</button>
+                    <button id="clear-all-btn" class="btn-danger">Clear All Sites</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="notification" class="notification hidden">
+        <span class="notification-text"></span>
+        <button class="notification-close">×</button>
+    </div>
+
+    <script src="js/megamind.js"></script>
+</body>
+</html>

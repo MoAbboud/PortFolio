@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>❄️ Snowball Creator ❄️</title>
+    
+    <!-- External Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Application Assets -->
+    <link rel="stylesheet" href="{{ asset('css/snowball.css') }}">
+    <script src="{{ asset('js/snowball.js') }}"></script>
+</head>
+<body>
+    @include('components.header')
+
+    <!-- Snowfall Effect -->
+    <div class="snowfall" id="snowfall"></div>
+
+    <div class="py-6 relative z-10">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <!-- Section 1: Interactive Snowball Interface -->
+            <div class="winter-card overflow-hidden shadow-sm sm:rounded-lg mb-6">
+                <div class="p-6 text-gray-900 dark:text-gray-100">
+                    <h3 class="text-lg font-medium mb-4 flex items-center">
+                        <span class="mr-2">❄️</span>
+                        Snowball Creator
+                        <span class="ml-2">🌨️</span>
+                    </h3>
+                    
+                    <!-- Active Node Container -->
+                    <div id="active-node-container" class="mb-8">
+                        <!-- Initial text input - Enhanced and Commanding -->
+                        <div id="initial-input" class="w-full text-center">
+                            <div class="max-w-2xl mx-auto">
+                                <input 
+                                    type="text" 
+                                    id="root-input" 
+                                    class="hero-input w-full rounded-xl shadow-lg focus:ring-4 focus:ring-offset-2 text-center"
+                                    placeholder="❄️ Enter your starting point to begin the snowball adventure..."
+                                >
+                                <div class="mt-6">
+                                    <button 
+                                        id="start-button" 
+                                        class="hero-button inline-flex items-center justify-center rounded-xl transition-all duration-300"
+                                    >
+                                        <span class="mr-2">🌨️</span>
+                                        Begin Snowball
+                                        <span class="ml-2">🎰</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Active node (hidden initially) -->
+                        <div id="active-node" class="hidden w-full p-4 winter-active rounded-lg mb-4 wind-enter">
+                            <!-- Content will be dynamically inserted here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Options Container (for the four options: 1 custom + 3 generated) -->
+                    <div id="options-container" class="hidden wind-enter">
+                        <h4 class="text-sm font-medium mb-4 flex items-center wind-enter wind-delay-1">
+                            <span class="mr-2">🎿</span>
+                            Choose your next step:
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                            <!-- First option is a text input with submit button -->
+                            <div class="custom-input-box winter-option p-4 rounded-lg relative overflow-hidden wind-enter wind-delay-2" data-option="1">
+                                <div class="relative z-10">
+                                    <div class="text-center mb-2">
+                                        <span class="text-lg">✏️</span>
+                                        <div class="text-xs font-medium text-gray-600">Custom</div>
+                                    </div>
+                                    <input 
+                                        type="text" 
+                                        class="custom-option-input winter-input w-full bg-transparent border rounded px-2 py-1 text-sm"
+                                        placeholder="Your own idea..."
+                                    >
+                                    <button class="submit-button winter-btn mt-2 px-3 py-1 text-white text-xs rounded w-full">
+                                        Submit
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Generated options -->
+                            <div class="option-box winter-option cursor-pointer p-4 rounded-lg relative overflow-hidden wind-enter wind-delay-3" data-option="2">
+                                <div class="winter-fill fill-animation absolute bottom-0 left-0 w-0 h-full"></div>
+                                <div class="relative z-10 text-center">
+                                    <div class="text-lg mb-1">🎯</div>
+                                    <span class="text-sm font-medium">Option 2</span>
+                                </div>
+                            </div>
+                            <div class="option-box winter-option cursor-pointer p-4 rounded-lg relative overflow-hidden wind-enter wind-delay-4" data-option="3">
+                                <div class="winter-fill fill-animation absolute bottom-0 left-0 w-0 h-full"></div>
+                                <div class="relative z-10 text-center">
+                                    <div class="text-lg mb-1">⭐</div>
+                                    <span class="text-sm font-medium">Option 3</span>
+                                </div>
+                            </div>
+                            <div class="option-box winter-option cursor-pointer p-4 rounded-lg relative overflow-hidden wind-enter wind-delay-5" data-option="4">
+                                <div class="winter-fill fill-animation absolute bottom-0 left-0 w-0 h-full"></div>
+                                <div class="relative z-10 text-center">
+                                    <div class="text-lg mb-1">🚀</div>
+                                    <span class="text-sm font-medium">Option 4</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Hidden field to store the global string -->
+                    <input type="hidden" id="global-string" value="">
+                    
+                    <!-- Visual indicator of the path taken - Essay Format -->
+                    <div id="path-display" class="mt-8 text-sm text-gray-600 dark:text-gray-400 hidden wind-enter">
+                        <h4 class="font-medium mb-4 flex items-center wind-enter wind-delay-2">
+                            <span class="mr-2">�</span>
+                            Your Snowball Essay:
+                        </h4>
+                        <div id="path-content" class="winter-path p-4 rounded-lg wind-enter wind-delay-3">
+                            <div id="path-essay" class="text-gray-800 leading-relaxed">
+                                <!-- Essay content will be dynamically inserted here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: Tree Visualization - Full Width -->
+            <div class="winter-card overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 text-gray-900 dark:text-gray-100">
+                    <h3 class="text-lg font-medium mb-4 flex items-center">
+                        <span class="mr-2">🌲</span>
+                        Decision Tree - Your Choice Pathway
+                    </h3>
+                    <div id="tree-container" class="hidden">
+                        <div id="tree-visualization" class="tree-container min-h-96 bg-gradient-to-b from-blue-50 to-white dark:from-gray-700 dark:to-gray-800 rounded-lg overflow-auto">
+                            <div id="tree-content">
+                                <!-- Tree levels will be dynamically inserted here -->
+                            </div>
+                        </div>
+                    </div>
+                    <p id="tree-placeholder" class="text-gray-500">Start your snowball to see the decision tree visualization grow from bottom to top.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gradient-to-r from-blue-800 via-blue-900 to-blue-800 text-white py-8 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-blue-200">❄️ Snowball Creator - Where ideas grow and evolve ❄️</p>
+            <p class="text-blue-300 text-sm mt-2">Click and hold options for 3 seconds to select them</p>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,598 @@
+/* ===================================================================
+   SNOWBALL CREATOR - MODERN CSS ARCHITECTURE
+   ================================================================ */
+
+/* CSS VARIABLES - Design System Foundation */
+:root {
+    /* Color Palette */
+    --snow-white: #ffffff;
+    --ice-blue: #e1f5fe;
+    --frost-blue: #b3e5fc;
+    --winter-blue: #4fc3f7;
+    --deep-winter: #0277bd;
+    --silver-gray: #eceff1;
+    --snow-shadow: rgba(178, 223, 249, 0.3);
+    --ice-shadow: rgba(129, 212, 250, 0.4);
+    
+    /* Typography */
+    --font-size-hero: 1.25rem;
+    --font-size-base: 0.85rem;
+    --font-size-large: 1rem;
+    
+    /* Spacing */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    --spacing-2xl: 3rem;
+    
+    /* Border Radius */
+    --radius-sm: 0.375rem;
+    --radius-md: 0.75rem;
+    --radius-lg: 0.875rem;
+    --radius-xl: 1rem;
+    
+    /* Transitions */
+    --transition-fast: 0.2s ease;
+    --transition-base: 0.3s ease;
+    --transition-slow: 0.5s ease;
+    --transition-hero: 0.4s ease;
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-base: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-hero: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+}
+
+/* ===================================================================
+   BASE STYLES & LAYOUT
+   ================================================================ */
+
+body {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 50%, #90caf9 100%);
+    min-height: 100vh;
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.main-container {
+    position: relative;
+    z-index: 10;
+}
+
+/* ===================================================================
+   COMPONENT STYLES - CARDS & CONTAINERS
+   ================================================================ */
+
+.winter-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--snow-shadow);
+    box-shadow: 0 8px 32px var(--snow-shadow);
+    border-radius: var(--radius-lg);
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    font-size: var(--font-size-large);
+    font-weight: 500;
+    margin-bottom: var(--spacing-lg);
+    color: #374151;
+}
+
+.section-header .emoji {
+    margin-right: var(--spacing-sm);
+}
+
+/* ===================================================================
+   HERO SECTION - MAIN INPUT & BUTTON
+   ================================================================ */
+
+.hero-section {
+    width: 100%;
+    text-align: center;
+}
+
+.hero-input-container {
+    max-width: 48rem;
+    margin: 0 auto;
+}
+
+.hero-input {
+    font-size: var(--font-size-hero);
+    padding: var(--spacing-lg);
+    min-height: 4rem;
+    border: 3px solid var(--winter-blue);
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 10px 40px var(--snow-shadow);
+    transition: all var(--transition-hero);
+    border-radius: var(--radius-xl);
+    width: 100%;
+    text-align: center;
+}
+
+.hero-input:focus {
+    border-color: var(--deep-winter);
+    box-shadow: 0 0 0 4px var(--snow-shadow), 0 15px 50px var(--ice-shadow);
+    background: var(--snow-white);
+    transform: translateY(-2px);
+    outline: none;
+}
+
+.hero-button-container {
+    margin-top: var(--spacing-xl);
+}
+
+.hero-button {
+    font-size: 1.1rem;
+    padding: 1.25rem var(--spacing-2xl);
+    background: linear-gradient(145deg, var(--winter-blue), var(--deep-winter));
+    border: none;
+    color: white;
+    font-weight: bold;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border-radius: var(--radius-xl);
+    box-shadow: 0 8px 30px rgba(59, 130, 246, 0.4);
+    transition: all var(--transition-base);
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hero-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left var(--transition-slow);
+}
+
+.hero-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(59, 130, 246, 0.6);
+    background: linear-gradient(145deg, var(--deep-winter), #01579b);
+}
+
+.hero-button:hover::before {
+    left: 100%;
+}
+
+.hero-button:active {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 25px rgba(59, 130, 246, 0.5);
+}
+
+/* ===================================================================
+   OPTIONS SECTION - INTERACTIVE CHOICES
+   ================================================================ */
+
+.options-section {
+    margin-bottom: var(--spacing-xl);
+}
+
+.options-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-lg);
+}
+
+@media (min-width: 768px) {
+    .options-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .options-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.winter-option {
+    background: linear-gradient(145deg, var(--ice-blue), var(--frost-blue));
+    border: 1px solid var(--winter-blue);
+    transition: all var(--transition-base);
+    position: relative;
+    overflow: hidden;
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+}
+
+.winter-option:hover {
+    background: linear-gradient(145deg, var(--frost-blue), var(--winter-blue));
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px var(--ice-shadow);
+}
+
+.winter-option::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+    transform: rotate(45deg);
+    transition: all var(--transition-slow);
+    opacity: 0;
+}
+
+.winter-option:hover::before {
+    opacity: 1;
+    animation: shimmer 1.5s ease-in-out;
+}
+
+.option-content {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+}
+
+.option-emoji {
+    font-size: 1.125rem;
+    margin-bottom: var(--spacing-xs);
+}
+
+.option-label {
+    font-size: var(--font-size-base);
+    font-weight: 500;
+    color: #374151;
+}
+
+/* Custom Input Option */
+.custom-input-option .option-label {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-bottom: var(--spacing-sm);
+}
+
+.custom-option-input {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid var(--frost-blue);
+    border-radius: var(--radius-sm);
+    padding: var(--spacing-sm);
+    font-size: var(--font-size-base);
+    transition: all var(--transition-base);
+}
+
+.custom-option-input:focus {
+    border-color: var(--winter-blue);
+    box-shadow: 0 0 0 3px var(--snow-shadow);
+    background: var(--snow-white);
+    outline: none;
+}
+
+.submit-button {
+    background: linear-gradient(145deg, var(--winter-blue), var(--deep-winter));
+    border: none;
+    color: white;
+    margin-top: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    width: 100%;
+    cursor: pointer;
+    transition: all var(--transition-base);
+}
+
+.submit-button:hover {
+    background: linear-gradient(145deg, var(--deep-winter), #01579b);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px var(--ice-shadow);
+}
+
+/* Fill Animation for Options */
+.winter-fill {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 100%;
+    background: linear-gradient(90deg, var(--winter-blue), var(--deep-winter));
+    opacity: 0.6;
+    transition: width 0.3s ease-out;
+}
+
+/* ===================================================================
+   ACTIVE NODE & PATH DISPLAY
+   ================================================================ */
+
+.active-node {
+    width: 100%;
+    padding: var(--spacing-lg);
+    background: linear-gradient(145deg, var(--frost-blue), var(--ice-blue));
+    border: 2px solid var(--winter-blue);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--spacing-lg);
+    font-weight: 500;
+    color: #374151;
+}
+
+.path-display {
+    margin-top: var(--spacing-xl);
+}
+
+.path-content {
+    background: linear-gradient(145deg, var(--silver-gray), var(--ice-blue));
+    border: 1px solid var(--frost-blue);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+}
+
+.path-essay {
+    color: #374151;
+    line-height: 1.625;
+}
+
+.path-starting-text {
+    font-weight: 500;
+    color: #1d4ed8;
+}
+
+.path-step-text {
+    font-weight: 500;
+    color: #374151;
+}
+
+/* ===================================================================
+   TREE VISUALIZATION
+   ================================================================ */
+
+.tree-container {
+    overflow-x: auto;
+    padding: var(--spacing-xl);
+    background: linear-gradient(to bottom, #f8fafc, white);
+    border-radius: var(--radius-lg);
+    min-height: 24rem;
+}
+
+.tree-level {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    margin: var(--spacing-xl) 0;
+    position: relative;
+}
+
+.tree-node {
+    background: linear-gradient(145deg, var(--ice-blue), var(--frost-blue));
+    border: 2px solid var(--winter-blue);
+    border-radius: var(--radius-xl);
+    padding: 0.75rem var(--spacing-md);
+    margin: 0 var(--spacing-md);
+    box-shadow: 0 4px 15px var(--snow-shadow);
+    transition: all var(--transition-base);
+    position: relative;
+    min-width: 120px;
+    max-width: 180px;
+    text-align: center;
+    font-size: var(--font-size-base);
+    line-height: 1.3;
+}
+
+.tree-node:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px var(--ice-shadow);
+}
+
+.tree-node.chosen {
+    background: linear-gradient(145deg, var(--winter-blue), var(--deep-winter));
+    color: white;
+    font-weight: bold;
+    border-color: var(--deep-winter);
+}
+
+.tree-node.alternative {
+    background: linear-gradient(145deg, #f8fafc, #e2e8f0);
+    border: 2px dashed var(--silver-gray);
+    opacity: 0.7;
+    font-style: italic;
+}
+
+.tree-node.root {
+    background: linear-gradient(145deg, #065f46, #047857);
+    color: white;
+    font-weight: bold;
+    font-size: var(--font-size-large);
+    min-width: 200px;
+    border-color: #047857;
+}
+
+/* Tree Connections */
+.tree-connections {
+    position: absolute;
+    top: -var(--spacing-md);
+    left: 0;
+    right: 0;
+    height: var(--spacing-xl);
+    pointer-events: none;
+}
+
+.tree-branch {
+    position: absolute;
+    background: var(--winter-blue);
+    opacity: 0.6;
+}
+
+.tree-branch.vertical {
+    width: 2px;
+    height: var(--spacing-md);
+    top: 0;
+}
+
+.tree-branch.horizontal {
+    height: 2px;
+    top: var(--spacing-md);
+}
+
+/* ===================================================================
+   ANIMATIONS
+   ================================================================ */
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+    100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+}
+
+@keyframes treeGrow {
+    from {
+        opacity: 0;
+        transform: scale(0.3) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes snowfall {
+    0% {
+        transform: translateY(-100vh) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100vh) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+/* Wind Animation - Fade in from left to right */
+.wind-enter {
+    opacity: 0;
+    transform: translateX(-50px);
+    transition: all 0.8s ease-out;
+}
+
+.wind-enter.animate {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* Staggered animation delays */
+.wind-delay-1 { transition-delay: 0.2s; }
+.wind-delay-2 { transition-delay: 0.4s; }
+.wind-delay-3 { transition-delay: 0.6s; }
+.wind-delay-4 { transition-delay: 0.8s; }
+.wind-delay-5 { transition-delay: 1.0s; }
+
+.tree-node.animate-in {
+    animation: treeGrow 0.6s ease-out;
+}
+
+/* ===================================================================
+   SNOWFALL EFFECT
+   ================================================================ */
+
+.snowfall {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.snowflake {
+    position: absolute;
+    color: var(--snow-white);
+    font-size: 1em;
+    animation: snowfall linear infinite;
+    opacity: 0.8;
+}
+
+/* ===================================================================
+   UTILITY CLASSES
+   ================================================================ */
+
+.hidden {
+    display: none !important;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.relative {
+    position: relative;
+}
+
+.absolute {
+    position: absolute;
+}
+
+.flex {
+    display: flex;
+}
+
+.items-center {
+    align-items: center;
+}
+
+.justify-center {
+    justify-content: center;
+}
+
+.w-full {
+    width: 100%;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+/* ===================================================================
+   RESPONSIVE DESIGN
+   ================================================================ */
+
+@media (max-width: 640px) {
+    .hero-input {
+        font-size: 1rem;
+        padding: var(--spacing-md);
+    }
+    
+    .hero-button {
+        font-size: 1rem;
+        padding: var(--spacing-md) var(--spacing-lg);
+    }
+    
+    .options-grid {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-sm);
+    }
+    
+    .tree-container {
+        padding: var(--spacing-md);
+    }
+    
+    .tree-node {
+        min-width: 100px;
+        max-width: 140px;
+        font-size: 0.75rem;
+        padding: var(--spacing-sm);
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-input-container {
+        max-width: none;
+        margin: 0;
+    }
+    
+    .winter-option {
+        padding: var(--spacing-md);
+    }
+}
