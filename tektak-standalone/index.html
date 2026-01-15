@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TekTak - TikTok Drama Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .tek-gradient {
+            background: linear-gradient(90deg, #EE1D52, #69C9D0);
+        }
+        .tiktok-bg {
+            background-color: #121212;
+        }
+        .tiktok-pink {
+            color: #EE1D52;
+        }
+        .tiktok-blue {
+            color: #69C9D0;
+        }
+        .hashtag-badge {
+            transition: all 0.2s;
+        }
+        .hashtag-badge:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body class="tiktok-bg text-white min-h-screen">
+    <!-- Header -->
+    <header class="tek-gradient shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex justify-center items-center">
+                <h1 class="text-4xl font-bold flex items-center">
+                    <i class="fab fa-tiktok mr-3"></i> TekTak Drama
+                </h1>
+            </div>
+            <p class="text-center text-white mt-2">Tracking social media drama, tea, and controversies</p>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-10">
+        <!-- Main Drama Stories -->
+        <div class="bg-gray-900 rounded-lg shadow-xl p-8 mb-10">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-semibold flex items-center">
+                    <span class="text-3xl mr-2">🍿</span> Latest Drama & Controversies
+                </h2>
+                <p class="text-sm text-gray-400" id="lastUpdated"></p>
+            </div>
+            
+            <div class="space-y-6" id="dramaContainer">
+                <!-- Drama items will be inserted here -->
+            </div>
+            
+            <div class="text-center mt-8">
+                <button class="bg-gradient-to-r from-pink-500 to-blue-500 px-6 py-3 rounded-full font-medium hover:from-pink-600 hover:to-blue-600 transition duration-300" onclick="loadMoreDrama()">
+                    Load More Drama
+                </button>
+            </div>
+        </div>
+        
+        <!-- Trending Drama Hashtags -->
+        <div class="bg-gray-900 rounded-lg shadow-xl p-8 mb-10">
+            <h2 class="text-2xl font-semibold mb-6 flex items-center">
+                <span class="text-3xl mr-2">🔥</span> Trending Drama Hashtags
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="hashtagsContainer">
+                <!-- Hashtags will be inserted here -->
+            </div>
+        </div>
+        
+        <!-- Drama Influencers -->
+        <div class="bg-gray-900 rounded-lg shadow-xl p-8">
+            <h2 class="text-2xl font-semibold mb-6 flex items-center">
+                <span class="text-3xl mr-2">👑</span> Tea Spilling Royalty
+            </h2>
+            
+            <div class="grid md:grid-cols-2 gap-6" id="influencersContainer">
+                <!-- Influencers will be inserted here -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="tek-gradient mt-16">
+        <div class="container mx-auto px-4 py-8">
+            <div class="text-center">
+                <p>&copy; 2026 TekTak Drama - Social Media Drama & Controversy Tracker</p>
+                <p class="text-sm mt-2">Not affiliated with TikTok or ByteDance Ltd. | Demo version with sample data</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Sample drama data
+        const dramaData = [
+            {
+                title: "Creator Exposed for Fake Pranks",
+                description: "Popular creator caught staging 'authentic' pranks with paid actors. Community demands apology as follower count drops by millions.",
+                type: "scandal",
+                hashtags: ["FakePranks", "Exposed2026", "TikTokTea"],
+                authorUsername: "@dramaalert",
+                likes: "2.4M",
+                comments: "45K",
+                shares: "12K"
+            },
+            {
+                title: "Influencer Feud Escalates",
+                description: "Two mega-influencers trade insults over alleged plagiarism. Fans pick sides as the drama unfolds in real-time duets.",
+                type: "feud",
+                hashtags: ["InfluencerDrama", "TeaTime", "SocialMediaFeud"],
+                authorUsername: "@teaspiller",
+                likes: "3.1M",
+                comments: "78K",
+                shares: "25K"
+            },
+            {
+                title: "Platform Policy Controversy",
+                description: "New content guidelines spark outrage. Creators organize protest livestreams claiming censorship and unfair treatment.",
+                type: "controversy",
+                hashtags: ["FreeSpeech", "PlatformDrama", "CreatorRights"],
+                authorUsername: "@newsbreaker",
+                likes: "1.8M",
+                comments: "92K",
+                shares: "41K"
+            },
+            {
+                title: "Celebrity Responds to Allegations",
+                description: "A-list celebrity breaks silence on viral accusations with emotional 10-minute video statement. Internet divided on authenticity.",
+                type: "response",
+                hashtags: ["CelebDrama", "Accountability", "TruthComes"],
+                authorUsername: "@popculture",
+                likes: "5.2M",
+                comments: "120K",
+                shares: "67K"
+            },
+            {
+                title: "Legal Action Against Creator",
+                description: "Major brand files lawsuit against creator for breach of contract and defamation. Creator vows to fight in court.",
+                type: "legal",
+                hashtags: ["LegalDrama", "Lawsuit2026", "BrandVsCreator"],
+                authorUsername: "@legalupdates",
+                likes: "980K",
+                comments: "23K",
+                shares: "8K"
+            }
+        ];
+
+        const hashtagData = [
+            { name: "#DramaAlert", type: "drama", posts: "2.4M", views: "1.2B" },
+            { name: "#Exposed", type: "scandal", posts: "1.8M", views: "890M" },
+            { name: "#InfluencerFeud", type: "feud", posts: "956K", views: "420M" },
+            { name: "#CancelCulture", type: "controversy", posts: "3.2M", views: "2.1B" },
+            { name: "#TeaTime", type: "drama", posts: "1.5M", views: "750M" },
+            { name: "#Accountability", type: "response", posts: "890K", views: "340M" }
+        ];
+
+        const influencersData = [
+            { username: "@DramaQueenTV", verified: true, trending_for: "Spilling ALL the tea", followers: "8.2M", avatar: null },
+            { username: "@TheTeaPage", verified: true, trending_for: "Celebrity gossip", followers: "6.7M", avatar: null },
+            { username: "@ExposedDaily", verified: false, trending_for: "Calling out fake content", followers: "4.3M", avatar: null },
+            { username: "@PopCultureGuru", verified: true, trending_for: "Breaking news", followers: "12.1M", avatar: null }
+        ];
+
+        function getTypeColor(type) {
+            const colors = {
+                'feud': 'tiktok-pink',
+                'scandal': 'text-yellow-400',
+                'controversy': 'text-orange-500',
+                'response': 'tiktok-blue',
+                'legal': 'text-purple-400',
+                'drama': 'text-green-400'
+            };
+            return colors[type] || 'text-gray-400';
+        }
+
+        function renderDrama() {
+            const container = document.getElementById('dramaContainer');
+            container.innerHTML = dramaData.map(drama => `
+                <div class="bg-gray-800 p-6 rounded-lg shadow-md">
+                    <div class="flex items-start justify-between mb-3">
+                        <h3 class="text-xl font-bold ${getTypeColor(drama.type)}">
+                            ${drama.title}
+                        </h3>
+                        <span class="bg-gray-900 text-xs px-3 py-1 rounded-full capitalize">
+                            ${drama.type}
+                        </span>
+                    </div>
+                    
+                    <p class="text-gray-300 mb-4">${drama.description}</p>
+                    
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        ${drama.hashtags.map(tag => `
+                            <span class="text-sm bg-gray-700 px-3 py-1 rounded-full hashtag-badge">
+                                #${tag}
+                            </span>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center mr-3">
+                                <i class="fas fa-user text-sm"></i>
+                            </div>
+                            <span class="text-gray-300">${drama.authorUsername}</span>
+                        </div>
+                        
+                        <div class="flex items-center space-x-4 text-sm text-gray-400">
+                            <span><i class="far fa-heart mr-1"></i> ${drama.likes}</span>
+                            <span><i class="far fa-comment mr-1"></i> ${drama.comments}</span>
+                            <span><i class="fas fa-share mr-1"></i> ${drama.shares}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderHashtags() {
+            const container = document.getElementById('hashtagsContainer');
+            container.innerHTML = hashtagData.map(hashtag => `
+                <div class="bg-gray-800 p-4 rounded-lg shadow-md transition-transform hover:transform hover:scale-[1.02]">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-lg font-bold ${getTypeColor(hashtag.type)}">
+                            ${hashtag.name}
+                        </h3>
+                        <span class="bg-gray-900 text-xs px-2 py-1 rounded-full capitalize">
+                            ${hashtag.type}
+                        </span>
+                    </div>
+                    
+                    <div class="flex justify-between mt-3 text-sm">
+                        <span class="text-gray-400">
+                            <i class="fas fa-photo-video mr-1"></i> ${hashtag.posts} posts
+                        </span>
+                        <span class="text-gray-400">
+                            <i class="fas fa-eye mr-1"></i> ${hashtag.views} views
+                        </span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderInfluencers() {
+            const container = document.getElementById('influencersContainer');
+            container.innerHTML = influencersData.map(influencer => `
+                <div class="flex items-center bg-gray-800 p-4 rounded-lg shadow-md">
+                    <div class="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mr-4 overflow-hidden">
+                        <i class="fas fa-user text-2xl"></i>
+                    </div>
+                    
+                    <div>
+                        <div class="flex items-center">
+                            <h3 class="font-bold">${influencer.username}</h3>
+                            ${influencer.verified ? '<span class="ml-1 tiktok-blue"><i class="fas fa-check-circle"></i></span>' : ''}
+                        </div>
+                        
+                        <p class="text-gray-400 text-sm">Known for: <span class="tiktok-pink">${influencer.trending_for}</span></p>
+                        <p class="text-xs text-gray-500 mt-1">${influencer.followers} followers</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function loadMoreDrama() {
+            alert('🎭 This is a demo! In the full version, this would load more drama from the TikTok API.');
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            const now = new Date();
+            document.getElementById('lastUpdated').textContent = `Last updated: ${now.toLocaleString('en-US', { 
+                month: 'short', 
+                day: 'numeric', 
+                year: 'numeric', 
+                hour: 'numeric', 
+                minute: '2-digit',
+                hour12: true 
+            })}`;
+            
+            renderDrama();
+            renderHashtags();
+            renderInfluencers();
+        });
+    </script>
+</body>
+</html>
