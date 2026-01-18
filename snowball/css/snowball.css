@@ -72,6 +72,11 @@ body {
     border: 1px solid var(--snow-shadow);
     box-shadow: 0 8px 32px var(--snow-shadow);
     border-radius: var(--radius-lg);
+    transition: box-shadow var(--transition-base);
+}
+
+.winter-card:hover {
+    box-shadow: 0 12px 40px var(--snow-shadow);
 }
 
 .section-header {
@@ -320,6 +325,7 @@ body {
     background: linear-gradient(145deg, var(--frost-blue), var(--ice-blue));
     border: 2px solid var(--winter-blue);
     box-shadow: 0 4px 15px var(--snow-shadow);
+    transition: opacity var(--transition-base), transform var(--transition-base);
 }
 
 .active-node {
@@ -665,6 +671,104 @@ body {
         max-width: none;
         margin: 0;
     }
+    
+    .hero-input {
+        font-size: 1rem;
+        padding: var(--spacing-md);
+    }
+    
+    .hero-button {
+        font-size: 0.9rem;
+        padding: var(--spacing-md) var(--spacing-lg);
+        width: 100%;
+    }
+}
+
+/* ===================================================================
+   ENHANCED VISUAL FEEDBACK & ACCESSIBILITY
+   ================================================================ */
+
+/* Pulse animation for active node */
+@keyframes pulse-glow {
+    0%, 100% {
+        box-shadow: 0 0 10px var(--winter-blue);
+    }
+    50% {
+        box-shadow: 0 0 20px var(--winter-blue), 0 0 30px var(--frost-blue);
+    }
+}
+
+.winter-active {
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Improved option hover states */
+.option-box {
+    transition: all var(--transition-base);
+}
+
+.option-box:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px var(--snow-shadow);
+}
+
+.option-box:active {
+    transform: translateY(-1px);
+}
+
+/* Better focus states for accessibility */
+button:focus-visible,
+input:focus-visible {
+    outline: 3px solid var(--winter-blue);
+    outline-offset: 2px;
+}
+
+/* Loading state for options */
+.option-box.selecting {
+    pointer-events: none;
+}
+
+/* Toast notification styles */
+.toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Control buttons responsive layout */
+@media (max-width: 640px) {
+    #control-buttons {
+        flex-wrap: wrap;
+    }
+    
+    #control-buttons button {
+        flex: 1 1 auto;
+        min-width: 80px;
+    }
+}
+
+/* Smooth scroll behavior */
+html {
+    scroll-behavior: smooth;
+}
     
     .winter-option {
         padding: var(--spacing-md);

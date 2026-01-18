@@ -76,7 +76,11 @@ class SnowballCreator {
             treeContainer: document.getElementById('tree-container'),
             treeContent: document.getElementById('tree-content'),
             treePlaceholder: document.getElementById('tree-placeholder'),
-            snowfall: document.getElementById('snowfall')
+            snowfall: document.getElementById('snowfall'),
+            controlButtons: document.getElementById('control-buttons'),
+            undoButton: document.getElementById('undo-button'),
+            resetButton: document.getElementById('reset-button'),
+            exportButton: document.getElementById('export-button')
         };
     }
     
@@ -85,6 +89,14 @@ class SnowballCreator {
      */
     bindEvents() {
         this.elements.startButton.addEventListener('click', (e) => this.handleStartButton(e));
+        
+        // Control buttons
+        this.elements.undoButton.addEventListener('click', () => this.handleUndo());
+        this.elements.resetButton.addEventListener('click', () => this.handleReset());
+        this.elements.exportButton.addEventListener('click', () => this.handleExport());
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => this.handleKeyboard(e));
         
         // Add initial event listeners to option boxes (they might exist from previous states)
         this.attachInitialOptionListeners();
@@ -112,6 +124,143 @@ class SnowballCreator {
     }
     
     /**
+     * Handle keyboard shortcuts
+     */
+    handleKeyboard(e) {
+        // Alt+Z for undo
+        if (e.altKey && e.key === 'z') {
+            e.preventDefault();
+            this.handleUndo();
+        }
+        // Alt+R for reset
+        else if (e.altKey && e.key === 'r') {
+            e.preventDefault();
+            this.handleReset();
+        }
+        // Alt+E for export
+        else if (e.altKey && e.key === 'e') {
+            e.preventDefault();
+            this.handleExport();
+        }
+        // Number keys 1-4 for selecting options (when options are visible)
+        else if (!this.elements.optionsContainer.classList.contains('hidden')) {
+            if (e.key >= '1' && e.key <= '4') {
+                e.preventDefault();
+                const optionIndex = parseInt(e.key) - 1;
+                if (optionIndex === 0) {
+                    // Focus custom input
+                    const customInput = document.querySelector('.custom-option-input');
+                    if (customInput) customInput.focus();
+                } else {
+                    // Select the corresponding option
+                    const optionBoxes = document.querySelectorAll('.option-box');
+                    if (optionBoxes[optionIndex - 1]) {
+                        this.handleOptionClick(optionBoxes[optionIndex - 1]);
+                    }
+                }
+            }
+        }
+    }
+    
+    /**
+     * Handle undo - remove last step
+     */
+    handleUndo() {
+        if (this.pathArray.length <= 1) {
+            this.showAlert('❄️ Nothing to undo! This is your starting point.');
+            return;
+        }
+        
+        // Remove last item
+        this.pathArray.pop();
+        
+        // Update active node to previous item
+        this.elements.activeNode.textContent = this.pathArray[this.pathArray.length - 1];
+        
+        // Update global string
+        this.elements.globalStringField.value = this.pathArray.join(" ❄️ ");
+        
+        // Update displays
+        this.updatePathDisplay();
+        this.updateTreeVisualization();
+        
+        // Set up options for the new current position
+        const optionIndex = (this.pathArray.length - 1) % SNOWBALL_CONFIG.SAMPLE_OPTIONS.length;
+        this.setupOptions(optionIndex);
+        
+        console.log('Undo completed. Current path:', this.pathArray);
+    }
+    
+    /**
+     * Handle reset - restart everything
+     */
+    handleReset() {
+        if (!confirm('❄️ Are you sure you want to reset everything and start over?')) {
+            return;
+        }
+        
+        // Reset all state
+        this.pathArray = [];
+        this.processingSelection = false;
+        this.resetSelection();
+        
+        // Clear global string
+        this.elements.globalStringField.value = '';
+        
+        // Hide control buttons
+        this.elements.controlButtons.classList.add('hidden');
+        
+        // Hide and reset active sections
+        this.elements.activeNode.classList.add('hidden');
+        this.elements.optionsContainer.classList.add('hidden');
+        this.elements.pathDisplay.classList.add('hidden');
+        this.elements.treeContainer.classList.add('hidden');
+        this.elements.treePlaceholder.classList.remove('hidden');
+        
+        // Show initial input
+        this.elements.initialInput.classList.remove('hidden');
+        this.elements.initialInput.style.opacity = '1';
+        this.elements.initialInput.style.transform = 'translateY(0)';
+        this.elements.rootInput.value = '';
+        this.elements.rootInput.focus();
+        
+        console.log('Reset completed');
+    }
+    
+    /**
+     * Handle export - download essay as text file
+     */
+    handleExport() {
+        if (this.pathArray.length === 0) {
+            this.showAlert('❄️ Nothing to export yet! Start your snowball first.');
+            return;
+        }
+        
+        // Get essay text
+        const essayElement = this.elements.pathEssay;
+        let essayText = essayElement.innerText || essayElement.textContent;
+        
+        // Add metadata
+        const date = new Date().toLocaleString();
+        const fullText = `SNOWBALL ESSAY
+Exported: ${date}
+${'='.repeat(50)}\n\n${essayText}\n\n${'='.repeat(50)}\n\nPath taken (${this.pathArray.length} steps):\n${this.pathArray.map((item, i) => `${i + 1}. ${item}`).join('\n')}`;
+        
+        // Create download
+        const blob = new Blob([fullText], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `snowball-essay-${Date.now()}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        console.log('Export completed');
+    }
+    
+    /**
      * Handle start button click
      */
     handleStartButton(e) {
@@ -134,6 +283,9 @@ class SnowballCreator {
         // Update the active node
         this.elements.activeNode.textContent = this.elements.rootInput.value;
         this.elements.activeNode.classList.remove('hidden');
+        
+        // Show control buttons
+        this.elements.controlButtons.classList.remove('hidden');
         
         // Hide initial input with animation
         this.hideInitialInput();
@@ -608,6 +760,12 @@ class SnowballCreator {
         
         this.processingSelection = true;
         
+        // Show toast notification
+        this.showToast(`✓ Selected: ${optionText}`, 2000);
+        
+        // Add selecting class for visual feedback
+        this.elements.optionsContainer.classList.add('selecting');
+        
         // Add to path array
         this.pathArray.push(optionText);
         
@@ -616,8 +774,12 @@ class SnowballCreator {
         // Update global string
         this.elements.globalStringField.value = this.pathArray.join(" ❄️ ");
         
-        // Update active node
-        this.elements.activeNode.textContent = optionText;
+        // Update active node with animation
+        this.elements.activeNode.style.opacity = '0';
+        setTimeout(() => {
+            this.elements.activeNode.textContent = optionText;
+            this.elements.activeNode.style.opacity = '1';
+        }, 200);
         
         // Update displays
         this.updatePathDisplay();
@@ -629,6 +791,9 @@ class SnowballCreator {
             console.log('Setting up options for next round, index:', optionIndex);
             this.setupOptions(optionIndex);
             
+            // Remove selecting class
+            this.elements.optionsContainer.classList.remove('selecting');
+            
             // Reset processing flag after setup is complete
             this.processingSelection = false;
         }, 500);
@@ -638,7 +803,29 @@ class SnowballCreator {
      * Show alert message
      */
     showAlert(message) {
-        alert(message);
+        // Use toast notification instead of alert
+        this.showToast(message);
+    }
+    
+    /**
+     * Show toast notification
+     */
+    showToast(message, duration = 3000) {
+        // Remove existing toasts
+        const existingToasts = document.querySelectorAll('.toast');
+        existingToasts.forEach(toast => toast.remove());
+        
+        // Create new toast
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        
+        // Auto-remove after duration
+        setTimeout(() => {
+            toast.style.animation = 'slideInRight 0.3s ease-out reverse';
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
     }
     
     /**

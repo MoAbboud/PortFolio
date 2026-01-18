@@ -9,14 +9,28 @@ An interactive story/thought builder where ideas grow and branch like a rolling 
 - **Visual tree** - See your decision tree grow as you make choices
 - **Essay format** - View your snowball journey as a flowing narrative
 - **Beautiful animations** - Snowfall effects and smooth transitions
+- **Undo/Reset** - Step back or start over at any time
+- **Export** - Download your essay as a text file
+- **Keyboard shortcuts** - Fast navigation with Alt+Z (Undo), Alt+R (Reset), Alt+E (Export), 1-4 (Select options)
+- **Mobile friendly** - Responsive design works on all devices
+- **Toast notifications** - Clean, non-intrusive feedback
 
 ## 🚀 How to Use
 
 1. Open `index.html` in any modern web browser
 2. Enter your starting thought in the input field
-3. Click "Begin Snowball"
+3. Click "Begin Snowball" or press Enter
 4. Choose from the generated prompts OR type your own custom idea
 5. Watch your thought chain grow!
+6. Use Undo (Alt+Z) to step back, Reset (Alt+R) to start over, or Export (Alt+E) to save your essay
+
+### ⌨️ Keyboard Shortcuts
+
+- **Alt+Z** - Undo last step
+- **Alt+R** - Reset everything
+- **Alt+E** - Export essay as text file
+- **1-4** - Quick select options (1 = custom input, 2-4 = preset options)
+- **Enter** - Submit custom input when focused
 
 ## 📦 Deployment
 
