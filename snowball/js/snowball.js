@@ -35,7 +35,13 @@ const SNOWBALL_CONFIG = {
         ', followed by',
         ', which evolved into',
         ', and then moving toward',
-        ', subsequently developing'
+        ', subsequently developing',
+        ', which naturally progressed to',
+        ', before shifting toward',
+        ', ultimately arriving at',
+        ', branching into',
+        ', circling back to examine',
+        ', deepening into'
     ]
 };
 
@@ -80,7 +86,9 @@ class SnowballCreator {
             controlButtons: document.getElementById('control-buttons'),
             undoButton: document.getElementById('undo-button'),
             resetButton: document.getElementById('reset-button'),
-            exportButton: document.getElementById('export-button')
+            exportButton: document.getElementById('export-button'),
+            copyButton: document.getElementById('copy-button'),
+            wordCountNumber: document.getElementById('word-count-number')
         };
     }
     
@@ -94,6 +102,7 @@ class SnowballCreator {
         this.elements.undoButton.addEventListener('click', () => this.handleUndo());
         this.elements.resetButton.addEventListener('click', () => this.handleReset());
         this.elements.exportButton.addEventListener('click', () => this.handleExport());
+        this.elements.copyButton.addEventListener('click', () => this.handleCopy());
         
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => this.handleKeyboard(e));
@@ -141,6 +150,11 @@ class SnowballCreator {
         else if (e.altKey && e.key === 'e') {
             e.preventDefault();
             this.handleExport();
+        }
+        // Alt+C for copy
+        else if (e.altKey && e.key === 'c') {
+            e.preventDefault();
+            this.handleCopy();
         }
         // Number keys 1-4 for selecting options (when options are visible)
         else if (!this.elements.optionsContainer.classList.contains('hidden')) {
@@ -258,6 +272,31 @@ ${'='.repeat(50)}\n\n${essayText}\n\n${'='.repeat(50)}\n\nPath taken (${this.pat
         URL.revokeObjectURL(url);
         
         console.log('Export completed');
+        this.showAlert('✅ Essay exported successfully!');
+    }
+    
+    /**
+     * Handle copy - copy essay to clipboard
+     */
+    handleCopy() {
+        if (this.pathArray.length === 0) {
+            this.showAlert('❄️ Nothing to copy yet! Start your snowball first.');
+            return;
+        }
+        
+        // Get essay text
+        const essayElement = this.elements.pathEssay;
+        let essayText = essayElement.innerText || essayElement.textContent;
+        
+        // Copy to clipboard
+        navigator.clipboard.writeText(essayText).then(() => {
+            this.showAlert('📋 Essay copied to clipboard!');
+        }).catch(err => {
+            this.showAlert('❌ Failed to copy to clipboard');
+            console.error('Copy failed:', err);
+        });
+        
+        console.log('Copy completed');
     }
     
     /**
@@ -365,6 +404,20 @@ ${'='.repeat(50)}\n\n${essayText}\n\n${'='.repeat(50)}\n\nPath taken (${this.pat
         }
         
         this.elements.pathEssay.innerHTML = essayText;
+        this.updateWordCount();
+    }
+    
+    /**
+     * Update the word count display
+     */
+    updateWordCount() {
+        if (!this.elements.wordCountNumber) return;
+        
+        const essayElement = this.elements.pathEssay;
+        const text = essayElement.innerText || essayElement.textContent || '';
+        const wordCount = text.trim().split(/\s+/).filter(word => word.length > 0).length;
+        
+        this.elements.wordCountNumber.textContent = wordCount;
     }
     
     /**
@@ -841,6 +894,10 @@ ${'='.repeat(50)}\n\n${essayText}\n\n${'='.repeat(50)}\n\nPath taken (${this.pat
             snowflake.style.animationDelay = Math.random() * 2 + 's';
             snowflake.style.fontSize = Math.random() * 10 + 10 + 'px';
             snowflake.style.opacity = Math.random() * 0.6 + 0.4;
+            
+            // Add slight horizontal drift for more natural movement
+            const drift = (Math.random() - 0.5) * 100;
+            snowflake.style.setProperty('--drift', drift + 'px');
             
             this.elements.snowfall.appendChild(snowflake);
             

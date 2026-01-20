@@ -49,6 +49,9 @@
                             <button id="export-button" class="px-3 py-1.5 text-sm bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors duration-200" title="Export essay (Alt+E)">
                                 💾 Export
                             </button>
+                            <button id="copy-button" class="px-3 py-1.5 text-sm bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors duration-200" title="Copy essay to clipboard (Alt+C)">
+                                📋 Copy
+                            </button>
                         </div>
                     </div>
                     
@@ -62,6 +65,8 @@
                                     id="root-input" 
                                     class="hero-input w-full rounded-xl shadow-lg focus:ring-4 focus:ring-offset-2 text-center"
                                     placeholder="❄️ Enter your starting point to begin the snowball adventure..."
+                                    aria-label="Enter your starting idea or thought"
+                                    role="textbox"
                                 >
                                 <div class="mt-6">
                                     <button 
@@ -137,10 +142,15 @@
                     
                     <!-- Visual indicator of the path taken - Essay Format -->
                     <div id="path-display" class="mt-8 text-sm text-gray-600 dark:text-gray-400 hidden wind-enter">
-                        <h4 class="font-medium mb-4 flex items-center wind-enter wind-delay-2">
-                            <span class="mr-2">📖</span>
-                            Your Snowball Essay:
-                        </h4>
+                        <div class="flex justify-between items-center mb-4">
+                            <h4 class="font-medium flex items-center wind-enter wind-delay-2">
+                                <span class="mr-2">📖</span>
+                                Your Snowball Essay:
+                            </h4>
+                            <div id="word-count" class="text-xs bg-blue-100 dark:bg-blue-900 px-3 py-1 rounded-full">
+                                <span class="font-semibold" id="word-count-number">0</span> words
+                            </div>
+                        </div>
                         <div id="path-content" class="winter-path p-4 rounded-lg wind-enter wind-delay-3">
                             <div id="path-essay" class="text-gray-800 leading-relaxed">
                                 <!-- Essay content will be dynamically inserted here -->
@@ -175,7 +185,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <p class="text-blue-200">❄️ Snowball Creator - Where ideas grow and evolve ❄️</p>
             <p class="text-blue-300 text-sm mt-2">Click options to select them • Type your custom ideas</p>
-            <p class="text-blue-400 text-xs mt-3">⌨️ Shortcuts: Alt+Z (Undo) • Alt+R (Reset) • Alt+E (Export) • 1-4 (Select option)</p>
+            <p class="text-blue-400 text-xs mt-3">⌨️ Shortcuts: Alt+Z (Undo) • Alt+R (Reset) • Alt+E (Export) • Alt+C (Copy) • 1-4 (Select option)</p>
         </div>
     </footer>
 
