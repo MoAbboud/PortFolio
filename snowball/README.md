@@ -7,11 +7,12 @@ An interactive story/thought builder where ideas grow and branch like a rolling 
 - **Start with a seed idea** - Enter any word, phrase, or sentence
 - **Branch your thoughts** - Choose from 3 AI-generated prompts or create your own
 - **Visual tree** - See your decision tree grow as you make choices
-- **Essay format** - View your snowball journey as a flowing narrative
-- **Beautiful animations** - Snowfall effects and smooth transitions
+- **Essay format** - View your snowball journey as a flowing narrative with word count
+- **Beautiful animations** - Enhanced snowfall effects with drift and smooth transitions
 - **Undo/Reset** - Step back or start over at any time
 - **Export** - Download your essay as a text file
-- **Keyboard shortcuts** - Fast navigation with Alt+Z (Undo), Alt+R (Reset), Alt+E (Export), 1-4 (Select options)
+- **Copy to Clipboard** - Quickly copy your essay for sharing
+- **Keyboard shortcuts** - Fast navigation with Alt+Z (Undo), Alt+R (Reset), Alt+E (Export), Alt+C (Copy), 1-4 (Select options)
 - **Mobile friendly** - Responsive design works on all devices
 - **Toast notifications** - Clean, non-intrusive feedback
 
@@ -29,6 +30,7 @@ An interactive story/thought builder where ideas grow and branch like a rolling 
 - **Alt+Z** - Undo last step
 - **Alt+R** - Reset everything
 - **Alt+E** - Export essay as text file
+- **Alt+C** - Copy essay to clipboard
 - **1-4** - Quick select options (1 = custom input, 2-4 = preset options)
 - **Enter** - Submit custom input when focused
 
