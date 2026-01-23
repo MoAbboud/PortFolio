@@ -6,7 +6,7 @@ An interactive story/thought builder where ideas grow and branch like a rolling 
 
 ## 🎯 Features
 
-- **Start with a seed idea** - Enter any word, phrase, or sentence
+- **Start with a seed idea** - Enter any word, phrase, or sentence to begin your journey
 - **Branch your thoughts** - Choose from 3 AI-generated prompts or create your own
 - **Visual tree** - See your decision tree grow as you make choices
 - **Essay format** - View your snowball journey as a flowing narrative with word count
