@@ -1,6 +1,8 @@
 # ❄️ Snowball Creator
 
-An interactive story/thought builder where ideas grow and branch like a rolling snowball. 🎨
+An interactive story/thought builder where ideas grow and branch like a rolling snowball. Create branching narratives and watch your thoughts evolve into beautiful story trees! 🎨
+
+*Updated January 2026*
 
 ## 🎯 Features
 
