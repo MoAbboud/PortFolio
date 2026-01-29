@@ -12,7 +12,7 @@ An interactive story/thought builder where ideas grow and branch like a rolling 
 - **Essay format** - View your snowball journey as a flowing narrative with word count
 - **Beautiful animations** - Enhanced snowfall effects with drift and smooth transitions
 - **Undo/Reset** - Step back or start over at any time
-- **Export** - Download your essay as a text file
+- **Export** - Download your essay as a text file for safekeeping
 - **Copy to Clipboard** - Quickly copy your essay for sharing
 - **Keyboard shortcuts** - Fast navigation with Alt+Z (Undo), Alt+R (Reset), Alt+E (Export), Alt+C (Copy), 1-4 (Select options)
 - **Mobile friendly** - Responsive design works on all devices
