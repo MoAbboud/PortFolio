@@ -15,7 +15,7 @@ An interactive story/thought builder where ideas grow and branch like a rolling 
 - **Export** - Download your essay as a text file for safekeeping
 - **Copy to Clipboard** - Quickly copy your essay for sharing
 - **Keyboard shortcuts** - Fast navigation with Alt+Z (Undo), Alt+R (Reset), Alt+E (Export), Alt+C (Copy), 1-4 (Select options)
-- **Mobile friendly** - Responsive design works on all devices
+- **Mobile friendly** - Responsive design that works on all devices
 - **Toast notifications** - Clean, non-intrusive feedback
 
 ## 🚀 How to Use
