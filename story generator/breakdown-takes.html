@@ -481,17 +481,20 @@ function syncUI() {
   document.getElementById('btn-step').disabled  = isPlaying || visibleCount >= total;
 }
 
-/* CARD_HALF: half the node card height so lines start/end at card edges not center.
-   Cards are placed at top: pos.y - 28, so 28px is the top-half offset. */
-const CARD_HALF = 28;
+/* CARD_TOP_OFFSET: cards are always placed with top = pos.y - 28,
+   so the top edge of every card is always exactly pos.y - 28.
+   For the bottom edge we measure the real DOM element since text
+   wrapping makes card heights variable. */
+const CARD_TOP_OFFSET = 28;
 
 function _drawNodeDOM(n) {
   const board  = document.getElementById('board');
   const svg    = document.getElementById('lines-svg');
   const boardW = board.offsetWidth;
 
-  /* Line from parent — route bottom-edge of parent → top-edge of child
-     so the line never passes through either card face. */
+  /* Line from parent — start at the real bottom edge of the parent card
+     (looked up from DOM since it's already rendered), end at the top
+     edge of the child card (always pos.y - CARD_TOP_OFFSET). */
   if (n.parent !== null) {
     const parentN = positionedNodes.find(p => p.id === n.parent);
     if (parentN) {
@@ -499,16 +502,24 @@ function _drawNodeDOM(n) {
       if (visibleIds.has(parentN.id)) {
         const fc = getCenter(parentN);
         const tc = getCenter(n);
-        /* Start at bottom-centre of parent card, end at top-centre of child card */
-        const fx   = fc.x, fy = fc.y + CARD_HALF;
-        const tx   = tc.x, ty = tc.y - CARD_HALF;
+
+        /* Real bottom of parent card from DOM */
+        const parentEl = board.querySelector(`[data-nid="${parentN.id}"]`);
+        const fy = parentEl
+          ? parentEl.getBoundingClientRect().bottom - board.getBoundingClientRect().top
+          : fc.y + CARD_TOP_OFFSET;
+
+        /* Top of child card is always pos.y - CARD_TOP_OFFSET */
+        const tx   = tc.x;
+        const ty   = tc.y - CARD_TOP_OFFSET;
+        const fx   = fc.x;
         const midY = (fy + ty) / 2;
+
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         path.setAttribute('d', `M${fx},${fy} C${fx},${midY} ${tx},${midY} ${tx},${ty}`);
         path.setAttribute('fill', 'none');
-        path.setAttribute('stroke', '#555');
+        path.setAttribute('stroke', '#606070');
         path.setAttribute('stroke-width', '2.5');
-        path.setAttribute('stroke-dasharray', 'none');
         /* Dot only on the line arriving at the very last node of the whole story */
         const isTrueLast = n.id === positionedNodes[positionedNodes.length - 1].id;
         if (isTrueLast) path.setAttribute('marker-end', 'url(#dot)');
@@ -518,14 +529,15 @@ function _drawNodeDOM(n) {
     }
   }
 
-  /* Node card */
+  /* Node card — tagged with data-nid so future children can measure it */
   const colors = TYPE_COLORS[n.type] || TYPE_COLORS.context;
   const pos    = getCenter(n);
   const nodeW  = Math.min(240, boardW * 0.22);
 
   const div = document.createElement('div');
   div.className = 'node';
-  div.style.cssText = `left:${pos.x - nodeW / 2}px; top:${pos.y - 28}px; width:${nodeW}px;
+  div.dataset.nid = n.id;
+  div.style.cssText = `left:${pos.x - nodeW / 2}px; top:${pos.y - CARD_TOP_OFFSET}px; width:${nodeW}px;
     background:${colors.bg}; border-color:${colors.border};`;
   div.innerHTML = `
     <div class="node-inner">
