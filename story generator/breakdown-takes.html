@@ -244,8 +244,8 @@
   <div id="error-msg" class="error-msg" style="display:none;"></div>
 
   <div class="ed-btn-row">
-    <button class="btn-primary" onclick="generateTree()">🌳 Generate Tree</button>
-    <button class="btn-secondary" id="btn-copy-row" onclick="copyRow()" disabled title="Generate a tree first">📋 Copy Tracker Row</button>
+    <button class="btn-primary" onclick="generateTree()">Generate Tree</button>
+    <button class="btn-secondary" id="btn-save-csv" onclick="saveToCSV()" disabled title="Generate a tree first">Save to CSV</button>
     <div class="speed-area">
       <span class="speed-label">Speed:</span>
       <select id="speed-select" class="speed-select">
@@ -327,12 +327,12 @@
 <script>
 /* ── COLOURS ── */
 const TYPE_COLORS = {
-  context:    { bg: "rgba(74,123,247,0.18)",  border: "#4A7BF7", icon: "📋" },
-  escalation: { bg: "rgba(245,146,27,0.18)",  border: "#F5921B", icon: "📈" },
-  conflict:   { bg: "rgba(231,76,60,0.22)",   border: "#E74C3C", icon: "⚡" },
-  action:     { bg: "rgba(67,160,71,0.18)",   border: "#43A047", icon: "🎬" },
-  reaction:   { bg: "rgba(142,36,170,0.18)",  border: "#8E24AA", icon: "💬" },
-  verdict:    { bg: "rgba(249,168,37,0.22)",  border: "#F9A825", icon: "⚖️" },
+  context:    { bg: "rgba(74,123,247,0.18)",  border: "#4A7BF7" },
+  escalation: { bg: "rgba(245,146,27,0.18)",  border: "#F5921B" },
+  conflict:   { bg: "rgba(231,76,60,0.22)",   border: "#E74C3C" },
+  action:     { bg: "rgba(67,160,71,0.18)",   border: "#43A047" },
+  reaction:   { bg: "rgba(142,36,170,0.18)",  border: "#8E24AA" },
+  verdict:    { bg: "rgba(249,168,37,0.22)",  border: "#F9A825" },
 };
 
 /* ── STATE ── */
@@ -342,6 +342,8 @@ let visibleCount = 0;
 let isPlaying = false;
 let timer = null;
 let hideTimer = null;
+let trackerFileHandle = null;
+let lastJsonStr = '';
 
 function getSpeed() { return parseInt(document.getElementById('speed-select').value); }
 
@@ -412,35 +414,55 @@ function csvCell(val) {
   return '"' + String(val ?? '').replace(/"/g, '""') + '"';
 }
 
-function copyRow() {
+async function saveToCSV() {
   if (!story) return;
-  const date    = new Date().toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
-  const jsonStr = document.getElementById('json-input').value.trim();
-  const row     = [
+  const btn = document.getElementById('btn-save-csv');
+  const date = new Date().toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
+  const row = [
     csvCell(date),
     csvCell(story.title),
     csvCell(story.subreddit || ''),
     csvCell(story.author    || ''),
     csvCell(story.verdict   || ''),
     csvCell(story.nodes.length),
-    csvCell(''),          /* Notes — fill in manually */
-    csvCell(jsonStr),
-  ].join(',');
+    csvCell(''),
+    csvCell(lastJsonStr),
+  ].join(',') + '\r\n';
 
-  navigator.clipboard.writeText(row).then(() => {
-    const btn = document.getElementById('btn-copy-row');
+  if (!window.showOpenFilePicker) {
+    /* Fallback: just download the row as a standalone CSV */
+    const a = document.createElement('a');
+    a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(row);
+    a.download = 'bt-tracker-row.csv';
+    a.click();
+    return;
+  }
+
+  try {
+    if (!trackerFileHandle) {
+      const handles = await window.showOpenFilePicker({
+        types: [{ description: 'CSV file', accept: { 'text/csv': ['.csv'] } }],
+        mode: 'readwrite',
+      });
+      trackerFileHandle = handles[0];
+    }
+    /* Re-verify write permission in case it was granted previously but lapsed */
+    const perm = await trackerFileHandle.requestPermission({ mode: 'readwrite' });
+    if (perm !== 'granted') { alert('Write permission denied.'); return; }
+    const file     = await trackerFileHandle.getFile();
+    const existing = await file.text();
+    /* Append: if existing content doesn't end with a newline, add one first */
+    const needsNewline = existing.length > 0 && !existing.endsWith('\n');
+    const content = needsNewline ? existing + '\r\n' + row : existing + row;
+    const writable = await trackerFileHandle.createWritable();
+    await writable.write(content);
+    await writable.close();
     const orig = btn.textContent;
-    btn.textContent = '✅ Copied!';
+    btn.textContent = 'Saved!';
     setTimeout(() => { btn.textContent = orig; }, 1800);
-  }).catch(() => {
-    /* Fallback: select a hidden textarea */
-    const ta = document.createElement('textarea');
-    ta.value = row;
-    ta.style.position = 'fixed'; ta.style.opacity = '0';
-    document.body.appendChild(ta);
-    ta.select(); document.execCommand('copy');
-    document.body.removeChild(ta);
-  });
+  } catch(e) {
+    if (e.name !== 'AbortError') { alert('Save failed: ' + e.message); trackerFileHandle = null; }
+  }
 }
 
 /* ── GENERATE ── */
@@ -451,10 +473,11 @@ function generateTree() {
     if (!parsed.nodes || !Array.isArray(parsed.nodes)) { showError("JSON must have a 'nodes' array"); return; }
     if (!parsed.title)  { showError("JSON must have a 'title' field"); return; }
     story = parsed;
+    lastJsonStr = raw;
     positionedNodes = autoLayout(parsed.nodes);
     visibleCount = 0; isPlaying = false;
     showError('');
-    document.getElementById('btn-copy-row').disabled = false;
+    document.getElementById('btn-save-csv').disabled = false;
     setupPreview();
     switchToPreview();
   } catch (e) { showError('Invalid JSON: ' + e.message); }
@@ -555,7 +578,6 @@ function _drawNodeDOM(n) {
     background:${colors.bg}; border-color:${colors.border};`;
   div.innerHTML = `
     <div class="node-inner">
-      <span class="node-icon">${colors.icon}</span>
       <span class="node-text${n.type === 'verdict' ? ' verdict' : ''}">${n.text}</span>
     </div>
     <div class="node-badge" style="background:${colors.border}">${n.type}</div>
