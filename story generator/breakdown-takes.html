@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Breakdown Takes - Story Tree Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #FAFAF8; font-family: 'Nunito', sans-serif; padding: 16px; min-height: 100vh; }
+
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
+  .logo-area { display: flex; align-items: center; gap: 10px; }
+  .logo { background: linear-gradient(135deg, #FF4500, #F9A825); color: white; font-weight: 800; font-size: 15px; padding: 6px 14px; border-radius: 8px; letter-spacing: -0.5px; }
+  .logo-text { font-weight: 800; font-size: 18px; color: #1A1A1A; letter-spacing: -0.5px; }
+  .tabs { display: flex; gap: 6px; }
+  .tab-btn { font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700; padding: 6px 14px; border-radius: 8px; border: 1.5px solid #DDD; cursor: pointer; background: white; color: #1A1A1A; }
+  .tab-btn.active { background: #1A1A1A; color: white; }
+  .tab-btn:disabled { color: #CCC; cursor: default; }
+
+  .editor { max-width: 800px; margin: 0 auto; }
+  .editor-label { font-size: 13px; font-weight: 700; color: #555; margin-bottom: 6px; }
+  .json-input { width: 100%; min-height: 350px; font-family: monospace; font-size: 13px; padding: 14px; border-radius: 10px; border: 2px solid #DDD; background: white; resize: vertical; line-height: 1.5; outline: none; }
+  .json-input.has-error { border-color: #E74C3C; }
+  .error-msg { color: #E74C3C; font-size: 12px; font-weight: 600; margin-top: 4px; }
+
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+  .btn-primary { font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 700; padding: 8px 20px; border-radius: 8px; border: none; background: linear-gradient(135deg, #FF4500, #F9A825); color: white; cursor: pointer; }
+  .btn { font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 600; padding: 6px 14px; border-radius: 8px; border: 1.5px solid #DDD; background: white; color: #333; cursor: pointer; }
+  .btn:disabled { background: #F0F0F0; color: #AAA; cursor: default; }
+  .speed-area { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+  .speed-label { font-size: 12px; color: #888; }
+  .speed-select { font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 600; padding: 6px 14px; border-radius: 8px; border: 1.5px solid #DDD; background: white; color: #333; cursor: pointer; }
+
+  .info-box { margin-top: 20px; padding: 16px; background: white; border-radius: 10px; border: 1.5px solid #E8E8E4; }
+  .info-title { font-weight: 700; font-size: 14px; margin-bottom: 8px; color: #1A1A1A; }
+  .info-text { font-size: 13px; color: #555; line-height: 1.8; }
+  .format-pre { font-size: 11px; color: #666; background: #F8F8F6; padding: 12px; border-radius: 8px; overflow: auto; line-height: 1.5; white-space: pre; }
+
+  .preview-controls { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .node-count { margin-left: auto; font-size: 12px; color: #888; }
+  .progress-bar { background: #E0E0E0; border-radius: 99px; height: 5px; overflow: hidden; margin-bottom: 12px; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #FF4500, #F9A825); border-radius: 99px; transition: width 0.4s ease; }
+
+  .header { text-align: center; margin-bottom: 8px; }
+  .subreddit { font-size: 11px; font-weight: 700; color: #FF4500; text-transform: uppercase; letter-spacing: 2px; }
+  .story-title { font-size: clamp(15px, 2.8vw, 20px); font-weight: 700; color: #1A1A1A; margin: 4px 0 0; line-height: 1.3; }
+
+  .whiteboard { position: relative; width: 100%; background: white; border-radius: 12px; box-shadow: 0 2px 20px rgba(0,0,0,0.08); border: 2px solid #E8E8E4; overflow: hidden; background-image: radial-gradient(circle, #ddd 1px, transparent 1px); background-size: 24px 24px; }
+  .whiteboard svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+  .node { position: absolute; border-radius: 10px; padding: 8px 10px; box-shadow: 0 3px 12px rgba(0,0,0,0.08); border-width: 2px; border-style: solid; z-index: 10; animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards; opacity: 0; }
+  .node-inner { display: flex; align-items: flex-start; gap: 6px; }
+  .node-icon { font-size: 17px; flex-shrink: 0; }
+  .node-text { font-family: 'Caveat', cursive; font-size: clamp(13px, 2vw, 16px); color: #1A1A1A; line-height: 1.3; }
+  .node-text.verdict { font-weight: 700; }
+  .node-badge { position: absolute; top: -9px; right: 10px; color: white; font-size: 9px; font-family: 'Nunito', sans-serif; font-weight: 700; padding: 1px 7px; border-radius: 99px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .placeholder { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  .placeholder-text { text-align: center; color: #AAA; font-family: 'Caveat', cursive; font-size: 24px; }
+
+  .legend { display: flex; justify-content: center; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #555; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+  @keyframes popIn { 0% { opacity: 0; transform: scale(0.5); } 100% { opacity: 1; transform: scale(1); } }
+  @keyframes drawLine { 0% { stroke-dashoffset: 500; opacity: 0; } 100% { stroke-dashoffset: 0; opacity: 1; } }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo-area">
+    <div class="logo">BT</div>
+    <span class="logo-text">Breakdown Takes</span>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-editor" onclick="switchTab('input')">📝 Editor</button>
+    <button class="tab-btn" id="tab-preview" onclick="switchTab('preview')" disabled>🎬 Preview</button>
+  </div>
+</div>
+
+<!-- EDITOR -->
+<div id="input-view" class="editor">
+  <div>
+    <div class="editor-label">Paste the JSON from Claude below:</div>
+    <textarea id="json-input" class="json-input" spellcheck="false"></textarea>
+    <div id="error-msg" class="error-msg" style="display:none;"></div>
+  </div>
+  <div class="btn-row">
+    <button class="btn-primary" onclick="generateTree()">🌳 Generate Tree</button>
+    <button class="btn" onclick="loadSample()">Load Sample</button>
+    <div class="speed-area">
+      <span class="speed-label">Speed:</span>
+      <select id="speed-select" class="speed-select">
+        <option value="3000">Slow</option>
+        <option value="2000" selected>Normal</option>
+        <option value="1000">Fast</option>
+        <option value="500">Very Fast</option>
+      </select>
+    </div>
+  </div>
+  <div class="info-box" style="margin-top:20px;">
+    <div class="info-title">How to use:</div>
+    <div class="info-text">
+      1. Open a new Claude chat and paste your Reddit story prompt<br>
+      2. Feed it a Reddit post — Claude gives you a narration + JSON<br>
+      3. Copy just the JSON block (everything between the curly braces)<br>
+      4. Paste it here and click "Generate Tree"<br>
+      5. Hit Play in the preview to watch the tree build<br>
+      6. Screen record the preview for your video
+    </div>
+  </div>
+  <div class="info-box" style="margin-top:12px;">
+    <div class="info-title">Expected JSON format:</div>
+    <pre class="format-pre">{
+  "title": "Post title here",
+  "subreddit": "r/SubredditName",
+  "author": "u/username",
+  "verdict": "NTA / YTA / ESH / null",
+  "nodes": [
+    {
+      "id": 1,
+      "text": "Short description",
+      "type": "context|escalation|conflict|action|reaction|verdict",
+      "parent": null
+    },
+    {
+      "id": 2,
+      "text": "Next beat",
+      "type": "escalation",
+      "parent": 1
+    }
+  ]
+}</pre>
+  </div>
+</div>
+
+<!-- PREVIEW -->
+<div id="preview-view" style="display:none;">
+  <div class="preview-controls">
+    <button class="btn" id="btn-play" onclick="play()">▶ Play</button>
+    <button class="btn" id="btn-pause" onclick="pause()" disabled>⏸ Pause</button>
+    <button class="btn" id="btn-step" onclick="stepForward()">⏭ Step</button>
+    <button class="btn" onclick="resetTree()">↺ Reset</button>
+    <div class="node-count" id="node-count">0 / 0 nodes</div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  <div class="header">
+    <div class="subreddit" id="preview-sub"></div>
+    <h2 class="story-title" id="preview-title"></h2>
+  </div>
+  <div class="whiteboard" id="whiteboard">
+    <svg id="lines-svg">
+      <defs>
+        <marker id="ah" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#AAA"/>
+        </marker>
+      </defs>
+    </svg>
+    <div class="placeholder" id="placeholder">
+      <div class="placeholder-text">Press Play to reveal the story ✨</div>
+    </div>
+  </div>
+  <div class="legend" id="legend"></div>
+</div>
+
+<script>
+const TYPE_COLORS = {
+  context:    { bg: "#E8F0FE", border: "#4A7BF7", icon: "📋" },
+  escalation: { bg: "#FFF3E0", border: "#F5921B", icon: "📈" },
+  conflict:   { bg: "#FEECEC", border: "#E74C3C", icon: "⚡" },
+  action:     { bg: "#E8F5E9", border: "#43A047", icon: "🎬" },
+  reaction:   { bg: "#F3E5F5", border: "#8E24AA", icon: "💬" },
+  verdict:    { bg: "#FFF9C4", border: "#F9A825", icon: "⚖️" },
+};
+
+const SAMPLE_JSON = {
+  title: "AITA for refusing to cook for my roommate's girlfriend?",
+  subreddit: "r/AmItheAsshole",
+  author: "u/throwaway_cook99",
+  verdict: "NTA",
+  nodes: [
+    { id: 1, text: "OP lives with roommate Jake. They split groceries 50/50.", type: "context", parent: null },
+    { id: 2, text: "Jake's girlfriend Mia starts staying over 4-5 nights a week.", type: "escalation", parent: 1 },
+    { id: 3, text: "Groceries vanish fast. Mia eats OP's food without asking.", type: "conflict", parent: 2 },
+    { id: 4, text: "Mia expects OP to cook for her too since OP is a great cook.", type: "conflict", parent: 2 },
+    { id: 5, text: "OP tells Jake that Mia needs to chip in for groceries.", type: "action", parent: 3 },
+    { id: 6, text: "OP refuses to make extra portions for Mia.", type: "action", parent: 4 },
+    { id: 7, text: "Jake calls OP selfish. Says it is just a little extra food.", type: "reaction", parent: 5 },
+    { id: 8, text: "Mia posts passive-aggressive story about toxic roommates.", type: "reaction", parent: 6 },
+    { id: 9, text: "OP labels all food and only grocery shops for one person.", type: "action", parent: 7 },
+    { id: 10, text: "Jake and Mia give OP the silent treatment for two weeks.", type: "reaction", parent: 9 },
+    { id: 11, text: "VERDICT: NTA. Mia pays no rent or groceries. Jake should step up.", type: "verdict", parent: 10 }
+  ]
+};
+
+let story = null;
+let positionedNodes = [];
+let visibleCount = 0;
+let isPlaying = false;
+let timer = null;
+
+function getSpeed() {
+  return parseInt(document.getElementById('speed-select').value);
+}
+
+function autoLayout(nodes) {
+  if (!nodes || nodes.length === 0) return [];
+  const childMap = {};
+  nodes.forEach(n => {
+    if (n.parent !== null) {
+      if (!childMap[n.parent]) childMap[n.parent] = [];
+      childMap[n.parent].push(n.id);
+    }
+  });
+  const depths = {};
+  const depthGroups = {};
+  function assignDepth(id, depth) {
+    depths[id] = depth;
+    if (!depthGroups[depth]) depthGroups[depth] = [];
+    depthGroups[depth].push(id);
+    if (childMap[id]) childMap[id].forEach(cid => assignDepth(cid, depth + 1));
+  }
+  nodes.filter(n => n.parent === null).forEach(r => assignDepth(r.id, 0));
+  const maxDepth = Math.max(...Object.values(depths));
+  return nodes.map(n => {
+    const d = depths[n.id];
+    const group = depthGroups[d];
+    const idx = group.indexOf(n.id);
+    const count = group.length;
+    const yPad = 6, usableY = 88;
+    const y = yPad + (usableY / (maxDepth + 1)) * (d + 0.5);
+    const xPad = 15, usableX = 70;
+    const x = count === 1 ? 50 : xPad + (usableX / (count - 1)) * idx;
+    return { ...n, x, y };
+  });
+}
+
+function switchTab(mode) {
+  document.getElementById('input-view').style.display = mode === 'input' ? 'block' : 'none';
+  document.getElementById('preview-view').style.display = mode === 'preview' ? 'block' : 'none';
+  document.getElementById('tab-editor').className = 'tab-btn' + (mode === 'input' ? ' active' : '');
+  document.getElementById('tab-preview').className = 'tab-btn' + (mode === 'preview' ? ' active' : '');
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-msg');
+  const input = document.getElementById('json-input');
+  if (msg) { el.textContent = '⚠ ' + msg; el.style.display = 'block'; input.classList.add('has-error'); }
+  else { el.style.display = 'none'; input.classList.remove('has-error'); }
+}
+
+function loadSample() {
+  document.getElementById('json-input').value = JSON.stringify(SAMPLE_JSON, null, 2);
+  showError('');
+}
+
+function generateTree() {
+  const raw = document.getElementById('json-input').value.trim();
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed.nodes || !Array.isArray(parsed.nodes)) { showError("JSON must have a 'nodes' array"); return; }
+    if (!parsed.title) { showError("JSON must have a 'title' field"); return; }
+    story = parsed;
+    positionedNodes = autoLayout(parsed.nodes);
+    visibleCount = 0;
+    isPlaying = false;
+    showError('');
+    document.getElementById('tab-preview').disabled = false;
+    setupPreview();
+    switchTab('preview');
+  } catch (e) {
+    showError('Invalid JSON: ' + e.message);
+  }
+}
+
+function setupPreview() {
+  document.getElementById('preview-sub').textContent = (story.subreddit || '') + ' • ' + (story.author || '');
+  document.getElementById('preview-title').textContent = story.title;
+  const wb = document.getElementById('whiteboard');
+  const h = Math.max(600, positionedNodes.length * 75);
+  wb.style.height = h + 'px';
+  buildLegend();
+  renderTree();
+}
+
+function buildLegend() {
+  const el = document.getElementById('legend');
+  el.innerHTML = '';
+  Object.entries(TYPE_COLORS).forEach(([type, c]) => {
+    el.innerHTML += `<div class="legend-item"><span class="legend-dot" style="background:${c.border}"></span>${type}</div>`;
+  });
+}
+
+function getCenter(node) {
+  const wb = document.getElementById('whiteboard');
+  const w = wb.offsetWidth;
+  const h = wb.offsetHeight;
+  return { x: (node.x / 100) * w, y: (node.y / 100) * h };
+}
+
+function renderTree() {
+  const wb = document.getElementById('whiteboard');
+  const svg = document.getElementById('lines-svg');
+  const placeholder = document.getElementById('placeholder');
+
+  // Clear old nodes and lines (keep defs and placeholder)
+  wb.querySelectorAll('.node').forEach(n => n.remove());
+  svg.querySelectorAll('path').forEach(p => p.remove());
+
+  placeholder.style.display = visibleCount === 0 ? 'flex' : 'none';
+
+  const visible = positionedNodes.slice(0, visibleCount);
+
+  // Draw lines
+  visible.forEach(n => {
+    if (n.parent === null) return;
+    const parent = positionedNodes.find(p => p.id === n.parent);
+    if (!parent || !visible.find(v => v.id === parent.id)) return;
+    const from = getCenter(parent);
+    const to = getCenter(n);
+    const midY = (from.y + to.y) / 2;
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', `M ${from.x} ${from.y} C ${from.x} ${midY}, ${to.x} ${midY}, ${to.x} ${to.y}`);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', '#BBB');
+    path.setAttribute('stroke-width', '2');
+    path.setAttribute('stroke-dasharray', '6 4');
+    path.setAttribute('marker-end', 'url(#ah)');
+    path.style.animation = 'drawLine 0.5s ease forwards';
+    svg.appendChild(path);
+  });
+
+  // Draw nodes
+  const wbW = wb.offsetWidth;
+  visible.forEach(n => {
+    const colors = TYPE_COLORS[n.type] || TYPE_COLORS.context;
+    const pos = getCenter(n);
+    const nodeW = Math.min(250, wbW * 0.34);
+
+    const div = document.createElement('div');
+    div.className = 'node';
+    div.style.left = (pos.x - nodeW / 2) + 'px';
+    div.style.top = (pos.y - 28) + 'px';
+    div.style.width = nodeW + 'px';
+    div.style.background = colors.bg;
+    div.style.borderColor = colors.border;
+
+    div.innerHTML = `
+      <div class="node-inner">
+        <span class="node-icon">${colors.icon}</span>
+        <span class="node-text ${n.type === 'verdict' ? 'verdict' : ''}">${n.text}</span>
+      </div>
+      <div class="node-badge" style="background:${colors.border}">${n.type}</div>
+    `;
+    wb.appendChild(div);
+  });
+
+  // Update UI
+  document.getElementById('node-count').textContent = `${visibleCount} / ${positionedNodes.length} nodes`;
+  const pct = positionedNodes.length > 0 ? (visibleCount / positionedNodes.length) * 100 : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('btn-play').disabled = isPlaying;
+  document.getElementById('btn-pause').disabled = !isPlaying;
+  document.getElementById('btn-step').disabled = isPlaying || visibleCount >= positionedNodes.length;
+}
+
+function play() {
+  if (visibleCount >= positionedNodes.length) visibleCount = 0;
+  isPlaying = true;
+  tick();
+}
+
+function tick() {
+  if (!isPlaying || visibleCount >= positionedNodes.length) {
+    isPlaying = false;
+    renderTree();
+    return;
+  }
+  visibleCount++;
+  renderTree();
+  timer = setTimeout(tick, getSpeed());
+}
+
+function pause() {
+  isPlaying = false;
+  clearTimeout(timer);
+  renderTree();
+}
+
+function stepForward() {
+  if (visibleCount < positionedNodes.length) {
+    visibleCount++;
+    renderTree();
+  }
+}
+
+function resetTree() {
+  isPlaying = false;
+  clearTimeout(timer);
+  visibleCount = 0;
+  renderTree();
+}
+
+// Handle resize
+window.addEventListener('resize', () => { if (story) renderTree(); });
+
+// Load sample on page load
+document.getElementById('json-input').value = JSON.stringify(SAMPLE_JSON, null, 2);
+</script>
+</body>
+</html>
