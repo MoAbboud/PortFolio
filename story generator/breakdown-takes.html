@@ -109,14 +109,22 @@
     color: #DDD; line-height: 1.3; flex: 1;
   }
 
-  /* The actual board */
-  #board {
+  /* Scrollable container for the board */
+  #board-scroll {
     position: absolute;
     inset: 0;
-    overflow: hidden;
+    overflow-y: scroll;
+    scrollbar-width: none;
+  }
+  #board-scroll::-webkit-scrollbar { display: none; }
+
+  /* The actual board */
+  #board {
+    position: relative;
+    min-height: 100%;
   }
   #board svg {
-    position: absolute; inset: 0;
+    position: absolute; top: 0; left: 0;
     width: 100%; height: 100%;
     pointer-events: none;
   }
@@ -291,22 +299,24 @@
     <span id="preview-title"></span>
   </div>
 
-  <div id="board">
-    <svg id="lines-svg">
-      <defs>
-        <!-- dot-grid background pattern -->
-        <pattern id="dotgrid" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">
-          <circle cx="1" cy="1" r="0.9" fill="#1E1E1E"/>
-        </pattern>
-        <marker id="dot" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
-          <circle cx="5" cy="5" r="4" fill="#F9A825"/>
-        </marker>
-      </defs>
-      <!-- full-board dot background -->
-      <rect id="bg-rect" width="100%" height="100%" fill="url(#dotgrid)"/>
-    </svg>
-    <div id="placeholder">
-      <div class="placeholder-text">Press Play to reveal the story ✨</div>
+  <div id="board-scroll">
+    <div id="board">
+      <svg id="lines-svg">
+        <defs>
+          <!-- dot-grid background pattern -->
+          <pattern id="dotgrid" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">
+            <circle cx="1" cy="1" r="0.9" fill="#1E1E1E"/>
+          </pattern>
+          <marker id="dot" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
+            <circle cx="5" cy="5" r="4" fill="#F9A825"/>
+          </marker>
+        </defs>
+        <!-- full-board dot background -->
+        <rect id="bg-rect" width="100%" height="100%" fill="url(#dotgrid)"/>
+      </svg>
+      <div id="placeholder">
+        <div class="placeholder-text">Press Play to reveal the story ✨</div>
+      </div>
     </div>
   </div>
 
@@ -344,6 +354,7 @@ let timer = null;
 let hideTimer = null;
 let trackerFileHandle = null;
 let lastJsonStr = '';
+let treeMaxDepth = 0;
 
 function getSpeed() { return parseInt(document.getElementById('speed-select').value); }
 
@@ -371,6 +382,7 @@ function autoLayout(nodes) {
   }
   nodes.filter(n => n.parent === null).forEach(r => assignDepth(r.id, 0));
   const maxDepth = Math.max(...Object.values(depths));
+  treeMaxDepth = maxDepth;
   return nodes.map(n => {
     const d     = depths[n.id];
     const group = depthGroups[d];
@@ -586,7 +598,15 @@ function _drawNodeDOM(n) {
 }
 
 /* Full clear + rebuild — use for reset, resize, initial load */
+function setBoardHeight() {
+  const scroll = document.getElementById('board-scroll');
+  const board  = document.getElementById('board');
+  const viewH  = scroll ? scroll.offsetHeight : window.innerHeight;
+  board.style.height = Math.max(viewH, (treeMaxDepth + 2) * 110) + 'px';
+}
+
 function renderFull() {
+  setBoardHeight();
   const board = document.getElementById('board');
   const svg   = document.getElementById('lines-svg');
   board.querySelectorAll('.node').forEach(nd => nd.remove());
