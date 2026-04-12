@@ -245,7 +245,7 @@
 
   <div class="ed-btn-row">
     <button class="btn-primary" onclick="generateTree()">🌳 Generate Tree</button>
-    <button class="btn-secondary" onclick="loadSample()">Load Sample</button>
+    <button class="btn-secondary" id="btn-copy-row" onclick="copyRow()" disabled title="Generate a tree first">📋 Copy Tracker Row</button>
     <div class="speed-area">
       <span class="speed-label">Speed:</span>
       <select id="speed-select" class="speed-select">
@@ -335,25 +335,6 @@ const TYPE_COLORS = {
   verdict:    { bg: "rgba(249,168,37,0.22)",  border: "#F9A825", icon: "⚖️" },
 };
 
-/* ── SAMPLE ── */
-const SAMPLE_JSON = {
-  title: "AITA for refusing to cook for my roommate's girlfriend?",
-  subreddit: "r/AmItheAsshole", author: "u/throwaway_cook99", verdict: "NTA",
-  nodes: [
-    { id:1,  text:"OP lives with roommate Jake. They split groceries 50/50.",         type:"context",    parent:null },
-    { id:2,  text:"Jake's GF Mia starts staying over 4–5 nights a week.",             type:"escalation", parent:1 },
-    { id:3,  text:"Groceries vanish fast. Mia eats OP's food without asking.",        type:"conflict",   parent:2 },
-    { id:4,  text:"Mia expects OP to cook for her since OP is a great cook.",         type:"conflict",   parent:2 },
-    { id:5,  text:"OP tells Jake that Mia needs to chip in for groceries.",           type:"action",     parent:3 },
-    { id:6,  text:"OP refuses to make extra portions for Mia.",                       type:"action",     parent:4 },
-    { id:7,  text:"Jake calls OP selfish. Says it's just a little extra food.",       type:"reaction",   parent:5 },
-    { id:8,  text:"Mia posts passive-aggressive story about toxic roommates.",        type:"reaction",   parent:6 },
-    { id:9,  text:"OP labels all food and only grocery shops for one person.",        type:"action",     parent:7 },
-    { id:10, text:"Jake and Mia give OP the silent treatment for two weeks.",         type:"reaction",   parent:9 },
-    { id:11, text:"VERDICT: NTA. Mia pays no rent or groceries. Jake should step up.",type:"verdict",   parent:10 }
-  ]
-};
-
 /* ── STATE ── */
 let story = null;
 let positionedNodes = [];
@@ -425,9 +406,41 @@ function showError(msg) {
   else      { el.style.display = 'none'; inp.classList.remove('has-error'); }
 }
 
-function loadSample() {
-  document.getElementById('json-input').value = JSON.stringify(SAMPLE_JSON, null, 2);
-  showError('');
+/* ── TRACKER ROW ── */
+function csvCell(val) {
+  /* Wrap in quotes; escape any existing quotes by doubling them */
+  return '"' + String(val ?? '').replace(/"/g, '""') + '"';
+}
+
+function copyRow() {
+  if (!story) return;
+  const date    = new Date().toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
+  const jsonStr = document.getElementById('json-input').value.trim();
+  const row     = [
+    csvCell(date),
+    csvCell(story.title),
+    csvCell(story.subreddit || ''),
+    csvCell(story.author    || ''),
+    csvCell(story.verdict   || ''),
+    csvCell(story.nodes.length),
+    csvCell(''),          /* Notes — fill in manually */
+    csvCell(jsonStr),
+  ].join(',');
+
+  navigator.clipboard.writeText(row).then(() => {
+    const btn = document.getElementById('btn-copy-row');
+    const orig = btn.textContent;
+    btn.textContent = '✅ Copied!';
+    setTimeout(() => { btn.textContent = orig; }, 1800);
+  }).catch(() => {
+    /* Fallback: select a hidden textarea */
+    const ta = document.createElement('textarea');
+    ta.value = row;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+  });
 }
 
 /* ── GENERATE ── */
@@ -441,6 +454,7 @@ function generateTree() {
     positionedNodes = autoLayout(parsed.nodes);
     visibleCount = 0; isPlaying = false;
     showError('');
+    document.getElementById('btn-copy-row').disabled = false;
     setupPreview();
     switchToPreview();
   } catch (e) { showError('Invalid JSON: ' + e.message); }
@@ -636,8 +650,6 @@ document.addEventListener('mousemove', () => {
 /* ── RESIZE ── */
 window.addEventListener('resize', () => { if (story) renderTree(); });
 
-/* ── INIT ── */
-document.getElementById('json-input').value = JSON.stringify(SAMPLE_JSON, null, 2);
 </script>
 </body>
 </html>
