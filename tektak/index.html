@@ -35,10 +35,18 @@
     <!-- Header -->
     <header class="tek-gradient shadow-lg">
         <div class="container mx-auto px-4 py-6">
-            <div class="flex justify-center items-center">
-                <h1 class="text-4xl font-bold flex items-center drop-shadow-lg tracking-wide">
-                    <i class="fab fa-tiktok mr-3 animate-pulse"></i> TekTak Drama
-                </h1>
+            <div class="flex justify-between items-center">
+                <div class="flex-1"></div>
+                <div class="flex-1 flex justify-center items-center">
+                    <h1 class="text-4xl font-bold flex items-center drop-shadow-lg tracking-wide">
+                        <i class="fab fa-tiktok mr-3 animate-pulse"></i> TekTak Drama
+                    </h1>
+                </div>
+                <div class="flex-1 flex justify-end">
+                    <a href="admin.html" class="text-white opacity-50 hover:opacity-100 transition text-sm" title="Admin Panel">
+                        <i class="fas fa-cog"></i>
+                    </a>
+                </div>
             </div>
             <p class="text-center text-white mt-2 opacity-95 font-light">Tracking social media drama, tea, and controversies</p>
         </div>
@@ -52,7 +60,10 @@
                 <h2 class="text-2xl font-semibold flex items-center gap-2">
                     <span class="text-3xl mr-2">🍿</span> Latest Drama & Controversies
                 </h2>
-                <p class="text-sm text-gray-400" id="lastUpdated"></p>
+                <div class="text-right">
+                    <p class="text-sm text-gray-400" id="lastUpdated"></p>
+                    <p class="text-xs mt-1" id="dataSource"></p>
+                </div>
             </div>
             
             <div class="space-y-6" id="dramaContainer">
@@ -100,8 +111,25 @@
     </footer>
 
     <script>
-        // Sample drama data
-        const dramaData = [
+        // Storage keys
+        const STORAGE_KEYS = {
+            DRAMA: 'tektakDrama',
+            HASHTAGS: 'tektakHashtags',
+            INFLUENCERS: 'tektakInfluencers'
+        };
+
+        // Load data from localStorage with fallback to sample data
+        function loadData(key, sampleData) {
+            const stored = localStorage.getItem(key);
+            if (stored) {
+                const data = JSON.parse(stored);
+                return data.length > 0 ? data : sampleData;
+            }
+            return sampleData;
+        }
+
+        // Sample drama data (fallback)
+        const sampleDramaData = [
             {
                 title: "Creator Exposed for Fake Pranks",
                 description: "Popular creator caught staging 'authentic' pranks with paid actors. Community demands apology as follower count drops by millions.",
@@ -154,7 +182,7 @@
             }
         ];
 
-        const hashtagData = [
+        const sampleHashtagData = [
             { name: "#DramaAlert", type: "drama", posts: "2.4M", views: "1.2B" },
             { name: "#Exposed", type: "scandal", posts: "1.8M", views: "890M" },
             { name: "#InfluencerFeud", type: "feud", posts: "956K", views: "420M" },
@@ -163,12 +191,17 @@
             { name: "#Accountability", type: "response", posts: "890K", views: "340M" }
         ];
 
-        const influencersData = [
+        const sampleInfluencersData = [
             { username: "@DramaQueenTV", verified: true, trending_for: "Spilling ALL the tea", followers: "8.2M", avatar: null },
             { username: "@TheTeaPage", verified: true, trending_for: "Celebrity gossip", followers: "6.7M", avatar: null },
             { username: "@ExposedDaily", verified: false, trending_for: "Calling out fake content", followers: "4.3M", avatar: null },
             { username: "@PopCultureGuru", verified: true, trending_for: "Breaking news", followers: "12.1M", avatar: null }
         ];
+
+        // Load actual data (from localStorage or fallback to samples)
+        const dramaData = loadData(STORAGE_KEYS.DRAMA, sampleDramaData);
+        const hashtagData = loadData(STORAGE_KEYS.HASHTAGS, sampleHashtagData);
+        const influencersData = loadData(STORAGE_KEYS.INFLUENCERS, sampleInfluencersData);
 
         function getTypeColor(type) {
             const colors = {
@@ -270,7 +303,13 @@
         }
 
         function loadMoreDrama() {
-            alert('🎭 This is a demo! In the full version, this would load more drama from the TikTok API.');
+            // Check if we're using curated data or sample data
+            const stored = localStorage.getItem(STORAGE_KEYS.DRAMA);
+            if (stored && JSON.parse(stored).length > 0) {
+                alert('🎭 All caught up on the drama! Check the admin panel to add more stories.');
+            } else {
+                alert('🎭 This is a demo with sample data! Visit admin.html to add your own curated drama stories.');
+            }
         }
 
         // Initialize
@@ -284,6 +323,16 @@
                 minute: '2-digit',
                 hour12: true 
             })}`;
+            
+            // Show data source indicator
+            const hasCuratedData = localStorage.getItem(STORAGE_KEYS.DRAMA) && 
+                                   JSON.parse(localStorage.getItem(STORAGE_KEYS.DRAMA)).length > 0;
+            const dataSourceEl = document.getElementById('dataSource');
+            if (hasCuratedData) {
+                dataSourceEl.innerHTML = '<span class="bg-green-600 px-2 py-1 rounded text-xs">✓ Curated Content</span>';
+            } else {
+                dataSourceEl.innerHTML = '<span class="bg-gray-700 px-2 py-1 rounded text-xs">Demo Data</span>';
+            }
             
             renderDrama();
             renderHashtags();
