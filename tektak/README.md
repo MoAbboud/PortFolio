@@ -22,7 +22,7 @@ TekTak lets you **manually curate** TikTok drama stories for people who want to 
 
 ### For Viewers:
 1. Open **`index.html`** in any browser.
-2. Browse the latest drama, hashtags, and tea spillers
+2. Browse the latest drama, hashtags, and tea spillers.
 3. If no curated data exists, you'll see sample data
 
 ### For Curators (You!):
