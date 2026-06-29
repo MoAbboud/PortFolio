@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+import datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -16,7 +16,9 @@ class DayBase(BaseModel):
     summary: str | None = Field(default=None, max_length=2000)
     vibe: Vibe
     city: str | None = Field(default=None, max_length=140)
-    date: date | None = None
+    # Use the qualified ``datetime.date`` so this field's name can't shadow the
+    # type when annotations are evaluated lazily (`from __future__ import ...`).
+    date: datetime.date | None = None
     weather: dict[str, Any] | None = None
 
 

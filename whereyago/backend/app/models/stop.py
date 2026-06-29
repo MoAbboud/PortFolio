@@ -18,9 +18,7 @@ class Stop(Base):
     __tablename__ = "stops"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    day_id: Mapped[int] = mapped_column(
-        ForeignKey("days.id", ondelete="CASCADE"), index=True
-    )
+    day_id: Mapped[int] = mapped_column(ForeignKey("days.id", ondelete="CASCADE"), index=True)
     # Zero-based order of the stop within its day.
     position: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     name: Mapped[str] = mapped_column(String(200))

@@ -10,25 +10,24 @@ from __future__ import annotations
 
 import os
 
-os.environ.setdefault("SECRET_KEY", "test-secret-not-for-production")
+os.environ.setdefault("SECRET_KEY", "test-secret-not-for-production-pad-to-32-bytes-minimum")
 os.environ.setdefault("POSTGRES_USER", "test")
 os.environ.setdefault("POSTGRES_PASSWORD", "test")
 os.environ.setdefault("POSTGRES_DB", "test")
 os.environ.setdefault("LOG_JSON", "false")
 os.environ.setdefault("LOG_LEVEL", "WARNING")
 
-from collections.abc import Iterator  # noqa: E402
+from collections.abc import Iterator
 
-import pytest  # noqa: E402
-from fastapi.testclient import TestClient  # noqa: E402
-from sqlalchemy import create_engine  # noqa: E402
-from sqlalchemy.orm import Session, sessionmaker  # noqa: E402
-from sqlalchemy.pool import StaticPool  # noqa: E402
-
-import app.models  # noqa: E402, F401  (register models on Base.metadata)
-from app.db.base import Base  # noqa: E402
-from app.db.session import get_db  # noqa: E402
-from app.main import app  # noqa: E402
+import app.models
+import pytest
+from app.db.base import Base
+from app.db.session import get_db
+from app.main import app
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 
 @pytest.fixture

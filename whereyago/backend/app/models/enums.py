@@ -9,7 +9,7 @@ from __future__ import annotations
 import enum
 
 
-class Vibe(str, enum.Enum):
+class Vibe(enum.StrEnum):
     """The "kind of day" a logged itinerary represents."""
 
     chill = "chill"
@@ -21,7 +21,7 @@ class Vibe(str, enum.Enum):
     outdoors = "outdoors"
 
 
-class StopType(str, enum.Enum):
+class StopType(enum.StrEnum):
     """The category of a single stop on a day."""
 
     restaurant = "restaurant"

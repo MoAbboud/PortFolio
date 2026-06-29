@@ -35,3 +35,52 @@ desktop.ini
 /public/js
 dist/
 build/
+
+# ============================================================
+# Secrets, keys & credentials — NEVER COMMIT THESE
+# Applies repo-wide (all projects + the future mobile app).
+# Blank templates are allowed: *.example / *.sample / *.template
+# ============================================================
+
+# Env files (every variant, in any folder)
+.env
+.env.*
+*.env
+!.env.example
+!.env.sample
+!.env.template
+!.env.*.example
+
+# Private keys & certificates
+*.pem
+*.key
+*.p8
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_dsa
+*_rsa
+*_dsa
+
+# Generic secret / credential files
+secrets.*
+*.secret
+*.secrets
+*secret*.json
+credentials.json
+*credentials*.json
+service-account*.json
+serviceAccountKey.json
+*firebase-adminsdk*.json
+
+# Mobile (Expo / React Native) signing & service configs
+google-services.json
+GoogleService-Info.plist
+*.mobileprovision
+.expo/
+
+# Local databases (may contain tokens / hashed credentials)
+*.sqlite3
+*.db

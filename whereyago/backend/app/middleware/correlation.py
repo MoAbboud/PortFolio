@@ -12,9 +12,9 @@ import uuid
 from collections.abc import Awaitable, Callable
 
 import structlog
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
-from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.logging import get_logger
 

@@ -18,12 +18,12 @@ _pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 def hash_password(plain_password: str) -> str:
     """Hash a plaintext password for storage."""
-    return _pwd_context.hash(plain_password)
+    return str(_pwd_context.hash(plain_password))
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Check a plaintext password against a stored hash."""
-    return _pwd_context.verify(plain_password, hashed_password)
+    return bool(_pwd_context.verify(plain_password, hashed_password))
 
 
 def create_access_token(subject: str, expires_delta: timedelta | None = None) -> str:

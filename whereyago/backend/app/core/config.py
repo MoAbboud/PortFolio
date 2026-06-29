@@ -54,8 +54,11 @@ class Settings(BaseSettings):
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
-    def _assemble_cors(cls, value: str | list[str]) -> list[str]:
-        """Accept either a JSON list or a comma-separated string."""
+    def _assemble_cors(cls, value: str | list[str]) -> str | list[str]:
+        """Accept either a JSON list or a comma-separated string.
+
+        A JSON string (starts with ``[``) is passed through for pydantic to parse.
+        """
         if isinstance(value, str) and not value.startswith("["):
             return [origin.strip() for origin in value.split(",") if origin.strip()]
         return value
@@ -76,5 +79,8 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    """Return a cached, singleton ``Settings`` instance."""
-    return Settings()  # type: ignore[call-arg]  # values come from the environment
+    """Return a cached, singleton ``Settings`` instance.
+
+    Field values are populated from the environment, not constructor arguments.
+    """
+    return Settings()

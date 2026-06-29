@@ -24,7 +24,14 @@ _VIBE = sa.Enum(
     "chill", "foodie", "family", "adventure", "night", "culture", "outdoors", name="vibe"
 )
 _STOP_TYPE = sa.Enum(
-    "restaurant", "cafe", "event", "attraction", "outdoors", "shop", "bar", "other",
+    "restaurant",
+    "cafe",
+    "event",
+    "attraction",
+    "outdoors",
+    "shop",
+    "bar",
+    "other",
     name="stop_type",
 )
 
