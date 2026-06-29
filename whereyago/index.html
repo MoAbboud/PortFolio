@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="whereyago — someone else already planned your perfect day. Browse real day itineraries with maps, weather, reviews & events, then go live them.">
+    <title>whereyago — Days worth copying</title>
+
+    <!-- Tailwind + Font Awesome (match portfolio CDN setup) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Leaflet (free OpenStreetMap maps, no API key) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <style>
+        :root { --wyg-grad: linear-gradient(135deg, #4f46e5 0%, #7c3aed 48%, #db2777 100%); }
+        body { background-color: #f6f7fb; scroll-behavior: smooth; }
+        .wyg-grad { background: var(--wyg-grad); }
+        .wyg-grad-text {
+            background: var(--wyg-grad);
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent; color: transparent;
+        }
+        .wyg-shadow { box-shadow: 0 10px 30px -12px rgba(79,70,229,0.25); }
+        .card-hover { transition: transform .25s ease, box-shadow .25s ease; }
+        .card-hover:hover { transform: translateY(-4px); box-shadow: 0 18px 40px -16px rgba(79,70,229,0.35); }
+
+        /* Map */
+        .wyg-map { height: 340px; width: 100%; border-radius: 1rem; z-index: 0; }
+        .wyg-map-sm { height: 240px; }
+        .leaflet-container { font: inherit; }
+
+        /* Numbered map pins */
+        .wyg-pin-inner {
+            width: 30px; height: 30px; border-radius: 50% 50% 50% 0;
+            background: var(--wyg-grad); transform: rotate(-45deg);
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-weight: 700; font-size: 13px;
+            box-shadow: 0 3px 8px rgba(0,0,0,.35); border: 2px solid #fff;
+        }
+        .wyg-pin-inner span { transform: rotate(45deg); }
+
+        /* Timeline connector */
+        .timeline-item { position: relative; padding-left: 3.25rem; }
+        .timeline-item::before {
+            content: ''; position: absolute; left: 1.18rem; top: 2.6rem; bottom: -1.1rem;
+            width: 2px; background: linear-gradient(#c7d2fe, #f9a8d4);
+        }
+        .timeline-item:last-child::before { display: none; }
+
+        /* Vibe chips */
+        .vibe-chip { transition: all .2s ease; }
+        .vibe-chip.active { background: var(--wyg-grad); color: #fff; border-color: transparent; box-shadow: 0 6px 16px -6px rgba(124,58,237,.6); }
+
+        /* Toast */
+        #toast { transition: opacity .3s ease, transform .3s ease; }
+
+        .fade-in { animation: fadeIn .35s ease both; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px);} to {opacity:1; transform:none;} }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col">
+
+    <!-- ===================== HEADER / NAV ===================== -->
+    <header class="wyg-grad text-white sticky top-0 z-[1000] shadow-lg">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <button onclick="showView('discover')" class="flex items-center gap-2 font-extrabold text-2xl tracking-tight">
+                    <i class="fas fa-location-dot"></i>
+                    <span>where<span class="opacity-80">ya</span>go</span>
+                </button>
+                <nav class="flex items-center gap-1 sm:gap-2 text-sm font-medium">
+                    <button data-nav="discover" onclick="showView('discover')" class="nav-btn px-3 py-2 rounded-lg hover:bg-white/15 transition flex items-center gap-2">
+                        <i class="fas fa-compass"></i><span class="hidden sm:inline">Discover</span>
+                    </button>
+                    <button data-nav="plan" onclick="showView('plan')" class="nav-btn px-3 py-2 rounded-lg hover:bg-white/15 transition flex items-center gap-2">
+                        <i class="fas fa-plus"></i><span class="hidden sm:inline">Log a Day</span>
+                    </button>
+                    <button data-nav="mydays" onclick="showView('mydays')" class="nav-btn px-3 py-2 rounded-lg hover:bg-white/15 transition flex items-center gap-2">
+                        <i class="fas fa-bookmark"></i><span class="hidden sm:inline">My Days</span>
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 flex-1 w-full max-w-6xl">
+
+        <!-- ===================== DISCOVER ===================== -->
+        <section data-view="discover">
+            <div class="text-center max-w-2xl mx-auto mb-8">
+                <h1 class="text-3xl sm:text-4xl font-extrabold mb-3">
+                    Someone already planned <span class="wyg-grad-text">your perfect day.</span>
+                </h1>
+                <p class="text-slate-500 text-lg">
+                    Can't plan a trip? Don't. Browse real days other people actually had — with the map, the weather, the reviews and the events — then go live them.
+                </p>
+            </div>
+
+            <!-- Vibe filters -->
+            <div id="vibeFilters" class="flex flex-wrap justify-center gap-2 mb-8"></div>
+
+            <!-- Feed -->
+            <div id="discoverFeed" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            <div id="discoverEmpty" class="hidden text-center text-slate-400 py-16">
+                <i class="fas fa-ghost text-4xl mb-3"></i>
+                <p>No days match this vibe yet.</p>
+            </div>
+        </section>
+
+        <!-- ===================== DAY DETAIL ===================== -->
+        <section data-view="detail" class="hidden">
+            <button onclick="goBack()" class="mb-5 text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-2">
+                <i class="fas fa-arrow-left"></i> Back
+            </button>
+            <div id="detailContent"></div>
+        </section>
+
+        <!-- ===================== PLAN / LOG A DAY ===================== -->
+        <section data-view="plan" class="hidden">
+            <div class="max-w-5xl mx-auto">
+                <div class="mb-6">
+                    <h1 class="text-3xl font-extrabold mb-1">Log a day worth copying</h1>
+                    <p class="text-slate-500">Add your stops in order. We'll map the route, pull the weather, and link every place to its reviews — so someone else can relive it.</p>
+                </div>
+
+                <div class="grid lg:grid-cols-2 gap-6">
+                    <!-- Left: form -->
+                    <div class="space-y-5">
+                        <div class="bg-white rounded-2xl p-5 wyg-shadow">
+                            <label class="block text-sm font-semibold mb-1">Name this day</label>
+                            <input id="f_title" type="text" placeholder="e.g. Best lazy Sunday in KC"
+                                   class="w-full border border-slate-200 rounded-lg px-3 py-2 mb-4 focus:ring-2 focus:ring-indigo-400 outline-none">
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-sm font-semibold mb-1">Date</label>
+                                    <input id="f_date" type="date" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-400 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold mb-1">City / area</label>
+                                    <input id="f_city" type="text" placeholder="Kansas City, MO"
+                                           class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-400 outline-none">
+                                </div>
+                            </div>
+
+                            <label class="block text-sm font-semibold mb-1 mt-4">What kind of day?</label>
+                            <div id="f_vibes" class="flex flex-wrap gap-2"></div>
+                        </div>
+
+                        <!-- Stop adder -->
+                        <div class="bg-white rounded-2xl p-5 wyg-shadow">
+                            <h3 class="font-bold mb-3 flex items-center gap-2"><i class="fas fa-map-pin text-pink-500"></i> Add a stop</h3>
+                            <input id="s_name" type="text" placeholder="Place name — e.g. Kansas City Zoo"
+                                   class="w-full border border-slate-200 rounded-lg px-3 py-2 mb-3 focus:ring-2 focus:ring-indigo-400 outline-none">
+                            <div class="grid grid-cols-2 gap-3 mb-3">
+                                <select id="s_type" class="border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-400 outline-none"></select>
+                                <input id="s_time" type="time" class="border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-400 outline-none">
+                            </div>
+                            <input id="s_note" type="text" placeholder="Optional note — 'get the burnt ends' 🍖"
+                                   class="w-full border border-slate-200 rounded-lg px-3 py-2 mb-3 focus:ring-2 focus:ring-indigo-400 outline-none">
+                            <button onclick="addStop()" id="addStopBtn"
+                                    class="w-full wyg-grad text-white font-semibold py-2.5 rounded-lg hover:opacity-90 transition flex items-center justify-center gap-2">
+                                <i class="fas fa-plus"></i> Add stop
+                            </button>
+                            <p class="text-xs text-slate-400 mt-2 text-center">We'll look up the location automatically to pin it on the map.</p>
+                        </div>
+
+                        <button onclick="saveDay()" class="w-full bg-emerald-500 text-white font-bold py-3 rounded-xl hover:bg-emerald-600 transition flex items-center justify-center gap-2">
+                            <i class="fas fa-floppy-disk"></i> Save this day
+                        </button>
+                    </div>
+
+                    <!-- Right: live preview -->
+                    <div class="space-y-5">
+                        <div class="bg-white rounded-2xl p-2 wyg-shadow">
+                            <div id="builderMap" class="wyg-map wyg-map-sm"></div>
+                        </div>
+                        <div id="builderWeather"></div>
+                        <div class="bg-white rounded-2xl p-5 wyg-shadow">
+                            <h3 class="font-bold mb-3 flex items-center justify-between">
+                                <span><i class="fas fa-route text-indigo-500"></i> Your itinerary</span>
+                                <span id="stopCount" class="text-xs font-medium text-slate-400"></span>
+                            </h3>
+                            <div id="builderStops"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================== MY DAYS ===================== -->
+        <section data-view="mydays" class="hidden">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h1 class="text-3xl font-extrabold">My Days</h1>
+                    <p class="text-slate-500">Days you've logged. Share one to Discover to inspire someone who can't plan.</p>
+                </div>
+                <button onclick="showView('plan')" class="wyg-grad text-white font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition flex items-center gap-2">
+                    <i class="fas fa-plus"></i> Log a day
+                </button>
+            </div>
+            <div id="myDaysFeed" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            <div id="myDaysEmpty" class="hidden text-center text-slate-400 py-20">
+                <i class="fas fa-map-location-dot text-5xl mb-4 wyg-grad-text"></i>
+                <p class="text-lg font-medium text-slate-500 mb-1">No days logged yet</p>
+                <p class="mb-5">Had a great day out? Log it stop-by-stop and help someone who struggles to plan.</p>
+                <button onclick="showView('plan')" class="wyg-grad text-white font-semibold px-5 py-2.5 rounded-lg hover:opacity-90 transition">
+                    <i class="fas fa-plus mr-1"></i> Log your first day
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- ===================== FOOTER ===================== -->
+    <footer class="wyg-grad text-white mt-10">
+        <div class="container mx-auto px-4 py-8 text-center">
+            <p class="font-bold text-lg">📍 whereyago</p>
+            <p class="text-sm opacity-90 mt-1">Days worth copying. Maps by OpenStreetMap · Weather by Open-Meteo · Reviews via Google Maps.</p>
+            <p class="text-xs opacity-70 mt-3">Demo build with sample data — your logged days are saved in this browser.</p>
+        </div>
+    </footer>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl opacity-0 pointer-events-none z-[2000] flex items-center gap-2"></div>
+
+    <script>
+    /* =========================================================
+       whereyago — single-file app
+       Free/keyless services: Leaflet+OSM, Open-Meteo, Nominatim,
+       Google Maps deep-links. Data persisted in localStorage.
+       ========================================================= */
+
+    // ---------- Config ----------
+    const VIBES = {
+        chill:     { label: 'Chill',     emoji: '🌿' },
+        foodie:    { label: 'Foodie',    emoji: '🍜' },
+        family:    { label: 'Family',    emoji: '👨‍👩‍👧' },
+        adventure: { label: 'Adventure', emoji: '🏔️' },
+        night:     { label: 'Night Out', emoji: '🌃' },
+        culture:   { label: 'Culture',   emoji: '🎭' },
+        outdoors:  { label: 'Outdoors',  emoji: '🌅' },
+    };
+
+    const STOP_TYPES = {
+        restaurant: { label: 'Restaurant',     icon: 'fa-utensils' },
+        cafe:       { label: 'Café / Brunch',  icon: 'fa-mug-hot' },
+        event:      { label: 'Event / Show',   icon: 'fa-ticket' },
+        attraction: { label: 'Attraction',     icon: 'fa-camera' },
+        outdoors:   { label: 'Outdoors / Park',icon: 'fa-tree' },
+        shop:       { label: 'Shopping',       icon: 'fa-bag-shopping' },
+        bar:        { label: 'Bar / Nightlife',icon: 'fa-martini-glass' },
+        other:      { label: 'Other',          icon: 'fa-location-dot' },
+    };
+
+    // WMO weather code -> emoji + label
+    function weatherInfo(code) {
+        if (code === 0) return { emoji: '☀️', label: 'Clear' };
+        if (code <= 2) return { emoji: '🌤️', label: 'Mostly sunny' };
+        if (code === 3) return { emoji: '☁️', label: 'Cloudy' };
+        if (code <= 48) return { emoji: '🌫️', label: 'Foggy' };
+        if (code <= 57) return { emoji: '🌦️', label: 'Drizzle' };
+        if (code <= 67) return { emoji: '🌧️', label: 'Rain' };
+        if (code <= 77) return { emoji: '❄️', label: 'Snow' };
+        if (code <= 82) return { emoji: '🌧️', label: 'Showers' };
+        if (code <= 86) return { emoji: '🌨️', label: 'Snow showers' };
+        return { emoji: '⛈️', label: 'Thunderstorm' };
+    }
+
+    const KC = [39.0997, -94.5786]; // default map center
+
+    // ---------- Sample "Discover" data (KC area) ----------
+    const SAMPLE_DAYS = [
+        {
+            id: 'sample-1', author: '@maya.k', title: 'Lazy Sunday Reset', vibe: 'chill', city: 'Kansas City, MO',
+            date: '2026-06-07', weather: { code: 1, max: 74, min: 58 },
+            summary: 'Slow brunch, a little art, a long walk and ice cream. The cure for a busy week.',
+            tags: ['brunch', 'art', 'walkable', 'relaxing'],
+            stops: [
+                { name: 'Succotash at City Market', type: 'cafe', time: '10:00', note: 'Get the funky monkey pancakes', lat: 39.1098, lon: -94.5828 },
+                { name: 'Nelson-Atkins Museum of Art', type: 'attraction', time: '12:00', note: 'Free admission — see the shuttlecocks on the lawn', lat: 39.0454, lon: -94.5810 },
+                { name: 'Loose Park', type: 'outdoors', time: '14:30', note: 'Picnic by the rose garden', lat: 39.0386, lon: -94.5927 },
+                { name: 'Glacé Artisan Ice Cream (Plaza)', type: 'cafe', time: '16:00', note: 'Lavator honey + sea salt', lat: 39.0417, lon: -94.5905 },
+            ],
+        },
+        {
+            id: 'sample-2', author: '@thejacksons', title: 'Best Family Zoo Day', vibe: 'family', city: 'Kansas City, MO',
+            date: '2026-06-14', weather: { code: 0, max: 81, min: 63 },
+            summary: 'Pancakes, penguins, BBQ and a playground. Kids slept the whole drive home.',
+            tags: ['kids', 'animals', 'budget', 'outdoors'],
+            stops: [
+                { name: 'First Watch', type: 'restaurant', time: '09:00', note: 'Beat the crowd — get there by 9', lat: 39.0419, lon: -94.5882 },
+                { name: 'Kansas City Zoo', type: 'attraction', time: '10:30', note: 'Penguins + the tram saves little legs', lat: 39.0006, lon: -94.5184 },
+                { name: 'Char Bar (Westport)', type: 'restaurant', time: '13:30', note: 'Backyard games while you wait', lat: 39.0524, lon: -94.5915 },
+                { name: 'Walmart Supercenter', type: 'shop', time: '15:00', note: 'Snack + sunscreen restock', lat: 38.9776, lon: -94.5350 },
+                { name: 'Swope Park Playground', type: 'outdoors', time: '16:00', note: 'Burn off the last of the energy', lat: 38.9930, lon: -94.5260 },
+            ],
+        },
+        {
+            id: 'sample-3', author: '@eats.with.sam', title: 'Downtown Foodie Crawl', vibe: 'foodie', city: 'Kansas City, MO',
+            date: '2026-06-20', weather: { code: 2, max: 77, min: 60 },
+            summary: 'Tacos, coffee, world-famous BBQ and cocktails to close. Wear stretchy pants.',
+            tags: ['bbq', 'tacos', 'cocktails', 'date-night'],
+            stops: [
+                { name: 'Tacos El Gallo (City Market)', type: 'restaurant', time: '12:00', note: 'Al pastor, no notes', lat: 39.1098, lon: -94.5828 },
+                { name: 'Quay Coffee', type: 'cafe', time: '14:00', note: 'Cortado + a walk along the river', lat: 39.1090, lon: -94.5835 },
+                { name: 'Q39 BBQ', type: 'restaurant', time: '18:00', note: 'Burnt ends. Get there early or wait.', lat: 39.0905, lon: -94.5780 },
+                { name: 'Swordfish Tom’s (cocktails)', type: 'bar', time: '20:30', note: 'Hidden speakeasy — knock', lat: 39.1004, lon: -94.5820 },
+            ],
+        },
+        {
+            id: 'sample-4', author: '@trailmix.tony', title: 'Trail, Views & Brews', vibe: 'adventure', city: 'Kansas City, MO',
+            date: '2026-05-31', weather: { code: 3, max: 70, min: 52 },
+            summary: 'Sunrise hike, skyline views, a brewery tour and BBQ to refuel. Earn your beer.',
+            tags: ['hiking', 'brewery', 'views', 'active'],
+            stops: [
+                { name: 'Swope Park Fox Hollow Trail', type: 'outdoors', time: '08:00', note: 'Go early, beat the heat', lat: 39.0010, lon: -94.5300 },
+                { name: 'Liberty Memorial Tower', type: 'attraction', time: '11:00', note: 'Best skyline view in the city', lat: 39.0814, lon: -94.5853 },
+                { name: 'Boulevard Brewing Tour', type: 'event', time: '13:00', note: 'Book the tour ahead online', lat: 39.0905, lon: -94.6011 },
+                { name: 'Joe’s Kansas City BBQ', type: 'restaurant', time: '15:00', note: 'Z-Man sandwich in a gas station. Trust.', lat: 39.0524, lon: -94.6080 },
+            ],
+        },
+        {
+            id: 'sample-5', author: '@nightowl.nina', title: 'Concert Night Out', vibe: 'night', city: 'Kansas City, MO',
+            date: '2026-06-21', weather: { code: 1, max: 72, min: 59 },
+            summary: 'Dinner downtown, a live show, and rooftop cocktails under the lights.',
+            tags: ['live-music', 'cocktails', 'downtown'],
+            stops: [
+                { name: 'The Russell on Grand', type: 'restaurant', time: '18:00', note: 'Share the focaccia', lat: 39.0997, lon: -94.5833 },
+                { name: 'T-Mobile Center', type: 'event', time: '20:00', note: 'Doors 7pm · synthwave tour · $45+', lat: 39.0986, lon: -94.5816,
+                  event: { title: 'The Midnight — Live', doors: '7:00 PM', price: 'from $45' } },
+                { name: 'Percheron Rooftop Bar', type: 'bar', time: '23:00', note: 'Skyline + an espresso martini', lat: 39.1004, lon: -94.5822 },
+            ],
+        },
+        {
+            id: 'sample-6', author: '@artsy.amir', title: 'Rainy-Day Culture & Wine', vibe: 'culture', city: 'Kansas City, MO',
+            date: '2026-06-08', weather: { code: 61, max: 64, min: 50 },
+            summary: 'Made the most of a wet day: a museum, gallery hopping, a matinee and a wine bar.',
+            tags: ['museum', 'theatre', 'wine', 'rainy-day'],
+            stops: [
+                { name: 'National WWI Museum', type: 'attraction', time: '11:00', note: 'Allow 2 hours, it’s huge', lat: 39.0814, lon: -94.5853 },
+                { name: 'Crossroads Arts District galleries', type: 'culture', time: '14:00', note: 'First Friday energy any day', lat: 39.0889, lon: -94.5833 },
+                { name: 'Starlight Theatre matinee', type: 'event', time: '17:00', note: 'Touring Broadway show', lat: 39.0007, lon: -94.5300,
+                  event: { title: 'Broadway Matinee', doors: '4:30 PM', price: 'from $39' } },
+                { name: 'Underdog Wine Bar', type: 'bar', time: '20:00', note: 'Ask for the natural-wine flight', lat: 39.0917, lon: -94.5836 },
+            ],
+        },
+    ];
+
+    // ---------- Storage ----------
+    const LS_KEY = 'whereyago_mydays';
+    function getMyDays() {
+        try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; }
+        catch (e) { return []; }
+    }
+    function saveMyDays(days) { localStorage.setItem(LS_KEY, JSON.stringify(days)); }
+
+    // Discover = sample days + any of my days marked shared
+    function discoverDays() {
+        const shared = getMyDays().filter(d => d.shared);
+        return [...shared, ...SAMPLE_DAYS];
+    }
+    function findDay(id) {
+        return getMyDays().find(d => d.id === id) || SAMPLE_DAYS.find(d => d.id === id);
+    }
+
+    // ---------- Utils ----------
+    function escapeHtml(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    function formatDate(iso) {
+        if (!iso) return '';
+        const d = new Date(iso + 'T00:00:00');
+        if (isNaN(d)) return iso;
+        return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+    }
+    function formatTime(t) {
+        if (!t) return '';
+        const [h, m] = t.split(':').map(Number);
+        const ap = h >= 12 ? 'PM' : 'AM';
+        const h12 = ((h + 11) % 12) + 1;
+        return `${h12}:${String(m).padStart(2, '0')} ${ap}`;
+    }
+    function reviewsUrl(stop, city) {
+        const q = encodeURIComponent(`${stop.name} ${city || ''}`.trim());
+        return `https://www.google.com/maps/search/?api=1&query=${q}`;
+    }
+    function directionsUrl(stops) {
+        const pts = stops.filter(s => typeof s.lat === 'number' && typeof s.lon === 'number');
+        if (pts.length < 2) return null;
+        const origin = `${pts[0].lat},${pts[0].lon}`;
+        const dest = `${pts[pts.length - 1].lat},${pts[pts.length - 1].lon}`;
+        const way = pts.slice(1, -1).map(s => `${s.lat},${s.lon}`).join('|');
+        let url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}`;
+        if (way) url += `&waypoints=${encodeURIComponent(way)}`;
+        return url;
+    }
+    function toast(msg, icon = 'fa-circle-check') {
+        const t = document.getElementById('toast');
+        t.innerHTML = `<i class="fas ${icon}"></i> ${escapeHtml(msg)}`;
+        t.style.opacity = '1'; t.style.transform = 'translate(-50%, 0)';
+        clearTimeout(window._toastTimer);
+        window._toastTimer = setTimeout(() => { t.style.opacity = '0'; }, 2600);
+    }
+
+    // ---------- Leaflet maps ----------
+    const maps = {}; // containerId -> { map, markers, route }
+    function ensureMap(containerId, center) {
+        if (typeof L === 'undefined') return null;
+        // Self-heal: if a view re-rendered its innerHTML, the old map points at a
+        // detached node. Drop it so we re-init on the fresh container.
+        const existing = maps[containerId];
+        if (existing && !document.body.contains(existing.map.getContainer())) {
+            try { existing.map.remove(); } catch (e) {}
+            delete maps[containerId];
+        }
+        if (!maps[containerId]) {
+            const map = L.map(containerId, { scrollWheelZoom: false }).setView(center || KC, 12);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+            maps[containerId] = { map, markers: L.layerGroup().addTo(map), route: null };
+        }
+        return maps[containerId];
+    }
+    function drawStops(containerId, stops) {
+        const m = ensureMap(containerId);
+        if (!m) return;
+        setTimeout(() => m.map.invalidateSize(), 60);
+        m.markers.clearLayers();
+        if (m.route) { m.map.removeLayer(m.route); m.route = null; }
+        const pts = [];
+        stops.forEach((s, i) => {
+            if (typeof s.lat === 'number' && typeof s.lon === 'number') {
+                pts.push([s.lat, s.lon]);
+                const icon = L.divIcon({
+                    className: '', html: `<div class="wyg-pin-inner"><span>${i + 1}</span></div>`,
+                    iconSize: [30, 30], iconAnchor: [15, 30], popupAnchor: [0, -28],
+                });
+                L.marker([s.lat, s.lon], { icon }).addTo(m.markers)
+                 .bindPopup(`<b>${i + 1}. ${escapeHtml(s.name)}</b><br>${formatTime(s.time)}`);
+            }
+        });
+        if (pts.length > 1) {
+            m.route = L.polyline(pts, { color: '#7c3aed', weight: 4, opacity: .7, dashArray: '8,9' }).addTo(m.map);
+        }
+        if (pts.length) {
+            setTimeout(() => m.map.fitBounds(L.latLngBounds(pts).pad(0.3)), 70);
+        }
+    }
+
+    // ---------- Weather (Open-Meteo, no key) ----------
+    async function fetchWeather(lat, lon, date) {
+        try {
+            const base = 'https://api.open-meteo.com/v1/forecast';
+            const url = `${base}?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min`
+                      + `&temperature_unit=fahrenheit&timezone=auto&start_date=${date}&end_date=${date}`;
+            const r = await fetch(url);
+            const j = await r.json();
+            if (j && j.daily && j.daily.time && j.daily.time.length) {
+                return {
+                    code: j.daily.weather_code[0],
+                    max: Math.round(j.daily.temperature_2m_max[0]),
+                    min: Math.round(j.daily.temperature_2m_min[0]),
+                };
+            }
+        } catch (e) { /* offline / out of range */ }
+        return null;
+    }
+
+    // ---------- Geocoding (Nominatim, no key) ----------
+    async function geocode(query) {
+        try {
+            const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(query)}`;
+            const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+            const j = await r.json();
+            if (j && j.length) return { lat: parseFloat(j[0].lat), lon: parseFloat(j[0].lon), display: j[0].display_name };
+        } catch (e) { /* ignore */ }
+        return null;
+    }
+
+    // ---------- Components ----------
+    function vibeBadge(vibe) {
+        const v = VIBES[vibe] || { label: vibe, emoji: '📍' };
+        return `<span class="inline-flex items-center gap-1 text-xs font-semibold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full">${v.emoji} ${escapeHtml(v.label)}</span>`;
+    }
+    function weatherBadge(w) {
+        if (!w) return '';
+        const info = weatherInfo(w.code);
+        return `<span class="inline-flex items-center gap-1 text-xs font-semibold bg-sky-50 text-sky-700 px-2.5 py-1 rounded-full" title="${info.label}">${info.emoji} ${w.max}&deg;/${w.min}&deg;</span>`;
+    }
+
+    function dayCard(day) {
+        const stopIcons = day.stops.slice(0, 5).map(s => {
+            const t = STOP_TYPES[s.type] || STOP_TYPES.other;
+            return `<span class="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500" title="${escapeHtml((STOP_TYPES[s.type]||{}).label||'Stop')}"><i class="fas ${t.icon} text-xs"></i></span>`;
+        }).join('');
+        const more = day.stops.length > 5 ? `<span class="text-xs text-slate-400 self-center">+${day.stops.length - 5}</span>` : '';
+        return `
+        <button onclick="showDay('${day.id}')" class="text-left bg-white rounded-2xl overflow-hidden wyg-shadow card-hover w-full">
+            <div class="wyg-grad h-24 relative flex items-end p-4">
+                <div class="absolute top-3 right-3 flex gap-1.5">${weatherBadge(day.weather)}</div>
+                <h3 class="text-white font-extrabold text-lg leading-tight drop-shadow">${escapeHtml(day.title)}</h3>
+            </div>
+            <div class="p-4">
+                <div class="flex items-center gap-2 mb-3 flex-wrap">
+                    ${vibeBadge(day.vibe)}
+                    <span class="text-xs text-slate-400"><i class="fas fa-location-dot"></i> ${escapeHtml(day.city || '')}</span>
+                </div>
+                <p class="text-sm text-slate-600 mb-3 line-clamp-2">${escapeHtml(day.summary || '')}</p>
+                <div class="flex items-center gap-1.5 mb-3">${stopIcons} ${more}</div>
+                <div class="flex items-center justify-between text-xs text-slate-400">
+                    <span><i class="fas fa-user-circle"></i> ${escapeHtml(day.author || 'you')}</span>
+                    <span>${day.stops.length} stops · ${formatDate(day.date)}</span>
+                </div>
+            </div>
+        </button>`;
+    }
+
+    // ---------- Discover ----------
+    let activeVibe = 'all';
+    function renderVibeFilters() {
+        const box = document.getElementById('vibeFilters');
+        const chips = [['all', { label: 'All days', emoji: '✨' }], ...Object.entries(VIBES)];
+        box.innerHTML = chips.map(([key, v]) => `
+            <button onclick="setVibe('${key}')" data-vibe="${key}"
+                class="vibe-chip ${activeVibe === key ? 'active' : ''} border border-slate-200 bg-white text-slate-600 text-sm font-medium px-3.5 py-1.5 rounded-full">
+                ${v.emoji} ${escapeHtml(v.label)}
+            </button>`).join('');
+    }
+    function setVibe(v) { activeVibe = v; renderVibeFilters(); renderDiscover(); }
+    function renderDiscover() {
+        const feed = document.getElementById('discoverFeed');
+        const days = discoverDays().filter(d => activeVibe === 'all' || d.vibe === activeVibe);
+        document.getElementById('discoverEmpty').classList.toggle('hidden', days.length > 0);
+        feed.innerHTML = days.map(dayCard).join('');
+    }
+
+    // ---------- Day detail ----------
+    let lastView = 'discover';
+    function showDay(id) {
+        const day = findDay(id);
+        if (!day) return;
+        const mine = getMyDays().some(d => d.id === id);
+        const dir = directionsUrl(day.stops);
+
+        const timeline = day.stops.map((s, i) => {
+            const t = STOP_TYPES[s.type] || STOP_TYPES.other;
+            const ev = s.event ? `
+                <div class="mt-2 bg-pink-50 border border-pink-100 rounded-lg p-3 text-sm">
+                    <p class="font-semibold text-pink-700"><i class="fas fa-ticket"></i> ${escapeHtml(s.event.title)}</p>
+                    <p class="text-pink-600/80 text-xs mt-0.5">Doors ${escapeHtml(s.event.doors || '')} · ${escapeHtml(s.event.price || '')}</p>
+                </div>` : '';
+            return `
+            <div class="timeline-item pb-6">
+                <div class="absolute left-0 top-0 w-9 h-9 rounded-full wyg-grad text-white flex items-center justify-center font-bold text-sm shadow">${i + 1}</div>
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wide">${escapeHtml(t.label)} · ${formatTime(s.time)}</p>
+                        <h4 class="font-bold text-lg leading-tight">${escapeHtml(s.name)}</h4>
+                        ${s.note ? `<p class="text-sm text-slate-500 mt-0.5">${escapeHtml(s.note)}</p>` : ''}
+                        ${ev}
+                    </div>
+                    <i class="fas ${t.icon} text-slate-300 text-xl mt-1"></i>
+                </div>
+                <div class="flex gap-2 mt-2">
+                    <a href="${reviewsUrl(s, day.city)}" target="_blank" rel="noopener"
+                       class="text-xs font-medium text-amber-600 hover:text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md flex items-center gap-1">
+                        <i class="fas fa-star"></i> Reviews
+                    </a>
+                    <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.name + ' ' + (day.city||''))}" target="_blank" rel="noopener"
+                       class="text-xs font-medium text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-md flex items-center gap-1">
+                        <i class="fas fa-map-location-dot"></i> Map
+                    </a>
+                </div>
+            </div>`;
+        }).join('');
+
+        const info = day.weather ? weatherInfo(day.weather.code) : null;
+
+        document.getElementById('detailContent').innerHTML = `
+        <div class="fade-in">
+            <div class="wyg-grad text-white rounded-2xl p-6 mb-6 wyg-shadow">
+                <div class="flex flex-wrap items-center gap-2 mb-2">
+                    ${vibeBadge(day.vibe).replace('bg-indigo-50 text-indigo-700', 'bg-white/20 text-white')}
+                    <span class="text-xs bg-white/20 px-2.5 py-1 rounded-full"><i class="fas fa-calendar"></i> ${formatDate(day.date)}</span>
+                    <span class="text-xs bg-white/20 px-2.5 py-1 rounded-full"><i class="fas fa-location-dot"></i> ${escapeHtml(day.city || '')}</span>
+                </div>
+                <h1 class="text-3xl font-extrabold">${escapeHtml(day.title)}</h1>
+                <p class="opacity-90 mt-1">${escapeHtml(day.summary || '')}</p>
+                <p class="text-sm opacity-75 mt-3"><i class="fas fa-user-circle"></i> Logged by ${escapeHtml(day.author || 'you')}</p>
+            </div>
+
+            <div class="grid lg:grid-cols-5 gap-6">
+                <div class="lg:col-span-3 order-2 lg:order-1">
+                    <h3 class="font-bold text-lg mb-4 flex items-center gap-2"><i class="fas fa-route text-indigo-500"></i> The itinerary</h3>
+                    ${timeline}
+                </div>
+                <div class="lg:col-span-2 order-1 lg:order-2 space-y-4">
+                    ${info ? `
+                    <div class="bg-white rounded-2xl p-4 wyg-shadow flex items-center gap-4">
+                        <div class="text-4xl">${info.emoji}</div>
+                        <div>
+                            <p class="font-bold">${info.label}</p>
+                            <p class="text-sm text-slate-500">High ${day.weather.max}&deg;F · Low ${day.weather.min}&deg;F</p>
+                            <p class="text-xs text-slate-400">Weather that day</p>
+                        </div>
+                    </div>` : ''}
+                    <div class="bg-white rounded-2xl p-2 wyg-shadow">
+                        <div id="detailMap" class="wyg-map"></div>
+                    </div>
+                    ${dir ? `<a href="${dir}" target="_blank" rel="noopener" class="block text-center wyg-grad text-white font-semibold py-2.5 rounded-xl hover:opacity-90 transition"><i class="fas fa-diamond-turn-right"></i> Get directions for the whole day</a>` : ''}
+                    <button onclick="recreateDay('${day.id}')" class="w-full bg-emerald-500 text-white font-bold py-3 rounded-xl hover:bg-emerald-600 transition"><i class="fas fa-wand-magic-sparkles"></i> Recreate this day</button>
+                    ${mine ? `
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="toggleShare('${day.id}')" class="bg-white border border-slate-200 text-slate-700 font-semibold py-2.5 rounded-xl hover:bg-slate-50 transition text-sm"><i class="fas fa-share-nodes"></i> ${findDay(id).shared ? 'Unshare' : 'Share to Discover'}</button>
+                            <button onclick="deleteDay('${day.id}')" class="bg-white border border-red-200 text-red-600 font-semibold py-2.5 rounded-xl hover:bg-red-50 transition text-sm"><i class="fas fa-trash"></i> Delete</button>
+                        </div>` : ''}
+                </div>
+            </div>
+        </div>`;
+
+        showView('detail', true);
+        drawStops('detailMap', day.stops);
+    }
+
+    function recreateDay(id) {
+        const day = findDay(id);
+        if (!day) return;
+        loadIntoBuilder(day, true);
+        showView('plan');
+        toast('Loaded into your planner — make it yours!', 'fa-wand-magic-sparkles');
+    }
+    function toggleShare(id) {
+        const days = getMyDays();
+        const d = days.find(x => x.id === id);
+        if (!d) return;
+        d.shared = !d.shared;
+        saveMyDays(days);
+        toast(d.shared ? 'Shared to Discover ✨' : 'Removed from Discover', 'fa-share-nodes');
+        showDay(id);
+    }
+    function deleteDay(id) {
+        if (!confirm('Delete this day? This cannot be undone.')) return;
+        saveMyDays(getMyDays().filter(d => d.id !== id));
+        toast('Day deleted', 'fa-trash');
+        showView('mydays');
+    }
+
+    // ---------- Builder ----------
+    let builderStops = [];
+    let builderVibe = 'chill';
+
+    function renderBuilderVibes() {
+        document.getElementById('f_vibes').innerHTML = Object.entries(VIBES).map(([key, v]) => `
+            <button type="button" onclick="builderVibe='${key}'; renderBuilderVibes();"
+                class="vibe-chip ${builderVibe === key ? 'active' : ''} border border-slate-200 bg-white text-slate-600 text-sm font-medium px-3 py-1.5 rounded-full">
+                ${v.emoji} ${escapeHtml(v.label)}
+            </button>`).join('');
+    }
+    function renderTypeOptions() {
+        document.getElementById('s_type').innerHTML = Object.entries(STOP_TYPES)
+            .map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('');
+    }
+
+    function renderBuilderStops() {
+        const box = document.getElementById('builderStops');
+        document.getElementById('stopCount').textContent = builderStops.length ? `${builderStops.length} stop${builderStops.length > 1 ? 's' : ''}` : '';
+        if (!builderStops.length) {
+            box.innerHTML = `<p class="text-sm text-slate-400 text-center py-6"><i class="fas fa-map-pin text-2xl mb-2 block"></i>Add your first stop and watch the route appear.</p>`;
+            return;
+        }
+        box.innerHTML = builderStops.map((s, i) => {
+            const t = STOP_TYPES[s.type] || STOP_TYPES.other;
+            const located = (typeof s.lat === 'number')
+                ? `<span class="text-emerald-500 text-xs"><i class="fas fa-circle-check"></i> mapped</span>`
+                : `<span class="text-amber-500 text-xs"><i class="fas fa-circle-exclamation"></i> not found</span>`;
+            return `
+            <div class="flex items-center gap-3 py-2 border-b border-slate-100 last:border-0">
+                <div class="w-7 h-7 rounded-full wyg-grad text-white flex items-center justify-center text-xs font-bold shrink-0">${i + 1}</div>
+                <div class="flex-1 min-w-0">
+                    <p class="font-semibold text-sm truncate">${escapeHtml(s.name)}</p>
+                    <p class="text-xs text-slate-400"><i class="fas ${t.icon}"></i> ${t.label} · ${formatTime(s.time)} · ${located}</p>
+                </div>
+                <div class="flex items-center gap-1 shrink-0 text-slate-400">
+                    <button onclick="moveStop(${i},-1)" class="hover:text-indigo-600 px-1 ${i === 0 ? 'opacity-30 pointer-events-none' : ''}"><i class="fas fa-chevron-up"></i></button>
+                    <button onclick="moveStop(${i},1)" class="hover:text-indigo-600 px-1 ${i === builderStops.length - 1 ? 'opacity-30 pointer-events-none' : ''}"><i class="fas fa-chevron-down"></i></button>
+                    <button onclick="removeStop(${i})" class="hover:text-red-500 px-1"><i class="fas fa-xmark"></i></button>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    async function addStop() {
+        const name = document.getElementById('s_name').value.trim();
+        if (!name) { toast('Give the stop a name first', 'fa-circle-exclamation'); return; }
+        const type = document.getElementById('s_type').value;
+        const time = document.getElementById('s_time').value;
+        const note = document.getElementById('s_note').value.trim();
+        const city = document.getElementById('f_city').value.trim();
+
+        const btn = document.getElementById('addStopBtn');
+        btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Locating…';
+
+        const geo = await geocode(city ? `${name}, ${city}` : name);
+        const stop = { name, type, time, note };
+        if (geo) { stop.lat = geo.lat; stop.lon = geo.lon; }
+        builderStops.push(stop);
+
+        // reset inputs
+        document.getElementById('s_name').value = '';
+        document.getElementById('s_note').value = '';
+        document.getElementById('s_time').value = '';
+        btn.disabled = false; btn.innerHTML = '<i class="fas fa-plus"></i> Add stop';
+
+        renderBuilderStops();
+        drawStops('builderMap', builderStops);
+        updateBuilderWeather();
+        if (!geo) toast('Added — but we couldn’t pin that place. Try adding the city.', 'fa-circle-exclamation');
+    }
+    function removeStop(i) { builderStops.splice(i, 1); renderBuilderStops(); drawStops('builderMap', builderStops); updateBuilderWeather(); }
+    function moveStop(i, dir) {
+        const j = i + dir;
+        if (j < 0 || j >= builderStops.length) return;
+        [builderStops[i], builderStops[j]] = [builderStops[j], builderStops[i]];
+        renderBuilderStops(); drawStops('builderMap', builderStops);
+    }
+
+    let _weatherTimer;
+    function updateBuilderWeather() {
+        clearTimeout(_weatherTimer);
+        _weatherTimer = setTimeout(async () => {
+            const box = document.getElementById('builderWeather');
+            const first = builderStops.find(s => typeof s.lat === 'number');
+            const date = document.getElementById('f_date').value;
+            if (!first || !date) { box.innerHTML = ''; return; }
+            box.innerHTML = `<div class="bg-white rounded-2xl p-4 wyg-shadow text-sm text-slate-400"><i class="fas fa-spinner fa-spin"></i> Checking the forecast…</div>`;
+            const w = await fetchWeather(first.lat, first.lon, date);
+            if (!w) { box.innerHTML = `<div class="bg-white rounded-2xl p-4 wyg-shadow text-sm text-slate-400"><i class="fas fa-cloud"></i> Weather unavailable for that date/place.</div>`; return; }
+            const info = weatherInfo(w.code);
+            box.innerHTML = `
+                <div class="bg-white rounded-2xl p-4 wyg-shadow flex items-center gap-4">
+                    <div class="text-4xl">${info.emoji}</div>
+                    <div>
+                        <p class="font-bold">${info.label}</p>
+                        <p class="text-sm text-slate-500">High ${w.max}&deg;F · Low ${w.min}&deg;F</p>
+                        <p class="text-xs text-slate-400">Forecast for ${formatDate(date)}</p>
+                    </div>
+                </div>`;
+            box.dataset.weather = JSON.stringify(w);
+        }, 400);
+    }
+
+    function loadIntoBuilder(day, asCopy) {
+        document.getElementById('f_title').value = asCopy ? `My take on ${day.title}` : day.title;
+        document.getElementById('f_date').value = asCopy ? '' : (day.date || '');
+        document.getElementById('f_city').value = day.city || '';
+        builderVibe = day.vibe || 'chill';
+        builderStops = day.stops.map(s => ({ ...s }));
+        renderBuilderVibes(); renderBuilderStops();
+        drawStops('builderMap', builderStops);
+        updateBuilderWeather();
+    }
+    function resetBuilder() {
+        ['f_title', 'f_city', 's_name', 's_note', 's_time'].forEach(id => document.getElementById(id).value = '');
+        builderStops = []; builderVibe = 'chill';
+        renderBuilderVibes(); renderBuilderStops();
+        document.getElementById('builderWeather').innerHTML = '';
+        drawStops('builderMap', []);
+    }
+
+    async function saveDay() {
+        const title = document.getElementById('f_title').value.trim();
+        if (!title) { toast('Name your day first', 'fa-circle-exclamation'); return; }
+        if (!builderStops.length) { toast('Add at least one stop', 'fa-circle-exclamation'); return; }
+
+        const date = document.getElementById('f_date').value;
+        const city = document.getElementById('f_city').value.trim();
+
+        // weather: use the one we previewed, else fetch fresh
+        let weather = null;
+        const wbox = document.getElementById('builderWeather');
+        if (wbox.dataset.weather) { try { weather = JSON.parse(wbox.dataset.weather); } catch (e) {} }
+        if (!weather) {
+            const first = builderStops.find(s => typeof s.lat === 'number');
+            if (first && date) weather = await fetchWeather(first.lat, first.lon, date);
+        }
+
+        const day = {
+            id: 'day_' + Date.now(),
+            author: 'you', title, date, city, vibe: builderVibe,
+            summary: builderStops.map(s => s.name).slice(0, 3).join(' → ') + (builderStops.length > 3 ? ' …' : ''),
+            tags: [], weather, shared: false,
+            stops: builderStops.map(s => ({ ...s })),
+        };
+        const days = getMyDays();
+        days.unshift(day);
+        saveMyDays(days);
+        resetBuilder();
+        renderMyDays();
+        toast('Day saved to My Days! 🎉', 'fa-circle-check');
+        showDay(day.id);
+    }
+
+    // ---------- My Days ----------
+    function renderMyDays() {
+        const days = getMyDays();
+        document.getElementById('myDaysEmpty').classList.toggle('hidden', days.length > 0);
+        document.getElementById('myDaysFeed').innerHTML = days.map(dayCard).join('');
+    }
+
+    // ---------- Router ----------
+    function showView(name, keepHistory) {
+        if (!keepHistory && name !== 'detail') lastView = name;
+        document.querySelectorAll('[data-view]').forEach(v => v.classList.add('hidden'));
+        const view = document.querySelector(`[data-view="${name}"]`);
+        if (view) { view.classList.remove('hidden'); view.classList.add('fade-in'); setTimeout(() => view.classList.remove('fade-in'), 400); }
+        document.querySelectorAll('[data-nav]').forEach(b => b.classList.toggle('bg-white/15', b.dataset.nav === name));
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        if (name === 'discover') renderDiscover();
+        if (name === 'mydays') renderMyDays();
+        if (name === 'plan') { renderBuilderVibes(); renderBuilderStops(); drawStops('builderMap', builderStops); }
+    }
+    function goBack() { showView(lastView); }
+
+    // ---------- Init ----------
+    document.addEventListener('DOMContentLoaded', () => {
+        // default date = today
+        const today = new Date().toISOString().slice(0, 10);
+        document.getElementById('f_date').value = today;
+        document.getElementById('f_date').addEventListener('change', updateBuilderWeather);
+
+        renderTypeOptions();
+        renderVibeFilters();
+        renderDiscover();
+        renderBuilderVibes();
+        renderBuilderStops();
+
+        // Enter key adds a stop
+        document.getElementById('s_name').addEventListener('keydown', e => { if (e.key === 'Enter') addStop(); });
+    });
+    </script>
+</body>
+</html>
