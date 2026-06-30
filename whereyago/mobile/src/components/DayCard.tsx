@@ -1,13 +1,13 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { tokens } from "../theme/tokens";
-import { VIBES, type Day } from "../types";
+import { VIBES, type Adventure } from "../types";
 
 function vibeEmoji(vibe: string): string {
   return VIBES.find((v) => v.key === vibe)?.emoji ?? "📍";
 }
 
-export function DayCard({ day, onPress }: { day: Day; onPress: () => void }) {
+export function DayCard({ day, onPress }: { day: Adventure; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
       <Text style={styles.title}>{day.title}</Text>

@@ -1,4 +1,4 @@
-"""User model."""
+"""User model (login identity). Profile details live in UserInfo."""
 
 from __future__ import annotations
 
@@ -11,7 +11,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 if TYPE_CHECKING:
-    from app.models.day import Day
+    from app.models.adventure import Adventure
+    from app.models.user_info import UserInfo
 
 
 class User(Base):
@@ -24,7 +25,12 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    days: Mapped[list[Day]] = relationship(back_populates="owner", cascade="all, delete-orphan")
+    adventures: Mapped[list[Adventure]] = relationship(
+        back_populates="owner", cascade="all, delete-orphan"
+    )
+    info: Mapped[UserInfo | None] = relationship(
+        back_populates="user", cascade="all, delete-orphan", uselist=False
+    )
 
     def __repr__(self) -> str:  # pragma: no cover - debugging aid
         return f"<User id={self.id} username={self.username!r}>"

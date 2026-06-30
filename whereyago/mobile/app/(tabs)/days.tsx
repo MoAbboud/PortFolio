@@ -2,24 +2,24 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
 
-import { daysApi } from "../../src/api/days";
+import { adventuresApi } from "../../src/api/adventures";
 import { useAuth } from "../../src/auth/AuthContext";
 import { Button } from "../../src/components/Button";
 import { DayCard } from "../../src/components/DayCard";
 import { tokens } from "../../src/theme/tokens";
-import type { Day } from "../../src/types";
+import type { Adventure } from "../../src/types";
 
 export default function MyDays() {
   const router = useRouter();
   const { token } = useAuth();
-  const [days, setDays] = useState<Day[]>([]);
+  const [days, setDays] = useState<Adventure[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
     if (!token) return;
     try {
-      setDays(await daysApi.list(token));
+      setDays(await adventuresApi.list(token));
     } catch {
       // keep current list
     } finally {

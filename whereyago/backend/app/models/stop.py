@@ -1,4 +1,4 @@
-"""Stop model — one place visited on a day."""
+"""Stop model — one place visited on an adventure."""
 
 from __future__ import annotations
 
@@ -11,15 +11,17 @@ from app.db.base import Base
 from app.models.enums import StopType
 
 if TYPE_CHECKING:
-    from app.models.day import Day
+    from app.models.adventure import Adventure
 
 
 class Stop(Base):
     __tablename__ = "stops"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    day_id: Mapped[int] = mapped_column(ForeignKey("days.id", ondelete="CASCADE"), index=True)
-    # Zero-based order of the stop within its day.
+    adventure_id: Mapped[int] = mapped_column(
+        ForeignKey("adventures.id", ondelete="CASCADE"), index=True
+    )
+    # Zero-based order of the stop within its adventure.
     position: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     name: Mapped[str] = mapped_column(String(200))
     type: Mapped[StopType] = mapped_column(Enum(StopType, name="stop_type"))
@@ -30,7 +32,7 @@ class Stop(Base):
     # Optional event details, e.g. {"title": "...", "doors": "7:00 PM", "price": "$45+"}.
     event: Mapped[dict[str, Any] | None] = mapped_column(JSON, default=None)
 
-    day: Mapped[Day] = relationship(back_populates="stops")
+    adventure: Mapped[Adventure] = relationship(back_populates="stops")
 
     def __repr__(self) -> str:  # pragma: no cover - debugging aid
         return f"<Stop id={self.id} name={self.name!r} position={self.position}>"

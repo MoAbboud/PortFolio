@@ -2,20 +2,20 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
 
-import { daysApi } from "../../src/api/days";
+import { adventuresApi } from "../../src/api/adventures";
 import { DayCard } from "../../src/components/DayCard";
 import { tokens } from "../../src/theme/tokens";
-import type { Day } from "../../src/types";
+import type { Adventure } from "../../src/types";
 
 export default function Discover() {
   const router = useRouter();
-  const [days, setDays] = useState<Day[]>([]);
+  const [days, setDays] = useState<Adventure[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      setDays(await daysApi.discover());
+      setDays(await adventuresApi.discover());
     } catch {
       // keep current list; pull to retry
     } finally {

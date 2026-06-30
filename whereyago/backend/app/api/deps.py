@@ -19,10 +19,10 @@ from app.core.exceptions import AuthError
 from app.core.security import decode_access_token
 from app.db.session import get_db
 from app.models.user import User
-from app.repositories.day_repository import DayRepository, SqlDayRepository
+from app.repositories.adventure_repository import AdventureRepository, SqlAdventureRepository
 from app.repositories.user_repository import SqlUserRepository, UserRepository
+from app.services.adventure_service import AdventureService
 from app.services.auth_service import AuthService
-from app.services.day_service import DayService
 
 DbSession = Annotated[Session, Depends(get_db)]
 
@@ -34,8 +34,8 @@ def get_user_repository(db: DbSession) -> UserRepository:
     return SqlUserRepository(db)
 
 
-def get_day_repository(db: DbSession) -> DayRepository:
-    return SqlDayRepository(db)
+def get_adventure_repository(db: DbSession) -> AdventureRepository:
+    return SqlAdventureRepository(db)
 
 
 # --- Services ---
@@ -45,10 +45,10 @@ def get_auth_service(
     return AuthService(users)
 
 
-def get_day_service(
-    days: Annotated[DayRepository, Depends(get_day_repository)],
-) -> DayService:
-    return DayService(days)
+def get_adventure_service(
+    adventures: Annotated[AdventureRepository, Depends(get_adventure_repository)],
+) -> AdventureService:
+    return AdventureService(adventures)
 
 
 # --- Current user ---
@@ -71,5 +71,5 @@ def get_current_user(
 
 
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
-DayServiceDep = Annotated[DayService, Depends(get_day_service)]
+AdventureServiceDep = Annotated[AdventureService, Depends(get_adventure_service)]
 CurrentUser = Annotated[User, Depends(get_current_user)]

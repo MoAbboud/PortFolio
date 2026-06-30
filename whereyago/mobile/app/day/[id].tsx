@@ -2,12 +2,12 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Alert, Linking, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { adventuresApi } from "../../src/api/adventures";
 import { ApiError } from "../../src/api/client";
-import { daysApi } from "../../src/api/days";
 import { useAuth } from "../../src/auth/AuthContext";
 import { Button } from "../../src/components/Button";
 import { tokens } from "../../src/theme/tokens";
-import { VIBES, type Day } from "../../src/types";
+import { VIBES, type Adventure } from "../../src/types";
 
 function mapsUrl(query: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
@@ -19,10 +19,10 @@ export default function DayDetail() {
   const params = useLocalSearchParams<{ id: string; data?: string }>();
   const [deleting, setDeleting] = useState(false);
 
-  const day = useMemo<Day | null>(() => {
+  const day = useMemo<Adventure | null>(() => {
     if (!params.data) return null;
     try {
-      return JSON.parse(params.data) as Day;
+      return JSON.parse(params.data) as Adventure;
     } catch {
       return null;
     }
@@ -44,7 +44,7 @@ export default function DayDetail() {
     if (!token || !day) return;
     setDeleting(true);
     try {
-      await daysApi.remove(day.id, token);
+      await adventuresApi.remove(day.id, token);
       router.back();
     } catch (error) {
       Alert.alert("Couldn't delete", error instanceof ApiError ? error.message : "Something went wrong.");

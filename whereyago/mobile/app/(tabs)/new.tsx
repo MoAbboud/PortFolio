@@ -2,8 +2,8 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { adventuresApi } from "../../src/api/adventures";
 import { ApiError } from "../../src/api/client";
-import { daysApi } from "../../src/api/days";
 import { useAuth } from "../../src/auth/AuthContext";
 import { Button } from "../../src/components/Button";
 import { Input } from "../../src/components/Input";
@@ -55,7 +55,7 @@ export default function NewDay() {
     }
     setSaving(true);
     try {
-      await daysApi.create(
+      await adventuresApi.create(
         {
           title: title.trim(),
           city: city.trim() || null,

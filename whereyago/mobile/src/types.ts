@@ -34,7 +34,20 @@ export interface Stop {
   event?: Record<string, unknown> | null;
 }
 
-export interface Day {
+export interface Weather {
+  code?: number | null;
+  temp_max?: number | null;
+  temp_min?: number | null;
+  description?: string | null;
+}
+
+export interface AdventureStats {
+  views: number;
+  likes_count: number;
+  comments_count: number;
+}
+
+export interface Adventure {
   id: number;
   owner_id: number;
   title: string;
@@ -42,19 +55,20 @@ export interface Day {
   vibe: Vibe;
   city?: string | null;
   date?: string | null;
-  weather?: Record<string, unknown> | null;
   is_shared: boolean;
   stops: Stop[];
+  weather?: Weather | null;
+  stats?: AdventureStats | null;
 }
 
-export interface DayCreate {
+export interface AdventureCreate {
   title: string;
   summary?: string | null;
   vibe: Vibe;
   city?: string | null;
   date?: string | null;
-  weather?: Record<string, unknown> | null;
   stops: Array<Omit<Stop, "id" | "position">>;
+  weather?: Weather | null;
 }
 
 export interface User {
