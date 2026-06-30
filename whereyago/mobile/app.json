@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "whereyago",
+    "slug": "whereyago",
+    "scheme": "whereyago",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {},
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": ["expo-router"]
+  }
+}

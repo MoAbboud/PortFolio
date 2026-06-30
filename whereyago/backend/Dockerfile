@@ -17,8 +17,10 @@ RUN apt-get update \
 COPY . .
 RUN pip install --upgrade pip && pip install .
 
-# Run as a non-root user.
-RUN chmod +x scripts/start.sh \
+# Run as a non-root user. Strip any CRLF from the entrypoint so the shebang
+# works even if the file was checked out with Windows line endings.
+RUN sed -i 's/\r$//' scripts/start.sh \
+    && chmod +x scripts/start.sh \
     && useradd --create-home appuser \
     && chown -R appuser:appuser /app
 USER appuser

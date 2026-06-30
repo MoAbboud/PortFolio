@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     ENVIRONMENT: Environment = "local"
     DEBUG: bool = False
     API_V1_PREFIX: str = "/api/v1"
+    # Interactive API docs (Swagger UI + ReDoc + OpenAPI spec). Off by default;
+    # set DOCS_ENABLED=true in the environment to turn them back on.
+    DOCS_ENABLED: bool = False
 
     # --- Logging ---
     LOG_LEVEL: str = "INFO"

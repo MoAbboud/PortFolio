@@ -33,12 +33,15 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 
 def create_app() -> FastAPI:
+    docs_enabled = settings.DOCS_ENABLED
     app = FastAPI(
         title=settings.PROJECT_NAME,
         version="0.1.0",
-        openapi_url=f"{settings.API_V1_PREFIX}/openapi.json",
-        docs_url="/docs",
         lifespan=lifespan,
+        # Swagger/ReDoc/OpenAPI are disabled unless DOCS_ENABLED=true.
+        docs_url="/docs" if docs_enabled else None,
+        redoc_url="/redoc" if docs_enabled else None,
+        openapi_url=f"{settings.API_V1_PREFIX}/openapi.json" if docs_enabled else None,
     )
 
     # CORS first (innermost), correlation id added last so it wraps everything.

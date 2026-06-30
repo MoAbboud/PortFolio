@@ -10,4 +10,7 @@ __pycache__
 .env.*
 !.env.example
 tests
+# Exclude docs from the image, but keep README.md — pyproject's
+# `readme = "README.md"` needs it to build the package.
 *.md
+!README.md
