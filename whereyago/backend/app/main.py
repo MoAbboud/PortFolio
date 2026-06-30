@@ -7,15 +7,18 @@ router. Business logic lives in services; this file just composes the web layer.
 
 from __future__ import annotations
 
+import traceback
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+import structlog
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.v1.router import api_router
 from app.core.config import get_settings
+from app.core.db_logging import extract_error_frame, record_log_entry
 from app.core.exceptions import AppError
 from app.core.logging import configure_logging, get_logger
 from app.middleware.correlation import CorrelationIdMiddleware
@@ -59,6 +62,33 @@ def create_app() -> FastAPI:
     async def handle_app_error(_request: Request, exc: AppError) -> JSONResponse:
         # Expected domain errors → clean JSON, no stack trace leaked to clients.
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.message})
+
+    @app.exception_handler(Exception)
+    async def handle_unhandled_error(request: Request, exc: Exception) -> JSONResponse:
+        # Unexpected error: persist full detail (error, location, function, user,
+        # time) to the DB in its own transaction, then return a clean 500.
+        filename, function, line = extract_error_frame(exc.__traceback__)
+        context = structlog.contextvars.get_contextvars()
+        record_log_entry(
+            {
+                "level": "ERROR",
+                "logger": "unhandled",
+                "message": f"Unhandled {type(exc).__name__}: {exc}",
+                "error_type": type(exc).__name__,
+                "error_message": str(exc),
+                "module": filename,
+                "function": function,
+                "line": line,
+                "traceback": "".join(traceback.format_exception(type(exc), exc, exc.__traceback__)),
+                "user_id": context.get("user_id"),
+                "correlation_id": context.get("correlation_id"),
+                "method": context.get("method") or request.method,
+                "path": context.get("path") or request.url.path,
+            }
+        )
+        # exc_info=exc → traceback on stdout, and the DB sink skips it (no dupe).
+        logger.error("unhandled_exception", exc_info=exc)
+        return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
     app.include_router(api_router, prefix=settings.API_V1_PREFIX)
     return app

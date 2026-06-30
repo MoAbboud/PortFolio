@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     # --- Logging ---
     LOG_LEVEL: str = "INFO"
     LOG_JSON: bool = True
+    # Logs at this level and above are also persisted to the DB (log_entries).
+    # Keep at WARNING to avoid flooding the table with routine INFO traffic.
+    DB_LOG_LEVEL: str = "WARNING"
 
     # --- Security (no defaults — must be supplied via env) ---
     SECRET_KEY: str

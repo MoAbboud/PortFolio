@@ -6,7 +6,8 @@ string references resolve.
 """
 
 from app.models.day import Day
+from app.models.log_entry import LogEntry
 from app.models.stop import Stop
 from app.models.user import User
 
-__all__ = ["Day", "Stop", "User"]
+__all__ = ["Day", "LogEntry", "Stop", "User"]

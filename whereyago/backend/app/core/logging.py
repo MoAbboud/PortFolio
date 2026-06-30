@@ -13,8 +13,10 @@ from __future__ import annotations
 import logging
 
 import structlog
+from structlog.processors import CallsiteParameter, CallsiteParameterAdder
 
 from app.core.config import get_settings
+from app.core.db_logging import make_db_sink
 
 
 def configure_logging() -> None:
@@ -26,6 +28,16 @@ def configure_logging() -> None:
         structlog.contextvars.merge_contextvars,
         structlog.processors.add_log_level,
         structlog.processors.TimeStamper(fmt="iso", utc=True),
+        # Capture where each log call came from (file / function / line)...
+        CallsiteParameterAdder(
+            {
+                CallsiteParameter.FILENAME,
+                CallsiteParameter.FUNC_NAME,
+                CallsiteParameter.LINENO,
+            }
+        ),
+        # ...then persist WARNING+ events to the DB before they're rendered.
+        make_db_sink(settings.DB_LOG_LEVEL),
         structlog.processors.StackInfoRenderer(),
         structlog.processors.format_exc_info,
     ]

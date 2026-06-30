@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
+import structlog
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
@@ -64,6 +65,8 @@ def get_current_user(
     user = db.get(User, int(subject))
     if user is None:
         raise AuthError("User no longer exists.")
+    # Tag the request context so logs (and DB error rows) carry the user id.
+    structlog.contextvars.bind_contextvars(user_id=user.id)
     return user
 
 

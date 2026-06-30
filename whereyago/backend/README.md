@@ -46,6 +46,36 @@ How each SOLID principle shows up:
   `X-Request-ID` header. JSON logs in production, pretty logs locally. We log ids, never payloads/secrets.
 - **Quality gates**: `ruff` (lint+format), `mypy --strict`, `pytest`, and `pre-commit`.
 
+## 🪵 Logs in the database (no log files)
+
+Warnings, errors, and every **unhandled exception** are written to the
+`log_entries` table — not to files on disk. Each row captures:
+
+| Column | What |
+|---|---|
+| `created_at` | time & day |
+| `level` | INFO / WARNING / ERROR |
+| `message` | the log message |
+| `error_type` / `error_message` | the exception class and its message |
+| `module` / `function` / `line` | **where** the error happened |
+| `traceback` | full stack trace |
+| `user_id` | the logged-in user at the time (if any) |
+| `correlation_id`, `method`, `path` | the request it came from |
+
+How it works (`app/core/db_logging.py`): a structlog processor persists `WARNING`+
+log calls, and the global exception handler in `app/main.py` records unhandled
+errors **in their own transaction** (so the error is saved even when the request
+rolls back). The threshold is `DB_LOG_LEVEL` (default `WARNING`; set to `INFO` to
+capture everything). Live output still goes to stdout (`docker compose logs api`) —
+that's the container console, not a file.
+
+**Read the logs** (most recent first):
+```bash
+docker compose exec db psql -U whereyago -d whereyago -c \
+  "SELECT created_at, level, error_type, function, line, user_id, message
+   FROM log_entries ORDER BY created_at DESC LIMIT 20;"
+```
+
 ## 🚀 Quick start (Docker — recommended)
 
 You already have Docker, so this is the one-liner path:
