@@ -1,0 +1,3 @@
+# Single LLM provider to start: Anthropic.
+# The SDK gives us exponential-backoff retries on 429 / 5xx out of the box.
+anthropic>=0.40
