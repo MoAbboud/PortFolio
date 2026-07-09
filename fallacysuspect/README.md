@@ -91,6 +91,11 @@ docker run --rm -e ANTHROPIC_API_KEY fallacy-warn \
 the key never lands in shell history or an image layer. On Windows PowerShell,
 replace `$PWD` with `${PWD}`; in `cmd.exe` use `%cd%`.
 
+> **Windows / Git Bash:** Git Bash rewrites the container path
+> `/data/argument.txt` into a Windows path before Docker sees it. Prefix the
+> command with `MSYS_NO_PATHCONV=1`, or just use PowerShell / `cmd.exe`, or pipe
+> via stdin (`--file -`), none of which have this issue.
+
 ## Design notes
 
 - **Single LLM provider to start** (Anthropic). The API key comes from the
