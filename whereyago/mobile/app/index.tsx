@@ -15,5 +15,5 @@ export default function Index() {
     );
   }
 
-  return <Redirect href={token ? "/(tabs)/discover" : "/login"} />;
+  return <Redirect href={token ? "/(tabs)/home" : "/login"} />;
 }

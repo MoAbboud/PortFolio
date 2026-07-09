@@ -65,8 +65,8 @@ export default function NewDay() {
         },
         token,
       );
-      Alert.alert("Saved!", "Your day is now in My Days.");
-      router.replace("/(tabs)/days");
+      Alert.alert("Saved!", "Your adventure is now on your profile.");
+      router.replace("/(tabs)/profile");
     } catch (error) {
       Alert.alert("Couldn't save", error instanceof ApiError ? error.message : "Something went wrong.");
     } finally {

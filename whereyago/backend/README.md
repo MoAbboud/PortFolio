@@ -76,6 +76,23 @@ docker compose exec db psql -U whereyago -d whereyago -c \
    FROM log_entries ORDER BY created_at DESC LIMIT 20;"
 ```
 
+## 🖥️ Browse the database (Adminer)
+
+`docker compose up` also starts **Adminer**, a web UI for the database, at
+**http://localhost:8080**. Log in with:
+
+| Field | Value |
+|---|---|
+| System | **PostgreSQL** |
+| Server | **db** (pre-filled) |
+| Username | your `POSTGRES_USER` (default `whereyago`) |
+| Password | your `POSTGRES_PASSWORD` (from `.env`) |
+| Database | your `POSTGRES_DB` (default `whereyago`) |
+
+From there you can browse every table (`adventures`, `stops`, `log_entries`, …),
+run SQL, and edit rows. **Local dev only** — the compose file warns not to expose
+port 8080 publicly.
+
 ## 🚀 Quick start (Docker — recommended)
 
 You already have Docker, so this is the one-liner path:

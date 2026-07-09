@@ -25,7 +25,7 @@ export default function Register() {
     setLoading(true);
     try {
       await signUp(email.trim(), username.trim(), password);
-      router.replace("/(tabs)/discover");
+      router.replace("/(tabs)/home");
     } catch (error) {
       Alert.alert("Sign up failed", error instanceof ApiError ? error.message : "Something went wrong.");
     } finally {

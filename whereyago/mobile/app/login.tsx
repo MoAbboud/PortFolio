@@ -24,7 +24,7 @@ export default function Login() {
     setLoading(true);
     try {
       await signIn(email.trim(), password);
-      router.replace("/(tabs)/discover");
+      router.replace("/(tabs)/home");
     } catch (error) {
       Alert.alert("Login failed", error instanceof ApiError ? error.message : "Something went wrong.");
     } finally {
