@@ -20,10 +20,17 @@ RUN pip install -r requirements.txt
 # Then the package.
 COPY fallacy_warn/ ./fallacy_warn/
 
-# Run as a non-root user.
-RUN useradd --create-home --uid 10001 appuser
+# Run as a non-root user. Give it a writable dir for the SQLite database;
+# mount a volume at /data to persist evaluations across container runs.
+RUN useradd --create-home --uid 10001 appuser \
+    && mkdir -p /data && chown appuser:appuser /data
 USER appuser
+ENV FALLACY_WARN_DB=/data/fallacy_warn.db
+
+# Web UI port (see `serve` below). Publish it with `docker run -p 8000:8000`.
+EXPOSE 8000
 
 # `docker run <image> check --file /data/argument.txt` appends to this.
+# Web UI:  docker run -p 8000:8000 -e ANTHROPIC_API_KEY <image> serve --host 0.0.0.0
 ENTRYPOINT ["python", "-m", "fallacy_warn"]
 CMD ["--help"]

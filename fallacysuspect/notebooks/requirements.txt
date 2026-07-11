@@ -1,0 +1,9 @@
+# Dependencies for fallacy_classifier.ipynb
+# GPU strongly recommended for the DistilBERT section (e.g. Google Colab).
+torch>=2.0
+transformers>=4.30
+scikit-learn>=1.2
+pandas>=1.5
+numpy>=1.23
+matplotlib>=3.6
+seaborn>=0.12

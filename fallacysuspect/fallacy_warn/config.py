@@ -8,6 +8,8 @@ knobs here.
 
 from __future__ import annotations
 
+import os
+
 # --------------------------------------------------------------------------- #
 # Fallacy taxonomy
 # --------------------------------------------------------------------------- #
@@ -43,6 +45,14 @@ MAX_TOKENS_VERIFIER: int = 1024
 # How many times to re-ask the model when its JSON is malformed before giving
 # up. 1 means: try once, retry once, then skip. (Total attempts = value + 1.)
 JSON_RETRIES: int = 1
+
+# --------------------------------------------------------------------------- #
+# Database
+# --------------------------------------------------------------------------- #
+# Every evaluation stores the submitted text + its analysis result. SQLite by
+# default (a single file, zero external service). Override the path with the
+# FALLACY_WARN_DB env var; point it at a mounted volume to persist in Docker.
+DB_PATH: str = os.environ.get("FALLACY_WARN_DB", "fallacy_warn.db")
 
 # --------------------------------------------------------------------------- #
 # Confidence -> warning-level bucketing

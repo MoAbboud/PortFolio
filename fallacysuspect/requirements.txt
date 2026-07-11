@@ -1,3 +1,13 @@
 # Single LLM provider to start: Anthropic.
 # The SDK gives us exponential-backoff retries on 429 / 5xx out of the box.
 anthropic>=0.40
+
+# Web interface (`python -m fallacy_warn serve`).
+flask>=3.0
+
+# Optional: serve your own trained models locally (zero per-call cost) instead of
+# the API. Install these to enable the local backend; the app auto-detects the
+# models in models/two_stage/ and prefers them. Override with FALLACY_BACKEND.
+#   pip install torch transformers
+# torch>=2.0
+# transformers>=4.30

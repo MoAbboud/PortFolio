@@ -1,0 +1,38 @@
+# Run the Fallacy Suspect web interface with one command:
+#
+#   docker compose up          (add --build the first time, or after code changes)
+#
+# Put your API key in a .env file next to this one (it's git-ignored):
+#
+#   ANTHROPIC_API_KEY=sk-ant-your-real-key
+#
+# Then open http://localhost:8000
+
+services:
+  fallacy-warn:
+    build: .
+    image: fallacy-warn
+    container_name: fallacy-warn
+    # Appended to the image's ENTRYPOINT -> `python -m fallacy_warn serve ...`.
+    # 0.0.0.0 is required so the browser can reach it from outside the container.
+    command: ["serve", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      # host:container — change PORT (e.g. PORT=3000) to use a different local port.
+      - "${PORT:-8000}:8000"
+    environment:
+      # Read from .env or your shell; fail fast with a clear message if unset.
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:?Set ANTHROPIC_API_KEY in a .env file or your shell}
+      - FALLACY_WARN_DB=/data/fallacy_warn.db
+    volumes:
+      # Named volume keeps stored evaluations across restarts.
+      - fallacy-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/').status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  fallacy-data:
