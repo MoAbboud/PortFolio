@@ -1,0 +1,3 @@
+https://github.com/ChadiHelwe/MAFALDA
+https://github.com/causalNLP/logical-fallacy/tree/main
+https://www.kaggle.com/datasets/navy007/logical-fallacy-counterfactual-dataset/data
