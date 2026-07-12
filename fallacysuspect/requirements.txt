@@ -5,6 +5,10 @@ anthropic>=0.40
 # Web interface (`python -m fallacy_warn serve`).
 flask>=3.0
 
+# Local TF-IDF model backend (lightweight; deployable on a free tier — no torch).
+scikit-learn>=1.3
+joblib>=1.3
+
 # Optional: serve your own trained models locally (zero per-call cost) instead of
 # the API. Install these to enable the local backend; the app auto-detects the
 # models in models/two_stage/ and prefers them. Override with FALLACY_BACKEND.

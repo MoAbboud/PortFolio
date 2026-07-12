@@ -8,10 +8,13 @@
 *.db-wal
 *.db-shm
 
-# Trained model binaries (large; keep out of git) + datasets
-models/
+# Large trained model weights — keep out of git (host separately for deploy).
+# The small, deployable TF-IDF models + pipeline.json under models/ DO commit.
 *.safetensors
 *.pt
+**/*_distilbert/
+
+# Datasets (licensed — download separately)
 data/
 
 # Python
