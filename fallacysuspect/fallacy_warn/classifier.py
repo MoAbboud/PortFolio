@@ -194,6 +194,45 @@ def analyze(text: str) -> AnalysisResult:
     return AnalysisResult(text=text, flags=flags)
 
 
+def analyze_stream(text: str):
+    """Yield progress events while analyzing sentence by sentence.
+
+    Lets the UI show a live progress bar that colours itself as findings appear:
+        {"type": "start",    "total": n}
+        {"type": "progress", "done": i, "total": n, "flag": <dict|None>}
+        {"type": "done",     "flags": [<dict>, ...]}
+    """
+    if not text or not text.strip():
+        yield {"type": "done", "flags": []}
+        return
+
+    state = _load()
+    det, typ, max_len = state["det"], state["typ"], state["max_len"]
+    sentences = split_sentences(text)
+    total = len(sentences)
+    yield {"type": "start", "total": total}
+
+    flags: list[Flag] = []
+    for i, sentence in enumerate(sentences, start=1):
+        verdict, _ = _predict(det, sentence, max_len)
+        flag_dict = None
+        if verdict == "fallacy":
+            ftype, conf = _predict(typ, sentence, max_len)
+            flag = Flag(
+                fallacy_type=ftype,
+                span=sentence,
+                confidence=conf,
+                warning_level=bucket_warning(conf),
+                explanation=DESCRIPTIONS.get(ftype, "Possible logical fallacy."),
+                charitable_read=None,
+            )
+            flags.append(flag)
+            flag_dict = flag.to_dict()
+        yield {"type": "progress", "done": i, "total": total, "flag": flag_dict}
+
+    yield {"type": "done", "flags": [f.to_dict() for f in flags]}
+
+
 def active_kinds() -> dict[str, str | None]:
     """Which kind each stage would use right now (for diagnostics)."""
     return {"detector": _stage_kind("detector"), "typer": _stage_kind("typer")}

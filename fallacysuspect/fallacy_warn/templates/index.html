@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Fallacy Detector — logical-fallacy warnings</title>
+<title>Fallacy Detector</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Manrope:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 <style>
   :root {
     --ink: #16394b;
@@ -14,187 +14,223 @@
     --faint: rgba(22, 57, 75, 0.4);
     --accent: #2b7fb8;
     --accent-deep: #1f6489;
-    --surface: rgba(255, 255, 255, 0.78);
+    --surface: rgba(255, 255, 255, 0.82);
     --surface-line: rgba(43, 127, 184, 0.22);
     --low: #9c6b12;   --low-bg: rgba(214, 167, 74, 0.28);   --low-line: rgba(156, 107, 18, 0.5);
     --med: #b4551a;   --med-bg: rgba(224, 132, 72, 0.28);   --med-line: rgba(180, 85, 26, 0.5);
     --high: #b22f26;  --high-bg: rgba(210, 80, 70, 0.26);   --high-line: rgba(178, 47, 38, 0.55);
     --skybg: linear-gradient(180deg, #e9f6fd 0%, #cbe9f9 55%, #bfe3f6 100%);
+    --ease: cubic-bezier(.65, 0, .35, 1);
   }
   * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
   body {
-    margin: 0;
-    min-height: 100vh;
-    color: var(--ink);
+    margin: 0; min-height: 100vh; color: var(--ink);
     font-family: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background: var(--skybg);
-    background-attachment: fixed;
+    background: var(--skybg); background-attachment: fixed;
     -webkit-font-smoothing: antialiased;
-    text-align: center;
-    transition: background 0.6s ease;
+    transition: background 1s ease;
   }
 
-  /* ===== INPUT SCREEN ===== */
-  .wrap { max-width: 720px; margin: 0 auto; padding: 24px 22px 90px; }
-  .hero {
-    min-height: 84vh;
+  /* ===== STAGE: one column -> two columns (no page reload) ===== */
+  .stage {
+    display: flex; align-items: flex-start; gap: 0;
+    max-width: 1180px; margin: 0 auto; padding: 24px 22px 70px;
+    transition: gap .85s var(--ease);
+  }
+  .left {
+    flex: 1 1 100%; min-width: 0;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 84vh; text-align: center;
+    transition: flex-basis .85s var(--ease), min-height .85s var(--ease);
   }
-  header { margin-bottom: 30px; }
-  header h1 {
-    font-family: "Cormorant Garamond", serif; font-weight: 300;
-    font-size: clamp(2.8rem, 8vw, 4.8rem); line-height: 1; letter-spacing: -0.01em;
-    margin: 0; color: var(--ink);
-  }
-  header h1 em { font-style: italic; color: var(--accent); }
+  body.results .stage { gap: 32px; }
+  body.results .left { flex-basis: 50%; min-height: auto; justify-content: flex-start; }
 
-  .field { position: relative; width: 100%; max-width: 620px; margin: 0 auto; }
+  header#head {
+    overflow: hidden; max-height: 200px; opacity: 1;
+    transition: max-height .6s var(--ease), opacity .4s ease, margin .6s var(--ease);
+    margin-bottom: 28px;
+  }
+  header#head h1 {
+    font-family: "Cormorant Garamond", serif; font-weight: 300;
+    font-size: clamp(2.8rem, 7vw, 4.6rem); line-height: 1; margin: 0; letter-spacing: -0.01em;
+  }
+  header#head h1 em { font-style: italic; color: var(--accent); }
+  body.results header#head { max-height: 0; opacity: 0; margin-bottom: 0; }
+
+  /* ===== THE BOX: morphs from a wide input to a tall transcript ===== */
+  .panel {
+    position: relative; width: 100%; max-width: 620px; min-height: 190px;
+    background: var(--surface); border: 1px solid var(--surface-line); border-radius: 16px;
+    box-shadow: 0 10px 34px rgba(43, 127, 184, 0.14);
+    overflow: hidden;
+    transition: max-width .85s var(--ease), min-height .85s var(--ease), box-shadow .6s ease;
+  }
+  body.results .panel {
+    max-width: 100%; min-height: 70vh;
+    box-shadow: 0 16px 44px rgba(22, 57, 75, 0.16);
+  }
+  textarea {
+    position: absolute; inset: 0; width: 100%; height: 100%; resize: none;
+    padding: 18px 20px; border: 0; background: transparent; color: var(--ink);
+    font-family: "Manrope", sans-serif; font-size: 15px; line-height: 1.7; text-align: left;
+    transition: opacity .35s ease;
+  }
+  textarea:focus { outline: none; }
+  .panel:focus-within { border-color: rgba(43, 127, 184, 0.55); box-shadow: 0 10px 40px rgba(43, 127, 184, 0.24); }
+  body.results textarea { opacity: 0; pointer-events: none; }
+
   .ph {
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
     text-align: center; padding: 0 26px; pointer-events: none;
-    color: rgba(22, 57, 75, 0.42); font-size: 15px; line-height: 1.6;
-    transition: opacity 0.2s ease;
+    color: rgba(22, 57, 75, 0.42); font-size: 15px; transition: opacity .2s ease;
   }
-  .field.has-content .ph { opacity: 0; }
-  textarea {
-    width: 100%; min-height: 168px; resize: vertical; display: block; margin: 0; text-align: left;
-    padding: 18px 20px; border-radius: 16px;
-    background: var(--surface); border: 1px solid var(--surface-line);
-    color: var(--ink); font-family: "Manrope", sans-serif; font-size: 15px; line-height: 1.7;
-    box-shadow: 0 10px 34px rgba(43, 127, 184, 0.14);
-    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-    transition: border-color 0.3s, box-shadow 0.3s;
+  .panel.has-content .ph, body.results .ph { opacity: 0; }
+
+  .essay {
+    position: absolute; inset: 0; overflow-y: auto; padding: 26px 28px;
+    text-align: left; opacity: 0; pointer-events: none;
+    transition: opacity .5s ease .25s;
   }
-  textarea:focus {
-    outline: none; border-color: rgba(43, 127, 184, 0.55);
-    box-shadow: 0 10px 40px rgba(43, 127, 184, 0.24);
+  body.results .essay { opacity: 1; pointer-events: auto; }
+  .line { margin: 0 0 1em; line-height: 1.9; font-size: 1rem; }
+  .line:last-child { margin-bottom: 0; }
+  .line.gap { height: .4em; margin: 0; }
+  .speaker { font-weight: 700; color: var(--accent-deep); }
+
+  mark {
+    border-radius: 4px; padding: 1px 2px; cursor: pointer; color: inherit;
+    background: transparent; border-bottom: 2px solid; transition: outline .2s;
   }
-  .controls { display: flex; gap: 12px; align-items: center; justify-content: center; margin-top: 22px; flex-wrap: wrap; }
+  mark.low { background: var(--low-bg); border-color: var(--low); }
+  mark.medium { background: var(--med-bg); border-color: var(--med); }
+  mark.high { background: var(--high-bg); border-color: var(--high); }
+  mark.active { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  /* ===== CONTROLS + PROGRESS ===== */
+  .controls {
+    display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+    margin-top: 22px; max-height: 80px; opacity: 1; overflow: hidden;
+    transition: max-height .6s var(--ease), opacity .35s ease, margin .6s var(--ease);
+  }
+  body.results .controls { max-height: 0; opacity: 0; margin-top: 0; pointer-events: none; }
   button {
-    font-family: "Manrope", sans-serif; font-weight: 600; font-size: 14px; letter-spacing: 0.01em;
+    font-family: "Manrope", sans-serif; font-weight: 600; font-size: 14px;
     cursor: pointer; padding: 12px 30px; border-radius: 999px; border: 1px solid transparent;
-    transition: background 0.25s, border-color 0.25s, box-shadow 0.25s, opacity 0.2s, transform 0.15s;
+    transition: background .25s, border-color .25s, box-shadow .25s, opacity .2s, transform .15s;
   }
   button.primary { background: var(--accent); color: #fff; box-shadow: 0 8px 22px rgba(43, 127, 184, 0.32); }
   button.primary:hover { background: var(--accent-deep); transform: translateY(-1px); }
   button.ghost { background: transparent; border-color: rgba(43, 127, 184, 0.35); color: var(--accent-deep); }
   button.ghost:hover { background: rgba(43, 127, 184, 0.08); }
-  button:disabled { opacity: 0.5; cursor: default; box-shadow: none; transform: none; }
-  .status { color: var(--muted); font-size: 0.9rem; min-height: 1.2em; margin: 18px 0 0; }
-  .spinner {
-    display: inline-block; width: 13px; height: 13px; margin-right: 8px;
-    border: 2px solid rgba(43, 127, 184, 0.25); border-top-color: var(--accent);
-    border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: -2px;
+  button:disabled { opacity: .5; cursor: default; box-shadow: none; transform: none; }
+
+  .progress {
+    width: 100%; max-width: 620px; height: 8px; margin-top: 20px;
+    background: rgba(43, 127, 184, 0.16); border-radius: 999px; overflow: hidden;
+    opacity: 0; max-height: 0; transition: opacity .3s ease, max-height .4s ease, margin .4s ease;
   }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  .progress.on { opacity: 1; max-height: 20px; }
+  .progress .bar {
+    height: 100%; width: 0; border-radius: 999px; background: hsl(125, 72%, 40%);
+    transition: width .3s linear, background-color .6s ease;
+  }
+  body.results .progress { opacity: 0; max-height: 0; margin-top: 0; }
+  .status {
+    color: var(--muted); font-size: .9rem; min-height: 1.2em; margin: 14px 0 0;
+    max-height: 40px; overflow: hidden;
+    transition: opacity .35s, max-height .5s, margin .5s;
+  }
+  body.results .status { opacity: 0; max-height: 0; margin: 0; }
   .error {
-    max-width: 620px; margin: 22px auto 0; padding: 14px 18px; border-radius: 12px;
-    background: var(--high-bg); color: var(--high); border: 1px solid var(--high-line);
+    max-width: 620px; margin: 18px auto 0; padding: 14px 18px; border-radius: 12px;
+    background: var(--high-bg); color: var(--high); border: 1px solid var(--high-line); text-align: left;
   }
 
-  /* ===== RESULT SCREEN ===== */
-  #result-view { display: none; }
-  body.results #input-view { display: none; }
-  body.results #result-view { display: block; }
-  .result-wrap {
-    max-width: 760px; margin: 0 auto; padding: 26px 22px 100px;
-    text-align: left; opacity: 0; transform: translateY(12px);
-    animation: fadeUp 0.5s ease forwards;
+  /* ===== RIGHT COLUMN: the report ===== */
+  .report {
+    flex: 0 0 0%; min-width: 0; overflow: hidden; text-align: left;
+    opacity: 0; transition: flex-basis .85s var(--ease), opacity .5s ease .3s;
   }
-  @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+  body.results .report { flex-basis: 50%; opacity: 1; }
 
   .back {
-    display: inline-flex; align-items: center; gap: 8px; margin-bottom: 26px;
-    background: none; border: none; padding: 6px 4px; cursor: pointer;
-    color: var(--accent-deep); font-family: "Manrope", sans-serif; font-weight: 500; font-size: 0.9rem;
-    opacity: 0.75; transition: opacity 0.2s;
+    background: none; border: 0; padding: 4px 0; margin-bottom: 18px; cursor: pointer;
+    color: var(--accent-deep); font-weight: 600; font-size: .9rem; opacity: .8;
   }
   .back:hover { opacity: 1; }
-  .back .arrow { font-size: 1.1rem; }
 
-  .summary { margin-bottom: 30px; }
-  .summary-lead {
+  .sum-lead {
     font-family: "Cormorant Garamond", serif; font-weight: 400;
-    font-size: clamp(1.5rem, 3.6vw, 2.1rem); line-height: 1.25; color: var(--ink); margin: 0 0 14px;
+    font-size: clamp(1.5rem, 3vw, 2.05rem); line-height: 1.25; margin: 0; color: var(--ink);
   }
-  .summary.clean .summary-lead { color: var(--accent-deep); }
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-  .chip {
-    font-size: 0.8rem; font-weight: 500; padding: 4px 12px; border-radius: 999px;
-    background: rgba(255, 255, 255, 0.6); border: 1px solid var(--surface-line); color: var(--ink);
+  .sum-lead b { font-weight: 600; color: var(--accent-deep); }
+  .sum-row { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+  .sum-conf {
+    font-size: .78rem; font-weight: 700; letter-spacing: .04em; white-space: nowrap;
+    padding: 4px 12px; border-radius: 999px;
+    background: rgba(43, 127, 184, .12); color: var(--accent-deep); border: 1px solid var(--surface-line);
   }
-  .chip .x { color: var(--faint); font-weight: 400; margin-left: 3px; }
+  .sum-note { color: var(--faint); font-size: .82rem; margin: 0 0 20px; }
 
-  .essay {
-    background: rgba(255, 255, 255, 0.62); border: 1px solid rgba(255, 255, 255, 0.7);
-    border-radius: 16px; padding: 30px 32px;
-    box-shadow: 0 12px 40px rgba(22, 57, 75, 0.1);
-    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  .finding {
+    background: var(--surface); border: 1px solid var(--surface-line);
+    border-left: 3px solid var(--surface-line);
+    border-radius: 12px; padding: 14px 16px; margin-bottom: 12px;
+    box-shadow: 0 5px 16px rgba(43, 127, 184, .07);
+    transition: box-shadow .25s, transform .25s, border-color .25s;
+    cursor: pointer;
   }
-  .line { margin: 0 0 1.05em; line-height: 1.9; font-size: 1.02rem; color: var(--ink); }
-  .line:last-child { margin-bottom: 0; }
-  .line.gap { height: 0.4em; margin: 0; }
-  .speaker { font-weight: 600; color: var(--accent-deep); }
+  .finding:hover, .finding.active { box-shadow: 0 8px 24px rgba(43, 127, 184, .16); transform: translateY(-1px); }
+  .finding.low { border-left-color: var(--low); }
+  .finding.medium { border-left-color: var(--med); }
+  .finding.high { border-left-color: var(--high); }
+  .f-head { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .badge {
+    font-size: .64rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em;
+    padding: 3px 10px; border-radius: 999px; border: 1px solid;
+  }
+  .badge.low { color: var(--low); background: var(--low-bg); border-color: var(--low-line); }
+  .badge.medium { color: var(--med); background: var(--med-bg); border-color: var(--med-line); }
+  .badge.high { color: var(--high); background: var(--high-bg); border-color: var(--high-line); }
+  .f-type { font-family: "Cormorant Garamond", serif; font-size: 1.32rem; font-weight: 600; }
+  .f-conf { margin-left: auto; color: var(--faint); font-size: .8rem; font-weight: 600; }
+  .f-quote {
+    font-family: "Cormorant Garamond", serif; font-style: italic; font-size: 1.02rem;
+    color: var(--accent-deep); margin: 8px 0 7px; line-height: 1.5;
+  }
+  .f-why { font-size: .88rem; line-height: 1.6; color: var(--muted); font-weight: 300; }
+  .clean { color: var(--muted); font-weight: 300; }
 
-  /* Highlighted spans + hover tooltip */
-  mark {
-    position: relative; border-radius: 4px; padding: 1px 2px; cursor: help;
-    background: transparent; border-bottom: 2px solid; color: inherit;
-  }
-  mark.low { background: var(--low-bg); border-color: var(--low); }
-  mark.medium { background: var(--med-bg); border-color: var(--med); }
-  mark.high { background: var(--high-bg); border-color: var(--high); }
-  mark .tip {
-    position: absolute; left: 50%; bottom: calc(100% + 9px); transform: translateX(-50%) translateY(4px);
-    width: max-content; max-width: min(300px, 78vw);
-    background: #ffffff; color: var(--ink); text-align: left;
-    border: 1px solid var(--surface-line); border-radius: 12px; padding: 11px 13px;
-    box-shadow: 0 12px 34px rgba(22, 57, 75, 0.2);
-    font-family: "Manrope", sans-serif; font-size: 0.84rem; line-height: 1.5; font-weight: 400;
-    white-space: normal; opacity: 0; visibility: hidden; z-index: 60; pointer-events: none;
-    transition: opacity 0.18s ease, transform 0.18s ease;
-  }
-  mark .tip::after {
-    content: ""; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
-    border: 6px solid transparent; border-top-color: #ffffff;
-  }
-  mark:hover .tip, mark:focus .tip { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
-  .t-type { display: block; font-weight: 700; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 5px; }
-  .t-type.low { color: var(--low); }
-  .t-type.medium { color: var(--med); }
-  .t-type.high { color: var(--high); }
-  .t-charitable { display: block; margin-top: 7px; color: var(--muted); font-size: 0.8rem; }
-  .t-charitable b { color: var(--accent-deep); }
-
-  /* ===== INTRO OVERLAY ===== */
+  /* ===== INTRO ===== */
   #intro {
     position: fixed; inset: 0; z-index: 1000;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 18px; text-align: center; padding: 24px;
-    background: var(--skybg);
-    opacity: 1; transition: opacity 0.8s ease;
+    gap: 18px; text-align: center; padding: 24px; background: var(--skybg);
+    opacity: 1; transition: opacity .8s ease;
   }
   #intro.leaving { opacity: 0; }
   #intro .title {
     margin: 0; font-family: "Cormorant Garamond", serif; font-style: italic; font-weight: 300;
-    font-size: clamp(2.8rem, 9vw, 5.4rem); letter-spacing: -0.01em; color: var(--accent);
+    font-size: clamp(2.8rem, 9vw, 5.4rem); color: var(--accent);
     opacity: 0; transform: translateY(16px);
-    animation: introIn 1s cubic-bezier(.2,.7,.2,1) 0.2s forwards;
+    animation: introIn 1s var(--ease) .2s forwards;
   }
   #intro .sub {
-    margin: 0; font-family: "Manrope", sans-serif; text-transform: uppercase;
-    letter-spacing: 0.5em; color: var(--muted); font-size: clamp(0.78rem, 2.4vw, 1rem); font-weight: 500;
+    margin: 0; text-transform: uppercase; letter-spacing: .5em; color: var(--muted);
+    font-size: clamp(.78rem, 2.4vw, 1rem); font-weight: 500;
     opacity: 0; transform: translateY(12px);
-    animation: introIn 1s cubic-bezier(.2,.7,.2,1) 0.55s forwards;
+    animation: introIn 1s var(--ease) .55s forwards;
   }
   @keyframes introIn { to { opacity: 1; transform: translateY(0); } }
 
+  @media (max-width: 860px) {
+    .stage { flex-direction: column; }
+    body.results .left, body.results .report { flex-basis: auto; width: 100%; }
+    body.results .panel { min-height: 46vh; }
+  }
   @media (prefers-reduced-motion: reduce) {
-    body { transition: none; }
-    #intro { transition: none; }
-    #intro .title, #intro .sub { animation: none; opacity: 1; transform: none; }
-    .result-wrap { animation: none; opacity: 1; transform: none; }
+    * { transition-duration: .01ms !important; animation-duration: .01ms !important; }
   }
 </style>
 </head>
@@ -204,222 +240,281 @@
   <p class="sub">use wisely</p>
 </div>
 
-<!-- ===== INPUT SCREEN ===== -->
-<main class="wrap" id="input-view">
-  <section class="hero">
-    <header>
-      <h1>Fallacy <em>Detector</em></h1>
-    </header>
+<main class="stage">
+  <section class="left">
+    <header id="head"><h1>Fallacy <em>Detector</em></h1></header>
 
-    <div class="field">
+    <div class="panel" id="panel">
       <textarea id="input"></textarea>
       <div class="ph" id="ph">Insert transcript of debate here to start</div>
+      <div class="essay" id="essay"></div>
     </div>
 
-    <div class="controls">
+    <div class="controls" id="controls">
       <button class="primary" id="analyze">Evaluate</button>
       <button class="ghost" id="example">Load example</button>
     </div>
+
+    <div class="progress" id="progress"><div class="bar" id="bar"></div></div>
     <p class="status" id="status"></p>
     <div id="error"></div>
   </section>
+
+  <aside class="report" id="report">
+    <button class="back" id="back">&larr; New transcript</button>
+    <div id="summary"></div>
+    <div id="findings"></div>
+  </aside>
 </main>
 
-<!-- ===== RESULT SCREEN ===== -->
-<div id="result-view">
-  <div class="result-wrap">
-    <button class="back" id="back"><span class="arrow">&larr;</span> New transcript</button>
-    <div class="summary" id="summary"></div>
-    <div class="essay" id="essay"></div>
-  </div>
-</div>
-
 <script>
-const EXAMPLE = `Of course my opponent wants higher taxes — he's a career politician who has never run a business in his life, so nothing he says about the economy can be trusted. Either we cut spending immediately or the whole country collapses within a year; there is no middle ground. And if we let the government raise this one tax, next they'll tax the air we breathe. Besides, how can he lecture anyone on budgets when his own party doubled the deficit last decade?`;
+const EXAMPLE = `MODERATOR: Let's begin the debate on the proposed tax reform.
+SMITH: Of course my opponent wants higher taxes — he's a career politician who has never run a business in his life, so nothing he says about the economy can be trusted.
+SMITH: Either we cut spending immediately or the whole country collapses within a year; there is no middle ground.
+JONES: The Congressional Budget Office found the reform would reduce the deficit by 200 billion over ten years.
+SMITH: And if we let the government raise this one tax, next they'll tax the air we breathe.
+SMITH: Besides, how can he lecture anyone on budgets when his own party doubled the deficit last decade?
+JONES: Unemployment fell to 4% the year after the last reform, which analysts partly credit to the new incentives.`;
 
 const $ = (id) => document.getElementById(id);
-const input = $("input"), statusEl = $("status"), errorEl = $("error"),
+const input = $("input"), panel = $("panel"), essay = $("essay"),
       analyzeBtn = $("analyze"), exampleBtn = $("example"),
-      summaryEl = $("summary"), essayEl = $("essay"), backBtn = $("back");
-const field = document.querySelector(".field");
+      progress = $("progress"), bar = $("bar"), statusEl = $("status"), errorEl = $("error"),
+      summaryEl = $("summary"), findingsEl = $("findings"), backBtn = $("back");
+
+const escapeHtml = (s) => s.replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 function updatePlaceholder() {
-  if (field) field.classList.toggle("has-content", input.value.trim().length > 0);
+  panel.classList.toggle("has-content", input.value.trim().length > 0);
 }
 
-function escapeHtml(s) {
-  return s.replace(/[&<>"']/g, (c) => (
-    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
-  ));
-}
-
-// ----- Severity-weighted fallacy score (0–100) -> gradient position -----
+/* ---------- severity score -> colour (green -> yellow -> red) ---------- */
 function fallacyScore(flags) {
   const w = { low: 9, medium: 22, high: 38 };
   let s = 0;
   for (const f of flags) s += (w[f.warning_level] || 0) * Math.max(0.4, f.confidence);
   return Math.min(100, Math.round(s));
 }
-
-// Light gradient that slides green -> yellow -> red as the score rises.
-function bgForScore(score) {
+function barColor(score) {                    // vivid — for the progress bar
+  const hue = 125 - 125 * (Math.max(0, Math.min(100, score)) / 100);
+  return `hsl(${hue.toFixed(0)}, 72%, 40%)`;
+}
+function pageBg(score) {                      // light — for the page background
   const t = Math.max(0, Math.min(100, score)) / 100;
-  const hue = 125 - 125 * t;               // 125 (green) -> 0 (red)
-  const span = 20;                          // endpoints straddle the score hue
-  const h1 = Math.max(0, hue + span);
-  const h2 = Math.max(0, hue - span);
+  const hue = 125 - 125 * t, span = 20;
+  const h1 = Math.max(0, hue + span), h2 = Math.max(0, hue - span);
   return `linear-gradient(160deg, hsl(${h1.toFixed(0)}, 66%, 90%) 0%, hsl(${h2.toFixed(0)}, 70%, 82%) 100%)`;
 }
 
-// ----- Locate non-overlapping span ranges in the text -----
+/* ---------- transcript rendering (essay / debate script + highlights) ---------- */
 function locate(text, flags) {
-  const lower = text.toLowerCase();
-  const ranges = [];
-  flags.forEach((flag, i) => {
-    let idx = text.indexOf(flag.span);
-    if (idx === -1) idx = lower.indexOf(flag.span.toLowerCase());
-    if (idx !== -1) ranges.push({ start: idx, end: idx + flag.span.length, i });
+  const lower = text.toLowerCase(), ranges = [];
+  flags.forEach((f, i) => {
+    let idx = text.indexOf(f.span);
+    if (idx === -1) idx = lower.indexOf(f.span.toLowerCase());
+    if (idx !== -1) ranges.push({ start: idx, end: idx + f.span.length, i });
   });
   ranges.sort((a, b) => a.start - b.start || (b.end - b.start) - (a.end - a.start));
-  const kept = [];
-  let lastEnd = 0;
-  for (const r of ranges) {
-    if (r.start < lastEnd) continue;
-    kept.push(r);
-    lastEnd = r.end;
-  }
+  const kept = []; let lastEnd = 0;
+  for (const r of ranges) { if (r.start < lastEnd) continue; kept.push(r); lastEnd = r.end; }
   return kept;
 }
-
-function markHtml(segment, f) {
-  let tip = `<span class="tip"><span class="t-type ${f.warning_level}">`
-          + `${escapeHtml(f.warning_level)} · ${escapeHtml(f.fallacy_type)}</span>`
-          + escapeHtml(f.explanation);
-  if (f.charitable_read) {
-    tip += `<span class="t-charitable"><b>Charitable read:</b> ${escapeHtml(f.charitable_read)}</span>`;
-  }
-  tip += `</span>`;
-  return `<mark class="${f.warning_level}" tabindex="0">${escapeHtml(segment)}${tip}</mark>`;
-}
-
-// Highlight the portion of one line that overlaps any located range.
-function highlightLine(lineText, lineStart, ranges, flags) {
+function highlightLine(line, lineStart, ranges, flags) {
   let html = "", cursor = 0;
   for (const r of ranges) {
     const s = r.start - lineStart, e = r.end - lineStart;
-    if (e <= 0 || s >= lineText.length) continue;
-    const cs = Math.max(0, s), ce = Math.min(lineText.length, e);
+    if (e <= 0 || s >= line.length) continue;
+    const cs = Math.max(0, s), ce = Math.min(line.length, e);
     if (cs < cursor) continue;
-    html += escapeHtml(lineText.slice(cursor, cs));
-    html += markHtml(lineText.slice(cs, ce), flags[r.i]);
+    html += escapeHtml(line.slice(cursor, cs));
+    html += `<mark class="${flags[r.i].warning_level}" data-i="${r.i}">${escapeHtml(line.slice(cs, ce))}</mark>`;
     cursor = ce;
   }
-  html += escapeHtml(lineText.slice(cursor));
-  return html;
+  return html + escapeHtml(line.slice(cursor));
 }
-
-// Render the transcript as a cleaned-up essay / debate script with highlights.
 function renderEssay(text, flags) {
   const ranges = locate(text, flags);
-  const lines = text.split(/\r?\n/);
-  let offset = 0, out = "";
   const speakerRe = /^(\s*[A-Za-z][\w .'’-]{0,28}:\s+)/;
-  for (const line of lines) {
-    const lineStart = offset;
-    offset += line.length + 1; // account for the split newline
+  let offset = 0, out = "";
+  for (const line of text.split(/\r?\n/)) {
+    const start = offset; offset += line.length + 1;
     if (!line.trim()) { out += `<div class="line gap"></div>`; continue; }
-
     const m = line.match(speakerRe);
     if (m) {
-      const head = m[1];
-      const rest = line.slice(head.length);
+      const head = m[1], rest = line.slice(head.length);
       out += `<p class="line"><span class="speaker">${escapeHtml(head)}</span>`
-           + highlightLine(rest, lineStart + head.length, ranges, flags) + `</p>`;
+           + highlightLine(rest, start + head.length, ranges, flags) + `</p>`;
     } else {
-      out += `<p class="line">${highlightLine(line, lineStart, ranges, flags)}</p>`;
+      out += `<p class="line">${highlightLine(line, start, ranges, flags)}</p>`;
     }
   }
-  return out;
+  essay.innerHTML = out;
+  essay.querySelectorAll("mark").forEach((m) => {
+    m.addEventListener("mouseenter", () => link(m.dataset.i, true));
+    m.addEventListener("mouseleave", () => link(m.dataset.i, false));
+    m.addEventListener("click", () => {
+      const card = findingsEl.querySelector(`.finding[data-i="${m.dataset.i}"]`);
+      if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  });
 }
 
-function renderSummary(flags) {
-  if (!flags.length) {
-    return `<p class="summary-lead">No fallacies found — this reads clean.</p>`;
-  }
-  const counts = {};
-  for (const f of flags) counts[f.fallacy_type] = (counts[f.fallacy_type] || 0) + 1;
-  const chips = Object.entries(counts)
-    .sort((a, b) => b[1] - a[1])
-    .map(([type, c]) => `<span class="chip">${escapeHtml(type)}${c > 1 ? `<span class="x">×${c}</span>` : ""}</span>`)
-    .join("");
+/* ---------- right column: summary + findings ---------- */
+function link(i, on) {
+  const m = essay.querySelector(`mark[data-i="${i}"]`);
+  const c = findingsEl.querySelector(`.finding[data-i="${i}"]`);
+  if (m) m.classList.toggle("active", on);
+  if (c) c.classList.toggle("active", on);
+}
+function renderReport(flags) {
   const n = flags.length;
-  return `<p class="summary-lead">We found ${n} possible ${n === 1 ? "fallacy" : "fallacies"}:</p>`
-       + `<div class="chips">${chips}</div>`;
+  if (!n) {
+    summaryEl.innerHTML = `<p class="sum-lead">No fallacies found — this reads clean.</p>`;
+    findingsEl.innerHTML = `<p class="clean">Nothing in this transcript tripped the detector.</p>`;
+    return;
+  }
+  const avg = Math.round(100 * flags.reduce((s, f) => s + f.confidence, 0) / n);
+  summaryEl.innerHTML =
+    `<div class="sum-row">
+       <p class="sum-lead">We found <b>${n}</b> possible ${n === 1 ? "fallacy" : "fallacies"}</p>
+       <span class="sum-conf">${avg}% avg confidence</span>
+     </div>
+     <p class="sum-note">Warnings, not verdicts — hover a highlight to link it to its finding.</p>`;
+
+  findingsEl.innerHTML = flags.map((f, i) => `
+    <div class="finding ${f.warning_level}" data-i="${i}">
+      <div class="f-head">
+        <span class="badge ${f.warning_level}">${f.warning_level}</span>
+        <span class="f-type">${escapeHtml(f.fallacy_type)}</span>
+        <span class="f-conf">${Math.round(f.confidence * 100)}%</span>
+      </div>
+      <div class="f-quote">“${escapeHtml(f.span)}”</div>
+      <div class="f-why">${escapeHtml(f.explanation)}</div>
+    </div>`).join("");
+
+  findingsEl.querySelectorAll(".finding").forEach((c) => {
+    c.addEventListener("mouseenter", () => link(c.dataset.i, true));
+    c.addEventListener("mouseleave", () => link(c.dataset.i, false));
+    c.addEventListener("click", () => {
+      const m = essay.querySelector(`mark[data-i="${c.dataset.i}"]`);
+      if (m) m.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  });
 }
 
-function showResults(data) {
-  document.body.style.background = bgForScore(fallacyScore(data.flags));
-  summaryEl.className = "summary" + (data.flags.length ? "" : " clean");
-  summaryEl.innerHTML = renderSummary(data.flags);
-  essayEl.innerHTML = renderEssay(data.text, data.flags);
-  document.body.classList.add("results");
-  window.scrollTo(0, 0);
-}
-
-function showInput() {
-  document.body.classList.remove("results");
-  document.body.style.background = "";  // revert to the sky-blue CSS default
-  window.scrollTo(0, 0);
-}
-
+/* ---------- streaming analysis with a live progress bar ---------- */
 async function analyze() {
   const text = input.value.trim();
   errorEl.innerHTML = "";
-  if (!text) { statusEl.textContent = "Enter some text first."; return; }
+  if (!text) { statusEl.textContent = "Enter a transcript first."; return; }
 
   analyzeBtn.disabled = true;
-  statusEl.innerHTML = `<span class="spinner"></span>Analyzing… (two passes, this can take a moment)`;
+  progress.classList.add("on");
+  bar.style.width = "0%";
+  bar.style.background = barColor(0);            // start green
+  statusEl.textContent = "Scanning…";
+
+  const found = [];
+  let total = 0;
 
   try {
-    const resp = await fetch("/api/check", {
+    const resp = await fetch("/api/check/stream", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text }),
     });
-    const data = await resp.json();
-    if (!resp.ok) {
-      errorEl.innerHTML = `<div class="error">${escapeHtml(data.error || "Something went wrong.")}</div>`;
-      return;
+    if (!resp.ok || !resp.body) {
+      const d = await resp.json().catch(() => ({}));
+      throw new Error(d.error || "Something went wrong.");
     }
-    statusEl.textContent = "";
-    showResults(data);
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+
+      let cut;
+      while ((cut = buf.indexOf("\n\n")) !== -1) {
+        const raw = buf.slice(0, cut); buf = buf.slice(cut + 2);
+        const line = raw.split("\n").find((l) => l.startsWith("data:"));
+        if (!line) continue;
+        const ev = JSON.parse(line.slice(5).trim());
+
+        if (ev.type === "start") {
+          total = ev.total || 0;
+        } else if (ev.type === "progress") {
+          const pct = ev.total ? (ev.done / ev.total) * 100 : 0;
+          bar.style.width = pct + "%";
+          if (ev.flag) found.push(ev.flag);
+          // colour follows what we've found SO FAR: green -> yellow -> red
+          bar.style.background = barColor(fallacyScore(found));
+          statusEl.textContent = found.length
+            ? `Scanning ${ev.done}/${ev.total} · ${found.length} found`
+            : `Scanning ${ev.done}/${ev.total} · nothing yet`;
+        } else if (ev.type === "error") {
+          throw new Error(ev.error);
+        } else if (ev.type === "done") {
+          bar.style.width = "100%";
+          bar.style.background = barColor(fallacyScore(ev.flags));
+          await finish(ev.text ?? text, ev.flags);
+        }
+      }
+    }
   } catch (e) {
-    errorEl.innerHTML = `<div class="error">Network error: ${escapeHtml(String(e))}</div>`;
+    errorEl.innerHTML = `<div class="error">${escapeHtml(String(e.message || e))}</div>`;
+    progress.classList.remove("on");
+    statusEl.textContent = "";
   } finally {
     analyzeBtn.disabled = false;
   }
 }
 
+// Let the full bar land, then morph the page into the two-column report.
+function finish(text, flags) {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      renderEssay(text, flags);
+      renderReport(flags);
+      document.body.style.background = pageBg(fallacyScore(flags));
+      document.body.classList.add("results");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      resolve();
+    }, 450);
+  });
+}
+
+function reset() {
+  document.body.classList.remove("results");
+  document.body.style.background = "";
+  progress.classList.remove("on");
+  bar.style.width = "0%";
+  statusEl.textContent = "";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
 analyzeBtn.addEventListener("click", analyze);
+backBtn.addEventListener("click", reset);
 exampleBtn.addEventListener("click", () => { input.value = EXAMPLE; updatePlaceholder(); input.focus(); });
 input.addEventListener("input", updatePlaceholder);
 input.addEventListener("keydown", (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key === "Enter") analyze();
 });
-backBtn.addEventListener("click", showInput);
 
-// Intro overlay: hold the words, then fade out to reveal the site.
 (function () {
   const intro = document.getElementById("intro");
   if (!intro) return;
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const hold = reduce ? 500 : 1900;
   const remove = () => intro.remove();
   setTimeout(() => {
     intro.classList.add("leaving");
     intro.addEventListener("transitionend", remove, { once: true });
     setTimeout(remove, 1200);
-  }, hold);
+  }, reduce ? 500 : 1900);
 })();
 </script>
 </body>

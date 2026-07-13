@@ -9,14 +9,16 @@ never sees it. This is why the tool needs a backend rather than a static page.
 
 from __future__ import annotations
 
+import json
 import os
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, Response, jsonify, render_template, request, stream_with_context
 
 from . import classifier
 from .config import DEFAULT_MODEL
 from .db import store_analysis
 from .llm import LLMError, build_client
+from .models import AnalysisResult, Flag
 from .pipeline import analyze
 
 
@@ -76,6 +78,55 @@ def create_app(model: str = DEFAULT_MODEL) -> Flask:
         payload["stored_id"] = stored_id
         payload["backend"] = backend
         return jsonify(payload)
+
+    @app.post("/api/check/stream")
+    def check_stream():
+        """Same analysis, streamed sentence by sentence so the UI can show a
+        live progress bar that colours itself as findings appear."""
+        data = request.get_json(silent=True) or {}
+        text = data.get("text", "")
+        if not isinstance(text, str) or not text.strip():
+            return jsonify({"error": "Please enter some text to analyze."}), 400
+
+        def sse(event: dict) -> str:
+            return f"data: {json.dumps(event)}\n\n"
+
+        def generate():
+            if _use_local():
+                try:
+                    for event in classifier.analyze_stream(text):
+                        if event["type"] == "done":
+                            result = AnalysisResult(
+                                text=text, flags=[Flag(**d) for d in event["flags"]]
+                            )
+                            event["stored_id"] = store_analysis(result)
+                            event["text"] = text
+                            event["backend"] = "local"
+                        yield sse(event)
+                except Exception as exc:  # surface as a stream event, never a 500
+                    yield sse({"type": "error", "error": str(exc)})
+                return
+
+            # API backend: no per-sentence progress — one shot, then done.
+            yield sse({"type": "start", "total": 0})
+            try:
+                result = analyze(text, model=app.config["MODEL"], client=get_client())
+            except LLMError as exc:
+                yield sse({"type": "error", "error": str(exc)})
+                return
+            yield sse({
+                "type": "done",
+                "flags": [f.to_dict() for f in result.flags],
+                "text": text,
+                "stored_id": store_analysis(result),
+                "backend": "api",
+            })
+
+        return Response(
+            stream_with_context(generate()),
+            mimetype="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
 
     return app
 
