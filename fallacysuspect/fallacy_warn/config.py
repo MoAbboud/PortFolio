@@ -47,6 +47,25 @@ MAX_TOKENS_VERIFIER: int = 1024
 JSON_RETRIES: int = 1
 
 # --------------------------------------------------------------------------- #
+# Local-model decision thresholds
+# --------------------------------------------------------------------------- #
+# The detector was trained on a 50/50 balanced set, but in a real transcript only
+# a small share of sentences are fallacious. Taking plain argmax therefore
+# over-flags badly (it will call "Thank you both." a fallacy). These gates correct
+# for that prior mismatch:
+#
+#   * DETECT_THRESHOLD — the detector must be this sure it's a fallacy at all.
+#   * TYPE_THRESHOLD   — the typer must be this sure *which* fallacy it is. This is
+#                        the strongest signal: real fallacies score high, noise low.
+#   * MIN_WORDS        — skip short/procedural lines ("Thanks.", "That's my close.")
+#                        that aren't arguments and were never in the training data.
+#
+# Raise for fewer, safer flags; lower for more recall. Override via env vars.
+DETECT_THRESHOLD: float = float(os.environ.get("FALLACY_DETECT_THRESHOLD", "0.70"))
+TYPE_THRESHOLD: float = float(os.environ.get("FALLACY_TYPE_THRESHOLD", "0.50"))
+MIN_WORDS: int = int(os.environ.get("FALLACY_MIN_WORDS", "8"))
+
+# --------------------------------------------------------------------------- #
 # Database
 # --------------------------------------------------------------------------- #
 # Every evaluation stores the submitted text + its analysis result. SQLite by

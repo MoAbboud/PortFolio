@@ -29,7 +29,7 @@ import re
 from functools import lru_cache
 from pathlib import Path
 
-from .config import bucket_warning
+from .config import DETECT_THRESHOLD, MIN_WORDS, TYPE_THRESHOLD, bucket_warning
 from .models import AnalysisResult, Flag
 
 _DEFAULT_DIR = Path(__file__).resolve().parent.parent / "models" / "two_stage"
@@ -49,6 +49,7 @@ DESCRIPTIONS = {
     "false dilemma": "Presents only two options when more exist.",
     "faulty generalization": "Draws a broad conclusion from too few or unrepresentative examples.",
     "intentional": "Uses a deliberate rhetorical trick or deception to mislead.",
+    "slippery slope": "Claims one step will inevitably lead to an extreme outcome, without justifying the chain.",
 }
 
 
@@ -79,6 +80,33 @@ def _stage_files(prefix: str) -> dict[str, Path]:
     return {"tfidf": d / f"{prefix}_tfidf.joblib", "bert": d / f"{prefix}_distilbert"}
 
 
+def _data_version(prefix: str, kind: str) -> int:
+    """Which generation of training data a model was built on.
+
+    v1 = original (detector trained only on the balanced contrastive set — it
+         over-fires badly on real prose).
+    v2 = rebuilt with MAFALDA's real-world negatives.
+
+    Lets the app automatically prefer the better-trained model instead of blindly
+    preferring DistilBERT.
+    """
+    f = _stage_files(prefix)
+    try:
+        if kind == "bert":
+            meta = f["bert"] / "classes.json"
+            if meta.exists():
+                return int(json.loads(meta.read_text(encoding="utf-8")).get("version", 1))
+        else:
+            import joblib
+
+            obj = joblib.load(f["tfidf"])
+            if isinstance(obj, dict):
+                return int(obj.get("version", 1))
+    except Exception:
+        pass
+    return 1
+
+
 def _stage_kind(prefix: str) -> str | None:
     """Which model kind to use for a stage ('bert'/'tfidf'), or None if unavailable."""
     override = os.environ.get("FALLACY_MODEL_KIND", "").lower()
@@ -89,7 +117,10 @@ def _stage_kind(prefix: str) -> str | None:
         return "tfidf" if has_tfidf else None
     if override == "bert":
         return "bert" if has_bert else None
-    # auto: prefer the stronger model when fully available
+    if has_bert and has_tfidf:
+        # Prefer DistilBERT only if it's trained on data at least as good as the
+        # TF-IDF model's. A freshly-retrained BERT (v2) wins; a stale one loses.
+        return "bert" if _data_version(prefix, "bert") >= _data_version(prefix, "tfidf") else "tfidf"
     if has_bert:
         return "bert"
     if has_tfidf:
@@ -104,21 +135,33 @@ def is_available() -> bool:
     return _stage_kind("detector") is not None and _stage_kind("typer") is not None
 
 
-def _load_stage(prefix: str, classes: list[str]) -> dict:
+def _load_stage(prefix: str, fallback_classes: list[str]) -> dict:
+    """Load one stage. Models carry their own class list; ``fallback_classes``
+    (from pipeline.json) is only used by legacy models that don't."""
     kind = _stage_kind(prefix)
     f = _stage_files(prefix)
+
     if kind == "bert":
         import torch
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
+        classes = fallback_classes
+        meta = f["bert"] / "classes.json"
+        if meta.exists():
+            classes = list(json.loads(meta.read_text(encoding="utf-8"))["classes"])
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         tok = AutoTokenizer.from_pretrained(str(f["bert"]))
         mdl = AutoModelForSequenceClassification.from_pretrained(str(f["bert"])).to(device).eval()
         return {"kind": "bert", "classes": classes, "tok": tok, "mdl": mdl, "device": device}
+
     if kind == "tfidf":
         import joblib
 
-        return {"kind": "tfidf", "classes": classes, "pipe": joblib.load(f["tfidf"])}
+        obj = joblib.load(f["tfidf"])
+        if isinstance(obj, dict) and "pipe" in obj:          # self-describing bundle
+            return {"kind": "tfidf", "classes": list(obj["classes"]), "pipe": obj["pipe"]}
+        return {"kind": "tfidf", "classes": fallback_classes, "pipe": obj}   # legacy
+
     raise RuntimeError(f"no model available for stage {prefix!r}")
 
 
@@ -133,64 +176,97 @@ def _load() -> dict:
     }
 
 
-def _predict(stage: dict, text: str, max_len: int) -> tuple[str, float]:
-    """Return (predicted_label, confidence) for one text."""
+def _probs(stage: dict, text: str, max_len: int) -> dict[str, float]:
+    """Full probability distribution over a stage's classes."""
     if stage["kind"] == "bert":
         import torch
 
         enc = stage["tok"](text, truncation=True, max_length=max_len,
                            return_token_type_ids=False, return_tensors="pt").to(stage["device"])
         with torch.no_grad():
-            probs = torch.softmax(stage["mdl"](**enc).logits[0], dim=-1)
-        idx = int(probs.argmax())
-        conf = float(probs[idx])
-    else:  # tfidf — pipeline predicts the encoded class index
-        pipe = stage["pipe"]
+            p = torch.softmax(stage["mdl"](**enc).logits[0], dim=-1)
+        return {c: float(p[i]) for i, c in enumerate(stage["classes"])}
+
+    pipe = stage["pipe"]  # tfidf
+    try:
+        p = pipe.predict_proba([text])[0]
+        return {c: float(p[i]) for i, c in enumerate(stage["classes"])}
+    except Exception:  # no predict_proba — fall back to a hard 1.0 on the argmax
         idx = int(pipe.predict([text])[0])
-        try:
-            conf = float(pipe.predict_proba([text])[0].max())
-        except Exception:
-            conf = 1.0
-    return stage["classes"][idx], conf
+        return {c: (1.0 if i == idx else 0.0) for i, c in enumerate(stage["classes"])}
 
 
 _SENTENCE = re.compile(r"[^.!?\n]+[.!?]*")
 
+# Abbreviations whose '.' must NOT end a sentence. Without this, "Even Dr. Rowan
+# Athey..." splits into "Even Dr." and "the U.S. has" splits into "the U." —
+# fragments the model then happily mislabels.
+_ABBREVS = (
+    "Mr.", "Mrs.", "Ms.", "Dr.", "Prof.", "Sr.", "Jr.", "St.", "Gen.", "Sen.",
+    "Rep.", "Gov.", "Inc.", "Ltd.", "Co.", "No.", "Fig.", "vs.", "etc.",
+    "e.g.", "i.e.", "U.S.", "U.K.", "U.N.", "a.m.", "p.m.",
+)
+_DOT = "\x00"  # placeholder for a '.' that isn't a sentence end
+
 
 def split_sentences(text: str) -> list[str]:
-    """Split into sentence-ish chunks that are verbatim substrings of ``text``."""
+    """Split into sentences that are verbatim substrings of ``text``.
+
+    Periods inside abbreviations, initials and decimals are shielded first, so
+    we split on real sentence boundaries only.
+    """
+    shielded = text
+    for abbr in _ABBREVS:
+        shielded = shielded.replace(abbr, abbr.replace(".", _DOT))
+    shielded = re.sub(r"\b([A-Z])\.", r"\1" + _DOT, shielded)   # initials: "J. Smith"
+    shielded = re.sub(r"(\d)\.(\d)", r"\1" + _DOT + r"\2", shielded)  # decimals: "3.5"
+
     out = []
-    for m in _SENTENCE.finditer(text):
-        s = m.group().strip()
+    for m in _SENTENCE.finditer(shielded):
+        s = m.group().replace(_DOT, ".").strip()
         if len(s) >= 3:
             out.append(s)
     return out
 
 
+def _classify_sentence(sentence: str, det: dict, typ: dict, max_len: int) -> Flag | None:
+    """Return a Flag only if the sentence clears all three gates (see config)."""
+    # Gate 1: too short / procedural to be an argument at all ("Thanks.", "That's my close.")
+    if len(sentence.split()) < MIN_WORDS:
+        return None
+
+    # Gate 2: the detector must be confident it's a fallacy (not just argmax —
+    # the detector was trained 50/50 and over-fires on real transcripts).
+    p_fallacy = _probs(det, sentence, max_len).get("fallacy", 0.0)
+    if p_fallacy < DETECT_THRESHOLD:
+        return None
+
+    # Gate 3: the typer must be confident *which* fallacy. This is the strongest
+    # signal — genuine fallacies score high here, noise scores near-random.
+    type_probs = _probs(typ, sentence, max_len)
+    ftype = max(type_probs, key=type_probs.get)
+    p_type = type_probs[ftype]
+    if p_type < TYPE_THRESHOLD:
+        return None
+
+    # Honest combined confidence: P(is a fallacy) x P(is this type).
+    conf = p_fallacy * p_type
+    return Flag(
+        fallacy_type=ftype,
+        span=sentence,
+        confidence=conf,
+        warning_level=bucket_warning(conf),
+        explanation=DESCRIPTIONS.get(ftype, "Possible logical fallacy."),
+        charitable_read=None,
+    )
+
+
 def analyze(text: str) -> AnalysisResult:
     """Two-stage, sentence-level analysis using the local models."""
-    if not text or not text.strip():
-        return AnalysisResult(text=text, flags=[])
-
-    state = _load()
-    det, typ, max_len = state["det"], state["typ"], state["max_len"]
-
     flags: list[Flag] = []
-    for sentence in split_sentences(text):
-        verdict, _ = _predict(det, sentence, max_len)
-        if verdict != "fallacy":
-            continue
-        ftype, conf = _predict(typ, sentence, max_len)
-        flags.append(
-            Flag(
-                fallacy_type=ftype,
-                span=sentence,
-                confidence=conf,
-                warning_level=bucket_warning(conf),
-                explanation=DESCRIPTIONS.get(ftype, "Possible logical fallacy."),
-                charitable_read=None,
-            )
-        )
+    for event in analyze_stream(text):
+        if event["type"] == "done":
+            flags = [Flag(**d) for d in event["flags"]]
     return AnalysisResult(text=text, flags=flags)
 
 
@@ -214,21 +290,15 @@ def analyze_stream(text: str):
 
     flags: list[Flag] = []
     for i, sentence in enumerate(sentences, start=1):
-        verdict, _ = _predict(det, sentence, max_len)
-        flag_dict = None
-        if verdict == "fallacy":
-            ftype, conf = _predict(typ, sentence, max_len)
-            flag = Flag(
-                fallacy_type=ftype,
-                span=sentence,
-                confidence=conf,
-                warning_level=bucket_warning(conf),
-                explanation=DESCRIPTIONS.get(ftype, "Possible logical fallacy."),
-                charitable_read=None,
-            )
+        flag = _classify_sentence(sentence, det, typ, max_len)
+        if flag is not None:
             flags.append(flag)
-            flag_dict = flag.to_dict()
-        yield {"type": "progress", "done": i, "total": total, "flag": flag_dict}
+        yield {
+            "type": "progress",
+            "done": i,
+            "total": total,
+            "flag": flag.to_dict() if flag else None,
+        }
 
     yield {"type": "done", "flags": [f.to_dict() for f in flags]}
 

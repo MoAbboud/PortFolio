@@ -1,19 +1,19 @@
-"""Train and export the lightweight TF-IDF models for deployment.
+"""Train and export the lightweight TF-IDF models, and report honest metrics.
 
-Reads the datasets from ``data/`` and writes two small joblib pipelines into
-``models/two_stage/``:
+Trains on the improved datasets from ``scripts/build_datasets.py`` (contrastive +
+LOGIC + MAFALDA's real-world negatives) and evaluates on a **held-out set of real
+MAFALDA documents** — the only honest test of "does this work on real prose?".
 
-    detector_tfidf.joblib   fallacy vs valid   (contrastive_dataset.csv)
-    typer_tfidf.joblib      13 fallacy types   (edu_train.csv)
+Writes self-describing bundles into ``models/two_stage/``:
 
-These are a few hundred KB, commit cleanly to git, and run with no torch — the
-version the app serves on Render's free tier. Labels are encoded in the exact
-order stored in ``models/two_stage/pipeline.json`` so predictions map correctly.
+    detector_tfidf.joblib   {pipe, classes, version}
+    typer_tfidf.joblib      {pipe, classes, version}
 
-Run this on the machine whose scikit-learn version you'll deploy with, so the
-committed pickles load without a version-mismatch warning:
+They carry their own class lists, so they can't fall out of sync with a model
+trained on a different taxonomy.
 
-    python scripts/export_tfidf.py
+    python scripts/build_datasets.py     # first — builds data/built/
+    python scripts/export_tfidf.py       # then — trains + exports
 """
 
 from __future__ import annotations
@@ -25,19 +25,13 @@ import joblib
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report, confusion_matrix, f1_score
 from sklearn.pipeline import Pipeline
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA = os.path.join(HERE, "data")
+BUILT = os.path.join(HERE, "data", "built")
 MDIR = os.path.join(HERE, "models", "two_stage")
-
-
-def load(name, text_col, label_col):
-    df = pd.read_csv(os.path.join(DATA, name))[[text_col, label_col]].copy()
-    df.columns = ["text", "label"]
-    df["text"] = df["text"].astype(str).str.strip()
-    df["label"] = df["label"].astype(str).str.strip()
-    return df[df["text"].str.len() > 0].dropna().reset_index(drop=True)
+DATA_VERSION = 2   # v2 = trained with MAFALDA real-world negatives
 
 
 def make_pipe():
@@ -47,28 +41,54 @@ def make_pipe():
     ])
 
 
-def export(df, class_map, out_name):
-    df = df.copy()
-    df["y"] = df["label"].map(class_map)
-    df = df.dropna(subset=["y"])
-    df["y"] = df["y"].astype(int)
+def train_stage(name, train_csv, test_csv, out_name):
+    tr = pd.read_csv(os.path.join(BUILT, train_csv)).dropna()
+    te = pd.read_csv(os.path.join(BUILT, test_csv)).dropna()
+
+    classes = sorted(tr["label"].unique())
+    cmap = {c: i for i, c in enumerate(classes)}
+    ytr = tr["label"].map(cmap)
+
     pipe = make_pipe()
-    pipe.fit(df["text"], df["y"])
+    pipe.fit(tr["text"], ytr)
+
+    # Evaluate only on rows whose label the model knows
+    te = te[te["label"].isin(cmap)]
+    yte = te["label"].map(cmap)
+    pred = pipe.predict(te["text"])
+
+    print(f"\n=== {name} — held-out REAL-WORLD test ({len(te)} sentences) ===")
+    print(classification_report(yte, pred, labels=range(len(classes)),
+                                target_names=classes, zero_division=0, digits=2))
+    if "not_fallacy" in cmap and "fallacy" in cmap:
+        cm = confusion_matrix(yte, pred, labels=[cmap["not_fallacy"], cmap["fallacy"]])
+        tn, fp = cm[0]
+        print(f"  false-alarm rate on clean prose: {fp / max(tn + fp, 1):.0%}  ({fp}/{tn + fp})")
+    print(f"  macro-F1: {f1_score(yte, pred, average='macro'):.3f}")
+
     out = os.path.join(MDIR, out_name)
-    joblib.dump(pipe, out)
-    print(f"  wrote {out_name:24s} ({os.path.getsize(out) / 1e6:.2f} MB, {len(df)} rows)")
+    joblib.dump({"pipe": pipe, "classes": classes, "version": DATA_VERSION}, out)
+    print(f"  -> {out_name}  ({os.path.getsize(out) / 1e6:.2f} MB, {len(classes)} classes)")
+    return classes
 
 
 def main():
-    meta = json.load(open(os.path.join(MDIR, "pipeline.json")))
-    det_map = {c: i for i, c in enumerate(meta["detector_classes"])}
-    typ_map = {c: i for i, c in enumerate(meta["typer_classes"])}
+    os.makedirs(MDIR, exist_ok=True)
+    det_classes = train_stage("DETECTOR", "detector_train.csv", "detector_test.csv", "detector_tfidf.joblib")
+    typ_classes = train_stage("TYPER", "typer_train.csv", "typer_test.csv", "typer_tfidf.joblib")
 
-    print("Exporting TF-IDF models to", MDIR)
-    export(load("contrastive_dataset.csv", "text", "label"), det_map, "detector_tfidf.joblib")
-    export(load("edu_train.csv", "source_article", "updated_label"), typ_map, "typer_tfidf.joblib")
+    meta_path = os.path.join(MDIR, "pipeline.json")
+    meta = json.load(open(meta_path)) if os.path.exists(meta_path) else {}
+    meta.update({
+        "detector_classes": det_classes,
+        "typer_classes": typ_classes,
+        "max_len": meta.get("max_len", 80),
+        "data_version": DATA_VERSION,
+    })
+    json.dump(meta, open(meta_path, "w"), indent=2)
+
     import sklearn
-    print("done (scikit-learn", sklearn.__version__ + ") — commit the two .joblib files.")
+    print(f"\ndone (scikit-learn {sklearn.__version__}) — commit the two .joblib files + pipeline.json")
 
 
 if __name__ == "__main__":

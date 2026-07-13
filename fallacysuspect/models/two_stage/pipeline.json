@@ -3,7 +3,7 @@
   "typer_model": "bert",
   "detector_classes": [
     "fallacy",
-    "valid"
+    "not_fallacy"
   ],
   "typer_classes": [
     "ad hominem",
@@ -18,7 +18,9 @@
     "false causality",
     "false dilemma",
     "faulty generalization",
-    "intentional"
+    "intentional",
+    "slippery slope"
   ],
-  "max_len": 80
+  "max_len": 80,
+  "data_version": 2
 }
