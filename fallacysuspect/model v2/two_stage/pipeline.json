@@ -1,0 +1,26 @@
+{
+  "detector_model": "bert",
+  "typer_model": "bert",
+  "detector_classes": [
+    "fallacy",
+    "not_fallacy"
+  ],
+  "typer_classes": [
+    "ad hominem",
+    "ad populum",
+    "appeal to emotion",
+    "circular reasoning",
+    "equivocation",
+    "fallacy of credibility",
+    "fallacy of extension",
+    "fallacy of logic",
+    "fallacy of relevance",
+    "false causality",
+    "false dilemma",
+    "faulty generalization",
+    "intentional",
+    "slippery slope"
+  ],
+  "max_len": 96,
+  "data_version": 2
+}

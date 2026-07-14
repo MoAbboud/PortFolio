@@ -29,7 +29,7 @@ import re
 from functools import lru_cache
 from pathlib import Path
 
-from .config import DETECT_THRESHOLD, MIN_WORDS, TYPE_THRESHOLD, bucket_warning
+from .config import MIN_WORDS, TYPE_THRESHOLD, bucket_warning, detect_threshold
 from .models import AnalysisResult, Flag
 
 _DEFAULT_DIR = Path(__file__).resolve().parent.parent / "models" / "two_stage"
@@ -118,8 +118,17 @@ def _stage_kind(prefix: str) -> str | None:
     if override == "bert":
         return "bert" if has_bert else None
     if has_bert and has_tfidf:
-        # Prefer DistilBERT only if it's trained on data at least as good as the
-        # TF-IDF model's. A freshly-retrained BERT (v2) wins; a stale one loses.
+        # Measured on held-out real-world prose (MAFALDA test documents):
+        #
+        #   DETECTOR  tfidf v2 -> 24% false alarms, macro-F1 0.75
+        #             bert  v1 -> 62% false alarms   (trained without real negatives)
+        #             => pick whichever was trained on the better data.
+        #
+        #   TYPER     tfidf v2 -> macro-F1 0.14 (bag-of-words cannot see argument
+        #             structure; it scores zero on false causality / false dilemma)
+        #             => a transformer wins here even when trained on older data.
+        if prefix == "typer":
+            return "bert"
         return "bert" if _data_version(prefix, "bert") >= _data_version(prefix, "tfidf") else "tfidf"
     if has_bert:
         return "bert"
@@ -236,9 +245,10 @@ def _classify_sentence(sentence: str, det: dict, typ: dict, max_len: int) -> Fla
         return None
 
     # Gate 2: the detector must be confident it's a fallacy (not just argmax —
-    # the detector was trained 50/50 and over-fires on real transcripts).
+    # a 50/50-trained detector over-fires on real transcripts). The threshold is
+    # per model kind: BERT's softmax is peaky, TF-IDF's is flat.
     p_fallacy = _probs(det, sentence, max_len).get("fallacy", 0.0)
-    if p_fallacy < DETECT_THRESHOLD:
+    if p_fallacy < detect_threshold(det["kind"]):
         return None
 
     # Gate 3: the typer must be confident *which* fallacy. This is the strongest

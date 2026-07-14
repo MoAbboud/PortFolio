@@ -61,9 +61,28 @@ JSON_RETRIES: int = 1
 #                        that aren't arguments and were never in the training data.
 #
 # Raise for fewer, safer flags; lower for more recall. Override via env vars.
-DETECT_THRESHOLD: float = float(os.environ.get("FALLACY_DETECT_THRESHOLD", "0.70"))
+#
+# The right detector threshold depends on the MODEL KIND, because the two produce
+# very differently-shaped probabilities (measured on held-out real-world prose):
+#   * DistilBERT softmax is peaky   -> P(fallacy) is usually 0.9+; 0.70 works.
+#   * TF-IDF LogReg is flat         -> median P(fallacy) is 0.47, max 0.95. At 0.70
+#     recall collapses to 0.34. Its measured best-F1 point is ~0.45.
+# Using one number for both silently throws away most real fallacies on TF-IDF.
+DETECT_THRESHOLD_BY_KIND: dict[str, float] = {"bert": 0.70, "tfidf": 0.45}
+
+# Explicit override (applies to whichever kind is loaded); empty = use the table.
+_DETECT_ENV = os.environ.get("FALLACY_DETECT_THRESHOLD", "").strip()
+DETECT_THRESHOLD: float | None = float(_DETECT_ENV) if _DETECT_ENV else None
+
 TYPE_THRESHOLD: float = float(os.environ.get("FALLACY_TYPE_THRESHOLD", "0.50"))
 MIN_WORDS: int = int(os.environ.get("FALLACY_MIN_WORDS", "8"))
+
+
+def detect_threshold(kind: str) -> float:
+    """Detector confidence gate for the given model kind."""
+    if DETECT_THRESHOLD is not None:
+        return DETECT_THRESHOLD
+    return DETECT_THRESHOLD_BY_KIND.get(kind, 0.70)
 
 # --------------------------------------------------------------------------- #
 # Database

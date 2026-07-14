@@ -1,0 +1,42 @@
+Some weights of DistilBertForSequenceClassification were not initialized from the model checkpoint at distilbert-base-uncased and are newly initialized: ['classifier.bias', 'classifier.weight', 'pre_classifier.bias', 'pre_classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+
+=== DETECTOR: 2077 train / 143 real-world test | 2 classes | cpu ===
+  ep1 step 40/130 loss=0.644
+  ep1 step 80/130 loss=0.318
+  ep1 step 120/130 loss=0.265
+  epoch 1: real-world macro-F1 = 0.774  (391s)
+  ep2 step 40/130 loss=0.402
+  ep2 step 80/130 loss=0.121
+  ep2 step 120/130 loss=0.079
+  epoch 2: real-world macro-F1 = 0.737  (346s)
+  ep3 step 40/130 loss=0.005
+  ep3 step 80/130 loss=0.072
+  ep3 step 120/130 loss=0.163
+  epoch 3: real-world macro-F1 = 0.739  (350s)
+              precision    recall  f1-score   support
+
+     fallacy       0.71      0.72      0.72        65
+ not_fallacy       0.77      0.76      0.76        78
+
+    accuracy                           0.74       143
+   macro avg       0.74      0.74      0.74       143
+weighted avg       0.74      0.74      0.74       143
+
+  false-alarm rate on clean prose: 24% (19/78)
+Traceback (most recent call last):
+  File "C:\Users\Absol\OneDrive\Documents\GitHub\PortFol\fallacysuspect\scripts\train_bert.py", line 136, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\Absol\OneDrive\Documents\GitHub\PortFol\fallacysuspect\scripts\train_bert.py", line 124, in main
+    det = train_stage("DETECTOR", "detector_train.csv", "detector_test.csv", "detector_distilbert", epochs=3)
+  File "C:\Users\Absol\OneDrive\Documents\GitHub\PortFol\fallacysuspect\scripts\train_bert.py", line 115, in train_stage
+    model.save_pretrained(out)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Absol\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\transformers\modeling_utils.py", line 2980, in save_pretrained
+    safe_save_file(shard, os.path.join(save_directory, shard_file), metadata={"format": "pt"})
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Absol\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\safetensors\torch.py", line 286, in save_file
+    serialize_file(_flatten(tensors), filename, metadata=metadata)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+safetensors_rust.SafetensorError: Error while serializing: IoError(Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." })
