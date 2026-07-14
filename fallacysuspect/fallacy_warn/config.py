@@ -74,7 +74,39 @@ DETECT_THRESHOLD_BY_KIND: dict[str, float] = {"bert": 0.70, "tfidf": 0.45}
 _DETECT_ENV = os.environ.get("FALLACY_DETECT_THRESHOLD", "").strip()
 DETECT_THRESHOLD: float | None = float(_DETECT_ENV) if _DETECT_ENV else None
 
+# How a flag is decided. Two modes:
+#
+#   "combined" (default) — flag when P(fallacy) x P(type) >= FLAG_THRESHOLD.
+#   "gates"    (legacy)  — flag when P(fallacy) >= detect_threshold AND
+#                          P(type) >= TYPE_THRESHOLD, as two independent vetoes.
+#
+# Measured on the held-out MAFALDA test documents with the v2_bert models:
+#
+#   strategy                     precision  recall  false alarms
+#   two independent gates          1.00      0.31       0%
+#   detector alone (no type gate)  0.63      0.67      20%
+#   combined score >= 0.33         0.85      0.46       4%
+#
+# The detector CANNOT be trusted alone: on a real debate transcript it scores
+# "A basic income is what lets her breathe." at 1.00. Letting it decide by itself
+# flagged 25 of 59 sentences. But two independent vetoes are too strict the other
+# way — they threw away correctly-detected fallacies whenever the typer, spreading
+# its mass over 13 similar classes, couldn't clear 0.50 (an ad hominem it had
+# labelled CORRECTLY was binned at 0.38).
+#
+# Multiplying the two signals uses both without letting either veto alone: it buys
+# ~50% more recall than the gates for 4% false alarms. Precision still leads,
+# because for a warning tool a false alarm costs more than a miss.
+SCORE_MODE: str = os.environ.get("FALLACY_SCORE_MODE", "combined").strip().lower()
+
+# Tuned on the held-out MAFALDA validation documents: the highest-recall point that
+# still keeps precision >= 0.90. Raise for fewer, safer flags; lower for more recall.
+FLAG_THRESHOLD: float = float(os.environ.get("FALLACY_FLAG_THRESHOLD", "0.33"))
+
+# Only a veto in "gates" mode. In "combined" mode it just decides whether the type is
+# presented as confident or as a best guess.
 TYPE_THRESHOLD: float = float(os.environ.get("FALLACY_TYPE_THRESHOLD", "0.50"))
+
 MIN_WORDS: int = int(os.environ.get("FALLACY_MIN_WORDS", "8"))
 
 

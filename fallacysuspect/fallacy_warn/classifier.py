@@ -36,7 +36,9 @@ from pathlib import Path
 
 from .config import (
     DETECT_THRESHOLD,
+    FLAG_THRESHOLD,
     MIN_WORDS,
+    SCORE_MODE,
     TYPE_THRESHOLD,
     bucket_warning,
     detect_threshold,
@@ -354,35 +356,42 @@ def _stage_threshold(stage: dict) -> float:
 
 
 def _classify_sentence(sentence: str, det: dict, typ: dict, max_len: int) -> Flag | None:
-    """Return a Flag only if the sentence clears all three gates (see config)."""
-    # Gate 1: too short / procedural to be an argument at all ("Thanks.", "That's my close.")
+    """Decide whether to flag this sentence, and what to call it.
+
+    Both stages vote; neither vetoes alone. See ``config.SCORE_MODE`` for the measured
+    reason — the detector alone flags 25 of 59 sentences on a real debate, and two
+    independent vetoes bin correctly-detected fallacies the typer can't confidently name.
+    """
+    # Too short / procedural to be an argument at all ("Thanks.", "That's my close.")
     if len(sentence.split()) < MIN_WORDS:
         return None
 
-    # Gate 2: the detector must be confident it's a fallacy (not just argmax —
-    # a 50/50-trained detector over-fires on real transcripts). The threshold is
-    # per model kind: BERT's softmax is peaky, TF-IDF's is flat.
     p_fallacy = _probs(det, sentence, max_len).get("fallacy", 0.0)
-    if p_fallacy < _stage_threshold(det):
-        return None
-
-    # Gate 3: the typer must be confident *which* fallacy. This is the strongest
-    # signal — genuine fallacies score high here, noise scores near-random.
     type_probs = _probs(typ, sentence, max_len)
     ftype = max(type_probs, key=type_probs.get)
     p_type = type_probs[ftype]
-    if p_type < TYPE_THRESHOLD:
+
+    # P(is a fallacy) x P(is this type) — the honest joint confidence.
+    conf = p_fallacy * p_type
+
+    if SCORE_MODE == "gates":                       # legacy: two independent vetoes
+        if p_fallacy < _stage_threshold(det) or p_type < TYPE_THRESHOLD:
+            return None
+    elif conf < FLAG_THRESHOLD:
         return None
 
-    # Honest combined confidence: P(is a fallacy) x P(is this type).
-    conf = p_fallacy * p_type
+    explanation = DESCRIPTIONS.get(ftype, "Possible logical fallacy.")
+    if p_type < TYPE_THRESHOLD:
+        explanation = f"Closest match — the type is a best guess. {explanation}"
+
     return Flag(
         fallacy_type=ftype,
         span=sentence,
         confidence=conf,
         warning_level=bucket_warning(conf),
-        explanation=DESCRIPTIONS.get(ftype, "Possible logical fallacy."),
+        explanation=explanation,
         charitable_read=None,
+        type_confidence=p_type,
     )
 
 

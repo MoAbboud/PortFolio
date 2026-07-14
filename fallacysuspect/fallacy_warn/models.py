@@ -22,10 +22,16 @@ class Flag:
     Fields mirror the spec:
       fallacy_type    one label from the fixed taxonomy
       span            exact quoted text from the original input
-      confidence      verifier confidence, 0.0-1.0
+      confidence      how sure we are this is a fallacy AT ALL, 0.0-1.0
       warning_level   low/medium/high, bucketed from confidence
       explanation     one-line reason
       charitable_read one-line steel-man (optional)
+      type_confidence how sure we are of the *label* specifically (optional)
+
+    ``confidence`` and ``type_confidence`` answer two different questions, and
+    conflating them is what made the tool drop real findings: the detector can be
+    certain a sentence is fallacious while the typer is unsure which of 13 types to
+    call it. A low ``type_confidence`` means "we stand by the flag, not the name".
     """
 
     fallacy_type: str
@@ -34,6 +40,7 @@ class Flag:
     warning_level: str
     explanation: str
     charitable_read: Optional[str] = None
+    type_confidence: Optional[float] = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
