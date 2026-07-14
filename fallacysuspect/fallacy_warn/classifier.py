@@ -26,6 +26,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import warnings
 from functools import lru_cache
 from pathlib import Path
 
@@ -144,34 +145,57 @@ def is_available() -> bool:
     return _stage_kind("detector") is not None and _stage_kind("typer") is not None
 
 
+def _load_bert(prefix: str, fallback_classes: list[str]) -> dict:
+    import torch
+    from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+    path = _stage_files(prefix)["bert"]
+    classes = fallback_classes
+    meta = path / "classes.json"
+    if meta.exists():
+        classes = list(json.loads(meta.read_text(encoding="utf-8"))["classes"])
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    tok = AutoTokenizer.from_pretrained(str(path))
+    mdl = AutoModelForSequenceClassification.from_pretrained(str(path)).to(device).eval()
+    return {"kind": "bert", "classes": classes, "tok": tok, "mdl": mdl, "device": device}
+
+
+def _load_tfidf(prefix: str, fallback_classes: list[str]) -> dict:
+    import joblib
+
+    obj = joblib.load(_stage_files(prefix)["tfidf"])
+    if isinstance(obj, dict) and "pipe" in obj:              # self-describing bundle
+        return {"kind": "tfidf", "classes": list(obj["classes"]), "pipe": obj["pipe"]}
+    return {"kind": "tfidf", "classes": fallback_classes, "pipe": obj}       # legacy
+
+
 def _load_stage(prefix: str, fallback_classes: list[str]) -> dict:
     """Load one stage. Models carry their own class list; ``fallback_classes``
-    (from pipeline.json) is only used by legacy models that don't."""
+    (from pipeline.json) is only used by legacy models that don't.
+
+    A model file that is corrupt or half-downloaded (a truncated ``model.safetensors``
+    raises ``MetadataIncompleteBuffer``) must not take the whole app down — fall back
+    to the other kind and say so, loudly.
+    """
     kind = _stage_kind(prefix)
-    f = _stage_files(prefix)
+    loaders = {"bert": _load_bert, "tfidf": _load_tfidf}
+    if kind not in loaders:
+        raise RuntimeError(f"no model available for stage {prefix!r}")
 
-    if kind == "bert":
-        import torch
-        from transformers import AutoModelForSequenceClassification, AutoTokenizer
-
-        classes = fallback_classes
-        meta = f["bert"] / "classes.json"
-        if meta.exists():
-            classes = list(json.loads(meta.read_text(encoding="utf-8"))["classes"])
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        tok = AutoTokenizer.from_pretrained(str(f["bert"]))
-        mdl = AutoModelForSequenceClassification.from_pretrained(str(f["bert"])).to(device).eval()
-        return {"kind": "bert", "classes": classes, "tok": tok, "mdl": mdl, "device": device}
-
-    if kind == "tfidf":
-        import joblib
-
-        obj = joblib.load(f["tfidf"])
-        if isinstance(obj, dict) and "pipe" in obj:          # self-describing bundle
-            return {"kind": "tfidf", "classes": list(obj["classes"]), "pipe": obj["pipe"]}
-        return {"kind": "tfidf", "classes": fallback_classes, "pipe": obj}   # legacy
-
-    raise RuntimeError(f"no model available for stage {prefix!r}")
+    try:
+        return loaders[kind](prefix, fallback_classes)
+    except Exception as exc:
+        other = "tfidf" if kind == "bert" else "bert"
+        available = _stage_files(prefix)[other].exists()
+        warnings.warn(
+            f"{prefix} '{kind}' model failed to load ({type(exc).__name__}: {exc}). "
+            + (f"Falling back to '{other}'." if available else "No fallback available."),
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        if not available:
+            raise
+        return loaders[other](prefix, fallback_classes)
 
 
 @lru_cache(maxsize=1)
