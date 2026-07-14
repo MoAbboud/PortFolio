@@ -15,10 +15,14 @@ The models classify a whole passage, so to recreate the app's span highlighting 
 run *sentence by sentence*: each sentence is checked fallacy-vs-valid, and flagged
 sentences get a predicted type. Returns the app's ``AnalysisResult`` / ``Flag`` shape.
 
-Model files live in ``models/two_stage/`` (override with ``FALLACY_MODEL_DIR``):
+Each *model set* is a directory under ``models/`` holding:
     pipeline.json
     detector_tfidf.joblib   / detector_distilbert/
     typer_tfidf.joblib      / typer_distilbert/
+
+Ship as many as you like — ``models/v1_baseline/``, ``models/v2_bert/``, ... The app
+offers them all in its switcher and defaults to whichever was trained on the newest
+data. ``FALLACY_MODEL_DIR`` pins one directory and disables the switcher.
 """
 
 from __future__ import annotations
@@ -39,7 +43,8 @@ from .config import (
 )
 from .models import AnalysisResult, Flag
 
-_DEFAULT_DIR = Path(__file__).resolve().parent.parent / "models" / "two_stage"
+_MODEL_ROOT = Path(__file__).resolve().parent.parent / "models"
+_DEFAULT_DIR = _MODEL_ROOT / "v2_bert"
 
 # One-line, static descriptions for the trained (LOGIC) taxonomy.
 DESCRIPTIONS = {
@@ -60,8 +65,67 @@ DESCRIPTIONS = {
 }
 
 
-def model_dir() -> Path:
-    return Path(os.environ.get("FALLACY_MODEL_DIR", str(_DEFAULT_DIR)))
+def model_dir(set_id: str | None = None) -> Path:
+    """Directory for one model set.
+
+    A *set* is any directory under ``models/`` holding a ``pipeline.json`` plus its
+    stage models — e.g. ``v1_baseline`` (TF-IDF detector) and ``v2_bert``. Passing
+    ``set_id`` selects one; passing nothing gives the set trained on the newest data.
+    """
+    if set_id:
+        return _MODEL_ROOT / set_id
+    env = os.environ.get("FALLACY_MODEL_DIR")
+    if env:
+        return Path(env)
+    best = default_set()
+    return (_MODEL_ROOT / best) if best else _DEFAULT_DIR
+
+
+def available_sets() -> list[dict]:
+    """Every model set on disk, newest data version first — for the UI switcher.
+
+    Each entry describes what the set actually *is*, read from the files rather than
+    hardcoded, so a set trained later shows up with no code change.
+    """
+    env_dir = os.environ.get("FALLACY_MODEL_DIR")
+    dirs = [Path(env_dir)] if env_dir else sorted(
+        d for d in _MODEL_ROOT.iterdir()
+        if d.is_dir() and not d.name.startswith("_") and (d / "pipeline.json").exists()
+    ) if _MODEL_ROOT.is_dir() else []
+
+    sets = []
+    for d in dirs:
+        try:
+            meta = json.loads((d / "pipeline.json").read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        kinds = {s: _stage_kind(d, s) for s in ("detector", "typer")}
+        if not all(kinds.values()):
+            continue                      # incomplete — don't offer it
+        bases = {}
+        for stage in ("detector", "typer"):
+            cj = _stage_files(d, stage)["bert"] / "classes.json"
+            if kinds[stage] == "bert" and cj.exists():
+                try:
+                    bases[stage] = json.loads(cj.read_text(encoding="utf-8")).get("base_model")
+                except Exception:
+                    pass
+        sets.append({
+            "id": d.name,
+            "version": int(meta.get("data_version", 1)),
+            "kinds": kinds,
+            "bases": bases,
+            "types": len(meta.get("typer_classes", [])),
+            "threshold": meta.get("detect_threshold"),
+        })
+    sets.sort(key=lambda s: -s["version"])
+    return sets
+
+
+def default_set() -> str | None:
+    """The set the UI selects on load: the one trained on the newest data."""
+    sets = available_sets()
+    return sets[0]["id"] if sets else None
 
 
 def _sklearn_ok() -> bool:
@@ -82,12 +146,11 @@ def _torch_ok() -> bool:
     return True
 
 
-def _stage_files(prefix: str) -> dict[str, Path]:
-    d = model_dir()
+def _stage_files(d: Path, prefix: str) -> dict[str, Path]:
     return {"tfidf": d / f"{prefix}_tfidf.joblib", "bert": d / f"{prefix}_distilbert"}
 
 
-def _data_version(prefix: str, kind: str) -> int:
+def _data_version(d: Path, prefix: str, kind: str) -> int:
     """Which generation of training data a model was built on.
 
     v1 = original (detector trained only on the balanced contrastive set — it
@@ -97,7 +160,7 @@ def _data_version(prefix: str, kind: str) -> int:
     Lets the app automatically prefer the better-trained model instead of blindly
     preferring DistilBERT.
     """
-    f = _stage_files(prefix)
+    f = _stage_files(d, prefix)
     try:
         if kind == "bert":
             meta = f["bert"] / "classes.json"
@@ -114,10 +177,10 @@ def _data_version(prefix: str, kind: str) -> int:
     return 1
 
 
-def _stage_kind(prefix: str) -> str | None:
+def _stage_kind(d: Path, prefix: str) -> str | None:
     """Which model kind to use for a stage ('bert'/'tfidf'), or None if unavailable."""
     override = os.environ.get("FALLACY_MODEL_KIND", "").lower()
-    f = _stage_files(prefix)
+    f = _stage_files(d, prefix)
     has_tfidf = f["tfidf"].exists() and _sklearn_ok()
     has_bert = f["bert"].exists() and _torch_ok()
     if override == "tfidf":
@@ -136,7 +199,8 @@ def _stage_kind(prefix: str) -> str | None:
         #             => a transformer wins here even when trained on older data.
         if prefix == "typer":
             return "bert"
-        return "bert" if _data_version(prefix, "bert") >= _data_version(prefix, "tfidf") else "tfidf"
+        return ("bert" if _data_version(d, prefix, "bert") >= _data_version(d, prefix, "tfidf")
+                else "tfidf")
     if has_bert:
         return "bert"
     if has_tfidf:
@@ -144,18 +208,19 @@ def _stage_kind(prefix: str) -> str | None:
     return None
 
 
-def is_available() -> bool:
+def is_available(set_id: str | None = None) -> bool:
     """True if a usable model exists for both stages."""
-    if not (model_dir() / "pipeline.json").exists():
+    d = model_dir(set_id)
+    if not (d / "pipeline.json").exists():
         return False
-    return _stage_kind("detector") is not None and _stage_kind("typer") is not None
+    return _stage_kind(d, "detector") is not None and _stage_kind(d, "typer") is not None
 
 
-def _load_bert(prefix: str, fallback_classes: list[str]) -> dict:
+def _load_bert(d: Path, prefix: str, fallback_classes: list[str]) -> dict:
     import torch
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-    path = _stage_files(prefix)["bert"]
+    path = _stage_files(d, prefix)["bert"]
     classes = fallback_classes
     threshold = None
     meta = path / "classes.json"
@@ -173,16 +238,16 @@ def _load_bert(prefix: str, fallback_classes: list[str]) -> dict:
             "device": device, "threshold": threshold}
 
 
-def _load_tfidf(prefix: str, fallback_classes: list[str]) -> dict:
+def _load_tfidf(d: Path, prefix: str, fallback_classes: list[str]) -> dict:
     import joblib
 
-    obj = joblib.load(_stage_files(prefix)["tfidf"])
+    obj = joblib.load(_stage_files(d, prefix)["tfidf"])
     if isinstance(obj, dict) and "pipe" in obj:              # self-describing bundle
         return {"kind": "tfidf", "classes": list(obj["classes"]), "pipe": obj["pipe"]}
     return {"kind": "tfidf", "classes": fallback_classes, "pipe": obj}       # legacy
 
 
-def _load_stage(prefix: str, fallback_classes: list[str]) -> dict:
+def _load_stage(d: Path, prefix: str, fallback_classes: list[str]) -> dict:
     """Load one stage. Models carry their own class list; ``fallback_classes``
     (from pipeline.json) is only used by legacy models that don't.
 
@@ -190,16 +255,16 @@ def _load_stage(prefix: str, fallback_classes: list[str]) -> dict:
     raises ``MetadataIncompleteBuffer``) must not take the whole app down — fall back
     to the other kind and say so, loudly.
     """
-    kind = _stage_kind(prefix)
+    kind = _stage_kind(d, prefix)
     loaders = {"bert": _load_bert, "tfidf": _load_tfidf}
     if kind not in loaders:
         raise RuntimeError(f"no model available for stage {prefix!r}")
 
     try:
-        return loaders[kind](prefix, fallback_classes)
+        return loaders[kind](d, prefix, fallback_classes)
     except Exception as exc:
         other = "tfidf" if kind == "bert" else "bert"
-        available = _stage_files(prefix)[other].exists()
+        available = _stage_files(d, prefix)[other].exists()
         warnings.warn(
             f"{prefix} '{kind}' model failed to load ({type(exc).__name__}: {exc}). "
             + (f"Falling back to '{other}'." if available else "No fallback available."),
@@ -208,17 +273,20 @@ def _load_stage(prefix: str, fallback_classes: list[str]) -> dict:
         )
         if not available:
             raise
-        return loaders[other](prefix, fallback_classes)
+        return loaders[other](d, prefix, fallback_classes)
 
 
-@lru_cache(maxsize=1)
-def _load() -> dict:
-    d = model_dir()
+@lru_cache(maxsize=4)
+def _load(set_id: str | None = None) -> dict:
+    """Load one model set. Cached per set, so switching back and forth in the UI
+    re-loads nothing — but each cached set holds its models in RAM (~1 GB for a
+    BERT pair), which is why the cache is small."""
+    d = model_dir(set_id)
     meta = json.loads((d / "pipeline.json").read_text(encoding="utf-8"))
     return {
         "max_len": int(meta.get("max_len", 80)),
-        "det": _load_stage("detector", list(meta["detector_classes"])),
-        "typ": _load_stage("typer", list(meta["typer_classes"])),
+        "det": _load_stage(d, "detector", list(meta["detector_classes"])),
+        "typ": _load_stage(d, "typer", list(meta["typer_classes"])),
     }
 
 
@@ -318,16 +386,16 @@ def _classify_sentence(sentence: str, det: dict, typ: dict, max_len: int) -> Fla
     )
 
 
-def analyze(text: str) -> AnalysisResult:
+def analyze(text: str, set_id: str | None = None) -> AnalysisResult:
     """Two-stage, sentence-level analysis using the local models."""
     flags: list[Flag] = []
-    for event in analyze_stream(text):
+    for event in analyze_stream(text, set_id=set_id):
         if event["type"] == "done":
             flags = [Flag(**d) for d in event["flags"]]
     return AnalysisResult(text=text, flags=flags)
 
 
-def analyze_stream(text: str):
+def analyze_stream(text: str, set_id: str | None = None):
     """Yield progress events while analyzing sentence by sentence.
 
     Lets the UI show a live progress bar that colours itself as findings appear:
@@ -339,7 +407,7 @@ def analyze_stream(text: str):
         yield {"type": "done", "flags": []}
         return
 
-    state = _load()
+    state = _load(set_id)
     det, typ, max_len = state["det"], state["typ"], state["max_len"]
     sentences = split_sentences(text)
     total = len(sentences)
@@ -360,9 +428,10 @@ def analyze_stream(text: str):
     yield {"type": "done", "flags": [f.to_dict() for f in flags]}
 
 
-def active_kinds() -> dict[str, str | None]:
+def active_kinds(set_id: str | None = None) -> dict[str, str | None]:
     """Which kind each stage would use right now (for diagnostics)."""
-    return {"detector": _stage_kind("detector"), "typer": _stage_kind("typer")}
+    d = model_dir(set_id)
+    return {"detector": _stage_kind(d, "detector"), "typer": _stage_kind(d, "typer")}
 
 
 def _main(argv=None):  # pragma: no cover - manual smoke test

@@ -4,7 +4,7 @@ Trains on the improved datasets from ``scripts/build_datasets.py`` (contrastive 
 LOGIC + MAFALDA's real-world negatives) and evaluates on a **held-out set of real
 MAFALDA documents** — the only honest test of "does this work on real prose?".
 
-Writes self-describing bundles into ``models/two_stage/``:
+Writes self-describing bundles into ``models/v1_baseline/``:
 
     detector_tfidf.joblib   {pipe, classes, version}
     typer_tfidf.joblib      {pipe, classes, version}
@@ -30,7 +30,7 @@ from sklearn.pipeline import Pipeline
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUILT = os.path.join(HERE, "data", "built")
-MDIR = os.path.join(HERE, "models", "two_stage")
+MDIR = os.path.join(HERE, "models", "v1_baseline")
 DATA_VERSION = 2   # v2 = trained with MAFALDA real-world negatives
 
 

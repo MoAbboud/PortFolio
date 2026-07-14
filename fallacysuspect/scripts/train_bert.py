@@ -7,8 +7,8 @@ job needs a pretrained transformer.
 Trains on ``data/built/`` (contrastive + LOGIC + MAFALDA real-world negatives) and
 evaluates on **held-out real MAFALDA documents**. Exports self-describing models:
 
-    models/two_stage/detector_distilbert/{model, tokenizer, classes.json}
-    models/two_stage/typer_distilbert/{model, tokenizer, classes.json}
+    models/v1_baseline/detector_distilbert/{model, tokenizer, classes.json}
+    models/v1_baseline/typer_distilbert/{model, tokenizer, classes.json}
 
 Runs on CPU (slow but fine) or GPU if available.
 
@@ -32,7 +32,7 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUILT = os.path.join(HERE, "data", "built")
-MDIR = os.path.join(HERE, "models", "two_stage")
+MDIR = os.path.join(HERE, "models", "v1_baseline")
 
 SEED = 42
 MODEL = "distilbert-base-uncased"

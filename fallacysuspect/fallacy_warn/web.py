@@ -45,9 +45,23 @@ def create_app(model: str = DEFAULT_MODEL) -> Flask:
             _client_cache["client"] = build_client()
         return _client_cache["client"]
 
+    def _requested_set(data: dict) -> str | None:
+        """Which model set the browser asked for. Unknown ids are ignored rather
+        than trusted — the id becomes a filesystem path."""
+        want = data.get("model_set")
+        if not want:
+            return None
+        return want if want in {s["id"] for s in classifier.available_sets()} else None
+
     @app.get("/")
     def index():
         return render_template("index.html", model=app.config["MODEL"])
+
+    @app.get("/api/models")
+    def models():
+        """The model sets the UI offers in its switcher."""
+        return jsonify({"sets": classifier.available_sets(),
+                        "default": classifier.default_set()})
 
     @app.post("/api/check")
     def check():
@@ -58,7 +72,7 @@ def create_app(model: str = DEFAULT_MODEL) -> Flask:
 
         if _use_local():
             # Trained local models — no API key, no per-call cost.
-            result = classifier.analyze(text)
+            result = classifier.analyze(text, set_id=_requested_set(data))
             backend = "local"
         else:
             try:
@@ -91,10 +105,12 @@ def create_app(model: str = DEFAULT_MODEL) -> Flask:
         def sse(event: dict) -> str:
             return f"data: {json.dumps(event)}\n\n"
 
+        set_id = _requested_set(data)
+
         def generate():
             if _use_local():
                 try:
-                    for event in classifier.analyze_stream(text):
+                    for event in classifier.analyze_stream(text, set_id=set_id):
                         if event["type"] == "done":
                             result = AnalysisResult(
                                 text=text, flags=[Flag(**d) for d in event["flags"]]
@@ -102,6 +118,7 @@ def create_app(model: str = DEFAULT_MODEL) -> Flask:
                             event["stored_id"] = store_analysis(result)
                             event["text"] = text
                             event["backend"] = "local"
+                            event["model_set"] = set_id or classifier.default_set()
                         yield sse(event)
                 except Exception as exc:  # surface as a stream event, never a 500
                     yield sse({"type": "error", "error": str(exc)})

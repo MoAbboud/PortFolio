@@ -125,6 +125,26 @@
   button.ghost:hover { background: rgba(43, 127, 184, 0.08); }
   button:disabled { opacity: .5; cursor: default; box-shadow: none; transform: none; }
 
+  /* model switcher — same pill language as the ghost buttons */
+  .switcher { display: flex; align-items: center; gap: 8px; }
+  .switcher label { font-size: 12px; font-weight: 600; color: var(--faint); letter-spacing: .04em; text-transform: uppercase; }
+  select#modelset {
+    font-family: "Manrope", sans-serif; font-weight: 600; font-size: 14px;
+    cursor: pointer; padding: 12px 34px 12px 18px; border-radius: 999px;
+    background: transparent; border: 1px solid rgba(43, 127, 184, 0.35); color: var(--accent-deep);
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%231f6489' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center;
+    transition: background-color .25s, border-color .25s;
+  }
+  select#modelset:hover { background-color: rgba(43, 127, 184, 0.08); }
+  select#modelset:disabled { opacity: .5; cursor: default; }
+  .sum-model {
+    display: inline-block; margin-top: 10px; padding: 4px 12px; border-radius: 999px;
+    font-size: 12px; font-weight: 600; color: var(--accent-deep);
+    background: rgba(43, 127, 184, 0.1); border: 1px solid var(--surface-line);
+  }
+
   .progress {
     width: 100%; max-width: 620px; height: 8px; margin-top: 20px;
     background: rgba(43, 127, 184, 0.16); border-radius: 999px; overflow: hidden;
@@ -253,6 +273,10 @@
     <div class="controls" id="controls">
       <button class="primary" id="analyze">Evaluate</button>
       <button class="ghost" id="example">Load example</button>
+      <div class="switcher" id="switcher" hidden>
+        <label for="modelset">Model</label>
+        <select id="modelset" title="Which trained model pair to run"></select>
+      </div>
     </div>
 
     <div class="progress" id="progress"><div class="bar" id="bar"></div></div>
@@ -367,10 +391,15 @@ function link(i, on) {
   if (m) m.classList.toggle("active", on);
   if (c) c.classList.toggle("active", on);
 }
-function renderReport(flags) {
+function renderReport(flags, modelSet) {
+  // Which model produced this report — so two runs of the same transcript are
+  // never ambiguous when you're comparing them.
+  const badge = MODEL_LABELS[modelSet]
+    ? `<span class="sum-model">${escapeHtml(MODEL_LABELS[modelSet])}</span>` : "";
   const n = flags.length;
   if (!n) {
-    summaryEl.innerHTML = `<p class="sum-lead">No fallacies found — this reads clean.</p>`;
+    summaryEl.innerHTML =
+      `<p class="sum-lead">No fallacies found — this reads clean.</p>${badge}`;
     findingsEl.innerHTML = `<p class="clean">Nothing in this transcript tripped the detector.</p>`;
     return;
   }
@@ -380,7 +409,8 @@ function renderReport(flags) {
        <p class="sum-lead">We found <b>${n}</b> possible ${n === 1 ? "fallacy" : "fallacies"}</p>
        <span class="sum-conf">${avg}% avg confidence</span>
      </div>
-     <p class="sum-note">Warnings, not verdicts — hover a highlight to link it to its finding.</p>`;
+     <p class="sum-note">Warnings, not verdicts — hover a highlight to link it to its finding.</p>
+     ${badge}`;
 
   findingsEl.innerHTML = flags.map((f, i) => `
     <div class="finding ${f.warning_level}" data-i="${i}">
@@ -403,6 +433,41 @@ function renderReport(flags) {
   });
 }
 
+/* ---------- model switcher ----------
+   The server describes each trained model set (which encoder ran each stage, how
+   many fallacy types it knows, what data generation it was trained on). We only
+   render what it reports, so a newly trained set appears here with no code change. */
+const switcher = $("switcher"), modelset = $("modelset");
+const MODEL_LABELS = {};
+
+// Friendly names for the sets we ship. Anything else falls back to its folder id,
+// so a set you train later still shows up without touching this file.
+const SET_NAMES = { v2_bert: "Model 2 (new)", v1_baseline: "Model 1 (old)" };
+
+function describeSet(s) {
+  const enc = (stage) => {
+    if (s.kinds[stage] === "tfidf") return "TF-IDF";
+    const base = (s.bases || {})[stage] || "";
+    return base.includes("roberta") ? "DistilRoBERTa" : "DistilBERT";
+  };
+  const name = SET_NAMES[s.id] || s.id;
+  return `${name} — ${enc("detector")} + ${enc("typer")} · ${s.types} types`;
+}
+
+async function loadModels() {
+  try {
+    const r = await fetch("/api/models");
+    const { sets, default: def } = await r.json();
+    if (!sets || sets.length < 2) return;        // nothing to switch between
+    modelset.innerHTML = sets.map((s) => {
+      MODEL_LABELS[s.id] = describeSet(s);
+      return `<option value="${s.id}"${s.id === def ? " selected" : ""}>${describeSet(s)}</option>`;
+    }).join("");
+    switcher.hidden = false;
+  } catch { /* switcher is optional — the server picks the newest set on its own */ }
+}
+loadModels();
+
 /* ---------- streaming analysis with a live progress bar ---------- */
 async function analyze() {
   const text = input.value.trim();
@@ -422,7 +487,7 @@ async function analyze() {
     const resp = await fetch("/api/check/stream", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, model_set: modelset.value || undefined }),
     });
     if (!resp.ok || !resp.body) {
       const d = await resp.json().catch(() => ({}));
@@ -461,7 +526,7 @@ async function analyze() {
         } else if (ev.type === "done") {
           bar.style.width = "100%";
           bar.style.background = barColor(fallacyScore(ev.flags));
-          await finish(ev.text ?? text, ev.flags);
+          await finish(ev.text ?? text, ev.flags, ev.model_set);
         }
       }
     }
@@ -475,11 +540,11 @@ async function analyze() {
 }
 
 // Let the full bar land, then morph the page into the two-column report.
-function finish(text, flags) {
+function finish(text, flags, modelSet) {
   return new Promise((resolve) => {
     setTimeout(() => {
       renderEssay(text, flags);
-      renderReport(flags);
+      renderReport(flags, modelSet);
       document.body.style.background = pageBg(fallacyScore(flags));
       document.body.classList.add("results");
       window.scrollTo({ top: 0, behavior: "smooth" });
