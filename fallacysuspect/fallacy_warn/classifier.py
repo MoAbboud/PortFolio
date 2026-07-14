@@ -30,7 +30,13 @@ import warnings
 from functools import lru_cache
 from pathlib import Path
 
-from .config import MIN_WORDS, TYPE_THRESHOLD, bucket_warning, detect_threshold
+from .config import (
+    DETECT_THRESHOLD,
+    MIN_WORDS,
+    TYPE_THRESHOLD,
+    bucket_warning,
+    detect_threshold,
+)
 from .models import AnalysisResult, Flag
 
 _DEFAULT_DIR = Path(__file__).resolve().parent.parent / "models" / "two_stage"
@@ -151,13 +157,20 @@ def _load_bert(prefix: str, fallback_classes: list[str]) -> dict:
 
     path = _stage_files(prefix)["bert"]
     classes = fallback_classes
+    threshold = None
     meta = path / "classes.json"
     if meta.exists():
-        classes = list(json.loads(meta.read_text(encoding="utf-8"))["classes"])
+        blob = json.loads(meta.read_text(encoding="utf-8"))
+        classes = list(blob["classes"])
+        # Models trained from v3 onward ship the decision threshold that was
+        # measured on held-out data, instead of relying on the guessed default.
+        if blob.get("detect_threshold") is not None:
+            threshold = float(blob["detect_threshold"])
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     tok = AutoTokenizer.from_pretrained(str(path))
     mdl = AutoModelForSequenceClassification.from_pretrained(str(path)).to(device).eval()
-    return {"kind": "bert", "classes": classes, "tok": tok, "mdl": mdl, "device": device}
+    return {"kind": "bert", "classes": classes, "tok": tok, "mdl": mdl,
+            "device": device, "threshold": threshold}
 
 
 def _load_tfidf(prefix: str, fallback_classes: list[str]) -> dict:
@@ -262,6 +275,16 @@ def split_sentences(text: str) -> list[str]:
     return out
 
 
+def _stage_threshold(stage: dict) -> float:
+    """Detector gate, in precedence order: env override > the threshold the model
+    was measured at > the per-kind default in config."""
+    if DETECT_THRESHOLD is not None:
+        return DETECT_THRESHOLD
+    if stage.get("threshold") is not None:
+        return float(stage["threshold"])
+    return detect_threshold(stage["kind"])
+
+
 def _classify_sentence(sentence: str, det: dict, typ: dict, max_len: int) -> Flag | None:
     """Return a Flag only if the sentence clears all three gates (see config)."""
     # Gate 1: too short / procedural to be an argument at all ("Thanks.", "That's my close.")
@@ -272,7 +295,7 @@ def _classify_sentence(sentence: str, det: dict, typ: dict, max_len: int) -> Fla
     # a 50/50-trained detector over-fires on real transcripts). The threshold is
     # per model kind: BERT's softmax is peaky, TF-IDF's is flat.
     p_fallacy = _probs(det, sentence, max_len).get("fallacy", 0.0)
-    if p_fallacy < detect_threshold(det["kind"]):
+    if p_fallacy < _stage_threshold(det):
         return None
 
     # Gate 3: the typer must be confident *which* fallacy. This is the strongest
