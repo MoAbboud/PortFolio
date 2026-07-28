@@ -40,7 +40,7 @@ One row per completed analysis, written after the run finishes.
 | `id` | integer | Primary key, auto-increment |
 | `created_at` | text | Timestamp of the run |
 | `text` | text | The transcript exactly as submitted |
-| `warning_count` | integer | Number of findings that survived all three gates. Denormalised so history can be listed without parsing the document |
+| `warning_count` | integer | Number of findings that survived the length gate and the scoring threshold. Denormalised so history can be listed without parsing the document |
 | `flags_json` | text | The findings, serialised |
 
 ### Shape of a stored finding
@@ -50,10 +50,10 @@ schema; a reader must tolerate fields being absent on older rows.
 
 | Field | Meaning |
 | --- | --- |
-| `fallacy_type` | One of the fourteen recognised patterns |
+| `fallacy_type` | One of the patterns the model that ran recognises |
 | `span` | The exact quoted passage the warning refers to |
 | `confidence` | Combined confidence, the product of both stage confidences |
-| `type_confidence` | The second stage's confidence on its own |
+| `type_confidence` | The second stage's confidence on its own. When it is low, the type is shown as a best guess rather than dropped |
 | `warning_level` | Low, medium or high, derived from the combined confidence |
 | `explanation` | What the named pattern is |
 | `charitable_read` | The strongest fair reading of the passage, where one is available |
@@ -73,50 +73,66 @@ schema; a reader must tolerate fields being absent on older rows.
 Offline material. Not read by the running application, not committed to the repository, and
 not part of any backup the application is responsible for.
 
+The three source projects do not agree with each other, and reconciling them is where most
+of the model quality comes from. They are combined, not used in isolation.
+
 ```mermaid
 flowchart LR
-    A[(Contrastive set<br/>fallacy vs valid)] --> BUILD[Builder]
-    B[(Educational set<br/>typed fallacies)] --> BUILD
-    C[(Real-world gold standard<br/>including labelled negatives)] --> BUILD
-    D[(Cross-domain test set)] -.evaluation only.-> EVAL[Measurement]
-    BUILD --> E[(detector_train / detector_test)]
-    BUILD --> F[(typer_train / typer_test)]
-    E --> EVAL
+    A[(Contrastive set<br/>fallacy vs valid pairs)] --> BUILD[Builder]
+    B[(Educational set<br/>typed fallacies, general)] --> BUILD
+    C[(Climate set<br/>typed fallacies, energy debate)] --> BUILD
+    D[(Real-world gold standard<br/>including labelled negatives)] --> BUILD
+    BUILD --> E[(detector train / val / test)]
+    BUILD --> F[(typer train / val / test)]
+    E --> EVAL[Measurement on held-out documents]
     F --> EVAL
 ```
 
 | Source | Used for | Notes |
 | --- | --- | --- |
-| Contrastive set | Stage one, fallacy against valid | Balanced |
-| Educational set | Stage two, typed fallacies | Lacks one pattern, which the builder supplies |
-| Real-world gold standard | Both stages, and the honest test set | Contains labelled non-fallacious sentences, which is what stops the detector flagging ordinary prose |
-| Cross-domain set | Evaluation only | Never trained on |
+| Contrastive set | Detector negatives and positives | Its valid half is the only argument-shaped negative available; the rest are ordinary prose |
+| Educational set | Both stages | Every row is a fallacy. Fed to the typer for its type, and to the detector as a positive so the detector finally sees examples it was missing |
+| Climate set | Both stages | Same taxonomy as the educational set, an energy-debate domain, and previously unused. Closest domain to the transcripts the tool actually receives |
+| Real-world gold standard | Both stages, plus the honest split | The only source with labelled non-fallacious sentences, which is what stops the detector flagging ordinary prose, and the only honest evaluation set |
 
-### Built splits
+Three reconciliations the builder performs, each fixing an inconsistency between the sources:
 
-| File | Contents |
-| --- | --- |
-| `detector_train` | Passages labelled fallacy or not |
-| `detector_test` | Held-out real-world documents |
-| `typer_train` | Fallacious passages with their pattern |
-| `typer_test` | Held-out real-world documents |
+- One pattern the educational taxonomy collapsed into another is recovered from its original
+  label, so it is trained as itself rather than mislabelled.
+- Two classes with no examples in the real-world set are dropped, because on the real-world
+  evaluation they can only ever be a wrong prediction, never a correct one.
+- Any sentence shared verbatim between the sources and the held-out documents is removed from
+  training, so the honest split cannot leak.
 
-The real-world material is split **by document**. Two sentences from the same document
-never end up on opposite sides of the split. Splitting by sentence would leak context
-between train and test and make every reported number meaningless.
+### The honest split
+
+The real-world material is split **by document** into train, validation and test. Two
+sentences from the same document never end up on opposite sides. The validation split
+chooses the best epoch, encoder and threshold; the test split is scored once and never used
+for any decision. Splitting by sentence, or selecting on the test split, would inflate every
+reported number.
+
+Two earlier project outputs remain on disk but are not used to train: a pre-baked build of
+the older splits, and a human-annotator agreement study whose documents are already inside
+the gold standard and would leak if trained on.
 
 ## Model artefacts
 
-| Artefact | Size | Committed |
-| --- | --- | --- |
-| Light model pair | Under a megabyte | Yes. This is the deployable pairing |
-| Transformer model pair | Hundreds of megabytes each | No. Over the hosting file size limit and over the free-tier memory limit |
-| Pipeline descriptor | Small | Yes |
+Each trained model lives in its own folder under `models/`. A folder holding a pipeline
+descriptor and both stages is one **model set**, and any number of them can be installed
+side by side.
 
-Every model file declares its own class list and the data version it was trained on. The
-application reads those declarations rather than assuming, which is what allows the two
-stages to be sourced from different model families and what prevents a stale model from
-being paired with a newer taxonomy.
+| Set | Stages | Size | Committed |
+| --- | --- | --- | --- |
+| Baseline (`v1_baseline`) | Light detector, transformer typer | Light part under a megabyte; typer hundreds of megabytes | Only the light parts. This is the deployable pairing |
+| Transformer (`v2_bert`) | Transformer detector and typer | Hundreds of megabytes each | No. Over the hosting file size limit and over the free-tier memory limit |
+| Pipeline descriptor | Per set | Small | Yes |
+
+Every model file declares its own class list and the data version it was trained on, and a
+transformer detector additionally ships the decision threshold measured for it. The
+application reads those declarations rather than assuming. This is what lets the two stages
+be sourced from different model families, lets the application default to the set trained on
+the newest data, and prevents a stale model being paired with a newer taxonomy.
 
 ## What is deliberately not stored
 

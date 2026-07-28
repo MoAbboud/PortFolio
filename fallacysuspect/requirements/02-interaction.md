@@ -38,6 +38,7 @@ flowchart TB
     end
 
     R -->|paste transcript| UI
+    R -->|pick which model runs| UI
     R -->|read warnings in context| UI
     O -->|start, configure, inspect history| CLI
     T -->|train and export| MOD
@@ -82,10 +83,11 @@ flowchart TB
 | UC-2 | Reader | Understand a warning | Read a report entry | The quote, the pattern name, its definition, and where possible a fair reading of the passage |
 | UC-3 | Reader | Follow a highlight to its finding | Hover a marked passage | The matching report entry is identified |
 | UC-4 | Reader | See progress on a long transcript | Analysis in flight | A bar advancing through the text, changing colour as findings accumulate |
-| UC-5 | Operator | Analyse from a terminal | Run the check command with text | The same findings, printed |
-| UC-6 | Operator | Review past runs | Run the history command | Previous analyses with their finding counts |
-| UC-7 | Operator | Force a particular model | Set the model environment variable and restart | The chosen model is used instead of the automatic choice |
-| UC-8 | Trainer | Improve the models | Rebuild datasets, train, export | New model files that the application picks up on next start |
+| UC-5 | Reader | Compare models on the same text | Pick a model from the menu and re-run | The same transcript scored by the chosen model, with the report tagged by which one |
+| UC-6 | Operator | Analyse from a terminal | Run the check command with text | The same findings, printed |
+| UC-7 | Operator | Review past runs | Run the history command | Previous analyses with their finding counts |
+| UC-8 | Operator | Pin one model and hide the menu | Set the model directory environment variable and restart | Only that model is offered and used |
+| UC-9 | Trainer | Improve the models | Rebuild datasets, train, export into a new model folder | A new model set the application offers automatically, defaulting to it as the newest |
 
 ## Constraints that come from the actors
 

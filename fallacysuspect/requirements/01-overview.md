@@ -30,24 +30,31 @@ gives the reader somewhere to start without doing their thinking for them.
 | Confidence | Each warning carries a confidence level rather than a verdict |
 | Charitable reading | Where possible, a finding includes the strongest fair interpretation of the passage |
 | History | Past analyses are kept and can be listed again |
+| Choose the model | More than one trained model can be installed. A menu picks which one runs, and each report names the model that produced it |
 | Command line | The same analysis is available from a terminal for anyone who prefers it |
 
 ## Recognised patterns
 
-The tool works from a fixed list of fourteen named reasoning patterns, including appeals to
-emotion and authority, false dilemma, false causality, slippery slope, ad hominem and
-faulty generalisation. Anything outside that list is not reported.
+The tool works from a fixed list of named reasoning patterns, including appeals to emotion,
+false dilemma, false causality, slippery slope, ad hominem and faulty generalisation.
+Anything outside that list is not reported.
+
+The exact list is defined by the model, not by the application, so it can change when a
+better model is installed. The current default model recognises thirteen patterns; an older
+model kept alongside it recognises fourteen. The menu that selects a model shows how many
+patterns each one knows.
 
 ## How to use it
 
 1. Start the application and open it in a browser.
 2. Paste a transcript into the box. Speaker labels are fine and are handled.
-3. Press Evaluate and watch the progress bar work through the text.
-4. The page turns into two columns without reloading: transcript on the left, report on
-   the right.
-5. Read each warning next to the passage it came from. Hover a highlight to jump to its
+3. Optionally pick a model from the menu. Left alone it uses the newest one.
+4. Press Evaluate and watch the progress bar work through the text.
+5. The page turns into two columns without reloading: transcript on the left, report on
+   the right, tagged with the model that produced it.
+6. Read each warning next to the passage it came from. Hover a highlight to jump to its
    entry.
-6. Treat each one as a question, not a ruling.
+7. Treat each one as a question, not a ruling.
 
 ## What it does not do
 

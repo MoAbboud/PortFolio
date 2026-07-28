@@ -19,4 +19,6 @@ which is the thing most likely to be misremembered.
 are, where the files sit. These documents are the specification. Where they overlap, the
 plan and the measured numbers here are the ones kept current.
 
-The current work is stage 5, model quality. See [00-plan.md](00-plan.md).
+The current work is stage 5, model quality: the transformer stage has been retrained and now
+catches the fallacy it used to miss, but the detector over-fires on debate prose and that is
+the live problem. See [00-plan.md](00-plan.md).
