@@ -25,7 +25,7 @@ The current gap. Nothing in stage 5 or 6 matters until a day can reach another a
 - [x] Directions handoff per stop
 - [x] Map, list and video switcher on Home
 - [ ] Replace the placeholder theme with the real brand tokens
-- [ ] Empty states for a profile with no days and a Discover feed with no results
+- [x] Empty states for a profile with no days and a Home feed with no results
 - [ ] Loading and error states on every screen that makes a network call
 - [ ] Show the weather on the day detail screen, and render correctly when there is none
 - [ ] Decide the fate of the Videos tab: build it or remove it

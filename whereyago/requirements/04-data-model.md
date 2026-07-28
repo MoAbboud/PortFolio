@@ -199,10 +199,10 @@ rollback that the failure caused. The threshold is configurable through `DB_LOG_
 | Table | Written by a feature | Read by a screen |
 | --- | --- | --- |
 | `users` | Yes | Yes |
-| `user_info` | No | Partly |
+| `user_info` | No | No |
 | `adventures` | Yes | Yes |
 | `stops` | Yes | Yes |
-| `weather` | On create, when supplied | Yes |
+| `weather` | On create if supplied; the mobile app does not supply it yet | No. The API returns it, but no screen shows it yet |
 | `adventure_stats` | Created, never incremented | Not yet |
 | `ratings` | No | No |
 | `adventure_likes` | No | No |

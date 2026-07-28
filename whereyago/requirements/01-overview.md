@@ -27,7 +27,7 @@ things repeatedly, or nothing.
 | Tag a vibe | Label the whole day as chill, foodie, family, adventure, night, culture or outdoors |
 | See it on a map | Stops are placed on a map in order, so the shape of the day is visible before committing to it |
 | Attach conditions | The weather the day was actually had in, so a reader knows whether it transfers to a rainy Saturday |
-| Browse Discover | A public feed of days other people shared, filterable by vibe |
+| Browse Discover | A public feed of the days other people shared |
 | Recreate a day | Open any stop in a maps app and get directions, one tap per stop |
 | Keep a profile | An account, a personal list of logged days, and the days that are shared publicly |
 
@@ -38,8 +38,8 @@ things repeatedly, or nothing.
 3. Add stops in the order they happened. Each stop takes a name, a type and optionally a
    time and a note.
 4. Save. The day appears in your profile.
-5. To find something to do, open Home and switch to the map or list view, or open Discover
-   and filter by the vibe you are in the mood for.
+5. To find something to do, open Home and switch between the map and list views to browse
+   the days other people shared.
 6. Open a day, read its stops, and use the directions link on each stop to follow it.
 
 ## What it does not do
@@ -51,6 +51,9 @@ things repeatedly, or nothing.
 - It does not do live location tracking or check-ins.
 - It does not currently support likes, comments, ratings or following, although the app is
   designed with room for them.
+- It does not yet let you share a day to the public feed, filter the feed by vibe, or
+  capture the weather from inside the mobile app. These are designed and are the current
+  build focus; the browser prototype already captures weather.
 
 ## Requirements to run it
 

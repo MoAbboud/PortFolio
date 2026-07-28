@@ -42,7 +42,7 @@ flowchart TB
     L -->|register, log in| ACC
     L -->|create a day, add stops| LOG
     B -->|log in| ACC
-    B -->|filter by vibe| FEED
+    B -->|browse shared days| FEED
     B -->|open a day| MAP
     B -->|tap directions| MAPS
 
@@ -85,11 +85,17 @@ should read that way.
 | UC-1 | Logger | Get an account | First launch | Account created, session token held on the device |
 | UC-2 | Logger | Record a day | Tap the centre button | A day with an ordered stop list is stored against their account |
 | UC-3 | Logger | Share a day | Toggle sharing on a stored day | The day becomes visible in Discover |
-| UC-4 | Browser | Find something to do | Open Discover, pick a vibe | A filtered list of shared days |
+| UC-4 | Browser | Find something to do | Open Home | The feed of shared days, newest first |
 | UC-5 | Browser | Judge a day at a glance | Open a day | Stops in order, on a map, with the weather it was had in |
 | UC-6 | Browser | Follow a day | Tap directions on a stop | The maps app opens at that stop |
 | UC-7 | Logger | Review their history | Open the profile tab | Their own days, shared and unshared |
 | UC-8 | Logger | Remove a day | Delete from a day they own | The day and its stops are gone |
+
+This table is intent, not a claim that all of it is built. Current state: UC-3 is not built.
+There is no endpoint or control to change the shared flag, so no day can reach Discover and
+the feed is empty in practice - it is the Stage 4 gap named in the plan. The weather link in
+the diagram above is exercised only by the browser prototype, not yet by the mobile log
+flow. Discover is not filtered by vibe yet; the vibe is stored and shown, not queried.
 
 ## Constraints that come from the actors
 

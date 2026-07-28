@@ -97,21 +97,21 @@ classDiagram
 
     class AuthService {
         +register(payload) User
-        +authenticate(username, password) Token
-        +current_user(token) User
+        +authenticate(email, password) User
+        +issue_token(user) str
     }
 
     class AdventureService {
-        +create(owner_id, payload) Adventure
-        +list_for_owner(owner_id) Adventure[]
-        +get_owned(owner_id, adventure_id) Adventure
-        +discover(vibe) Adventure[]
-        +delete(owner_id, adventure_id) None
+        +create_adventure(owner_id, payload) Adventure
+        +list_my_adventures(owner_id) Adventure[]
+        +get_owned(adventure_id, owner_id) Adventure
+        +list_discover() Adventure[]
+        +delete_adventure(adventure_id, owner_id) None
     }
 
     class UserRepository {
         <<Protocol>>
-        +get_by_id(id) User
+        +get(id) User
         +get_by_username(username) User
         +get_by_email(email) User
         +add(user) User
@@ -122,7 +122,7 @@ classDiagram
         +add(adventure) Adventure
         +get(id) Adventure
         +list_by_owner(owner_id) Adventure[]
-        +list_shared(vibe) Adventure[]
+        +list_shared() Adventure[]
         +delete(adventure) None
     }
 
@@ -233,19 +233,18 @@ classDiagram
     class ApiClient {
         +request(path, options) T
         -baseUrl: string
-        -authHeader() Headers
     }
     class AuthApi {
-        +register(payload) Token
+        +register(payload) User
         +login(credentials) Token
-        +me() User
+        +me(token) User
     }
     class AdventuresApi {
-        +create(payload) Adventure
-        +listMine() Adventure[]
-        +discover(vibe) Adventure[]
-        +get(id) Adventure
-        +remove(id) void
+        +create(payload, token) Adventure
+        +list(token) Adventure[]
+        +discover() Adventure[]
+        +get(id, token) Adventure
+        +remove(id, token) void
     }
     class AuthContext {
         +user: User
@@ -279,7 +278,6 @@ classDiagram
     AdventuresApi --> ApiClient
     AuthContext --> AuthApi
     AuthContext --> SecureTokenStore
-    ApiClient ..> AuthContext : reads token
     AdventureMap ..> Geocoder : when a stop has no coordinates
     DayCard ..> ThemeTokens
     Screen ..> ThemeTokens
@@ -287,9 +285,10 @@ classDiagram
     Input ..> ThemeTokens
 ```
 
-Every network call in the app goes through the single `request` wrapper, so retries,
-error mapping and the auth header exist in exactly one place. `ThemeTokens` is the single
-re-skin point; no component is allowed to hard-code a colour.
+Every network call in the app goes through the single `request` wrapper, so error mapping
+and the bearer header live in exactly one place. The token is passed into each call by the
+screen, which reads it from the auth context; there is no automatic retry yet. `ThemeTokens`
+is the single re-skin point; no component is allowed to hard-code a colour.
 
 ## Screen flow
 
@@ -358,9 +357,9 @@ sequenceDiagram
     participant MAPS as Maps app
 
     B->>M: open Home, choose map view
-    M->>A: GET /adventures/discover?vibe=foodie
-    A->>DB: select shared adventures for vibe
-    DB-->>A: rows with stops and weather
+    M->>A: GET /adventures/discover
+    A->>DB: select shared adventures, newest first
+    DB-->>A: rows with stops, weather and stats
     A-->>M: adventure list
     loop each adventure without coordinates
         M->>G: geocode(city)
