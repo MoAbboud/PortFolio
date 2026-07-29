@@ -86,12 +86,24 @@ one-off effects.
 
 | Piece | Mechanism |
 | --- | --- |
+| Axis | **Lateral.** Every animated element translates on X. The page has one axis and it is horizontal |
 | Opt-in | An element animates because it carries `data-anim`. Nothing animates by default |
 | Stagger | Each element carries an index in `--i`. Delay is computed from it in CSS, not scheduled in JavaScript |
 | Direction | A single `--dir` variable on the root, set to 1 or -1 before each transition. Every enter and exit transform is multiplied by it |
-| Masked type | Display lines sit in an overflow-hidden wrapper and translate in from beneath it |
+| Masked type | Display lines sit in an overflow-hidden wrapper and translate in from beneath it. **The one deliberate vertical exception** - a vertical reveal against lateral travel reads as type arriving rather than as one more thing sliding |
 | Exit | The outgoing page animates out faster than the incoming animates in, and in the opposite direction |
+| Colour | The section's hue is applied by a `data-accent` attribute on the root. Everything accented resolves through the same two variables, so the wash, the blob, the rules and the marks all cross-fade together |
 | Lock | Navigation is refused while a transition is running, so input cannot outrun the animation |
+
+### Why colour is an attribute rather than a set of inline styles
+
+Six hues are declared once as `--c1` through `--c6`, each with a darker ink form. Six
+selectors on `[data-accent]` map the active one onto `--accent` and `--accent-ink`. Setting
+one attribute therefore re-colours the entire page, and because the underlying values are
+plain colours, every transition on them animates.
+
+This also means the dark theme is a token swap rather than a second design: it redeclares
+the same six hues lifted for a dark ground, and nothing downstream changes.
 
 Direction being one root variable is what makes forward and backward genuinely different
 animations rather than the same animation played twice. It is also the only orientation cue
@@ -120,13 +132,21 @@ All of these resolve to the same two operations, next and previous.
 
 | Input | Handling |
 | --- | --- |
-| Arrows, page keys, space | Direct |
+| Arrows, page keys, space | Direct. Up and down are mapped onto left and right rather than being ignored |
 | Home, End | First and last page |
 | Digits | Jump to a section by ordinal |
-| Wheel | Accumulated and thresholded, so a trackpad's many small events read as one intent. Reset on a pause |
+| Wheel | Whichever of `deltaX` and `deltaY` is larger, accumulated and thresholded, so a trackpad's many small events read as one intent. Reset on a pause |
 | Touch | Horizontal or vertical swipe past a threshold, within a time limit |
-| Rail, header, menu, arrows | Direct |
+| Rail, menu, arrows | Direct |
 | Address hash | Read at load, written on every change |
+
+Vertical input driving horizontal movement is the point rather than a compromise. A reader
+will try to scroll, and the page turns that instinct into the movement it actually has.
+
+The section rail runs horizontally along the bottom, as a strip of segments that fill as
+they are passed. A vertical rail on a page that moves sideways would be arguing with itself.
+There is no separate header navigation; the rail carries the section names and the header
+carries only the name and the two controls.
 
 ## Content and rendering
 

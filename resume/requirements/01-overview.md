@@ -5,8 +5,16 @@ Public document. Behaviour only.
 ## What this is
 
 A resume that occupies exactly one screen and never scrolls. The content is divided into
-seven pages across six sections, and the reader moves between them the way they would move
-through a presentation rather than the way they would move through a document.
+seven pages across six sections, and the reader moves **sideways** through them - the way
+they would move through a presentation rather than the way they would move through a
+document.
+
+Movement is lateral whatever the reader does to cause it. Pressing down, scrolling down or
+swiping up all travel to the right, because the page has one axis and it is horizontal.
+
+Each of the six sections carries its own colour on a light ground, so moving across the
+resume moves through colour as well as through content, and a reader always has a second cue
+telling them where they are.
 
 It is also, quietly, part of the argument it makes. A resume claiming front-end ability
 should be evidence of it, so this one is hand-written in a single file with no framework, no
@@ -27,8 +35,10 @@ attention with the thing below it, and the reader is always looking at one compl
 | Capability | Description |
 | --- | --- |
 | Present one thing at a time | Seven pages, each composed to fit the screen exactly. Nothing scrolls |
-| Move deliberately | Arrow keys, page keys, digits, the wheel, a swipe, the section rail, or the header. Movement is a choice the reader makes |
+| Move sideways | Every page arrives from one side and leaves by the other. Vertical input is mapped onto the same lateral movement |
+| Move deliberately | Arrow keys, page keys, digits, the wheel, a swipe, or the section rail. Movement is a choice the reader makes |
 | Move differently in each direction | Going forward and going back are visibly different, so the reader knows which way they went |
+| Change colour as it goes | Six sections, six hues on a light ground. The background, the marks and the rules all shift together on arrival |
 | Separate the two roles | Work history is one role per page, at full detail, rather than two roles competing for one screen |
 | Group capabilities | Four groups, shown as four columns on a wide screen and one group at a time on a narrow one |
 | Show the work | Project cards linking out to what is running |
@@ -41,15 +51,18 @@ attention with the thing below it, and the reader is always looking at one compl
 There is nothing to learn, and the page says so at the bottom of the screen. Press an arrow
 key. Everything else is an alternative to that.
 
+Everything below resolves to the same two operations, and both of them are sideways.
+
 | Input | Effect |
 | --- | --- |
-| Left and right, up and down, page up and page down | Previous and next page |
+| Left and right | Previous and next page |
+| Up and down, page up and page down | The same. Vertical input moves the page horizontally |
 | Space, and shift with space | Next and previous page |
 | Home and end | First and last page |
 | Digits one to six | Jump directly to a section |
-| Wheel or trackpad | Next and previous page, read as intent rather than as distance |
-| Swipe | Next and previous page |
-| The rail, the header, the menu, the arrows at the bottom | Direct navigation |
+| Wheel or trackpad, in either axis | Next and previous page, read as intent rather than as distance |
+| Swipe, in either axis | Next and previous page |
+| The rail, the menu, the arrows at the bottom | Direct navigation |
 
 ## What it does not do
 

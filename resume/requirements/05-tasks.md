@@ -7,7 +7,15 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
 - [x] Fixed stage exactly one viewport high, with the document unable to scroll
 - [x] Seven pages across six sections, with sections derived from the page list
 - [x] Experience paged one role at a time, so no content is cut to make a screen fit
+- [x] Lateral axis: every animated element travels on X
+- [x] Vertical input mapped onto lateral movement, in the keyboard, the wheel and touch
+- [x] Wheel reads whichever of the two axes is larger, so horizontal trackpad gestures work
 - [x] Direction-aware transitions, forward and backward genuinely different
+- [x] Light theme as the default and the designed-first theme
+- [x] Six section hues, applied by one root attribute so everything accented cross-fades
+- [x] Vivid and ink form for each hue, so small text keeps its contrast on a light ground
+- [x] Per-card and per-column hues on Projects and Capabilities
+- [x] Horizontal section rail replacing the vertical rail and the header navigation
 - [x] Stagger driven by a CSS index rather than scheduled in JavaScript
 - [x] Masked line reveals on the display type
 - [x] Navigation locked during a transition, so input cannot outrun the animation
@@ -42,7 +50,11 @@ should be reported as done until they have been.
       lands on an offscreen page
 - [ ] Confirm the reduced-motion path with the preference actually set, not just in the code
 - [ ] Measure contrast in both themes, including the muted text, the faint monospace labels
-      and the accent on each background
+      and **each of the six accent inks** on each background. Amber is the one most likely to
+      fail, and the ink forms were chosen by eye rather than measured
+- [ ] Confirm the six hues are distinguishable to a reader with colour vision deficiency, or
+      confirm that nothing depends on colour alone. The rail carries names as well as
+      colours, which should be enough, but it has not been checked
 - [ ] Print to a file in both themes and confirm the result is a usable document
 - [ ] Check every page at 1280x720 and 1366x768, the two sizes most likely to overfill
 - [ ] Check the capabilities page on a narrow screen, since it is the densest
@@ -51,6 +63,10 @@ should be reported as done until they have been.
 - [ ] Confirm every outbound link goes somewhere
 
 ## Known gaps
+
+- [ ] **The Claude Design project is stale.** It holds the abandoned dark, single-orange,
+      vertically-moving scheme. Re-push it once the visual direction settles rather than
+      after every iteration
 
 - [ ] **No JavaScript means no content.** The stage is built by script, so a reader with
       script disabled gets an empty page. The previous version degraded to a readable

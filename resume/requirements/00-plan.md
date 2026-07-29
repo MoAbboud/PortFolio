@@ -55,6 +55,12 @@ The checks that matter most, in order:
 | No scrollbar | The user's own instruction, and the defining constraint of the page. A long scrolling page spends the reader's first look badly |
 | No zooming either | Offered as an alternative navigation model and rejected. Disorientation is a real failure mode and the page gains nothing from it |
 | A fixed stage with section swap | Chosen over a book that flips, a zoomable canvas, and a hybrid with drill-down |
+| The axis is lateral | The user's instruction. Content travels on X, and vertical input is mapped onto it rather than ignored, so a reader's instinct to scroll produces the movement the page actually has |
+| The masked display type still reveals vertically | The one exception to the lateral rule. Making it horizontal too flattened the page, because everything then moved as a single sheet |
+| Light by default, and colourful | The user's instruction, replacing a near-black scheme with a single orange accent |
+| Six hues, one per section | Moving sideways moves through colour, which gives the reader a second cue for where they are. Applied by one attribute on the root, so everything accented cross-fades together |
+| Each hue has a vivid form and a darker ink form | The vivid form cannot carry small text on a light ground at an acceptable contrast. Two tokens is the honest fix; darkening the whole palette would have lost the colour |
+| The section rail runs horizontally | A vertical rail on a page that moves sideways argues with itself. It replaced the header navigation rather than joining it |
 | One file, no framework, no build step, no network call | The page is part of the claim. It also means it will still open in ten years |
 | Sections may hold several pages | The mechanism that lets the no-scrollbar rule hold without cutting content. Experience is two pages because one role has six substantial bullets |
 | Add a page rather than shrink the type | The failure mode of a fixed stage is cramming. This is the rule that prevents it |

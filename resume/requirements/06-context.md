@@ -60,9 +60,52 @@ mechanism.
 | --- | --- |
 | Stage | Exactly one viewport high. Nothing scrolls, nothing zooms |
 | Structure | Six sections, seven pages. Experience carries two pages, one per role |
+| Axis | **Lateral.** Content travels on X. Forward enters from the right and leaves to the left; backward inverts both |
 | Movement | Direction-aware. Forward and backward transitions are not the same animation |
-| Input | Arrow keys, page keys, home and end, digits for direct jumps, wheel as intent, touch swipe, the dot rail, the header links |
+| Input | Arrow keys, page keys, home and end, digits for direct jumps, wheel as intent, touch swipe, the rail |
 | Motion budget | Spent entirely on transitions rather than on ambient decoration |
+
+### The axis, and the theme
+
+Both were changed on the user's instruction after the first build, and both are load-bearing
+rather than cosmetic.
+
+**Lateral, not vertical.** The user's words: *"the scroll still works downwards, i want it
+to go sideways, even if you scroll up or down it will go left or right."* Every animated
+element translates on X. Vertical input is deliberately mapped onto lateral movement:
+`ArrowDown` and a downward wheel both go right. The wheel handler reads whichever of
+`deltaX` and `deltaY` is larger, so a horizontal trackpad swipe works as well.
+
+The one deliberate exception is the masked display type, which still reveals upward from
+behind its own edge. A vertical reveal set against lateral travel reads as type arriving
+rather than as one more thing sliding, and making it horizontal flattened the whole page.
+
+**Light and colourful, not dark.** The user's words: *"i dont like the dark theme, i want it
+colorful but on the lighter end."* Light is now the default and the designed-first theme.
+The previous near-black-with-one-orange scheme is gone.
+
+Colour is carried by **six hues, one per section**, so moving sideways moves through colour
+as well as through content. Each hue has a vivid form for marks, rules and fills, and a
+darker ink form for small text and for anything sitting behind pale text. The section hue is
+applied by a `data-accent` attribute on the root, which is why the wash, the blob, the
+beacon and every accented mark cross-fade together on a page change.
+
+| Section | Hue |
+| --- | --- |
+| Index | Vermillion |
+| Experience | Indigo |
+| Capabilities | Teal |
+| Projects | Amber |
+| Education | Magenta |
+| Contact | Green |
+
+The Projects cards and the Capabilities columns each take a different hue from the same
+palette rather than the section's, which is what makes those two pages read as colourful
+rather than as monochrome-plus-a-tint.
+
+A dark theme still exists behind the toggle, built as a genuine counterpart with the same
+six hues lifted so they survive a dark ground. It is no longer the default and no longer the
+theme the design is reasoned from.
 
 ### Why the page count is what it is
 
@@ -89,6 +132,13 @@ than authored ahead of it, so the two match by construction.
 | Project name | Portfolio Design System |
 | Project id | `38732632-bb6b-4e67-b905-ad15d7fb56b7` |
 | Created | 2026-07-29 |
+| State | **Stale.** Pushed before the light-and-lateral change and not yet re-pushed |
+
+> **The pushed design system no longer matches the page.** Its cards show the abandoned
+> dark, single-orange, vertically-moving scheme. It was deliberately not re-pushed
+> immediately, because the design was still moving and re-uploading eight files after every
+> iteration is waste. **Re-push it once the visual direction settles**, and until then treat
+> the page itself as the source of truth over anything in that project.
 
 Do not confuse this with the user's other design-system projects - Loonly, Trailhaus and two
 called OnTrack. Those are unrelated and must not be written to.
