@@ -1,5 +1,9 @@
 # Interactive Resume - Build plan
 
+> **Superseded in part.** This plan describes the previous version of the page. The page is
+> being rebuilt from scratch and this document is pending a rewrite. See
+> [06-context.md](06-context.md) for current decisions and state.
+
 ## Objective
 
 A single-page resume that answers three different readers' questions without asking which
