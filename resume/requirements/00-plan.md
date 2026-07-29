@@ -1,94 +1,94 @@
 # Interactive Resume - Build plan
 
-> **Superseded in part.** This plan describes the previous version of the page. The page is
-> being rebuilt from scratch and this document is pending a rewrite. See
-> [06-context.md](06-context.md) for current decisions and state.
-
 ## Objective
 
-A single-page resume that answers three different readers' questions without asking which
-one they are, loads instantly, and is itself evidence of the front-end claim it makes.
+A resume that occupies exactly one screen and never scrolls, answers three different
+readers' questions without asking which one they are, loads with no request beyond the file
+itself, and is itself evidence of the front-end claim it makes.
 
-Built and working. The remaining work is maintenance discipline and a small number of
-gaps: printing, keeping the content honest against itself, and accessibility.
+The page has been rebuilt. What remains is verification, one genuine gap, and the discipline
+of keeping the content honest.
 
 ## Order of work
 
 ```mermaid
 flowchart LR
-    S1[1. Content and structure] --> S2[2. Interaction]
-    S2 --> S3[3. Polish]
-    S3 --> S4[4. Accessibility]
-    S4 --> S5[5. Printing]
-    S5 --> S6[6. Keep it current]
+    S1[1. Concept] --> S2[2. Content and sequence]
+    S2 --> S3[3. The stage]
+    S3 --> S4[4. Motion]
+    S4 --> S5[5. Degradation]
+    S5 --> S6[6. Verification]
+    S6 --> S7[7. Design system]
+    S7 --> S8[8. Keep it current]
 ```
 
 | Stage | Goal | Done when | Status |
 | --- | --- | --- | --- |
-| 1 | The content, structured | Skills, work history and projects render from lists rather than from markup | Done |
-| 2 | Interaction | Skill filtering, expandable roles, theme toggle that is remembered | Done |
-| 3 | Polish | Section reveal, filling bars, counters, typing role line, pointer effects, progress bar, both themes complete | Done |
-| 4 | Accessibility | Keyboard reachable throughout, focus visible, motion preference respected, contrast checked in both themes | Not started |
-| 5 | Printing | A reader who prints or saves to a file gets something usable | Not started |
-| 6 | Keep it current | The content matches reality, and the lists do not contradict each other | Ongoing |
+| 1 | Concept | The navigation model is chosen and the rejected alternatives are recorded | Done |
+| 2 | Content and sequence | The resume is in lists, and the page sequence is derived from them | Done |
+| 3 | The stage | One viewport, nothing scrolls, one page active, the rest inert | Done |
+| 4 | Motion | Direction-aware transitions, staggered entrances, masked type, navigation locked while running | Done |
+| 5 | Degradation | Reduced motion, no pointer, printing and refused storage all handled | Done |
+| 6 | Verification | The checks in the task list have been performed on a real browser, not just written | Not started |
+| 7 | Design system | The tokens, type, motion and components exist as a Claude Design project | In progress |
+| 8 | Keep it current | The content matches reality and the lists do not contradict each other | Ongoing |
 
-### Stage 4 in detail
+### Stage 6 in detail
 
-This is the one real gap. The page is interactive, and interactive means keyboard and
-motion questions that a static document does not raise:
+This is the honest gap. The page is built and the code is there for keyboard operation,
+reduced motion, contrast and printing. **None of it has been exercised on a real browser.**
+Written and verified are different things, and the task list keeps them apart deliberately.
 
-- The skill filter and the role expanders must be reachable and operable from a keyboard,
-  and must announce their state.
-- Focus must be visible in both themes.
-- The typing line, the pointer spotlight and the card tilt are motion. A reader who has
-  asked their system to reduce motion should get a still page.
-- Contrast has to hold in both themes, not just the one that was designed first.
+The checks that matter most, in order:
 
-It matters more here than on most pages, because a resume claiming front-end competence
-that is unusable from a keyboard is making an argument against itself.
-
-### Stage 5 in detail
-
-People print resumes and save them as files to attach to things. Today that produces
-whatever the browser makes of a page designed for a screen, with the theme, the effects and
-the collapsed roles all in play. At minimum, printing should expand every role, drop the
-decoration, and use the light theme.
+- Keyboard alone, end to end, confirming focus never lands on an offscreen page.
+- Reduced motion with the preference actually set.
+- Contrast in both themes, particularly the faint monospace labels, which are the most
+  likely failure.
+- Printing to a file, which is the one output nobody looks at until it is embarrassing.
+- 1280x720 and 1366x768, the two sizes most likely to overfill a page.
 
 ## Decisions already made
 
 | Decision | Reason |
 | --- | --- |
-| One file, no framework, no build step | The page is part of the claim. It also means it will still open in ten years |
-| Content in lists rather than in markup | Updating a resume must be editing a line, not editing HTML. A resume that is annoying to update stops being updated |
-| Skills carry a self-assessed level | Shows relative depth across a list. Presented as a bar in a list rather than as a score, because that is all it can honestly support |
-| A fixed set of skill groups | The filter is built from them, so adding one is a deliberate change |
-| The most senior role expanded by default | A reader who expands nothing still sees the important part |
-| Roles collapsible | Three readers want three different depths from the same section |
-| Separate viewport observers for reveal and for the skill bars | Filling the bars when the section reveals means the reader arrives after the fill is over |
-| Every effect decorates content already present | Nothing may be gated behind an animation |
+| No scrollbar | The user's own instruction, and the defining constraint of the page. A long scrolling page spends the reader's first look badly |
+| No zooming either | Offered as an alternative navigation model and rejected. Disorientation is a real failure mode and the page gains nothing from it |
+| A fixed stage with section swap | Chosen over a book that flips, a zoomable canvas, and a hybrid with drill-down |
+| One file, no framework, no build step, no network call | The page is part of the claim. It also means it will still open in ten years |
+| Sections may hold several pages | The mechanism that lets the no-scrollbar rule hold without cutting content. Experience is two pages because one role has six substantial bullets |
+| Add a page rather than shrink the type | The failure mode of a fixed stage is cramming. This is the rule that prevents it |
+| Content in lists rather than in markup | Updating a resume must be editing a line. A resume that is annoying to update stops being updated |
+| Direction is a single root variable | Makes forward and backward genuinely different animations rather than one played twice. It is the only orientation cue the page gives |
+| Stagger computed in CSS from an index | Keeps timing declarative and out of JavaScript, so the reduced-motion path is one media query rather than a second code path |
+| Navigation locked during a transition | Input outrunning the animation is the obvious way a stage like this breaks |
+| Offscreen pages are inert, not merely hidden | Hidden but tabbable is worse than either |
+| No self-assessed proficiency levels | The previous version carried invented percentages. Nothing supported them and they could not honestly be read as scores |
+| Role tags come only from that role's own bullets | Makes it structurally impossible for the tags and the prose to contradict each other |
 | Both themes complete, not one applied over the other | An afterthought theme is visible as one |
 | The theme is the only thing persisted | It is a display preference and identifies nobody |
-| No contact form | A form implies something receives it, and nothing does. Direct links are honest |
-| Dates as one free-text line | Nothing sorts or computes from them |
+| The page number lives in the address | So a reader can send someone a link to one page. It is not storage |
+| No contact form | A form implies something receives it, and nothing does |
+| Reduced motion removes transitions rather than shortening them | A page whose interface is motion has to be honest about turning it off |
 
 ## Open questions
 
 | Question | Blocks | Notes |
 | --- | --- | --- |
-| Does the page work from a keyboard alone? | Stage 4 | Untested. The filter and the expanders are the parts at risk |
-| Is a reduced-motion preference respected? | Stage 4 | Three separate effects would need to stop |
-| Does contrast hold in both themes? | Stage 4 | The second theme is the one likely to have been checked less |
-| What should printing produce? | Stage 5 | At minimum: every role expanded, decoration dropped, light theme |
-| Should the technology tags be checked against the skills list? | Stage 6 | They are related by convention only, and a mismatch is the most likely inconsistency |
-| Should the projects link out to the other apps in this repository? | Stage 6 | There are several sitting alongside it and nothing currently connects them |
+| Is an empty page acceptable without JavaScript? | Stage 6 | The stage is built by script. The previous version degraded to a readable document and this one does not. The fix is to author the pages in markup and let the script take over only navigation, which is a real amount of work for a case that may not matter |
+| Should the resume be downloadable as a document? | Delivery | The print stylesheet may be the whole answer. Not discussed |
+| Should `story generator` be linked from Projects? | Content | It has no `index.html`, and the grid is built for six cards |
+| Does the design system cover the whole portfolio or only this page? | Stage 7 | The stated intent was the portfolio, built from this page first |
 
 ## Risks
 
 | Risk | Effect if it happens | Response |
 | --- | --- | --- |
-| The page is unusable from a keyboard | A resume claiming front-end skill argues against itself | Stage 4, and it is the reason stage 4 is next |
-| The content drifts from reality | The most damaging failure available to a resume, and the least visible | Stage 6. Review whenever anything changes |
-| Tags and the skills list disagree | A careful reader notices, and it undermines the whole page | Either check them or keep them in one place |
-| The self-assessed levels are read as scores | They cannot support that reading | They stay bars in a list. Never a number on its own, never a total |
-| Printing produces something unusable | People do print resumes | Stage 5 |
-| Effects overwhelm the content | The page becomes a demo of effects rather than a resume | Every effect decorates content already present. Keep it that way |
+| A page overfills on a common laptop size | The safety valve engages and the reader gets a hidden scrollbar, which is the exact thing the page exists to avoid | Stage 6 checks 1280x720 and 1366x768 explicitly. The response is always to split the page, never to shrink the type |
+| The page is unusable from a keyboard | A resume claiming front-end skill argues against itself | The code is written for it. Stage 6 is where it stops being an assumption |
+| Reduced motion is not genuinely honoured | The readers most affected are the ones least able to work around it, and the interface here is the motion | Verified with the preference set, not by reading the media query |
+| Content drifts from reality | The most damaging failure available to a resume, and the least visible | Stage 8. Review whenever anything changes |
+| A metric on the page is not in the resume | Worse than drift, because it is invention | Every statistic must be traceable to a line in the resume. The four present are |
+| The content grows and gets crammed in | The pages become dense and the composition stops working | Add a page. It is a one-line change to the sequence |
+| Motion overwhelms the content | The page becomes a demo of transitions rather than a resume | The motion is spent on moving between pages rather than on decorating them. Ambient effects stay below the threshold of notice |
+| No JavaScript means no resume | A reader with script disabled sees nothing at all | Recorded as a known gap rather than pretended away. It is the one place this rebuild is worse than what it replaced |

@@ -2,63 +2,77 @@
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
 
-## Stage 4 - Accessibility
+## Built in the rebuild
 
-The next work, and the one that matters most given what this page is claiming.
+- [x] Fixed stage exactly one viewport high, with the document unable to scroll
+- [x] Seven pages across six sections, with sections derived from the page list
+- [x] Experience paged one role at a time, so no content is cut to make a screen fit
+- [x] Direction-aware transitions, forward and backward genuinely different
+- [x] Stagger driven by a CSS index rather than scheduled in JavaScript
+- [x] Masked line reveals on the display type
+- [x] Navigation locked during a transition, so input cannot outrun the animation
+- [x] Keyboard: arrows, page keys, space, home, end, digits for sections
+- [x] Wheel read as intent, accumulated and thresholded for trackpads
+- [x] Touch swipe, horizontal and vertical
+- [x] Section rail, header navigation, mobile menu, page counter, paging arrows
+- [x] Address hash carrying the page number, readable and writable, so a page can be linked
+- [x] Content rendered from lists, one renderer per page kind
+- [x] Role tags drawn only from technologies the same role's bullets name
+- [x] Capability groups as four columns, collapsing to one group at a time on a narrow screen
+- [x] Project cards with a pointer-tracked glow
+- [x] Counters animating on arrival
+- [x] Pointer reticle and parallax halo, both skipped without a hover-capable pointer
+- [x] Both themes complete, and the theme remembered as the only thing stored
+- [x] Storage wrapped, so a browser refusing it falls back rather than throwing
+- [x] Offscreen pages inert, so they are neither tabbable nor read by assistive technology
+- [x] Position announced to assistive technology when it changes
+- [x] Visible focus indicator using the accent colour
+- [x] Reduced motion honoured: transitions removed rather than shortened, pointer effects and
+      grain removed entirely
+- [x] Print stylesheet collapsing the stage back into a stacked document
+- [x] Self-assessed proficiency percentages removed, since nothing supported them
+- [x] Verified no external resource loads of any kind
 
-- [ ] Reach and operate the skill filter from a keyboard alone
-- [ ] Reach and operate the role expanders from a keyboard alone
-- [ ] Announce expanded and collapsed state to assistive technology
-- [ ] Visible focus indicator, checked in both themes
-- [ ] Respect a reduced-motion preference: stop the typing line, the pointer spotlight and
-      the card tilt
-- [ ] Make sure sections still appear when reveal animation is suppressed, rather than
-      staying hidden
-- [ ] Check contrast across both themes, including the muted text and the skill bars
-- [ ] Give the skill bars a text equivalent, so the level is not conveyed by width alone
-- [ ] Confirm the page is readable with styles disabled
+## Verification still to do
 
-## Stage 5 - Printing
+The page is built. These are the checks that have not been performed, and none of them
+should be reported as done until they have been.
 
-- [ ] Expand every role when printing
-- [ ] Drop the decoration: progress bar, spotlight, tilt, background effects
-- [ ] Force the light theme
-- [ ] Make sure filtered-out skills are not missing from the printed page
-- [ ] Check it fits sensibly across pages
+- [ ] Read the whole page from a keyboard alone, on a real browser, and confirm focus never
+      lands on an offscreen page
+- [ ] Confirm the reduced-motion path with the preference actually set, not just in the code
+- [ ] Measure contrast in both themes, including the muted text, the faint monospace labels
+      and the accent on each background
+- [ ] Print to a file in both themes and confirm the result is a usable document
+- [ ] Check every page at 1280x720 and 1366x768, the two sizes most likely to overfill
+- [ ] Check the capabilities page on a narrow screen, since it is the densest
+- [ ] Confirm the safety valve is not engaging at ordinary laptop sizes on any page
+- [ ] Test on a touch device: swipe thresholds, the menu, and the missing reticle
+- [ ] Confirm every outbound link goes somewhere
 
-## Stage 6 - Keep it current
+## Known gaps
 
-- [ ] Review the content against reality
-- [ ] Check every technology tagged on a role appears in the skills list, or keep the two
-      in one place so they cannot disagree
-- [ ] Decide whether the projects should link to the other apps in this repository
+- [ ] **No JavaScript means no content.** The stage is built by script, so a reader with
+      script disabled gets an empty page. The previous version degraded to a readable
+      document. Decide whether to accept this, or to author the pages in markup and have the
+      script only take over navigation
+- [ ] The `story generator` sibling app is not linked. It has no `index.html`, only
+      `breakdown-takes.html`, and the projects grid is built for six cards
+- [ ] `fallacysuspect` and `evaluaters` link to the GitHub profile rather than to
+      themselves, because neither has a web entry point
+
+## Keep it current
+
+- [ ] Review the content against reality whenever anything changes
+- [ ] Re-check that each role's tags are still named in that role's own bullets
 - [ ] Confirm every outbound link still goes somewhere
-
-## Done and verified
-
-- [x] Single file: structure, styles and behaviour, with no dependency and no build step
-- [x] Skills, work history and projects rendered from lists rather than written into markup
-- [x] Skills grouped into a fixed set of kinds, with a working filter
-- [x] Skill bars showing self-assessed relative depth
-- [x] Work history as a timeline with expandable roles
-- [x] Most senior role expanded by default
-- [x] Technologies shown per role
-- [x] Project cards
-- [x] Education and contact sections
-- [x] Header with a role line that types through several descriptions
-- [x] Section reveal on scroll
-- [x] A separate viewport observer for the skill bars, so the fill is seen rather than
-      finished before the reader arrives
-- [x] Counters animating on reveal
-- [x] Pointer spotlight and card tilt
-- [x] Scroll progress bar
-- [x] Both themes complete
-- [x] Theme choice remembered between visits, as the only thing stored
-- [x] Responsive layout with a mobile menu
+- [ ] If a role is added, confirm the Experience section still fits its pages
 
 ## Explicitly not doing
 
+- Scrolling or zooming as a navigation model. Both were offered and rejected.
 - Any analytics, tracking, or visit counting.
 - A contact form. Nothing would receive it.
 - A back end, an account, or a content management system.
+- Proficiency scores against capabilities.
 - Tailored versions of the resume per application.

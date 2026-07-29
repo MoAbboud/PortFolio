@@ -27,10 +27,11 @@ requirements.
 | Thing | State |
 | --- | --- |
 | Resume content | Received 2026-07-29. Recorded below. This is the source of truth |
-| Interaction concept | Not settled. The user said more ideas are coming |
-| Claude Design project | Not created yet, deliberately. Waiting on the concept |
-| New page | Not started |
-| Old page | Untouched at `resume/index.html` |
+| Interaction concept | Settled. Fixed frame with section swap. See below |
+| Dependencies | Settled. None. Single file, no build step, no CDN |
+| Claude Design project | Created and pushed. See below |
+| New page | In progress at `resume/index.html` |
+| Old page | Replaced in place. Recoverable from git history at commit 41f1867 |
 | Docs 01-05 | Restored, describe the old page, pending rewrite |
 
 ## Decisions made
@@ -43,14 +44,78 @@ requirements.
 | Requirements docs get rewritten, not amended | The old docs describe a different page |
 | Heavy motion and animation is a goal, not a risk to manage | The user asked for it directly. Note this reverses the old page's stated risk that "effects overwhelm the content" |
 
+## The concept
+
+**There is no scrollbar.** This was the user's own instruction and it is the defining
+constraint of the page. The viewport stops being a window onto a long document and becomes a
+stage. Every unit of content is composed to fit one screen, and navigation is designed rather
+than inherited from the browser.
+
+The user was offered four metaphors - fixed frame with section swap, a book that flips
+pages, a zoomable canvas, and a hybrid with drill-down - and chose the fixed frame. Zooming
+was explicitly rejected. Do not reintroduce either scrolling or zooming as a navigation
+mechanism.
+
+| Property | Decision |
+| --- | --- |
+| Stage | Exactly one viewport high. Nothing scrolls, nothing zooms |
+| Structure | Six sections, seven pages. Experience carries two pages, one per role |
+| Movement | Direction-aware. Forward and backward transitions are not the same animation |
+| Input | Arrow keys, page keys, home and end, digits for direct jumps, wheel as intent, touch swipe, the dot rail, the header links |
+| Motion budget | Spent entirely on transitions rather than on ambient decoration |
+
+### Why the page count is what it is
+
+The Tekkii role carries six long bullets. It does not fit on a stage alongside anything
+else at a readable size, and cutting it was not acceptable. Sections therefore hold multiple
+pages, and Experience is paged one role at a time. This is the mechanism that lets the no
+scrollbar rule hold without losing content. If content grows, add a page rather than shrink
+type.
+
+### The safety valve
+
+A stage whose content genuinely cannot fit - a very short viewport, a large accessibility
+zoom - scrolls internally with the scrollbar hidden. This is a fallback, not a navigation
+mechanism, and no stage should rely on it at ordinary sizes. If a stage needs it on a normal
+laptop screen, that stage is overfull and should be split.
+
+## The design system
+
+Lives in Claude Design, not in this repository. It was extracted from the built page rather
+than authored ahead of it, so the two match by construction.
+
+| Field | Value |
+| --- | --- |
+| Project name | Portfolio Design System |
+| Project id | `38732632-bb6b-4e67-b905-ad15d7fb56b7` |
+| Created | 2026-07-29 |
+
+Do not confuse this with the user's other design-system projects - Loonly, Trailhaus and two
+called OnTrack. Those are unrelated and must not be written to.
+
+| Path | Card | Contents |
+| --- | --- | --- |
+| `principles.html` | Principles | The ten rules the system exists to protect |
+| `foundations/color.html` | Color | Both token sets, and why the light theme is built rather than inverted |
+| `foundations/type.html` | Typography | The scale, and the sans and monospace split |
+| `foundations/motion.html` | Motion | Tokens, and a live direction-aware transition demonstration |
+| `components/navigation.html` | Navigation | Header, footer, counter, pager, section rail |
+| `components/content.html` | Content blocks | Eyebrow, figure row, role block, numbered points, tags |
+| `components/capabilities.html` | Capabilities | Wide and narrow variants |
+| `components/cards-and-rows.html` | Cards and rows | Project grid, contact rows, tag states |
+
+To update it: build the bundle locally, `list_files` to diff, `finalize_plan` with the
+project id and the local directory, then `write_files`. Writes are refused without a
+finalized plan covering the paths. Cards come from the first-line `@dsCard` comment in each
+file, so `register_assets` is not needed.
+
 ## Open questions
 
 | Question | Blocks | Notes |
 | --- | --- | --- |
-| Single static file with no build step, or motion libraries (GSAP, Three.js, WebGL, Lenis)? | Everything downstream | Raised with the user, not yet answered. The repo convention is keyless single-file static HTML. Hand-written CSS/JS covers a great deal of motion; scroll-linked 3D, physics and morphing transitions are where it stops being worth hand-rolling |
-| What is the interaction concept? | The design system, then the page | The user said ideas are coming. Do not guess a concept and build it |
-| Does the page keep the old page's content-in-lists pattern? | Architecture | Strongly recommended regardless of concept. A resume that is annoying to update stops being updated |
-| What happens to the old `index.html`? | Delivery | Replaced in place, or kept alongside. Not discussed |
+| Does the projects section link to the sibling apps? | Content | Resolved in the affirmative for the three that have a web entry point. Verified: `snowball/index.html`, `whereyago/index.html`, `tektak/index.html` exist. `story generator` has `breakdown-takes.html` and no index. `fallacysuspect` and `evaluaters` are Python projects with no web entry point and are linked to GitHub instead |
+| Should the resume be downloadable as a document? | Delivery | Not discussed. The print stylesheet is the current answer and it may be enough |
+| Does the Claude Design system cover the whole portfolio or only this page? | Design system scope | The user's stated intent was the portfolio. Built from this page first |
 
 ## Constraints that carry over from the old page
 
