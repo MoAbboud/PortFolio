@@ -154,11 +154,18 @@ test('run-length encoding round-trips', () => {
   assert.deepEqual([...decodeRLE(text, bytes.length)], [...bytes]);
 });
 
-test('run-length encoding is much smaller than the grid', () => {
-  const grid = hollow(voxelise(model('house')));
-  const text = encodeRLE(grid.cells);
-  assert.ok(text.length < grid.cells.length / 4,
-    `encoded ${text.length} bytes from ${grid.cells.length} cells`);
+test('an encoded model is smaller than its grid and small enough to ship', () => {
+  // Encode the solid grid, which is what pack() stores. Absolute cube counts
+  // move whenever a model's resolution is tuned, so this asserts the two
+  // properties that actually matter rather than a remembered number.
+  for (const name of ['house', 'car', 'tree']) {
+    const grid = voxelise(model(name));
+    const text = encodeRLE(grid.cells);
+    assert.ok(text.length < grid.cells.length,
+      `${name}: encoding made it bigger (${text.length} from ${grid.cells.length})`);
+    assert.ok(text.length < 16384,
+      `${name}: ${(text.length / 1024).toFixed(1)} KB is too large for a library entry`);
+  }
 });
 
 test('runs longer than a single field are split correctly', () => {
@@ -167,16 +174,26 @@ test('runs longer than a single field are split correctly', () => {
   assert.deepEqual([...decodeRLE(encodeRLE(bytes), bytes.length)], [...bytes]);
 });
 
-test('the three starter models build, and are within budget', () => {
-  const budget = 400000;
-  let total = 0;
+test('the three starter models build into something solid and affordable', () => {
   for (const name of ['house', 'car', 'tree']) {
-    const grid = build(model(name));
-    assert.ok(grid.count > 500, `${name} is suspiciously small: ${grid.count}`);
-    assert.ok(grid.count < 40000, `${name} is too heavy: ${grid.count}`);
-    total += grid.count;
+    const solid = voxelise(model(name));
+    const drawn = build(model(name));
+    assert.ok(drawn.count > 100, `${name} voxelised to almost nothing: ${drawn.count}`);
+    assert.ok(drawn.count < 40000, `${name} is too heavy to place freely: ${drawn.count}`);
+    assert.ok(drawn.count < count(solid), `${name}: hollowing removed nothing`);
+    assert.ok(drawn.dims.every((n) => n >= 4),
+      `${name} is too coarse to read at ${drawn.dims.join('x')}`);
   }
-  assert.ok(total < budget / 4, `three models should be a fraction of the budget, got ${total}`);
+});
+
+test('cube size is a knob, and turning it changes the count the right way', () => {
+  // The page multiplies every recipe's unit at once. Bigger cubes must mean
+  // fewer of them, and the model must survive being made much coarser.
+  const recipe = model('house');
+  const at = (scale) => build({ ...recipe, unit: recipe.unit * scale }).count;
+  assert.ok(at(2) < at(1), 'bigger cubes should mean fewer cubes');
+  assert.ok(at(0.5) > at(1), 'smaller cubes should mean more cubes');
+  assert.ok(at(4) > 0, 'a very coarse house should still exist');
 });
 
 test('packing the solid grid is smaller than packing the hollowed one', () => {

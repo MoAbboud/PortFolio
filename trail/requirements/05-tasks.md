@@ -90,6 +90,11 @@ test worth trusting.
 - [x] The sync flash at the start of a run
 - [x] A route: hold, fly, hold, resting on the final framing
 - [x] 30 more tests over the camera and the scene builder, in Node
+- [x] Free roaming: drag to orbit, right-drag to pan, wheel to close in, hold to walk
+- [x] Roaming produces framings, not eye positions, so any angle found can be saved
+- [x] `c` copies the current framing, ready to paste into a route
+- [x] A live cube-size multiplier, so the grain is judged by eye rather than guessed
+- [x] Cube edges doubled. The fine grain existed for the cancelled morph
 - [ ] Cloud in the sky shader. Currently a plain gradient
 - [ ] Confirm 60 frames a second at **full** budget. The test scene is 20,528 cubes, which is
       5 per cent of it, so this is untested where it matters

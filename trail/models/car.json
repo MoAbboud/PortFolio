@@ -1,7 +1,7 @@
 {
   "id": "car",
   "aliases": ["car", "cars", "vehicle", "sedan", "drove", "driving", "drive"],
-  "unit": 0.06,
+  "unit": 0.12,
   "anchor": "base",
   "parts": [
     { "solid": "box",      "at": [0, 0.62, 0],     "size": [3.8, 0.66, 1.7], "color": "#b7362c" },

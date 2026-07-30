@@ -1,14 +1,14 @@
 {
   "id": "house",
   "aliases": ["house", "houses", "home", "building", "place"],
-  "unit": 0.12,
+  "unit": 0.24,
   "anchor": "base",
   "parts": [
-    { "solid": "box",   "at": [0, 1.6, 0],     "size": [6.0, 3.2, 5.0], "color": "#d8cfc0" },
-    { "solid": "wedge", "at": [0, 4.1, 0],     "size": [6.6, 1.8, 5.4], "color": "#8c4a3f" },
-    { "solid": "box",   "at": [0, 1.0, 2.52],  "size": [1.1, 2.0, 0.2], "color": "#5a3c2e" },
-    { "solid": "box",   "at": [-1.9, 2.0, 2.52], "size": [1.2, 1.1, 0.2], "color": "#7fa8c9" },
-    { "solid": "box",   "at": [1.9, 2.0, 2.52],  "size": [1.2, 1.1, 0.2], "color": "#7fa8c9" },
-    { "solid": "box",   "at": [2.2, 4.6, -1.4], "size": [0.7, 1.6, 0.7], "color": "#9a8f82" }
+    { "solid": "box",   "at": [0, 1.6, 0],      "size": [6.0, 3.2, 5.0], "color": "#d8cfc0" },
+    { "solid": "wedge", "at": [0, 4.1, 0],      "size": [6.6, 1.8, 5.4], "color": "#8c4a3f" },
+    { "solid": "box",   "at": [0, 1.0, 2.6],    "size": [1.2, 2.0, 0.5], "color": "#5a3c2e" },
+    { "solid": "box",   "at": [-1.9, 2.1, 2.6], "size": [1.2, 1.2, 0.5], "color": "#7fa8c9" },
+    { "solid": "box",   "at": [1.9, 2.1, 2.6],  "size": [1.2, 1.2, 0.5], "color": "#7fa8c9" },
+    { "solid": "box",   "at": [2.2, 4.6, -1.4], "size": [0.8, 1.8, 0.8], "color": "#9a8f82" }
   ]
 }

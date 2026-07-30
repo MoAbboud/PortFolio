@@ -261,10 +261,17 @@ thing.
 
 | Kind | Cube edge | Example | Cubes after hollowing |
 | --- | --- | --- | --- |
-| Figures | 0.035 | A person, about 51 cubes tall | 3,000 to 5,000 |
-| Props | 0.06 | A car, a bench, a bicycle | 4,000 to 8,000 |
-| Architecture | 0.12 | A house, a pool, a wall | 12,000 to 25,000 |
-| Terrain and vegetation | 0.10 | A tree, a hedge | 2,000 to 6,000 |
+| Figures | 0.07 | A person, about 26 cubes tall | 700 to 1,400 |
+| Props | 0.12 | A car, a bench, a bicycle | 1,200 to 2,500 |
+| Architecture | 0.24 | A house, a pool, a wall | 2,000 to 6,000 |
+| Terrain and vegetation | 0.20 | A tree, a hedge | 300 to 900 |
+
+These doubled after the first build was looked at. The original figures were
+chosen when cubes had to **morph** between shapes, where a fine grain was what made
+the flow read; that design was cancelled, and nothing else required the resolution.
+Chunkier cubes read better as objects, cost a quarter as much, and look more
+deliberate. The page carries a live multiplier so the grain can be judged by eye
+rather than argued about.
 
 A house built at a figure's resolution would be a hundred thousand cubes and would read as a
 wall of noise rather than as a house. Coarser cubes on bigger things is not a compromise; it

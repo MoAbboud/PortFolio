@@ -72,11 +72,17 @@ export function panScreen(framing, dxPixels, dyPixels, viewportWidth) {
   );
 }
 
-/** Walk on the ground, relative to where the camera is facing. */
-export function walk(framing, forwardAmount, rightAmount) {
+/**
+ * Walk on the ground, relative to where the camera is facing.
+ *
+ * `fraction` is how much of the visible width to cross, so walking feels the
+ * same whether you are close in or far out. The caller passes a per-second rate
+ * times the frame's delta, which is what makes it smooth rather than stepped.
+ */
+export function walk(framing, forwardAmount, rightAmount, fraction = 0.06) {
   const yaw = rad(framing.yaw ?? 0);
   const [cx, cz] = centreOf(framing);
-  const step = framing.w * 0.06;
+  const step = framing.w * fraction;
   return withCentre(
     framing,
     cx + (-Math.sin(yaw) * forwardAmount + Math.cos(yaw) * rightAmount) * step,

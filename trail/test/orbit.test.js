@@ -116,6 +116,20 @@ test('walking goes the way the camera faces', () => {
   assert.ok(centreOf(east)[0] > 0, 'right at yaw 0 should head toward +x');
 });
 
+test('walking a smaller fraction covers proportionally less ground', () => {
+  const far = walk(F(), 1, 0, 0.10);
+  const near_ = walk(F(), 1, 0, 0.05);
+  const travelled = (f) => Math.abs(centreOf(f)[1] - centreOf(F())[1]);
+  near(travelled(far), travelled(near_) * 2, 1e-9);
+});
+
+test('walking is proportional to the frame, so it feels the same at any distance', () => {
+  const close = walk(F({ w: 6, d: 5 }), 1, 0, 0.1);
+  const wide = walk(F({ w: 60, d: 50 }), 1, 0, 0.1);
+  const travelled = (after, before) => Math.abs(centreOf(after)[1] - centreOf(before)[1]);
+  near(travelled(wide, F({ w: 60, d: 50 })), travelled(close, F({ w: 6, d: 5 })) * 10, 1e-6);
+});
+
 test('walking turns with the camera', () => {
   const turned = walk(F({ yaw: 90 }), 1, 0);
   assert.ok(Math.abs(centreOf(turned)[0]) > Math.abs(centreOf(turned)[1]),

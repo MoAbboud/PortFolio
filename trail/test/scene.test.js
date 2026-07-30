@@ -125,13 +125,34 @@ test('the whole test scene stays inside the cube budget', () => {
     car: hollow(voxelise(model('car'))),
     tree: hollow(voxelise(model('tree'))),
   };
-  const scene = assemble([
+  const placements = [
     { grid: grids.house, at: [-6, 0, -4], rot: 14 },
     { grid: grids.car, at: [2.4, 0, 3.2], rot: -24 },
     { grid: grids.tree, at: [7, 0, -5] },
     { grid: grids.tree, at: [-13.5, 0, 3.5], scale: 1.25 },
     { grid: grids.tree, at: [9.5, 0, 5.5], scale: 0.8 },
-  ]);
+  ];
+  const scene = assemble(placements);
+
+  // Structural rather than a remembered number: cube counts move whenever a
+  // model's resolution is tuned, but nothing may be lost or invented on the way
+  // into the buffers.
+  const expected = placements.reduce((n, p) => n + count(p.grid), 0);
+  assert.equal(scene.count, expected, 'the field must hold every cube and no others');
   assert.ok(scene.count < 400000, `scene is over budget at ${scene.count}`);
-  assert.ok(scene.count > 5000, 'scene is suspiciously empty');
+  assert.ok(scene.count > 0, 'scene is empty');
+});
+
+test('a scene made of coarser cubes is cheaper but keeps its extent', () => {
+  const build = (scale) => {
+    const recipe = model('house');
+    const grid = hollow(voxelise({ ...recipe, unit: recipe.unit * scale }));
+    return assemble([{ grid, at: [0, 0, 0] }]);
+  };
+  const fine = build(1);
+  const coarse = build(2);
+  assert.ok(coarse.count < fine.count, 'coarser cubes should cost less');
+  const width = (s) => bounds(s).max[0] - bounds(s).min[0];
+  assert.ok(Math.abs(width(coarse) - width(fine)) < 1.0,
+    'changing cube size must not change how big the house is');
 });

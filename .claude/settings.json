@@ -10,7 +10,8 @@
       "Bash(node tools/inspect.js --plain house)",
       "Bash(node tools/inspect.js --plain car tree)",
       "Bash(node -e ' *)",
-      "Bash(grep -n \"from '\\\\./\\\\|fetch\\(\\\\`\\\\./\\\\|fetch\\('\\\\./\" index.html lib/*.js)"
+      "Bash(grep -n \"from '\\\\./\\\\|fetch\\(\\\\`\\\\./\\\\|fetch\\('\\\\./\" index.html lib/*.js)",
+      "Bash(node tools/inspect.js --plain)"
     ]
   }
 }

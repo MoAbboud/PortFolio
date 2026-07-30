@@ -54,6 +54,7 @@
   <div class="row"><span class="dim">mode</span><b id="mode">-</b></div>
   <div class="row"><span class="dim">step</span><b id="s-step">-</b></div>
   <div class="row"><span class="dim">cubes</span><b id="s-cubes">-</b></div>
+  <div class="row"><span class="dim">cube size</span><b id="s-cube">-</b></div>
   <div class="row"><span class="dim">frame</span><b id="s-fps">-</b></div>
   <div class="sep row"><span class="dim">centre</span><b id="s-centre">-</b></div>
   <div class="row"><span class="dim">width</span><b id="s-width">-</b></div>
@@ -62,7 +63,8 @@
     <k>drag</k>orbit<br>
     <k>right-drag</k>pan the ground<br>
     <k>wheel</k>closer / further<br>
-    <k>w a s d</k>walk<br>
+    <k>w a s d</k>walk (hold)<br>
+    <k>[ ]</k>cube size<br>
     <k>f</k>fit everything<br>
     <k>c</k>copy this framing<br>
     <k>space</k>back to the route<br>
@@ -176,7 +178,7 @@ function say(message) {
   toastTimer = setTimeout(() => toast.classList.remove('on'), 1800);
 }
 
-async function loadModel(name) {
+async function loadRecipe(name) {
   const url = new URL(`./models/${name}.json`, location.href).href;
   let response;
   try {
@@ -189,21 +191,39 @@ async function loadModel(name) {
       + `\n\nThe file exists on disk, so the server is almost certainly rooted in`
       + `\nthe wrong folder. Serve the trail folder itself.`);
   }
-  return hollow(voxelise(await response.json()));
+  return response.json();
 }
 
 async function main() {
   const renderer = createRenderer(canvas);
 
   const names = [...new Set(PLACEMENTS.map((p) => p.model))];
-  const grids = Object.fromEntries(
-    await Promise.all(names.map(async (n) => [n, await loadModel(n)]))
+  const recipes = Object.fromEntries(
+    await Promise.all(names.map(async (n) => [n, await loadRecipe(n)]))
   );
-  const scene = assemble(PLACEMENTS.map(({ model, ...rest }) => ({ grid: grids[model], ...rest })));
-  renderer.upload(scene);
-  el('s-cubes').textContent = scene.count.toLocaleString();
 
-  const extent = bounds(scene);
+  // Cube size is a property of each recipe. This multiplies all of them at once
+  // so the right chunkiness can be found by eye rather than by guessing, and
+  // then written back into the models.
+  let cubeScale = 1;
+  let extent;
+
+  function rebuild() {
+    const grids = {};
+    for (const [name, recipe] of Object.entries(recipes)) {
+      grids[name] = hollow(voxelise({ ...recipe, unit: recipe.unit * cubeScale }));
+    }
+    const built = assemble(
+      PLACEMENTS.map(({ model, ...rest }) => ({ grid: grids[model], ...rest }))
+    );
+    renderer.upload(built);
+    extent = bounds(built);
+    el('s-cubes').textContent = built.count.toLocaleString();
+    el('s-cube').textContent = `${(cubeScale * 100).toFixed(0)}%`;
+    return built;
+  }
+
+  rebuild();
   const duration = routeDuration(ROUTE) / 1000;
 
   // --- state ----------------------------------------------------------------
@@ -280,20 +300,36 @@ async function main() {
 
   // --- keys -----------------------------------------------------------------
 
+  // Walking is held, not tapped. Keys set a direction; the frame loop moves the
+  // camera by however much time has passed, with the velocity easing in and out
+  // so starting and stopping is not a jolt.
   const WALK = {
     w: [1, 0], s: [-1, 0], a: [0, -1], d: [0, 1],
     arrowup: [1, 0], arrowdown: [-1, 0], arrowleft: [0, -1], arrowright: [0, 1],
   };
+  const WALK_SPEED = 0.85;   // frame widths per second
+  const WALK_EASE = 9;       // how quickly velocity catches up
+
+  const held = new Set();
+  const velocity = { forward: 0, right: 0 };
+  addEventListener('blur', () => held.clear());
+
+  addEventListener('keyup', (event) => held.delete(event.key.toLowerCase()));
 
   addEventListener('keydown', async (event) => {
     const key = event.key.toLowerCase();
 
     if (WALK[key]) {
       event.preventDefault();
+      held.add(key);
       roam();
-      const [forward, right] = WALK[key];
-      state.roaming = walk(state.roaming, forward * (event.shiftKey ? 3 : 1),
-        right * (event.shiftKey ? 3 : 1));
+      return;
+    }
+
+    if (key === '[' || key === ']') {
+      cubeScale = Math.min(4, Math.max(0.25, cubeScale * (key === ']' ? 1.2 : 1 / 1.2)));
+      const built = rebuild();
+      say(`cubes ${(cubeScale * 100).toFixed(0)}%   ${built.count.toLocaleString()} cubes`);
       return;
     }
 
@@ -351,6 +387,26 @@ async function main() {
     if (fpsClock > 0.5) {
       el('s-fps').textContent = `${Math.round(frames / fpsClock)} fps`;
       frames = 0; fpsClock = 0;
+    }
+
+    // Smooth walking: ease the velocity toward what the keys are asking for,
+    // then move by time rather than by keypress.
+    const wants = { forward: 0, right: 0 };
+    for (const key of held) {
+      const [forward, right] = WALK[key];
+      wants.forward += forward;
+      wants.right += right;
+    }
+    const ease = 1 - Math.exp(-delta * WALK_EASE);
+    velocity.forward += (wants.forward - velocity.forward) * ease;
+    velocity.right += (wants.right - velocity.right) * ease;
+
+    if (state.mode === 'roam'
+      && (Math.abs(velocity.forward) > 0.001 || Math.abs(velocity.right) > 0.001)) {
+      state.roaming = walk(state.roaming, velocity.forward, velocity.right,
+        WALK_SPEED * delta);
+    } else if (state.mode !== 'roam') {
+      velocity.forward = velocity.right = 0;
     }
 
     let framing;
