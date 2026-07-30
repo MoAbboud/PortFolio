@@ -64,7 +64,14 @@ export function place(grid, placement = {}) {
   return { positions, colours, seeds, count: n, unit };
 }
 
-/** Everything on the canvas, as one set of buffers and one draw call. */
+/**
+ * Everything on the canvas, as one set of buffers and one draw call.
+ *
+ * `ranges` records which slice of the buffers belongs to which placement, so
+ * moving one object rewrites its own cubes rather than the whole field. That is
+ * what keeps the field static in the way that matters: dragging a house does
+ * not touch the other ninety-nine objects.
+ */
 export function assemble(placements) {
   const parts = placements.map(({ grid, ...rest }) => place(grid, rest));
   const count = parts.reduce((n, p) => n + p.count, 0);
@@ -72,16 +79,48 @@ export function assemble(placements) {
   const colours = new Float32Array(count * 3);
   const seeds = new Float32Array(count);
   const sizes = new Float32Array(count);
+  const objects = new Float32Array(count);
+  const ranges = [];
 
   let at = 0;
-  for (const part of parts) {
+  parts.forEach((part, index) => {
     positions.set(part.positions.subarray(0, part.count * 3), at * 3);
     colours.set(part.colours.subarray(0, part.count * 3), at * 3);
     seeds.set(part.seeds.subarray(0, part.count), at);
     sizes.fill(part.unit, at, at + part.count);
+    objects.fill(index, at, at + part.count);
+    ranges.push({ start: at, count: part.count });
     at += part.count;
-  }
-  return { positions, colours, seeds, sizes, count };
+  });
+  return { positions, colours, seeds, sizes, objects, ranges, count };
+}
+
+/**
+ * A box around each placed object, for picking.
+ *
+ * Padded by half a cube, because a position is a cube's centre and the cube
+ * itself extends past it. Without the padding, clicking the outer face of an
+ * object misses it.
+ */
+export function objectBoxes(scene) {
+  return scene.ranges.map(({ start, count }) => {
+    const min = [Infinity, Infinity, Infinity];
+    const max = [-Infinity, -Infinity, -Infinity];
+    let cube = 0;
+    for (let i = start; i < start + count; i++) {
+      cube = scene.sizes[i];
+      for (let a = 0; a < 3; a++) {
+        const v = scene.positions[i * 3 + a];
+        if (v < min[a]) min[a] = v;
+        if (v > max[a]) max[a] = v;
+      }
+    }
+    const pad = cube / 2;
+    return {
+      min: min.map((v) => v - pad),
+      max: max.map((v) => v + pad),
+    };
+  });
 }
 
 /** The world-space extents of what has been placed, for framing and for sanity. */

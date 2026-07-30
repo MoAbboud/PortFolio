@@ -86,7 +86,7 @@ test('every uniform the renderer sets is declared by some shader', () => {
   // A guard against a rename in one place and not the other.
   const all = Object.values(SHADERS).join('\n');
   const used = [
-    'uViewProj', 'uTime', 'uFlip', 'uShimmer', 'uTint',
+    'uViewProj', 'uTime', 'uFlip', 'uShimmer', 'uTint', 'uSelected',
     'uSun', 'uSky', 'uFogNear', 'uFogFar',
     'uHorizon', 'uSunColour', 'uExtent', 'uFloor', 'uEye',
   ];

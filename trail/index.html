@@ -14,6 +14,7 @@
   #stage { display: block; width: 100vw; height: 100vh; cursor: grab; touch-action: none; }
   #stage.dragging { cursor: grabbing; }
   #stage.panning { cursor: move; }
+  #stage.moving { cursor: cell; }
 
   #hud {
     position: fixed; left: 16px; top: 14px; z-index: 2;
@@ -63,9 +64,11 @@
 <div id="hud">
   <div class="row"><span class="dim">mode</span><b id="mode">-</b></div>
   <div class="row"><span class="dim">step</span><b id="s-step">-</b></div>
+  <div class="row"><span class="dim">selected</span><b id="s-sel">nothing</b></div>
   <div class="row"><span class="dim">cubes</span><b id="s-cubes">-</b></div>
   <div class="row"><span class="dim">cube size</span><b id="s-cube">-</b></div>
   <div class="row"><span class="dim">frame</span><b id="s-fps">-</b></div>
+  <div class="row"><span class="dim">frame fills</span><b id="s-fill">-</b></div>
   <div class="sep row">
     <span class="dim">height</span>
     <span class="lift">
@@ -78,6 +81,13 @@
   <div class="row"><span class="dim">width</span><b id="s-width">-</b></div>
   <div class="row"><span class="dim">pitch / yaw</span><b id="s-angles">-</b></div>
   <div class="sep keys">
+    <k>click</k>select an object<br>
+    <k>drag it</k>move it<br>
+    <k>, .</k>turn it<br>
+    <k>esc</k>deselect<br>
+    <k>p</k>copy arrangement<br>
+  </div>
+  <div class="sep keys">
     <k>drag</k>orbit<br>
     <k>right-drag</k>pan the ground<br>
     <k>wheel</k>closer / further<br>
@@ -86,6 +96,7 @@
     <k>[ ]</k>cube size<br>
     <k>f</k>fit everything<br>
     <k>c</k>copy this framing<br>
+    <k>enter</k>fullscreen (no bars)<br>
     <k>space</k>back to the route<br>
     <k>1 - 3</k>go to a step<br>
     <k>r</k>restart the route<br>
@@ -157,7 +168,8 @@ setTimeout(function () {
 
 <script type="module">
 import { voxelise, hollow } from './lib/voxel.js';
-import { assemble, bounds } from './lib/scene.js';
+import { assemble, bounds, place, objectBoxes } from './lib/scene.js';
+import { toNdc, insideFrame, rayThrough, pick, groundPoint, dragTo, rotateBy } from './lib/pick.js';
 import { viewProjection, drift, routeAt, routeDuration } from './lib/camera.js';
 import { orbit, zoom, panScreen, walk, rise, fit, tidy, centreOf } from './lib/orbit.js';
 import { createRenderer, WEATHER } from './lib/render.js';
@@ -226,20 +238,42 @@ async function main() {
   // then written back into the models.
   let cubeScale = 1;
   let extent;
+  let grids = {};
+  let scene;
+  let boxes = [];
+
+  // A working copy, because objects get moved around and the original list is
+  // only the starting arrangement.
+  const layout = PLACEMENTS.map((p) => ({ ...p, at: [...p.at] }));
 
   function rebuild() {
-    const grids = {};
+    grids = {};
     for (const [name, recipe] of Object.entries(recipes)) {
       grids[name] = hollow(voxelise({ ...recipe, unit: recipe.unit * cubeScale }));
     }
-    const built = assemble(
-      PLACEMENTS.map(({ model, ...rest }) => ({ grid: grids[model], ...rest }))
-    );
-    renderer.upload(built);
-    extent = bounds(built);
-    el('s-cubes').textContent = built.count.toLocaleString();
+    scene = assemble(layout.map(({ model, ...rest }) => ({ grid: grids[model], ...rest })));
+    renderer.upload(scene);
+    boxes = objectBoxes(scene);
+    extent = bounds(scene);
+    el('s-cubes').textContent = scene.count.toLocaleString();
     el('s-cube').textContent = `${(cubeScale * 100).toFixed(0)}%`;
-    return built;
+    return scene;
+  }
+
+  /**
+   * Move or turn one object, rewriting only its own cubes.
+   *
+   * The cube count cannot change - it is the same grid either way - so the
+   * object keeps its slice of the buffers and the rest of the field is left
+   * alone entirely.
+   */
+  function reposition(index, placement) {
+    layout[index] = placement;
+    const part = place(grids[placement.model], placement);
+    const range = scene.ranges[index];
+    scene.positions.set(part.positions.subarray(0, range.count * 3), range.start * 3);
+    renderer.updatePositions(scene.positions, range.start, range.count);
+    boxes = objectBoxes(scene);
   }
 
   rebuild();
@@ -254,6 +288,7 @@ async function main() {
     clock: 0,
     pinned: null,
     roaming: fit(extent),
+    selected: -1,
   };
 
   function currentRoute() {
@@ -281,12 +316,42 @@ async function main() {
   let drag = null;
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
+  /** The ray under the pointer, or null if the pointer is in the letterbox. */
+  function rayAt(event) {
+    const rect = canvas.getBoundingClientRect();
+    const view = renderer.view.css;
+    const ndc = toNdc(
+      event.clientX - rect.left - view.x,
+      event.clientY - rect.top - view.y,
+      { x: 0, y: 0, w: view.w, h: view.h },
+    );
+    if (!insideFrame(ndc)) return null;
+    const framing = state.mode === 'roam' ? state.roaming : currentRoute().framing;
+    return rayThrough(framing, ndc);
+  }
+
   canvas.addEventListener('pointerdown', (event) => {
     canvas.setPointerCapture(event.pointerId);
+    const ray = rayAt(event);
+    const hit = ray ? pick(ray, boxes) : null;
+
+    // Dragging an object you have already selected moves it. Dragging anything
+    // else moves the camera. One click to choose, then drag to arrange, so
+    // orbiting never fights with rearranging.
+    if (ray && hit && hit.index === state.selected) {
+      const ground = groundPoint(ray, layout[hit.index].at[1]);
+      const at = layout[hit.index].at;
+      drag = {
+        x: event.clientX, y: event.clientY, moved: 0, object: hit.index,
+        grab: ground ? [at[0] - ground[0], 0, at[2] - ground[2]] : [0, 0, 0],
+      };
+      canvas.classList.add('moving');
+      return;
+    }
+
     const panning = event.button === 1 || event.button === 2 || event.shiftKey;
-    drag = { x: event.clientX, y: event.clientY, panning };
+    drag = { x: event.clientX, y: event.clientY, moved: 0, panning, object: null };
     canvas.classList.add(panning ? 'panning' : 'dragging');
-    roam();
   });
 
   canvas.addEventListener('pointermove', (event) => {
@@ -295,6 +360,17 @@ async function main() {
     const dy = event.clientY - drag.y;
     drag.x = event.clientX;
     drag.y = event.clientY;
+    drag.moved += Math.abs(dx) + Math.abs(dy);
+
+    if (drag.object !== null) {
+      const ray = rayAt(event);
+      if (!ray) return;
+      const ground = groundPoint(ray, layout[drag.object].at[1]);
+      reposition(drag.object, dragTo(layout[drag.object], drag.grab, ground));
+      return;
+    }
+
+    roam();
     state.roaming = drag.panning
       ? panScreen(state.roaming, dx, dy, canvas.clientWidth)
       : orbit(state.roaming, -dx * 0.32, dy * 0.26);
@@ -302,14 +378,32 @@ async function main() {
 
   const endDrag = (event) => {
     if (!drag) return;
+    // A press that did not really move is a click, and a click chooses.
+    if (drag.moved < 5 && drag.object === null) {
+      const ray = rayAt(event);
+      const hit = ray ? pick(ray, boxes) : null;
+      select(hit ? hit.index : -1);
+    }
     drag = null;
-    canvas.classList.remove('dragging', 'panning');
+    canvas.classList.remove('dragging', 'panning', 'moving');
     if (event && canvas.hasPointerCapture?.(event.pointerId)) {
       canvas.releasePointerCapture(event.pointerId);
     }
   };
   canvas.addEventListener('pointerup', endDrag);
   canvas.addEventListener('pointercancel', endDrag);
+
+  function select(index) {
+    state.selected = index;
+    if (index < 0) {
+      el('s-sel').textContent = 'nothing';
+      return;
+    }
+    const p = layout[index];
+    el('s-sel').textContent = `${p.model}  ${(p.rot ?? 0).toFixed(0)}°`;
+    say(`${p.model} selected - drag to move, , . to turn`);
+  }
+  select(-1);
 
   canvas.addEventListener('wheel', (event) => {
     event.preventDefault();
@@ -359,6 +453,35 @@ async function main() {
       return;
     }
 
+    if ((key === ',' || key === '.') && state.selected >= 0) {
+      const step = (key === '.' ? 1 : -1) * (event.shiftKey ? 5 : 15);
+      reposition(state.selected, rotateBy(layout[state.selected], step));
+      select(state.selected);
+      return;
+    }
+
+    if (key === 'escape') {
+      select(-1);
+      return;
+    }
+
+    if (key === 'p') {
+      const text = layout
+        .map((p) => `  { model: '${p.model}', at: [${p.at.map((v) => Number(v.toFixed(2)))}]`
+          + `${p.rot ? `, rot: ${Number((p.rot).toFixed(1))}` : ''}`
+          + `${p.scale && p.scale !== 1 ? `, scale: ${p.scale}` : ''} },`)
+        .join('\n');
+      const block = `const PLACEMENTS = [\n${text}\n];`;
+      try {
+        await navigator.clipboard.writeText(block);
+        say('arrangement copied - paste it over PLACEMENTS in index.html');
+      } catch {
+        say('clipboard refused; the arrangement is in the console');
+      }
+      console.log(block);
+      return;
+    }
+
     if (key === '[' || key === ']') {
       cubeScale = Math.min(4, Math.max(0.25, cubeScale * (key === ']' ? 1.2 : 1 / 1.2)));
       const built = rebuild();
@@ -386,6 +509,9 @@ async function main() {
       console.log(text);
     } else if (key === 'r') {
       state.clock = 0; state.pinned = null; toRoute(); sync();
+    } else if (key === 'enter') {
+      event.preventDefault();
+      toggleFullscreen();
     } else if (key === 'h') {
       hud.classList.toggle('hidden');
     } else if (key >= '1' && key <= String(ROUTE.length)) {
@@ -393,6 +519,28 @@ async function main() {
       state.pinned = Number(key) - 1;
       state.playing = false;
     }
+  });
+
+  // --- fullscreen -----------------------------------------------------------
+  // The frame is always 16:9. A browser viewport is not, because tabs and the
+  // address bar take a slice of the height, so the composition gets black bars
+  // either side. Fullscreen makes the viewport the shape of the screen, and on
+  // a 16:9 monitor the bars disappear entirely rather than being worked around.
+
+  async function toggleFullscreen() {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await document.documentElement.requestFullscreen();
+    } catch (error) {
+      say(`fullscreen refused: ${error.message}`);
+    }
+  }
+
+  document.addEventListener('fullscreenchange', () => {
+    // Going fullscreen is what you do to record, and a recording should have no
+    // interface in it. `h` brings the panel back if it is wanted.
+    hud.classList.toggle('hidden', Boolean(document.fullscreenElement));
+    if (!document.fullscreenElement) say('press enter for fullscreen');
   });
 
   // --- the take -------------------------------------------------------------
@@ -472,7 +620,16 @@ async function main() {
     el('s-angles').textContent = `${(framing.pitch ?? 25).toFixed(0)} / ${(framing.yaw ?? 0).toFixed(0)}`;
 
     const { matrix, eye } = viewProjection(framing);
-    renderer.draw({ matrix, eye, time: now / 1000, weather: WEATHER.clear });
+    renderer.draw({
+      matrix, eye, time: now / 1000, weather: WEATHER.clear, selected: state.selected,
+    });
+
+    const fill = renderer.view.fill;
+    const percent = Math.round(fill * 100);
+    el('s-fill').textContent = percent >= 100
+      ? '100%'
+      : `${percent}%  (enter)`;
+    el('s-fill').style.color = percent >= 99 ? '#7fd4a0' : '#e8c07f';
 
     requestAnimationFrame(frame);
   }

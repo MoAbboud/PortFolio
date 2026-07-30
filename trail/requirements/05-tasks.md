@@ -97,7 +97,15 @@ test worth trusting.
 - [x] `c` copies the current framing, ready to paste into a route
 - [x] A live cube-size multiplier, so the grain is judged by eye rather than guessed
 - [x] Cube edges doubled. The fine grain existed for the cancelled morph
+- [x] Picking: a ray through the frame against per-object boxes. Pure, and tested in Node
+- [x] Click to select, drag a selected object to move it on the ground, `,` and `.` to turn it
+- [x] The dragged object keeps hold of the point that was grabbed, rather than jumping
+- [x] Moving an object rewrites only its own slice of the buffers, never the whole field
+- [x] Selected objects lift out of the scene without their own colours changing
+- [x] `p` copies the arrangement, ready to paste back over `PLACEMENTS`
+- [x] Fullscreen on `enter`, which is the only way to get a 16:9 viewport in a browser
 - [ ] Cloud in the sky shader. Currently a plain gradient
+- [ ] Boxes are axis-aligned, so a rotated object has a slightly loose grab area
 - [ ] Confirm 60 frames a second at **full** budget. The test scene is 20,528 cubes, which is
       5 per cent of it, so this is untested where it matters
 - [ ] **Judge it: three objects, three framings, sixty seconds. Is it watchable?**

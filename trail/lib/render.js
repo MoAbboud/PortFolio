@@ -12,16 +12,19 @@ in vec3 aOffset;
 in vec3 aColour;
 in float aSeed;
 in float aSize;
+in float aObject;
 
 uniform mat4 uViewProj;
 uniform float uTime;
 uniform float uFlip;      // 1.0 upright, -1.0 mirrored under the floor
 uniform float uShimmer;
+uniform float uSelected;  // -1 for nothing selected
 
 out vec3 vColour;
 out vec3 vNormal;
 out float vDepth;
 out float vY;
+out float vPicked;
 
 void main() {
   // Ambient shimmer: every cube breathes very slightly, so a static world is
@@ -36,6 +39,7 @@ void main() {
   p.y *= uFlip;
 
   vColour = aColour;
+  vPicked = abs(aObject - uSelected) < 0.5 ? 1.0 : 0.0;
   vNormal = vec3(aNormal.x, aNormal.y * uFlip, aNormal.z);
   vec4 clip = uViewProj * vec4(p, 1.0);
   vDepth = clip.w;
@@ -49,6 +53,7 @@ in vec3 vColour;
 in vec3 vNormal;
 in float vDepth;
 in float vY;
+in float vPicked;
 
 uniform vec3 uSun;
 uniform vec3 uSky;
@@ -66,6 +71,11 @@ void main() {
 
   float fog = clamp((vDepth - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0);
   colour = mix(colour, uSky, fog * 0.85);
+
+  // A selected object lifts out of the scene without changing its own colours,
+  // so what is being edited still looks like what it will look like.
+  colour = mix(colour, colour * 1.25 + vec3(0.10, 0.16, 0.08), vPicked * 0.9);
+
   frag = vec4(colour * uTint, 1.0);
 }`;
 
@@ -239,10 +249,10 @@ export function createRenderer(canvas) {
   const floor = program(gl, FLOOR_VS, FLOOR_FS, 'floor');
 
   const geo = cubeGeometry();
-  const buffer = (data, target = gl.ARRAY_BUFFER) => {
+  const buffer = (data, target = gl.ARRAY_BUFFER, usage = gl.STATIC_DRAW) => {
     const b = gl.createBuffer();
     gl.bindBuffer(target, b);
-    gl.bufferData(target, data, gl.STATIC_DRAW);
+    gl.bufferData(target, data, usage);
     return b;
   };
 
@@ -267,9 +277,11 @@ export function createRenderer(canvas) {
   /** Upload the field. Called once when the canvas loads, and after an edit. */
   function upload(scene) {
     instanceCount = scene.count;
-    for (const key of ['positions', 'colours', 'seeds', 'sizes']) {
+    for (const key of ['positions', 'colours', 'seeds', 'sizes', 'objects']) {
       if (instanceBuffers[key]) gl.deleteBuffer(instanceBuffers[key]);
-      instanceBuffers[key] = buffer(scene[key]);
+      // Positions are rewritten while dragging, so they are not static data.
+      instanceBuffers[key] = buffer(scene[key],
+        gl.ARRAY_BUFFER, key === 'positions' ? gl.DYNAMIC_DRAW : gl.STATIC_DRAW);
     }
     if (vao) gl.deleteVertexArray(vao);
     vao = gl.createVertexArray();
@@ -280,8 +292,26 @@ export function createRenderer(canvas) {
     attribute(cube.handle, 'aColour', instanceBuffers.colours, 3, 1);
     attribute(cube.handle, 'aSeed', instanceBuffers.seeds, 1, 1);
     attribute(cube.handle, 'aSize', instanceBuffers.sizes, 1, 1);
+    attribute(cube.handle, 'aObject', instanceBuffers.objects, 1, 1);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idxBuf);
     gl.bindVertexArray(null);
+  }
+
+  /**
+   * Rewrite one object's cubes without touching the rest of the field.
+   *
+   * Dragging a house re-uploads a few thousand floats rather than the whole
+   * scene, which is the difference between a smooth drag and a stutter once a
+   * canvas is full.
+   */
+  function updatePositions(positions, start, count) {
+    if (!instanceBuffers.positions || count <= 0) return;
+    gl.bindBuffer(gl.ARRAY_BUFFER, instanceBuffers.positions);
+    gl.bufferSubData(
+      gl.ARRAY_BUFFER,
+      start * 3 * Float32Array.BYTES_PER_ELEMENT,
+      positions.subarray(start * 3, (start + count) * 3),
+    );
   }
 
   let lastSize = { w: 0, h: 0, dpr: 0 };
@@ -309,16 +339,30 @@ export function createRenderer(canvas) {
       y: Math.round((canvas.height - vh) / 2),
       w: vw,
       h: vh,
+      // How much of the window the composed frame actually occupies. Anything
+      // under 100% is letterboxing, and the cure is a 16:9 viewport, which
+      // usually means fullscreen rather than any change here.
+      fill: (vw * vh) / Math.max(1, canvas.width * canvas.height),
+      // The same rectangle in CSS pixels, which is what a pointer event speaks.
+      css: { x: view0(vw, canvas.width) / dpr, y: view0(vh, canvas.height) / dpr,
+        w: vw / dpr, h: vh / dpr },
     };
   }
 
-  function drawCubes(matrix, eye, flip, weather, time, shimmer) {
+  const view0 = (inner, outer) => Math.round((outer - inner) / 2);
+
+  /** What the last frame was drawn into, for reporting rather than for drawing. */
+  let lastView = { x: 0, y: 0, w: 0, h: 0, fill: 1 };
+
+  function drawCubes(matrix, eye, flip, weather, time, shimmer, selected) {
     gl.useProgram(cube.handle);
     gl.bindVertexArray(vao);
     gl.uniformMatrix4fv(cube.u.uViewProj, false, matrix);
     gl.uniform1f(cube.u.uTime, time);
     gl.uniform1f(cube.u.uFlip, flip);
     gl.uniform1f(cube.u.uShimmer, shimmer);
+    // The reflection is not highlighted; only the object itself.
+    gl.uniform1f(cube.u.uSelected, flip < 0 ? -1 : selected);
     gl.uniform1f(cube.u.uTint, flip < 0 ? 0.72 : 1.0);
     gl.uniform3fv(cube.u.uSun, weather.sun);
     gl.uniform3fv(cube.u.uSky, weather.sky);
@@ -328,8 +372,9 @@ export function createRenderer(canvas) {
     gl.bindVertexArray(null);
   }
 
-  function draw({ matrix, eye, time, weather = WEATHER.clear, shimmer = 0.004 }) {
+  function draw({ matrix, eye, time, weather = WEATHER.clear, shimmer = 0.004, selected = -1 }) {
     const view = resize();
+    lastView = view;
     gl.enable(gl.SCISSOR_TEST);
 
     // The letterbox stays black, so what is captured is exactly the composition.
@@ -354,7 +399,7 @@ export function createRenderer(canvas) {
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
     gl.disable(gl.BLEND);
-    if (instanceCount) drawCubes(matrix, eye, -1, weather, time, shimmer);
+    if (instanceCount) drawCubes(matrix, eye, -1, weather, time, shimmer, selected);
 
     // 3. The floor, blended over its own reflection.
     gl.enable(gl.BLEND);
@@ -373,10 +418,17 @@ export function createRenderer(canvas) {
 
     // 4. The field itself.
     gl.disable(gl.BLEND);
-    if (instanceCount) drawCubes(matrix, eye, 1, weather, time, shimmer);
+    if (instanceCount) drawCubes(matrix, eye, 1, weather, time, shimmer, selected);
 
     gl.disable(gl.SCISSOR_TEST);
   }
 
-  return { gl, upload, draw, get count() { return instanceCount; } };
+  return {
+    gl,
+    upload,
+    updatePositions,
+    draw,
+    get count() { return instanceCount; },
+    get view() { return lastView; },
+  };
 }
