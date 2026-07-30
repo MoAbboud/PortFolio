@@ -140,6 +140,23 @@ test('a route holds, then flies, then holds', () => {
   assert.equal(routeAt(ROUTE, 7).step, 1);
 });
 
+test('a route reports how far into each phase it is', () => {
+  // The weather cross-fade and the canvas solidifying are both driven by this,
+  // which is what makes them land together rather than one after the other.
+  assert.equal(routeAt(ROUTE, 0).into, 0);
+  near(routeAt(ROUTE, 2).into, 0.5, 1e-9);      // halfway through a 4s hold
+  near(routeAt(ROUTE, 5).into, 0.5, 1e-9);      // halfway through a 2s flight
+  assert.equal(routeAt(ROUTE, 999).into, 1);
+});
+
+test('progress through a phase never leaves 0..1', () => {
+  const total = routeDuration(ROUTE) / 1000;
+  for (let t = 0; t <= total + 2; t += 0.05) {
+    const { into } = routeAt(ROUTE, t);
+    assert.ok(into >= 0 && into <= 1, `into was ${into} at t=${t}`);
+  }
+});
+
 test('a route rests on its final framing rather than looping or breaking', () => {
   const end = routeAt(ROUTE, 999);
   assert.equal(end.phase, 'end');

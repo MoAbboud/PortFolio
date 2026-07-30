@@ -80,6 +80,8 @@ export function assemble(placements) {
   const seeds = new Float32Array(count);
   const sizes = new Float32Array(count);
   const objects = new Float32Array(count);
+  const fromStep = new Float32Array(count);
+  const untilStep = new Float32Array(count);
   const ranges = [];
 
   let at = 0;
@@ -89,10 +91,13 @@ export function assemble(placements) {
     seeds.set(part.seeds.subarray(0, part.count), at);
     sizes.fill(part.unit, at, at + part.count);
     objects.fill(index, at, at + part.count);
+    // A placement with no range is solid from the start and never leaves.
+    fromStep.fill(placements[index].from ?? 0, at, at + part.count);
+    untilStep.fill(placements[index].until ?? 9999, at, at + part.count);
     ranges.push({ start: at, count: part.count });
     at += part.count;
   });
-  return { positions, colours, seeds, sizes, objects, ranges, count };
+  return { positions, colours, seeds, sizes, objects, fromStep, untilStep, ranges, count };
 }
 
 /**

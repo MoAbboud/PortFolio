@@ -87,11 +87,22 @@ test('every uniform the renderer sets is declared by some shader', () => {
   const all = Object.values(SHADERS).join('\n');
   const used = [
     'uViewProj', 'uTime', 'uFlip', 'uShimmer', 'uTint', 'uSelected',
+    'uStep', 'uStepT', 'uAmbient',
     'uSun', 'uSky', 'uFogNear', 'uFogFar',
     'uHorizon', 'uSunColour', 'uExtent', 'uFloor', 'uEye',
+    'uScars', 'uScarExtent',
   ];
   for (const name of used) {
     assert.match(all, new RegExp(`uniform\\s+\\w+\\s+${name}\\s*;`),
       `${name} is set by render.js but declared by no shader`);
+  }
+});
+
+test('every instance attribute the renderer binds is declared by the cube shader', () => {
+  const vertex = SHADERS['cube vertex'];
+  for (const name of ['aPos', 'aNormal', 'aOffset', 'aColour', 'aSeed', 'aSize',
+    'aObject', 'aFrom', 'aUntil']) {
+    assert.match(vertex, new RegExp(`in\\s+\\w+\\s+${name}\\s*;`),
+      `${name} is bound by render.js but declared by no shader`);
   }
 });

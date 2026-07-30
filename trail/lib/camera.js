@@ -59,7 +59,9 @@ export function viewProjection(framing, near = 0.1, far = 800) {
 
 export const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
-const mix = (a, b, t) => a + (b - a) * t;
+// The precise form, so a flight lands exactly on its destination framing rather
+// than a rounding error away from it.
+const mix = (a, b, t) => a * (1 - t) + b * t;
 
 /**
  * Interpolate the framing rather than the eye.
@@ -110,28 +112,34 @@ export function drift(framing, seconds, amount = 1) {
 
 /**
  * Walk a route: hold on each framing, fly to the next.
- * Returns the framing for a moment in time, and which step it belongs to.
+ *
+ * Returns the framing for a moment in time, which step it belongs to, and how
+ * far through that phase it is. `into` is what the weather cross-fade and the
+ * canvas solidifying are both driven by, so the two land together.
  */
 export function routeAt(steps, seconds) {
   let t = seconds;
   for (let i = 0; i < steps.length; i++) {
     const hold = steps[i].hold / 1000;
-    if (t < hold) return { framing: steps[i].framing, step: i, phase: 'hold' };
+    if (t < hold) {
+      return { framing: steps[i].framing, step: i, phase: 'hold', into: hold ? t / hold : 1 };
+    }
     t -= hold;
     const next = steps[i + 1];
-    if (!next) return { framing: steps[i].framing, step: i, phase: 'end' };
+    if (!next) return { framing: steps[i].framing, step: i, phase: 'end', into: 1 };
     const fly = (next.approachTime ?? 2500) / 1000;
     if (t < fly) {
       return {
         framing: lerpFraming(steps[i].framing, next.framing, t / fly),
         step: i,
         phase: 'fly',
+        into: fly ? t / fly : 1,
       };
     }
     t -= fly;
   }
   const last = steps[steps.length - 1];
-  return { framing: last.framing, step: steps.length - 1, phase: 'end' };
+  return { framing: last.framing, step: steps.length - 1, phase: 'end', into: 1 };
 }
 
 export function routeDuration(steps) {

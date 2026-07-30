@@ -13,18 +13,34 @@ in vec3 aColour;
 in float aSeed;
 in float aSize;
 in float aObject;
+in float aFrom;           // the step this object solidifies at
+in float aUntil;          // the last step it is solid for
 
 uniform mat4 uViewProj;
 uniform float uTime;
 uniform float uFlip;      // 1.0 upright, -1.0 mirrored under the floor
 uniform float uShimmer;
 uniform float uSelected;  // -1 for nothing selected
+uniform float uStep;      // the step being shown
+uniform float uStepT;     // how far into arriving at it, 0 to 1
 
 out vec3 vColour;
 out vec3 vNormal;
 out float vDepth;
 out float vY;
 out float vPicked;
+out float vSolid;
+
+// How present this cube is. Unvisited parts of the canvas are ghosts, they
+// solidify as the camera reaches them, and they fade back out once the story
+// has moved on. One comparison, no per-object work on the processor.
+float solidity(float step, float t, float from, float until) {
+  if (step < from - 0.5) return 0.0;
+  if (step < from + 0.5) return t;
+  if (step < until + 0.5) return 1.0;
+  if (step < until + 1.5) return 1.0 - t;
+  return 0.0;
+}
 
 void main() {
   // Ambient shimmer: every cube breathes very slightly, so a static world is
@@ -34,7 +50,12 @@ void main() {
   vec3 wobble = vec3(sin(uTime * 1.1 + s), sin(uTime * 0.9 + s * 1.7), cos(uTime * 1.3 + s));
   vec3 world = aOffset + wobble * uShimmer;
 
-  vec3 p = world + aPos * aSize;
+  // A ghost is smaller as well as fainter, so an unvisited part of the canvas
+  // reads as not-yet-arrived rather than as badly lit.
+  vSolid = solidity(uStep, uStepT, aFrom, aUntil);
+  float grow = mix(0.5, 1.0, vSolid);
+
+  vec3 p = world + aPos * aSize * grow;
   vY = p.y;
   p.y *= uFlip;
 
@@ -54,12 +75,14 @@ in vec3 vNormal;
 in float vDepth;
 in float vY;
 in float vPicked;
+in float vSolid;
 
 uniform vec3 uSun;
 uniform vec3 uSky;
 uniform float uFogNear;
 uniform float uFogFar;
 uniform float uTint;      // mirrored pass is dimmed
+uniform float uAmbient;
 
 out vec4 frag;
 
@@ -67,10 +90,16 @@ void main() {
   vec3 n = normalize(vNormal);
   float lambert = max(dot(n, normalize(uSun)), 0.0);
   float sky = 0.5 + 0.5 * n.y;                 // a little light from above
-  vec3 colour = vColour * (0.34 + 0.52 * lambert + 0.22 * sky);
+  vec3 colour = vColour * (0.34 + 0.52 * lambert + 0.22 * sky) * uAmbient;
 
   float fog = clamp((vDepth - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0);
   colour = mix(colour, uSky, fog * 0.85);
+
+  // A ghost is washed most of the way into the sky rather than made
+  // transparent. It reads the same and it needs no sorting, which transparency
+  // over a hundred thousand cubes would.
+  vec3 ghost = mix(uSky, colour, 0.22);
+  colour = mix(ghost, colour, vSolid);
 
   // A selected object lifts out of the scene without changing its own colours,
   // so what is being edited still looks like what it will look like.
@@ -126,19 +155,35 @@ uniform vec3 uEye;
 uniform vec3 uSun;
 uniform float uFogNear;
 uniform float uFogFar;
+uniform sampler2D uScars;
+uniform float uScarExtent;
 out vec4 frag;
 void main() {
   float fog = clamp((vDepth - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0);
+
+  // What the weather left behind. Red is wet, green is bleached by fog. The sky
+  // is one sky, but the ground is a record of the whole story, which is what
+  // the final pull-back is looking at.
+  vec2 uv = (vWorld.xz + uScarExtent) / (2.0 * uScarExtent);
+  vec2 marks = texture(uScars, uv).rg;
+  float wet = marks.r * step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0);
+  float pale = marks.g * step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0);
 
   // A shiny floor: the reflection beneath shows through where the floor is
   // near, and the sky takes over as it recedes.
   // "half" is a reserved word in GLSL, hence "halfway".
   vec3 view = normalize(uEye - vWorld);
   vec3 halfway = normalize(normalize(uSun) + view);
-  float spec = pow(max(halfway.y, 0.0), 90.0);
+  float spec = pow(max(halfway.y, 0.0), mix(90.0, 220.0, wet));
 
-  vec3 colour = mix(uFloor, uSky, fog * 0.9) + vec3(spec) * 0.6;
-  float alpha = mix(0.62, 1.0, fog);
+  vec3 ground = uFloor * mix(1.0, 0.55, wet);          // rain darkens it
+  ground = mix(ground, vec3(0.82, 0.83, 0.84), pale * 0.65);
+  vec3 colour = mix(ground, uSky, fog * 0.9) + vec3(spec) * mix(0.6, 1.5, wet);
+
+  // Wet ground mirrors harder; bleached ground barely mirrors at all.
+  float clarity = mix(0.62, 0.34, wet);
+  clarity = mix(clarity, 0.92, pale);
+  float alpha = mix(clarity, 1.0, fog);
   frag = vec4(colour, alpha);
 }`;
 
@@ -223,22 +268,10 @@ function program(gl, vs, fs, label = 'shader') {
   return { handle: p, u: uniforms };
 }
 
-export const WEATHER = {
-  clear: {
-    sky: [0.36, 0.62, 0.92],
-    horizon: [0.76, 0.88, 0.98],
-    floor: [0.42, 0.68, 0.90],
-    sun: [0.45, 0.85, 0.35],
-    sunColour: [1.0, 0.95, 0.82],
-  },
-  overcast: {
-    sky: [0.55, 0.60, 0.67],
-    horizon: [0.78, 0.80, 0.83],
-    floor: [0.48, 0.56, 0.63],
-    sun: [0.3, 0.9, 0.2],
-    sunColour: [0.85, 0.87, 0.9],
-  },
-};
+// The presets live in weather.js, which is pure and knows nothing about
+// graphics. Re-exported so a caller need only import the renderer.
+export { PRESETS as WEATHER, resolve as resolveWeather, lerpWeather } from './weather.js';
+import { PRESETS as WEATHER } from './weather.js';
 
 export function createRenderer(canvas) {
   const gl = canvas.getContext('webgl2', { antialias: true, alpha: false });
@@ -265,6 +298,33 @@ export function createRenderer(canvas) {
   let instanceCount = 0;
   const instanceBuffers = {};
 
+  // The ground's memory of the weather. One texture, rewritten only when the
+  // route reaches a step that leaves a mark.
+  let scarExtent = 60;
+  let scarResolution = 1;
+  const scarTexture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, scarTexture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+    new Uint8Array([0, 0, 0, 0]));
+
+  /** Hand the ground a new set of marks. Called when the current step changes. */
+  function setScars(data, resolution, extent) {
+    scarExtent = extent;
+    gl.bindTexture(gl.TEXTURE_2D, scarTexture);
+    if (resolution !== scarResolution) {
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, resolution, resolution, 0,
+        gl.RGBA, gl.UNSIGNED_BYTE, data);
+      scarResolution = resolution;
+    } else {
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, resolution, resolution,
+        gl.RGBA, gl.UNSIGNED_BYTE, data);
+    }
+  }
+
   function attribute(prog, name, buf, size, divisor = 0) {
     const location = gl.getAttribLocation(prog, name);
     if (location < 0) return;
@@ -277,7 +337,7 @@ export function createRenderer(canvas) {
   /** Upload the field. Called once when the canvas loads, and after an edit. */
   function upload(scene) {
     instanceCount = scene.count;
-    for (const key of ['positions', 'colours', 'seeds', 'sizes', 'objects']) {
+    for (const key of ['positions', 'colours', 'seeds', 'sizes', 'objects', 'fromStep', 'untilStep']) {
       if (instanceBuffers[key]) gl.deleteBuffer(instanceBuffers[key]);
       // Positions are rewritten while dragging, so they are not static data.
       instanceBuffers[key] = buffer(scene[key],
@@ -293,6 +353,8 @@ export function createRenderer(canvas) {
     attribute(cube.handle, 'aSeed', instanceBuffers.seeds, 1, 1);
     attribute(cube.handle, 'aSize', instanceBuffers.sizes, 1, 1);
     attribute(cube.handle, 'aObject', instanceBuffers.objects, 1, 1);
+    attribute(cube.handle, 'aFrom', instanceBuffers.fromStep, 1, 1);
+    attribute(cube.handle, 'aUntil', instanceBuffers.untilStep, 1, 1);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idxBuf);
     gl.bindVertexArray(null);
   }
@@ -354,25 +416,31 @@ export function createRenderer(canvas) {
   /** What the last frame was drawn into, for reporting rather than for drawing. */
   let lastView = { x: 0, y: 0, w: 0, h: 0, fill: 1 };
 
-  function drawCubes(matrix, eye, flip, weather, time, shimmer, selected) {
+  function drawCubes(matrix, flip, weather, time, shimmer, selected, step, stepT) {
     gl.useProgram(cube.handle);
     gl.bindVertexArray(vao);
     gl.uniformMatrix4fv(cube.u.uViewProj, false, matrix);
     gl.uniform1f(cube.u.uTime, time);
     gl.uniform1f(cube.u.uFlip, flip);
     gl.uniform1f(cube.u.uShimmer, shimmer);
+    gl.uniform1f(cube.u.uStep, step);
+    gl.uniform1f(cube.u.uStepT, stepT);
     // The reflection is not highlighted; only the object itself.
     gl.uniform1f(cube.u.uSelected, flip < 0 ? -1 : selected);
     gl.uniform1f(cube.u.uTint, flip < 0 ? 0.72 : 1.0);
+    gl.uniform1f(cube.u.uAmbient, weather.ambient ?? 1);
     gl.uniform3fv(cube.u.uSun, weather.sun);
     gl.uniform3fv(cube.u.uSky, weather.sky);
-    gl.uniform1f(cube.u.uFogNear, 26);
-    gl.uniform1f(cube.u.uFogFar, 180);
+    gl.uniform1f(cube.u.uFogNear, weather.fogNear ?? 26);
+    gl.uniform1f(cube.u.uFogFar, weather.fogFar ?? 180);
     gl.drawElementsInstanced(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0, instanceCount);
     gl.bindVertexArray(null);
   }
 
-  function draw({ matrix, eye, time, weather = WEATHER.clear, shimmer = 0.004, selected = -1 }) {
+  function draw({
+    matrix, eye, time, weather = WEATHER.clear, shimmer = 0.004,
+    selected = -1, step = 0, stepT = 1,
+  }) {
     const view = resize();
     lastView = view;
     gl.enable(gl.SCISSOR_TEST);
@@ -399,9 +467,9 @@ export function createRenderer(canvas) {
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
     gl.disable(gl.BLEND);
-    if (instanceCount) drawCubes(matrix, eye, -1, weather, time, shimmer, selected);
+    if (instanceCount) drawCubes(matrix, -1, weather, time, shimmer, selected, step, stepT);
 
-    // 3. The floor, blended over its own reflection.
+    // 3. The floor, blended over its own reflection, carrying the weather's marks.
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     gl.useProgram(floor.handle);
@@ -412,13 +480,17 @@ export function createRenderer(canvas) {
     gl.uniform3fv(floor.u.uSky, weather.sky);
     gl.uniform3fv(floor.u.uSun, weather.sun);
     gl.uniform3fv(floor.u.uEye, eye);
-    gl.uniform1f(floor.u.uFogNear, 26);
-    gl.uniform1f(floor.u.uFogFar, 180);
+    gl.uniform1f(floor.u.uFogNear, weather.fogNear ?? 26);
+    gl.uniform1f(floor.u.uFogFar, weather.fogFar ?? 180);
+    gl.uniform1f(floor.u.uScarExtent, scarExtent);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, scarTexture);
+    gl.uniform1i(floor.u.uScars, 0);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
     // 4. The field itself.
     gl.disable(gl.BLEND);
-    if (instanceCount) drawCubes(matrix, eye, 1, weather, time, shimmer, selected);
+    if (instanceCount) drawCubes(matrix, 1, weather, time, shimmer, selected, step, stepT);
 
     gl.disable(gl.SCISSOR_TEST);
   }
@@ -427,6 +499,7 @@ export function createRenderer(canvas) {
     gl,
     upload,
     updatePositions,
+    setScars,
     draw,
     get count() { return instanceCount; },
     get view() { return lastView; },

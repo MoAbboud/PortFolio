@@ -149,6 +149,18 @@ test worth trusting.
 
 ## Stage 5 - Play mode
 
+- [x] Ghosting in the shader: `aFrom` and `aUntil` against the current step. Ghosts are
+      washed into the sky and drawn smaller, so no sorting is needed
+- [x] Weather per step, cross-fading across the flight
+- [x] Scar map: storm leaves the ground wet, fog leaves it pale, and both persist
+- [x] Scars derived from the steps, so a seek looks identical to a playthrough
+- [x] Name tags on a 2D layer, fading with distance and gone by the wide shot
+- [x] Weather drives fog, ambient light, reflectivity and the specular highlight
+- [ ] Rain and snow particles. Storm currently changes the light but nothing falls
+- [ ] Looped object motion from `aPivot` and `aMotion`. The data exists; nothing reads it
+
+## Stage 5 - Play mode, originally listed
+
 - [ ] Mode toggle as a two-key gesture, refused while the route is running
 - [ ] Play mode draws the world and absolutely nothing else
 - [ ] Ghosting in the shader: compare `aFrom` and `aUntil` against the current step
