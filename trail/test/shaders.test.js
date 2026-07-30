@@ -62,7 +62,7 @@ test('a fragment shader states its precision and its output', () => {
 });
 
 test('what a vertex shader sends out, its fragment shader takes in', () => {
-  const pairs = [['cube', 'cube'], ['sky', 'sky'], ['floor', 'floor']];
+  const pairs = [['cube', 'cube'], ['mesh', 'mesh'], ['sky', 'sky'], ['floor', 'floor']];
   const declared = (source, keyword) => {
     const names = [];
     const pattern = new RegExp(`^\\s*${keyword}\\s+\\w+\\s+(\\w+)\\s*;`, 'gm');
@@ -105,4 +105,18 @@ test('every instance attribute the renderer binds is declared by the cube shader
     assert.match(vertex, new RegExp(`in\\s+\\w+\\s+${name}\\s*;`),
       `${name} is bound by render.js but declared by no shader`);
   }
+});
+
+test('every vertex attribute the mesh path binds is declared by the mesh shader', () => {
+  const vertex = SHADERS['mesh vertex'];
+  for (const name of ['aPos', 'aNormal', 'aColour', 'aSeed', 'aObject', 'aFrom', 'aUntil']) {
+    assert.match(vertex, new RegExp(`in\\s+\\w+\\s+${name}\\s*;`),
+      `${name} is bound by render.js but declared by no shader`);
+  }
+});
+
+test('the two ways of drawing an object are lit by the same fragment shader', () => {
+  // If these ever differ, cubes and meshes will disagree about fog, ghosting
+  // and highlighting, and the roundness dial will change more than roundness.
+  assert.equal(SHADERS['cube fragment'], SHADERS['mesh fragment']);
 });

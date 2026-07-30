@@ -108,6 +108,62 @@ void main() {
   frag = vec4(colour * uTint, 1.0);
 }`;
 
+// The mesh path. Different geometry, identical lighting: it shares the cube
+// fragment shader exactly, so the two ways of drawing an object cannot drift
+// apart in how they are lit, fogged, ghosted or highlighted.
+const MESH_VS = `#version 300 es
+in vec3 aPos;
+in vec3 aNormal;
+in vec3 aColour;
+in float aSeed;
+in float aObject;
+in float aFrom;
+in float aUntil;
+
+uniform mat4 uViewProj;
+uniform float uTime;
+uniform float uFlip;
+uniform float uShimmer;
+uniform float uSelected;
+uniform float uStep;
+uniform float uStepT;
+
+out vec3 vColour;
+out vec3 vNormal;
+out float vDepth;
+out float vY;
+out float vPicked;
+out float vSolid;
+
+float solidity(float step, float t, float from, float until) {
+  if (step < from - 0.5) return 0.0;
+  if (step < from + 0.5) return t;
+  if (step < until + 0.5) return 1.0;
+  if (step < until + 1.5) return 1.0 - t;
+  return 0.0;
+}
+
+void main() {
+  vSolid = solidity(uStep, uStepT, aFrom, aUntil);
+
+  // A surface has to move along its own normal rather than per vertex, or the
+  // shimmer would tear the mesh open. A ghost is pulled slightly inward, which
+  // reads as not-yet-arrived the same way a smaller cube did.
+  float breathe = sin(uTime * 1.1 + aSeed * 6.2831853) * uShimmer * 3.0;
+  float shrink = mix(-0.06, 0.0, vSolid);
+  vec3 p = aPos + aNormal * (breathe + shrink);
+
+  vY = p.y;
+  p.y *= uFlip;
+
+  vColour = aColour;
+  vPicked = abs(aObject - uSelected) < 0.5 ? 1.0 : 0.0;
+  vNormal = vec3(aNormal.x, aNormal.y * uFlip, aNormal.z);
+  vec4 clip = uViewProj * vec4(p, 1.0);
+  vDepth = clip.w;
+  gl_Position = clip;
+}`;
+
 const SKY_VS = `#version 300 es
 in vec2 aCorner;
 out vec2 vNdc;
@@ -221,6 +277,8 @@ function cubeGeometry() {
 export const SHADERS = {
   'cube vertex': CUBE_VS,
   'cube fragment': CUBE_FS,
+  'mesh vertex': MESH_VS,
+  'mesh fragment': CUBE_FS,
   'sky vertex': SKY_VS,
   'sky fragment': SKY_FS,
   'floor vertex': FLOOR_VS,
@@ -278,6 +336,7 @@ export function createRenderer(canvas) {
   if (!gl) throw new Error('This needs WebGL2, and this browser did not provide it.');
 
   const cube = program(gl, CUBE_VS, CUBE_FS, 'cube');
+  const mesh = program(gl, MESH_VS, CUBE_FS, 'mesh');
   const sky = program(gl, SKY_VS, SKY_FS, 'sky');
   const floor = program(gl, FLOOR_VS, FLOOR_FS, 'floor');
 
@@ -310,6 +369,35 @@ export function createRenderer(canvas) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
     new Uint8Array([0, 0, 0, 0]));
+
+  let meshVao = null;
+  let meshIndexCount = 0;
+  const meshBuffers = {};
+
+  /** The same scene as a surface. Kept alongside the cubes so the two compare. */
+  function uploadMesh(surface) {
+    meshIndexCount = surface.indices.length;
+    for (const key of ['positions', 'normals', 'colours', 'seeds', 'objects',
+      'fromStep', 'untilStep']) {
+      if (meshBuffers[key]) gl.deleteBuffer(meshBuffers[key]);
+      meshBuffers[key] = buffer(surface[key]);
+    }
+    if (meshBuffers.indices) gl.deleteBuffer(meshBuffers.indices);
+    meshBuffers.indices = buffer(surface.indices, gl.ELEMENT_ARRAY_BUFFER);
+
+    if (meshVao) gl.deleteVertexArray(meshVao);
+    meshVao = gl.createVertexArray();
+    gl.bindVertexArray(meshVao);
+    attribute(mesh.handle, 'aPos', meshBuffers.positions, 3);
+    attribute(mesh.handle, 'aNormal', meshBuffers.normals, 3);
+    attribute(mesh.handle, 'aColour', meshBuffers.colours, 3);
+    attribute(mesh.handle, 'aSeed', meshBuffers.seeds, 1);
+    attribute(mesh.handle, 'aObject', meshBuffers.objects, 1);
+    attribute(mesh.handle, 'aFrom', meshBuffers.fromStep, 1);
+    attribute(mesh.handle, 'aUntil', meshBuffers.untilStep, 1);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, meshBuffers.indices);
+    gl.bindVertexArray(null);
+  }
 
   /** Hand the ground a new set of marks. Called when the current step changes. */
   function setScars(data, resolution, extent) {
@@ -437,9 +525,38 @@ export function createRenderer(canvas) {
     gl.bindVertexArray(null);
   }
 
+  function drawMesh(matrix, flip, weather, time, shimmer, selected, step, stepT) {
+    gl.useProgram(mesh.handle);
+    gl.bindVertexArray(meshVao);
+    gl.uniformMatrix4fv(mesh.u.uViewProj, false, matrix);
+    gl.uniform1f(mesh.u.uTime, time);
+    gl.uniform1f(mesh.u.uFlip, flip);
+    gl.uniform1f(mesh.u.uShimmer, shimmer);
+    gl.uniform1f(mesh.u.uStep, step);
+    gl.uniform1f(mesh.u.uStepT, stepT);
+    gl.uniform1f(mesh.u.uSelected, flip < 0 ? -1 : selected);
+    gl.uniform1f(mesh.u.uTint, flip < 0 ? 0.72 : 1.0);
+    gl.uniform1f(mesh.u.uAmbient, weather.ambient ?? 1);
+    gl.uniform3fv(mesh.u.uSun, weather.sun);
+    gl.uniform3fv(mesh.u.uSky, weather.sky);
+    gl.uniform1f(mesh.u.uFogNear, weather.fogNear ?? 26);
+    gl.uniform1f(mesh.u.uFogFar, weather.fogFar ?? 180);
+    gl.drawElements(gl.TRIANGLES, meshIndexCount, gl.UNSIGNED_INT, 0);
+    gl.bindVertexArray(null);
+  }
+
+  /** Whichever way the field is being drawn today. */
+  function drawField(surface, ...args) {
+    if (surface === 'mesh') {
+      if (meshIndexCount) drawMesh(...args);
+    } else if (instanceCount) {
+      drawCubes(...args);
+    }
+  }
+
   function draw({
     matrix, eye, time, weather = WEATHER.clear, shimmer = 0.004,
-    selected = -1, step = 0, stepT = 1,
+    selected = -1, step = 0, stepT = 1, surface = 'cubes',
   }) {
     const view = resize();
     lastView = view;
@@ -467,7 +584,7 @@ export function createRenderer(canvas) {
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
     gl.disable(gl.BLEND);
-    if (instanceCount) drawCubes(matrix, -1, weather, time, shimmer, selected, step, stepT);
+    drawField(surface, matrix, -1, weather, time, shimmer, selected, step, stepT);
 
     // 3. The floor, blended over its own reflection, carrying the weather's marks.
     gl.enable(gl.BLEND);
@@ -490,7 +607,7 @@ export function createRenderer(canvas) {
 
     // 4. The field itself.
     gl.disable(gl.BLEND);
-    if (instanceCount) drawCubes(matrix, 1, weather, time, shimmer, selected, step, stepT);
+    drawField(surface, matrix, 1, weather, time, shimmer, selected, step, stepT);
 
     gl.disable(gl.SCISSOR_TEST);
   }
@@ -498,6 +615,7 @@ export function createRenderer(canvas) {
   return {
     gl,
     upload,
+    uploadMesh,
     updatePositions,
     setScars,
     draw,

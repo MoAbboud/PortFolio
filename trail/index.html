@@ -68,6 +68,9 @@
   <div class="row"><span class="dim">mode</span><b id="mode">-</b></div>
   <div class="row"><span class="dim">step</span><b id="s-step">-</b></div>
   <div class="row"><span class="dim">selected</span><b id="s-sel">nothing</b></div>
+  <div class="row"><span class="dim">surface</span><b id="s-surface">mesh</b></div>
+  <div class="row"><span class="dim">roundness</span><b id="s-round">-</b></div>
+  <div class="row"><span class="dim">triangles</span><b id="s-tris">-</b></div>
   <div class="row"><span class="dim">cubes</span><b id="s-cubes">-</b></div>
   <div class="row"><span class="dim">cube size</span><b id="s-cube">-</b></div>
   <div class="row"><span class="dim">frame</span><b id="s-fps">-</b></div>
@@ -96,6 +99,8 @@
     <k>wheel</k>closer / further<br>
     <k>w a s d</k>walk (hold)<br>
     <k>q e</k>down / up<br>
+    <k>m</k>cubes / solid<br>
+    <k>; '</k>roundness<br>
     <k>[ ]</k>cube size<br>
     <k>f</k>fit everything<br>
     <k>c</k>copy this framing<br>
@@ -171,7 +176,8 @@ setTimeout(function () {
 
 <script type="module">
 import { voxelise, hollow } from './lib/voxel.js';
-import { assemble, bounds, place, objectBoxes } from './lib/scene.js';
+import { assemble, assembleMeshes, bounds, place, objectBoxes } from './lib/scene.js';
+import { surfaceNets } from './lib/mesh.js';
 import { toNdc, insideFrame, rayThrough, pick, groundPoint, dragTo, rotateBy } from './lib/pick.js';
 import { viewProjection, drift, routeAt, routeDuration } from './lib/camera.js';
 import { orbit, zoom, panScreen, walk, rise, fit, tidy, centreOf } from './lib/orbit.js';
@@ -260,6 +266,30 @@ async function main() {
   // only the starting arrangement.
   const layout = PLACEMENTS.map((p) => ({ ...p, at: [...p.at] }));
 
+  let surface = 'mesh';     // 'cubes' | 'mesh'
+  let roundness = 0.6;
+
+  /**
+   * Turn the same voxel grids into a smooth surface.
+   *
+   * Nothing about authoring changes: recipes still describe solids and the
+   * voxeliser still produces a grid. Only what is drawn is different, and the
+   * cubes stay uploaded so the two can be compared with one key.
+   */
+  function remesh() {
+    const meshes = {};
+    for (const [name, grid] of Object.entries(grids)) {
+      meshes[name] = surfaceNets(grid, { roundness });
+    }
+    const merged = assembleMeshes(
+      layout.map(({ model, ...rest }) => ({ mesh: meshes[model], grid: grids[model], ...rest }))
+    );
+    renderer.uploadMesh(merged);
+    el('s-tris').textContent = merged.triangles.toLocaleString();
+    el('s-round').textContent = `${Math.round(roundness * 100)}%`;
+    return merged;
+  }
+
   function rebuild() {
     grids = {};
     for (const [name, recipe] of Object.entries(recipes)) {
@@ -271,6 +301,7 @@ async function main() {
     extent = bounds(scene);
     el('s-cubes').textContent = scene.count.toLocaleString();
     el('s-cube').textContent = `${(cubeScale * 100).toFixed(0)}%`;
+    remesh();
     return scene;
   }
 
@@ -288,6 +319,8 @@ async function main() {
     scene.positions.set(part.positions.subarray(0, range.count * 3), range.start * 3);
     renderer.updatePositions(scene.positions, range.start, range.count);
     boxes = objectBoxes(scene);
+    // The surface is built from placements too, so it has to follow.
+    if (surface === 'mesh') remesh();
   }
 
   rebuild();
@@ -493,6 +526,22 @@ async function main() {
         say('clipboard refused; the arrangement is in the console');
       }
       console.log(block);
+      return;
+    }
+
+    if (key === 'm') {
+      surface = surface === 'mesh' ? 'cubes' : 'mesh';
+      el('s-surface').textContent = surface;
+      say(surface === 'mesh' ? 'solid surface' : 'cubes');
+      return;
+    }
+
+    if (key === ';' || key === "'") {
+      roundness = Math.min(1, Math.max(0, roundness + (key === "'" ? 0.15 : -0.15)));
+      surface = 'mesh';
+      el('s-surface').textContent = surface;
+      remesh();
+      say(`roundness ${Math.round(roundness * 100)}%`);
       return;
     }
 
@@ -732,6 +781,7 @@ async function main() {
     renderer.draw({
       matrix, eye, time: now / 1000, weather,
       selected: state.selected,
+      surface,
       // While roaming, show the canvas as the story left it rather than ghosting
       // half of it: roaming is for looking at the world, not for playing it.
       step: state.mode === 'roam' ? ROUTE.length - 1 : step,

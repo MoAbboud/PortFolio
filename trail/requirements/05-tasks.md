@@ -156,6 +156,10 @@ test worth trusting.
 - [x] Scars derived from the steps, so a seek looks identical to a playthrough
 - [x] Name tags on a 2D layer, fading with distance and gone by the wide shot
 - [x] Weather drives fog, ambient light, reflectivity and the specular highlight
+- [x] Surface Nets: the same voxel grids drawn as a smooth watertight surface, so curved
+      things read as curved. Authoring is unchanged; only what is drawn is different
+- [x] A roundness dial from faceted to fully relaxed, and `m` to compare against the cubes
+- [x] Both paths share one fragment shader, so they cannot disagree about light or fog
 - [ ] Rain and snow particles. Storm currently changes the light but nothing falls
 - [ ] Looped object motion from `aPivot` and `aMotion`. The data exists; nothing reads it
 

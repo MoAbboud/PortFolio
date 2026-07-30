@@ -101,6 +101,74 @@ export function assemble(placements) {
 }
 
 /**
+ * The same placements, as one merged surface instead of cubes.
+ *
+ * Each item is `{ mesh, grid, ...placement }`. Positions and normals are turned
+ * by the placement's own rotation, and indices are shifted so every object
+ * lands in one buffer and one draw.
+ */
+export function assembleMeshes(items) {
+  const count = items.reduce((n, item) => n + item.mesh.count, 0);
+  const triangles = items.reduce((n, item) => n + item.mesh.indices.length, 0);
+
+  const positions = new Float32Array(count * 3);
+  const normals = new Float32Array(count * 3);
+  const colours = new Float32Array(count * 3);
+  const seeds = new Float32Array(count);
+  const objects = new Float32Array(count);
+  const fromStep = new Float32Array(count);
+  const untilStep = new Float32Array(count);
+  const indices = new Uint32Array(triangles);
+  const ranges = [];
+
+  let at = 0;
+  let face = 0;
+  items.forEach((item, index) => {
+    const { mesh, grid } = item;
+    const scale = item.scale ?? 1;
+    const rot = ((item.rot ?? 0) * Math.PI) / 180;
+    const cos = Math.cos(rot), sin = Math.sin(rot);
+    const to = item.at ?? [0, 0, 0];
+    const palette = grid.palette.map((entry) => rgb(entry, item.tints));
+
+    for (let v = 0; v < mesh.count; v++) {
+      const lx = mesh.positions[v * 3] * scale;
+      const ly = mesh.positions[v * 3 + 1] * scale;
+      const lz = mesh.positions[v * 3 + 2] * scale;
+      positions[(at + v) * 3] = to[0] + lx * cos - lz * sin;
+      positions[(at + v) * 3 + 1] = to[1] + ly;
+      positions[(at + v) * 3 + 2] = to[2] + lx * sin + lz * cos;
+
+      const nx = mesh.normals[v * 3], ny = mesh.normals[v * 3 + 1], nz = mesh.normals[v * 3 + 2];
+      normals[(at + v) * 3] = nx * cos - nz * sin;
+      normals[(at + v) * 3 + 1] = ny;
+      normals[(at + v) * 3 + 2] = nx * sin + nz * cos;
+
+      const colour = palette[mesh.values[v] - 1] ?? [0.7, 0.7, 0.7];
+      colours[(at + v) * 3] = colour[0];
+      colours[(at + v) * 3 + 1] = colour[1];
+      colours[(at + v) * 3 + 2] = colour[2];
+      seeds[at + v] = fract(Math.sin(v * 12.9898 + index * 7.233) * 43758.5453);
+    }
+
+    objects.fill(index, at, at + mesh.count);
+    fromStep.fill(item.from ?? 0, at, at + mesh.count);
+    untilStep.fill(item.until ?? 9999, at, at + mesh.count);
+
+    for (let i = 0; i < mesh.indices.length; i++) indices[face + i] = mesh.indices[i] + at;
+
+    ranges.push({ start: at, count: mesh.count, face, faces: mesh.indices.length });
+    at += mesh.count;
+    face += mesh.indices.length;
+  });
+
+  return {
+    positions, normals, colours, seeds, objects, fromStep, untilStep,
+    indices, ranges, count, triangles: triangles / 3,
+  };
+}
+
+/**
  * A box around each placed object, for picking.
  *
  * Padded by half a cube, because a position is a cube's centre and the cube
