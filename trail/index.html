@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Trail</title>
+<!-- Inline, so the browser never requests a favicon and never logs a 404 for it. -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%235da2e8'/><rect x='4' y='7' width='3' height='3' fill='%23fff'/><rect x='9' y='5' width='3' height='3' fill='%23fff'/></svg>">
+<style>
+  html, body {
+    margin: 0; padding: 0; height: 100%; overflow: hidden;
+    background: #000; color: #dfe6ee;
+    font: 12.5px/1.55 ui-monospace, "Cascadia Mono", Consolas, monospace;
+  }
+  #stage { display: block; width: 100vw; height: 100vh; cursor: grab; touch-action: none; }
+  #stage.dragging { cursor: grabbing; }
+  #stage.panning { cursor: move; }
+
+  #hud {
+    position: fixed; left: 16px; top: 14px; z-index: 2;
+    background: rgba(8, 14, 22, .74); border: 1px solid rgba(255,255,255,.14);
+    border-radius: 6px; padding: 10px 13px; min-width: 232px;
+    backdrop-filter: blur(6px); pointer-events: none;
+  }
+  #hud b { color: #fff; font-weight: 600; }
+  .row { display: flex; justify-content: space-between; gap: 20px; }
+  .dim { color: #8ea0b4; }
+  .sep { margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,.12); }
+  .keys { color: #8ea0b4; }
+  .keys k { display: inline-block; min-width: 62px; color: #cfd9e4; font-style: normal; }
+  #mode { color: #7fd4a0; }
+  #mode.route { color: #7fb0e8; }
+
+  #toast {
+    position: fixed; left: 50%; bottom: 42px; transform: translateX(-50%);
+    z-index: 4; background: rgba(12,20,30,.92); border: 1px solid rgba(255,255,255,.18);
+    border-radius: 5px; padding: 8px 14px; opacity: 0; transition: opacity .25s;
+    pointer-events: none; white-space: pre;
+  }
+  #toast.on { opacity: 1; }
+
+  #flash { position: fixed; inset: 0; background: #fff; z-index: 5; opacity: 0; pointer-events: none; }
+  #error {
+    position: fixed; inset: 0; display: none; place-content: center;
+    padding: 6vw; z-index: 9; background: #12161c; white-space: pre-wrap; line-height: 1.7;
+  }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<div id="flash"></div>
+<div id="toast"></div>
+<div id="hud">
+  <div class="row"><span class="dim">mode</span><b id="mode">-</b></div>
+  <div class="row"><span class="dim">step</span><b id="s-step">-</b></div>
+  <div class="row"><span class="dim">cubes</span><b id="s-cubes">-</b></div>
+  <div class="row"><span class="dim">frame</span><b id="s-fps">-</b></div>
+  <div class="sep row"><span class="dim">centre</span><b id="s-centre">-</b></div>
+  <div class="row"><span class="dim">width</span><b id="s-width">-</b></div>
+  <div class="row"><span class="dim">pitch / yaw</span><b id="s-angles">-</b></div>
+  <div class="sep keys">
+    <k>drag</k>orbit<br>
+    <k>right-drag</k>pan the ground<br>
+    <k>wheel</k>closer / further<br>
+    <k>w a s d</k>walk<br>
+    <k>f</k>fit everything<br>
+    <k>c</k>copy this framing<br>
+    <k>space</k>back to the route<br>
+    <k>1 - 3</k>go to a step<br>
+    <k>r</k>restart the route<br>
+    <k>h</k>hide this panel
+  </div>
+</div>
+<div id="error"></div>
+
+<!--
+  A classic script, deliberately not a module. If a module fails to load, the
+  whole module script is skipped and any error handling inside it never runs.
+  This runs regardless, and reports what went wrong.
+-->
+<script>
+window.__trail = { started: false };
+
+function trailFail(title, detail) {
+  var box = document.getElementById('error');
+  if (!box || box.dataset.shown) return;
+  box.dataset.shown = '1';
+  box.textContent = 'Trail could not start.\n\n' + title + '\n\n' + detail;
+  box.style.display = 'grid';
+  var canvas = document.getElementById('stage');
+  if (canvas) canvas.style.display = 'none';
+  var hud = document.getElementById('hud');
+  if (hud) hud.style.display = 'none';
+}
+window.__trail.fail = trailFail;
+
+if (location.protocol === 'file:') {
+  trailFail(
+    'This page was opened from disk.',
+    'Trail is written as ES modules, and browsers refuse to load modules over\n'
+    + 'file://. Nothing is wrong with the code; it simply has to be served.\n\n'
+    + 'In PowerShell:\n\n'
+    + '    Set-Location "C:\\Users\\Absol\\OneDrive\\Documents\\GitHub\\PortFol\\trail"\n'
+    + '    npx --yes serve .\n\n'
+    + 'Then open the http://localhost address it prints.'
+  );
+}
+
+window.addEventListener('error', function (event) {
+  if (event.message) trailFail('An error was thrown.', event.message);
+}, true);
+
+window.addEventListener('unhandledrejection', function (event) {
+  trailFail('A promise failed.', String((event.reason && event.reason.message) || event.reason));
+});
+
+setTimeout(function () {
+  if (window.__trail.started || location.protocol === 'file:') return;
+  trailFail(
+    'The page loaded, but its code never ran.',
+    'That means the browser could not fetch one of the module files, which is\n'
+    + 'what a 404 in the console is telling you.\n\n'
+    + 'The usual cause is the server being started in the wrong folder. Trail\n'
+    + 'must be the ROOT of what is served, not a subfolder.\n\n'
+    + 'This page is at:\n    ' + location.href + '\n\n'
+    + 'It expects these to exist:\n'
+    + '    ' + new URL('./lib/voxel.js', location.href).href + '\n'
+    + '    ' + new URL('./models/house.json', location.href).href + '\n\n'
+    + 'Open one of those addresses directly. If it 404s, the server root is wrong.\n\n'
+    + 'Fix, in PowerShell:\n\n'
+    + '    Set-Location "C:\\Users\\Absol\\OneDrive\\Documents\\GitHub\\PortFol\\trail"\n'
+    + '    npx --yes serve .'
+  );
+}, 4000);
+</script>
+
+<script type="module">
+import { voxelise, hollow } from './lib/voxel.js';
+import { assemble, bounds } from './lib/scene.js';
+import { viewProjection, drift, routeAt, routeDuration } from './lib/camera.js';
+import { orbit, zoom, panScreen, walk, fit, tidy, centreOf } from './lib/orbit.js';
+import { createRenderer, WEATHER } from './lib/render.js';
+
+// Reached only if every module above loaded. The classic script watches for it.
+window.__trail.started = true;
+
+// --- the scene --------------------------------------------------------------
+// Three objects, three framings. Placement by hand for now; the plan view and
+// the object tray are the next stage.
+
+const PLACEMENTS = [
+  { model: 'house', at: [-6, 0, -4], rot: 14 },
+  { model: 'car',   at: [2.4, 0, 3.2], rot: -24 },
+  { model: 'tree',  at: [7, 0, -5] },
+  { model: 'tree',  at: [-13.5, 0, 3.5], scale: 1.25 },
+  { model: 'tree',  at: [9.5, 0, 5.5], scale: 0.8 },
+];
+
+const ROUTE = [
+  { framing: { x: -11, z: -8.5, w: 11, d: 8.5, pitch: 19, yaw: -6 }, hold: 5000 },
+  { framing: { x: -1.2, z: 0.6, w: 8, d: 6, pitch: 13, yaw: 16 }, hold: 5000, approachTime: 3200 },
+  { framing: { x: -18, z: -12, w: 34, d: 25, pitch: 42, yaw: 0 }, hold: 9000, approachTime: 4200 },
+];
+
+const canvas = document.getElementById('stage');
+const flash = document.getElementById('flash');
+const hud = document.getElementById('hud');
+const toast = document.getElementById('toast');
+const el = (id) => document.getElementById(id);
+
+let toastTimer;
+function say(message) {
+  toast.textContent = message;
+  toast.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('on'), 1800);
+}
+
+async function loadModel(name) {
+  const url = new URL(`./models/${name}.json`, location.href).href;
+  let response;
+  try {
+    response = await fetch(url);
+  } catch (cause) {
+    throw new Error(`could not reach ${url}\n(${cause.message})`);
+  }
+  if (!response.ok) {
+    throw new Error(`${url}\nreturned ${response.status} ${response.statusText}.`
+      + `\n\nThe file exists on disk, so the server is almost certainly rooted in`
+      + `\nthe wrong folder. Serve the trail folder itself.`);
+  }
+  return hollow(voxelise(await response.json()));
+}
+
+async function main() {
+  const renderer = createRenderer(canvas);
+
+  const names = [...new Set(PLACEMENTS.map((p) => p.model))];
+  const grids = Object.fromEntries(
+    await Promise.all(names.map(async (n) => [n, await loadModel(n)]))
+  );
+  const scene = assemble(PLACEMENTS.map(({ model, ...rest }) => ({ grid: grids[model], ...rest })));
+  renderer.upload(scene);
+  el('s-cubes').textContent = scene.count.toLocaleString();
+
+  const extent = bounds(scene);
+  const duration = routeDuration(ROUTE) / 1000;
+
+  // --- state ----------------------------------------------------------------
+  // Roaming and the route produce the same kind of value, so switching between
+  // them is a matter of which framing is current, not two camera systems.
+  const state = {
+    mode: 'route',          // 'route' | 'roam'
+    playing: true,
+    clock: 0,
+    pinned: null,
+    roaming: fit(extent),
+  };
+
+  function currentRoute() {
+    return state.pinned === null
+      ? routeAt(ROUTE, state.clock)
+      : { framing: ROUTE[state.pinned].framing, step: state.pinned, phase: 'held' };
+  }
+
+  /** Take over the camera, starting exactly where the route had left it. */
+  function roam(seedFrom) {
+    if (state.mode !== 'roam') {
+      state.roaming = { ...(seedFrom ?? currentRoute().framing) };
+      state.mode = 'roam';
+      state.playing = false;
+    }
+  }
+
+  function toRoute() {
+    state.mode = 'route';
+    state.playing = true;
+  }
+
+  // --- pointer --------------------------------------------------------------
+
+  let drag = null;
+  canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  canvas.addEventListener('pointerdown', (event) => {
+    canvas.setPointerCapture(event.pointerId);
+    const panning = event.button === 1 || event.button === 2 || event.shiftKey;
+    drag = { x: event.clientX, y: event.clientY, panning };
+    canvas.classList.add(panning ? 'panning' : 'dragging');
+    roam();
+  });
+
+  canvas.addEventListener('pointermove', (event) => {
+    if (!drag) return;
+    const dx = event.clientX - drag.x;
+    const dy = event.clientY - drag.y;
+    drag.x = event.clientX;
+    drag.y = event.clientY;
+    state.roaming = drag.panning
+      ? panScreen(state.roaming, dx, dy, canvas.clientWidth)
+      : orbit(state.roaming, -dx * 0.32, dy * 0.26);
+  });
+
+  const endDrag = (event) => {
+    if (!drag) return;
+    drag = null;
+    canvas.classList.remove('dragging', 'panning');
+    if (event && canvas.hasPointerCapture?.(event.pointerId)) {
+      canvas.releasePointerCapture(event.pointerId);
+    }
+  };
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', endDrag);
+
+  canvas.addEventListener('wheel', (event) => {
+    event.preventDefault();
+    roam();
+    state.roaming = zoom(state.roaming, event.deltaY > 0 ? 1.12 : 1 / 1.12);
+  }, { passive: false });
+
+  // --- keys -----------------------------------------------------------------
+
+  const WALK = {
+    w: [1, 0], s: [-1, 0], a: [0, -1], d: [0, 1],
+    arrowup: [1, 0], arrowdown: [-1, 0], arrowleft: [0, -1], arrowright: [0, 1],
+  };
+
+  addEventListener('keydown', async (event) => {
+    const key = event.key.toLowerCase();
+
+    if (WALK[key]) {
+      event.preventDefault();
+      roam();
+      const [forward, right] = WALK[key];
+      state.roaming = walk(state.roaming, forward * (event.shiftKey ? 3 : 1),
+        right * (event.shiftKey ? 3 : 1));
+      return;
+    }
+
+    if (key === ' ') {
+      event.preventDefault();
+      if (state.mode === 'roam') { toRoute(); say('following the route'); }
+      else state.playing = !state.playing;
+    } else if (key === 'f') {
+      roam();
+      state.roaming = fit(extent, { pitch: 42, yaw: state.roaming.yaw });
+      say('framed everything');
+    } else if (key === 'c') {
+      const framing = tidy(state.mode === 'roam' ? state.roaming : currentRoute().framing);
+      const text = `{ framing: ${JSON.stringify(framing)}, hold: 5000, approachTime: 3000 },`;
+      try {
+        await navigator.clipboard.writeText(text);
+        say('framing copied - paste it into ROUTE in index.html');
+      } catch {
+        say('clipboard refused; the framing is in the console');
+      }
+      console.log(text);
+    } else if (key === 'r') {
+      state.clock = 0; state.pinned = null; toRoute(); sync();
+    } else if (key === 'h') {
+      hud.classList.toggle('hidden');
+    } else if (key >= '1' && key <= String(ROUTE.length)) {
+      state.mode = 'route';
+      state.pinned = Number(key) - 1;
+      state.playing = false;
+    }
+  });
+
+  // --- the take -------------------------------------------------------------
+
+  // The sync flash: one white frame at the start, so lining the picture up
+  // against a voice track is a one-second job in a video editor.
+  function sync() {
+    flash.style.transition = 'none';
+    flash.style.opacity = '1';
+    requestAnimationFrame(() => {
+      flash.style.transition = 'opacity 90ms linear';
+      flash.style.opacity = '0';
+    });
+  }
+  sync();
+
+  let last = performance.now();
+  let frames = 0, fpsClock = 0;
+
+  function frame(now) {
+    const delta = Math.min((now - last) / 1000, 0.1);
+    last = now;
+
+    frames++; fpsClock += delta;
+    if (fpsClock > 0.5) {
+      el('s-fps').textContent = `${Math.round(frames / fpsClock)} fps`;
+      frames = 0; fpsClock = 0;
+    }
+
+    let framing;
+    if (state.mode === 'roam') {
+      // No drift while roaming: it would fight the hand on the mouse.
+      framing = state.roaming;
+      el('mode').textContent = 'roaming';
+      el('mode').className = '';
+      el('s-step').textContent = 'free';
+    } else {
+      if (state.playing) state.clock = (state.clock + delta) % duration;
+      const at = currentRoute();
+      framing = drift(at.framing, now / 1000);
+      el('mode').textContent = state.playing ? at.phase : 'paused';
+      el('mode').className = 'route';
+      el('s-step').textContent = `${at.step + 1} / ${ROUTE.length}`;
+    }
+
+    const [cx, cz] = centreOf(framing);
+    el('s-centre').textContent = `${cx.toFixed(1)}, ${cz.toFixed(1)}`;
+    el('s-width').textContent = framing.w.toFixed(1);
+    el('s-angles').textContent = `${(framing.pitch ?? 25).toFixed(0)} / ${(framing.yaw ?? 0).toFixed(0)}`;
+
+    const { matrix, eye } = viewProjection(framing);
+    renderer.draw({ matrix, eye, time: now / 1000, weather: WEATHER.clear });
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+main().catch((error) => {
+  window.__trail.fail('Something failed while starting up.',
+    `${error.message}\n\nServed from: ${location.href}`);
+  console.error(error);
+});
+</script>
+</body>
+</html>

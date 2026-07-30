@@ -1,0 +1,12 @@
+{
+  "name": "trail",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A voxel diorama that a camera walks through, built from a script.",
+  "scripts": {
+    "test": "node --test",
+    "serve": "npx serve .",
+    "inspect": "node tools/inspect.js"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "id": "car",
+  "aliases": ["car", "cars", "vehicle", "sedan", "drove", "driving", "drive"],
+  "unit": 0.06,
+  "anchor": "base",
+  "parts": [
+    { "solid": "box",      "at": [0, 0.62, 0],     "size": [3.8, 0.66, 1.7], "color": "#b7362c" },
+    { "solid": "box",      "at": [-0.15, 1.14, 0], "size": [1.9, 0.56, 1.5], "color": "#b7362c" },
+    { "solid": "box",      "at": [-0.15, 1.16, 0], "size": [1.74, 0.42, 1.56], "color": "#39424d" },
+    { "solid": "box",      "at": [0, 0.42, 0],     "size": [3.5, 0.2, 1.76], "color": "#2a2a2a" },
+    { "solid": "cylinder", "at": [1.24, 0.36, 0.82],  "size": [0.72, 0.26, 0.72], "axis": "z", "color": "#1c1c1c" },
+    { "solid": "cylinder", "at": [-1.24, 0.36, 0.82], "size": [0.72, 0.26, 0.72], "axis": "z", "color": "#1c1c1c" },
+    { "solid": "cylinder", "at": [1.24, 0.36, -0.82], "size": [0.72, 0.26, 0.72], "axis": "z", "color": "#1c1c1c" },
+    { "solid": "cylinder", "at": [-1.24, 0.36, -0.82],"size": [0.72, 0.26, 0.72], "axis": "z", "color": "#1c1c1c" }
+  ]
+}

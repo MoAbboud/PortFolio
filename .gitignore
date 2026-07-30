@@ -84,3 +84,6 @@ GoogleService-Info.plist
 # Local databases (may contain tokens / hashed credentials)
 *.sqlite3
 *.db
+
+# Trail working memory - kept local until the project is ready to be public
+trail/requirements/06-context.md
