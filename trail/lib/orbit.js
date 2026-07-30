@@ -9,6 +9,8 @@ export const PITCH_MIN = 1.5;
 export const PITCH_MAX = 89;
 export const WIDTH_MIN = 1.2;
 export const WIDTH_MAX = 400;
+export const HEIGHT_MIN = 0;
+export const HEIGHT_MAX = 120;
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const rad = (deg) => (deg * Math.PI) / 180;
@@ -90,13 +92,28 @@ export function walk(framing, forwardAmount, rightAmount, fraction = 0.06) {
   );
 }
 
+/**
+ * Climb, or come back down.
+ *
+ * This lifts the point being looked at rather than the eye, so going up keeps
+ * the angle you had instead of tilting further and further downward. The step
+ * is a fraction of the frame's width, so climbing feels the same close in as it
+ * does from a wide shot.
+ */
+export function rise(framing, fraction) {
+  return {
+    ...framing,
+    y: clamp((framing.y ?? 0) + framing.w * fraction, HEIGHT_MIN, HEIGHT_MAX),
+  };
+}
+
 /** A framing that takes in everything, for when you have roamed off somewhere. */
 export function fit(bounds, { pitch = 42, yaw = 0, margin = 1.25 } = {}) {
   const w = Math.max(WIDTH_MIN, (bounds.max[0] - bounds.min[0]) * margin);
   const d = Math.max(WIDTH_MIN, (bounds.max[2] - bounds.min[2]) * margin);
   const cx = (bounds.min[0] + bounds.max[0]) / 2;
   const cz = (bounds.min[2] + bounds.max[2]) / 2;
-  return { x: cx - w / 2, z: cz - d / 2, w, d, pitch, yaw };
+  return { x: cx - w / 2, z: cz - d / 2, w, d, y: 0, pitch, yaw };
 }
 
 /** Round a framing to something worth pasting into a route. */
@@ -107,6 +124,7 @@ export function tidy(framing, places = 2) {
     z: round(framing.z),
     w: round(framing.w),
     d: round(framing.d),
+    y: round(framing.y ?? 0),
     pitch: round(framing.pitch ?? 25),
     yaw: round(framing.yaw ?? 0),
   };

@@ -92,6 +92,8 @@ test worth trusting.
 - [x] 30 more tests over the camera and the scene builder, in Node
 - [x] Free roaming: drag to orbit, right-drag to pan, wheel to close in, hold to walk
 - [x] Roaming produces framings, not eye positions, so any angle found can be saved
+- [x] Ascend and descend, as two held buttons and as `q` and `e`. Lifts the point being
+      looked at rather than the eye, so climbing keeps the angle instead of tilting down
 - [x] `c` copies the current framing, ready to paste into a route
 - [x] A live cube-size multiplier, so the grain is judged by eye rather than guessed
 - [x] Cube edges doubled. The fine grain existed for the cancelled morph

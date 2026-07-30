@@ -340,6 +340,7 @@ renderer is built on. A range costs one instance attribute and one comparison.
 | `text` | This stage of the script. **Never rendered.** The script is the concatenation of these |
 | `frame` | `[x, z, width, depth]` on the plan. This rectangle fills the 16:9 frame exactly |
 | `pitch` | Degrees above the horizontal. Low is dramatic, high is a map |
+| `y` | How far the point being looked at is lifted off the ground. Absent means zero. This is how a shot climbs without tilting further downward, and it is what the ascend and descend controls change |
 | `hold` | Milliseconds to stay once arrived |
 | `approach` | `fly` or `cut` |
 | `approachTime` | Milliseconds of flight. Ignored on a cut |

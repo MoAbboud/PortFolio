@@ -3,9 +3,10 @@
 // Pure module. Given a framing, work out where the eye goes so that the
 // rectangle fills the 16:9 frame. Nothing here knows about WebGL.
 //
-// A framing is { x, z, w, d, pitch, yaw }. x and z are the rectangle's near
+// A framing is { x, z, w, d, pitch, yaw, y }. x and z are the rectangle's near
 // corner on the ground; pitch is degrees above the horizon, so 0 is standing on
-// the ground and 90 is straight down.
+// the ground and 90 is straight down. `y` lifts the point being looked at off
+// the ground, which is how the camera climbs without tilting further down.
 
 import { lookAt, perspective, multiply } from './mat4.js';
 
@@ -26,7 +27,7 @@ export function framingToView(framing) {
   const pitch = rad(framing.pitch ?? 25);
   const yaw = rad(framing.yaw ?? 0);
 
-  const target = [x + w / 2, 0, z + d / 2];
+  const target = [x + w / 2, framing.y ?? 0, z + d / 2];
 
   const tanY = Math.tan(FOV_Y / 2);
   const tanX = tanY * ASPECT;
@@ -80,6 +81,7 @@ export function lerpFraming(a, b, t, arc = 0.35) {
     z: cz - d / 2,
     w,
     d,
+    y: mix(a.y ?? 0, b.y ?? 0, e),
     pitch: mix(a.pitch ?? 25, b.pitch ?? 25, e),
     yaw: mix(a.yaw ?? 0, b.yaw ?? 0, e),
   };

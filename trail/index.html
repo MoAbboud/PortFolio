@@ -25,6 +25,16 @@
   .row { display: flex; justify-content: space-between; gap: 20px; }
   .dim { color: #8ea0b4; }
   .sep { margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,.12); }
+  .lift { display: flex; align-items: center; gap: 5px; }
+  .lift button {
+    pointer-events: auto; cursor: pointer;
+    width: 22px; height: 19px; padding: 0; margin: 0;
+    font: inherit; font-size: 10px; line-height: 1;
+    color: #cfd9e4; background: rgba(255,255,255,.09);
+    border: 1px solid rgba(255,255,255,.2); border-radius: 3px;
+  }
+  .lift button:hover { background: rgba(255,255,255,.2); color: #fff; }
+  .lift button:active { background: #7fb0e8; color: #0a1018; }
   .keys { color: #8ea0b4; }
   .keys k { display: inline-block; min-width: 62px; color: #cfd9e4; font-style: normal; }
   #mode { color: #7fd4a0; }
@@ -56,7 +66,15 @@
   <div class="row"><span class="dim">cubes</span><b id="s-cubes">-</b></div>
   <div class="row"><span class="dim">cube size</span><b id="s-cube">-</b></div>
   <div class="row"><span class="dim">frame</span><b id="s-fps">-</b></div>
-  <div class="sep row"><span class="dim">centre</span><b id="s-centre">-</b></div>
+  <div class="sep row">
+    <span class="dim">height</span>
+    <span class="lift">
+      <b id="s-height">0.0</b>
+      <button id="down" title="descend (q)">&#9660;</button>
+      <button id="up" title="ascend (e)">&#9650;</button>
+    </span>
+  </div>
+  <div class="row"><span class="dim">centre</span><b id="s-centre">-</b></div>
   <div class="row"><span class="dim">width</span><b id="s-width">-</b></div>
   <div class="row"><span class="dim">pitch / yaw</span><b id="s-angles">-</b></div>
   <div class="sep keys">
@@ -64,6 +82,7 @@
     <k>right-drag</k>pan the ground<br>
     <k>wheel</k>closer / further<br>
     <k>w a s d</k>walk (hold)<br>
+    <k>q e</k>down / up<br>
     <k>[ ]</k>cube size<br>
     <k>f</k>fit everything<br>
     <k>c</k>copy this framing<br>
@@ -140,7 +159,7 @@ setTimeout(function () {
 import { voxelise, hollow } from './lib/voxel.js';
 import { assemble, bounds } from './lib/scene.js';
 import { viewProjection, drift, routeAt, routeDuration } from './lib/camera.js';
-import { orbit, zoom, panScreen, walk, fit, tidy, centreOf } from './lib/orbit.js';
+import { orbit, zoom, panScreen, walk, rise, fit, tidy, centreOf } from './lib/orbit.js';
 import { createRenderer, WEATHER } from './lib/render.js';
 
 // Reached only if every module above loaded. The classic script watches for it.
@@ -307,19 +326,33 @@ async function main() {
     w: [1, 0], s: [-1, 0], a: [0, -1], d: [0, 1],
     arrowup: [1, 0], arrowdown: [-1, 0], arrowleft: [0, -1], arrowright: [0, 1],
   };
+  const RISE = { q: -1, e: 1 };
   const WALK_SPEED = 0.85;   // frame widths per second
+  const RISE_SPEED = 0.55;
   const WALK_EASE = 9;       // how quickly velocity catches up
 
   const held = new Set();
-  const velocity = { forward: 0, right: 0 };
+  const velocity = { forward: 0, right: 0, up: 0 };
   addEventListener('blur', () => held.clear());
 
   addEventListener('keyup', (event) => held.delete(event.key.toLowerCase()));
 
+  // The two buttons hold, exactly as the keys do, so a press-and-hold climbs
+  // smoothly rather than nudging once per click.
+  for (const [id, key] of [['up', 'e'], ['down', 'q']]) {
+    const button = el(id);
+    const start = (event) => { event.preventDefault(); roam(); held.add(key); };
+    const stop = () => held.delete(key);
+    button.addEventListener('pointerdown', start);
+    button.addEventListener('pointerup', stop);
+    button.addEventListener('pointerleave', stop);
+    button.addEventListener('pointercancel', stop);
+  }
+
   addEventListener('keydown', async (event) => {
     const key = event.key.toLowerCase();
 
-    if (WALK[key]) {
+    if (WALK[key] || RISE[key]) {
       event.preventDefault();
       held.add(key);
       roam();
@@ -391,22 +424,29 @@ async function main() {
 
     // Smooth walking: ease the velocity toward what the keys are asking for,
     // then move by time rather than by keypress.
-    const wants = { forward: 0, right: 0 };
+    const wants = { forward: 0, right: 0, up: 0 };
     for (const key of held) {
-      const [forward, right] = WALK[key];
-      wants.forward += forward;
-      wants.right += right;
+      if (WALK[key]) {
+        wants.forward += WALK[key][0];
+        wants.right += WALK[key][1];
+      }
+      if (RISE[key]) wants.up += RISE[key];
     }
     const ease = 1 - Math.exp(-delta * WALK_EASE);
     velocity.forward += (wants.forward - velocity.forward) * ease;
     velocity.right += (wants.right - velocity.right) * ease;
+    velocity.up += (wants.up - velocity.up) * ease;
 
-    if (state.mode === 'roam'
-      && (Math.abs(velocity.forward) > 0.001 || Math.abs(velocity.right) > 0.001)) {
-      state.roaming = walk(state.roaming, velocity.forward, velocity.right,
-        WALK_SPEED * delta);
-    } else if (state.mode !== 'roam') {
-      velocity.forward = velocity.right = 0;
+    if (state.mode === 'roam') {
+      if (Math.abs(velocity.forward) > 0.001 || Math.abs(velocity.right) > 0.001) {
+        state.roaming = walk(state.roaming, velocity.forward, velocity.right,
+          WALK_SPEED * delta);
+      }
+      if (Math.abs(velocity.up) > 0.001) {
+        state.roaming = rise(state.roaming, velocity.up * RISE_SPEED * delta);
+      }
+    } else {
+      velocity.forward = velocity.right = velocity.up = 0;
     }
 
     let framing;
@@ -426,6 +466,7 @@ async function main() {
     }
 
     const [cx, cz] = centreOf(framing);
+    el('s-height').textContent = (framing.y ?? 0).toFixed(1);
     el('s-centre').textContent = `${cx.toFixed(1)}, ${cz.toFixed(1)}`;
     el('s-width').textContent = framing.w.toFixed(1);
     el('s-angles').textContent = `${(framing.pitch ?? 25).toFixed(0)} / ${(framing.yaw ?? 0).toFixed(0)}`;

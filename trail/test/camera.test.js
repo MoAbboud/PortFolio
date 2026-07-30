@@ -70,12 +70,24 @@ test('easing starts at nothing and ends at everything', () => {
 });
 
 test('a flight begins and ends exactly on its framings', () => {
-  const a = F({ x: 0, z: 0, w: 10, d: 8, pitch: 20 });
-  const b = F({ x: 40, z: 30, w: 6, d: 5, pitch: 50 });
+  const a = F({ x: 0, z: 0, w: 10, d: 8, pitch: 20, y: 0 });
+  const b = F({ x: 40, z: 30, w: 6, d: 5, pitch: 50, y: 9 });
   for (const [t, expected] of [[0, a], [1, b]]) {
     const got = lerpFraming(a, b, t);
-    for (const key of ['x', 'z', 'w', 'd', 'pitch']) near(got[key], expected[key], 1e-6);
+    for (const key of ['x', 'z', 'w', 'd', 'pitch', 'y']) near(got[key], expected[key], 1e-6);
   }
+});
+
+test('a flight climbs between two heights', () => {
+  const a = F({ y: 0 });
+  const b = F({ x: 30, y: 12 });
+  const middle = lerpFraming(a, b, 0.5);
+  assert.ok(middle.y > 0 && middle.y < 12, `height did not interpolate: ${middle.y}`);
+});
+
+test('drift leaves the height alone', () => {
+  const base = F({ y: 7 });
+  for (let t = 0; t < 20; t += 1.3) assert.equal(drift(base, t).y, 7);
 });
 
 test('a flight arcs outward in the middle, so it lifts over the ground', () => {

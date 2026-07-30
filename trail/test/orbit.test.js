@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  orbit, zoom, panScreen, walk, fit, tidy, centreOf, withCentre, wrapYaw,
-  PITCH_MIN, PITCH_MAX, WIDTH_MIN, WIDTH_MAX,
+  orbit, zoom, panScreen, walk, rise, fit, tidy, centreOf, withCentre, wrapYaw,
+  PITCH_MIN, PITCH_MAX, WIDTH_MIN, WIDTH_MAX, HEIGHT_MIN, HEIGHT_MAX,
 } from '../lib/orbit.js';
 import { framingToView } from '../lib/camera.js';
 
@@ -136,6 +136,64 @@ test('walking turns with the camera', () => {
     'facing 90 degrees, forward should be mostly along x');
 });
 
+test('rising lifts the camera off the ground', () => {
+  const ground = F();
+  const up = rise(ground, 0.5);
+  assert.ok(up.y > 0, 'height should increase');
+  assert.ok(framingToView(up).eye[1] > framingToView(ground).eye[1], 'the eye should rise');
+});
+
+test('rising keeps the angle rather than tilting further down', () => {
+  // This is the whole point of lifting the look-at rather than the eye: going
+  // up must not turn into looking down.
+  const up = rise(F({ pitch: 20 }), 0.8);
+  assert.equal(up.pitch, 20);
+  assert.equal(up.yaw, F().yaw);
+});
+
+test('rising keeps the camera over the same spot', () => {
+  const before = F({ x: 12, z: -8 });
+  const after = rise(before, 0.6);
+  assert.deepEqual(centreOf(after), centreOf(before));
+  const { target } = framingToView(after);
+  assert.equal(target[0], centreOf(before)[0]);
+  assert.equal(target[2], centreOf(before)[1]);
+});
+
+test('descending stops at the ground and never goes under it', () => {
+  let framing = F();
+  for (let i = 0; i < 50; i++) framing = rise(framing, -0.4);
+  assert.equal(framing.y, HEIGHT_MIN);
+  assert.ok(framingToView(framing).eye[1] > 0);
+});
+
+test('climbing stops rather than running away', () => {
+  let framing = F();
+  for (let i = 0; i < 500; i++) framing = rise(framing, 0.4);
+  assert.equal(framing.y, HEIGHT_MAX);
+  assert.ok(framingToView(framing).eye.every(Number.isFinite));
+});
+
+test('climbing is proportional to the frame, like walking', () => {
+  const close = rise(F({ w: 6, d: 5 }), 0.2);
+  const wide = rise(F({ w: 60, d: 50 }), 0.2);
+  assert.ok(Math.abs(wide.y - close.y * 10) < 1e-9,
+    'a wide shot should climb ten times as fast as one ten times closer');
+});
+
+test('height survives being saved as a step', () => {
+  const framing = rise(F({ x: 1.234, z: 5.678 }), 0.37);
+  const saved = tidy(framing);
+  assert.ok('y' in saved, 'a saved framing must carry its height');
+  assert.ok(Math.abs(saved.y - framing.y) < 0.01);
+});
+
+test('a framing with no height behaves exactly as it did before', () => {
+  const { eye, target } = framingToView({ x: -5, z: -4, w: 10, d: 8, pitch: 25, yaw: 0 });
+  assert.equal(target[1], 0);
+  assert.ok(eye[1] > 0);
+});
+
 test('fit takes in everything that was placed', () => {
   const bounds = { min: [-14.9, 0, -7.3], max: [10.4, 5.3, 6.3] };
   const framing = fit(bounds);
@@ -157,13 +215,16 @@ test('a roamed framing is an ordinary framing, usable as a step', () => {
   framing = zoom(framing, 0.62);
   framing = panScreen(framing, 88, -140, 1920);
   framing = walk(framing, 1, -1);
+  framing = rise(framing, 0.4);
 
   const { eye, target } = framingToView(framing);
   assert.ok(eye.every(Number.isFinite) && target.every(Number.isFinite));
   assert.ok(eye[1] > 0, 'camera ended up underground');
 
+  // The full shape of a framing. If this list changes, every place that writes
+  // or reads a step needs to change with it.
   const saved = tidy(framing);
-  assert.deepEqual(Object.keys(saved).sort(), ['d', 'pitch', 'w', 'x', 'yaw', 'z']);
+  assert.deepEqual(Object.keys(saved).sort(), ['d', 'pitch', 'w', 'x', 'y', 'yaw', 'z']);
   assert.ok(Object.values(saved).every(Number.isFinite));
 });
 
