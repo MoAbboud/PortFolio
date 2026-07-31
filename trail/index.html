@@ -70,6 +70,7 @@
   <div class="row"><span class="dim">selected</span><b id="s-sel">nothing</b></div>
   <div class="row"><span class="dim">surface</span><b id="s-surface">mesh</b></div>
   <div class="row"><span class="dim">roundness</span><b id="s-round">-</b></div>
+  <div class="row"><span class="dim">shading</span><b id="s-shade">flat</b></div>
   <div class="row"><span class="dim">triangles</span><b id="s-tris">-</b></div>
   <div class="row"><span class="dim">cubes</span><b id="s-cubes">-</b></div>
   <div class="row"><span class="dim">cube size</span><b id="s-cube">-</b></div>
@@ -101,6 +102,7 @@
     <k>q e</k>down / up<br>
     <k>m</k>cubes / solid<br>
     <k>; '</k>roundness<br>
+    <k>n</k>flat / smooth<br>
     <k>[ ]</k>cube size<br>
     <k>f</k>fit everything<br>
     <k>c</k>copy this framing<br>
@@ -176,7 +178,9 @@ setTimeout(function () {
 
 <script type="module">
 import { voxelise, hollow } from './lib/voxel.js';
-import { assemble, assembleMeshes, bounds, place, objectBoxes } from './lib/scene.js';
+import {
+  assemble, assembleMeshes, contactShadows, bounds, place, objectBoxes,
+} from './lib/scene.js';
 import { surfaceNets } from './lib/mesh.js';
 import { toNdc, insideFrame, rayThrough, pick, groundPoint, dragTo, rotateBy } from './lib/pick.js';
 import { viewProjection, drift, routeAt, routeDuration } from './lib/camera.js';
@@ -267,7 +271,10 @@ async function main() {
   const layout = PLACEMENTS.map((p) => ({ ...p, at: [...p.at] }));
 
   let surface = 'mesh';     // 'cubes' | 'mesh'
-  let roundness = 0.6;
+  // No relaxation and no averaged normals. Together those two produce a crisp
+  // faceted solid; either one on its own is what made it look like putty.
+  let roundness = 0;
+  let smoothing = 0;
 
   /**
    * Turn the same voxel grids into a smooth surface.
@@ -285,6 +292,7 @@ async function main() {
       layout.map(({ model, ...rest }) => ({ mesh: meshes[model], grid: grids[model], ...rest }))
     );
     renderer.uploadMesh(merged);
+    renderer.uploadShadows(contactShadows(scene, layout));
     el('s-tris').textContent = merged.triangles.toLocaleString();
     el('s-round').textContent = `${Math.round(roundness * 100)}%`;
     return merged;
@@ -545,6 +553,13 @@ async function main() {
       return;
     }
 
+    if (key === 'n') {
+      smoothing = smoothing > 0 ? 0 : 1;
+      el('s-shade').textContent = smoothing ? 'smooth' : 'flat';
+      say(smoothing ? 'smooth shading' : 'flat shading');
+      return;
+    }
+
     if (key === '[' || key === ']') {
       cubeScale = Math.min(4, Math.max(0.25, cubeScale * (key === ']' ? 1.2 : 1 / 1.2)));
       const built = rebuild();
@@ -782,6 +797,7 @@ async function main() {
       matrix, eye, time: now / 1000, weather,
       selected: state.selected,
       surface,
+      smooth: smoothing,
       // While roaming, show the canvas as the story left it rather than ghosting
       // half of it: roaming is for looking at the world, not for playing it.
       step: state.mode === 'roam' ? ROUTE.length - 1 : step,

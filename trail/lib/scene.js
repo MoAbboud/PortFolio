@@ -118,6 +118,7 @@ export function assembleMeshes(items) {
   const objects = new Float32Array(count);
   const fromStep = new Float32Array(count);
   const untilStep = new Float32Array(count);
+  const ao = new Float32Array(count);
   const indices = new Uint32Array(triangles);
   const ranges = [];
 
@@ -149,6 +150,7 @@ export function assembleMeshes(items) {
       colours[(at + v) * 3 + 1] = colour[1];
       colours[(at + v) * 3 + 2] = colour[2];
       seeds[at + v] = fract(Math.sin(v * 12.9898 + index * 7.233) * 43758.5453);
+      ao[at + v] = mesh.ao ? mesh.ao[v] : 1;
     }
 
     objects.fill(index, at, at + mesh.count);
@@ -163,9 +165,36 @@ export function assembleMeshes(items) {
   });
 
   return {
-    positions, normals, colours, seeds, objects, fromStep, untilStep,
+    positions, normals, colours, seeds, objects, fromStep, untilStep, ao,
     indices, ranges, count, triangles: triangles / 3,
   };
+}
+
+/**
+ * A soft dark patch under each object, so things sit on the ground instead of
+ * hovering above it. Cheaper than a shadow map by an enormous margin, and for a
+ * diorama lit by one high sun it reads the same.
+ */
+export function contactShadows(scene, placements) {
+  const boxes = objectBoxes(scene);
+  const count = boxes.length;
+  const centres = new Float32Array(count * 3);
+  const radii = new Float32Array(count);
+  const fromStep = new Float32Array(count);
+  const untilStep = new Float32Array(count);
+
+  boxes.forEach((box, i) => {
+    centres[i * 3] = (box.min[0] + box.max[0]) / 2;
+    centres[i * 3 + 1] = 0;
+    centres[i * 3 + 2] = (box.min[2] + box.max[2]) / 2;
+    // Wide enough to read, tight enough not to pool under a tall thin thing.
+    const footprint = Math.max(box.max[0] - box.min[0], box.max[2] - box.min[2]);
+    radii[i] = footprint * 0.62;
+    fromStep[i] = placements[i]?.from ?? 0;
+    untilStep[i] = placements[i]?.until ?? 9999;
+  });
+
+  return { centres, radii, fromStep, untilStep, count };
 }
 
 /**

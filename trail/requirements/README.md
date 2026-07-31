@@ -26,6 +26,11 @@ through in a browser while a screen recorder points at it. Machine learning appe
 once, offline, in a Colab notebook that prepares the shape library. Nothing is learned,
 inferred or generated while the app is running.
 
+**Coarse cubes are the construction, not the look.** Objects are blocked out as chunky voxel
+solids and drawn as one smooth surface, with occlusion baked into the creases and a soft
+shadow underneath. The target is an illustration, not a voxel game. This replaced the original
+"field of cubes" identity once it was seen on a screen.
+
 **Nothing morphs.** An earlier design had cubes flowing from one shape into another. It was
 cancelled. The world is built once and the story is told by moving the camera. If a proposal
 starts to involve objects transforming into other objects, it is reviving a dead design.

@@ -97,7 +97,7 @@ service.
 - Understanding the script. It matches words against a dictionary. It does not parse grammar,
   infer meaning, or know what a sentence is about.
 - Captions and subtitles. That is the video editor's job.
-- Realism, likeness and detail. Every shape is an impression of a thing.
+- Realism, likeness and detail. Every shape is an impression of a thing, drawn cleanly.
 - Being a general 3D editor. Placement is a drag on a plan and a number in a box.
 - Physics, collision, pathfinding or simulation. Objects sit where they are put.
 - Accounts, sharing, viewers, analytics or telemetry.

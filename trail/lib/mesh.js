@@ -138,14 +138,66 @@ export function surfaceNets(grid, { roundness = 0.6, passes = 4 } = {}) {
     positions[n * 3 + 2] = offset[2] + (pz[n] + 0.5) * unit;
   }
 
+  const normals = normalsFor(positions, indices, count);
   return {
     positions,
-    normals: normalsFor(positions, indices, count),
+    normals,
     values: Uint8Array.from(value),
+    ao: occlusion(px, py, pz, normals, count, at),
     indices: Uint32Array.from(indices),
     count,
     triangles: indices.length / 3,
   };
+}
+
+// Thirteen directions, at two distances. Enough to tell a crease from a bulge
+// without sampling a whole neighbourhood per vertex.
+const PROBES = (() => {
+  const dirs = [];
+  for (let x = -1; x <= 1; x++) {
+    for (let y = -1; y <= 1; y++) {
+      for (let z = -1; z <= 1; z++) {
+        if (x === 0 && y === 0 && z === 0) continue;
+        if (dirs.some((d) => d[0] === -x && d[1] === -y && d[2] === -z)) continue;
+        dirs.push([x, y, z]);
+      }
+    }
+  }
+  return dirs.flatMap((d) => [1.4, 2.8].map((r) => {
+    const length = Math.hypot(...d);
+    return [(d[0] / length) * r, (d[1] / length) * r, (d[2] / length) * r];
+  }));
+})();
+
+/**
+ * How enclosed each vertex is.
+ *
+ * Look outward along the surface normal and count how much solid is in the way.
+ * A crease is surrounded and goes dark; an exposed corner is open and stays
+ * bright. This is what gives a smooth surface weight, and without it a low-poly
+ * shape reads as flat shading on a silhouette rather than as an object.
+ */
+function occlusion(px, py, pz, normals, count, at) {
+  const ao = new Float32Array(count);
+  for (let v = 0; v < count; v++) {
+    const nx = normals[v * 3], ny = normals[v * 3 + 1], nz = normals[v * 3 + 2];
+    let blocked = 0;
+    let total = 0;
+    for (const [ox, oy, oz] of PROBES) {
+      // Only the hemisphere the surface faces into can occlude it.
+      const facing = ox * nx + oy * ny + oz * nz;
+      if (facing <= 0) continue;
+      total += facing;
+      const solid = at(
+        Math.round(px[v] + ox),
+        Math.round(py[v] + oy),
+        Math.round(pz[v] + oz),
+      );
+      if (solid) blocked += facing;
+    }
+    ao[v] = total > 0 ? 1 - blocked / total : 1;
+  }
+  return ao;
 }
 
 /**

@@ -156,6 +156,43 @@ test('the real models mesh, and are cheaper than their cubes', () => {
   }
 });
 
+test('occlusion darkens creases and leaves open surfaces alone', () => {
+  // Two blocks with a narrow gap between them. The facing walls of the gap are
+  // enclosed and should be darker than the outer walls, which see the sky.
+  const grid = voxelise({
+    id: 'canyon', unit: 1, anchor: 'base',
+    parts: [
+      { solid: 'box', at: [-3, 3, 0], size: [4, 6, 8], color: '#888888' },
+      { solid: 'box', at: [3, 3, 0], size: [4, 6, 8], color: '#888888' },
+    ],
+  });
+  const mesh = surfaceNets(grid, { roundness: 0 });
+
+  const averageAo = (test) => {
+    let sum = 0, n = 0;
+    for (let v = 0; v < mesh.count; v++) {
+      const p = [mesh.positions[v * 3], mesh.positions[v * 3 + 1], mesh.positions[v * 3 + 2]];
+      if (!test(p)) continue;
+      sum += mesh.ao[v]; n++;
+    }
+    return n ? sum / n : null;
+  };
+
+  const inside = averageAo((p) => Math.abs(p[0]) < 1.6 && p[1] > 1 && p[1] < 5);
+  const outside = averageAo((p) => Math.abs(p[0]) > 4.4 && p[1] > 1 && p[1] < 5);
+  assert.ok(inside !== null && outside !== null, 'the test did not find the walls it needed');
+  assert.ok(inside < outside,
+    `the inside of the gap (${inside.toFixed(2)}) should be darker than the outside (${outside.toFixed(2)})`);
+});
+
+test('occlusion stays within its range', () => {
+  for (const name of ['house', 'car', 'tree']) {
+    const mesh = surfaceNets(hollow(voxelise(model(name))), { roundness: 0.6 });
+    assert.equal(mesh.ao.length, mesh.count);
+    assert.ok([...mesh.ao].every((v) => v >= 0 && v <= 1), `${name} produced occlusion out of range`);
+  }
+});
+
 test('meshing is deterministic, so a scene looks the same every load', () => {
   const grid = hollow(voxelise(model('tree')));
   const a = surfaceNets(grid, { roundness: 0.6 });

@@ -62,7 +62,8 @@ test('a fragment shader states its precision and its output', () => {
 });
 
 test('what a vertex shader sends out, its fragment shader takes in', () => {
-  const pairs = [['cube', 'cube'], ['mesh', 'mesh'], ['sky', 'sky'], ['floor', 'floor']];
+  const pairs = [['cube', 'cube'], ['mesh', 'mesh'], ['shadow', 'shadow'],
+    ['sky', 'sky'], ['floor', 'floor']];
   const declared = (source, keyword) => {
     const names = [];
     const pattern = new RegExp(`^\\s*${keyword}\\s+\\w+\\s+(\\w+)\\s*;`, 'gm');
@@ -90,7 +91,7 @@ test('every uniform the renderer sets is declared by some shader', () => {
     'uStep', 'uStepT', 'uAmbient',
     'uSun', 'uSky', 'uFogNear', 'uFogFar',
     'uHorizon', 'uSunColour', 'uExtent', 'uFloor', 'uEye',
-    'uScars', 'uScarExtent',
+    'uScars', 'uScarExtent', 'uStrength', 'uSmooth',
   ];
   for (const name of used) {
     assert.match(all, new RegExp(`uniform\\s+\\w+\\s+${name}\\s*;`),
@@ -109,7 +110,16 @@ test('every instance attribute the renderer binds is declared by the cube shader
 
 test('every vertex attribute the mesh path binds is declared by the mesh shader', () => {
   const vertex = SHADERS['mesh vertex'];
-  for (const name of ['aPos', 'aNormal', 'aColour', 'aSeed', 'aObject', 'aFrom', 'aUntil']) {
+  for (const name of ['aPos', 'aNormal', 'aColour', 'aSeed', 'aObject', 'aFrom',
+    'aUntil', 'aAo']) {
+    assert.match(vertex, new RegExp(`in\\s+\\w+\\s+${name}\\s*;`),
+      `${name} is bound by render.js but declared by no shader`);
+  }
+});
+
+test('every attribute the shadow pass binds is declared by the shadow shader', () => {
+  const vertex = SHADERS['shadow vertex'];
+  for (const name of ['aCorner', 'aCentre', 'aRadius', 'aFrom', 'aUntil']) {
     assert.match(vertex, new RegExp(`in\\s+\\w+\\s+${name}\\s*;`),
       `${name} is bound by render.js but declared by no shader`);
   }

@@ -30,6 +30,8 @@ out float vDepth;
 out float vY;
 out float vPicked;
 out float vSolid;
+out float vAo;
+out vec3 vWorld;
 
 // How present this cube is. Unvisited parts of the canvas are ghosts, they
 // solidify as the camera reaches them, and they fade back out once the story
@@ -58,8 +60,10 @@ void main() {
   vec3 p = world + aPos * aSize * grow;
   vY = p.y;
   p.y *= uFlip;
+  vWorld = p;
 
   vColour = aColour;
+  vAo = 1.0;                     // a cube has no crease of its own
   vPicked = abs(aObject - uSelected) < 0.5 ? 1.0 : 0.0;
   vNormal = vec3(aNormal.x, aNormal.y * uFlip, aNormal.z);
   vec4 clip = uViewProj * vec4(p, 1.0);
@@ -76,6 +80,8 @@ in float vDepth;
 in float vY;
 in float vPicked;
 in float vSolid;
+in float vAo;
+in vec3 vWorld;
 
 uniform vec3 uSun;
 uniform vec3 uSky;
@@ -83,14 +89,31 @@ uniform float uFogNear;
 uniform float uFogFar;
 uniform float uTint;      // mirrored pass is dimmed
 uniform float uAmbient;
+uniform float uSmooth;    // 0 flat facets, 1 averaged across the surface
 
 out vec4 frag;
 
 void main() {
-  vec3 n = normalize(vNormal);
-  float lambert = max(dot(n, normalize(uSun)), 0.0);
-  float sky = 0.5 + 0.5 * n.y;                 // a little light from above
-  vec3 colour = vColour * (0.34 + 0.52 * lambert + 0.22 * sky) * uAmbient;
+  // Flat shading, taken from how the surface changes across the screen. This
+  // is the difference between crisp faceted forms and something boneless:
+  // averaged normals make every flat plane read as curved, so a face stays a
+  // face only if it is lit by its own normal rather than its neighbours'.
+  vec3 faceted = normalize(cross(dFdx(vWorld), dFdy(vWorld)));
+  vec3 averaged = normalize(vNormal);
+  faceted *= sign(dot(faceted, averaged));   // derivatives do not know winding
+  vec3 n = normalize(mix(faceted, averaged, uSmooth));
+
+  // Wrapped lighting rather than a hard terminator. A flat cut between lit and
+  // unlit is what makes low-poly read as a rendering; softening it and letting
+  // the sky fill the shadow side is what makes it read as an illustration.
+  float sun = normalize(uSun).y > -2.0 ? dot(n, normalize(uSun)) : 0.0;
+  float lambert = max((sun + 0.35) / 1.35, 0.0);
+  float sky = 0.5 + 0.5 * n.y;
+
+  // Occlusion darkens creases, which is what gives a smooth surface weight.
+  float ao = mix(0.42, 1.0, clamp(vAo, 0.0, 1.0));
+  vec3 colour = vColour * (0.30 * ao + 0.50 * lambert * mix(0.55, 1.0, ao)
+    + 0.26 * sky * ao) * uAmbient;
 
   float fog = clamp((vDepth - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0);
   colour = mix(colour, uSky, fog * 0.85);
@@ -119,6 +142,7 @@ in float aSeed;
 in float aObject;
 in float aFrom;
 in float aUntil;
+in float aAo;
 
 uniform mat4 uViewProj;
 uniform float uTime;
@@ -134,6 +158,8 @@ out float vDepth;
 out float vY;
 out float vPicked;
 out float vSolid;
+out float vAo;
+out vec3 vWorld;
 
 float solidity(float step, float t, float from, float until) {
   if (step < from - 0.5) return 0.0;
@@ -155,13 +181,61 @@ void main() {
 
   vY = p.y;
   p.y *= uFlip;
+  vWorld = p;
 
   vColour = aColour;
+  vAo = aAo;
   vPicked = abs(aObject - uSelected) < 0.5 ? 1.0 : 0.0;
   vNormal = vec3(aNormal.x, aNormal.y * uFlip, aNormal.z);
   vec4 clip = uViewProj * vec4(p, 1.0);
   vDepth = clip.w;
   gl_Position = clip;
+}`;
+
+// A soft patch of darkness under each object. Without one, everything hovers
+// a little, and no amount of shading on the object itself fixes that.
+const SHADOW_VS = `#version 300 es
+in vec2 aCorner;
+in vec3 aCentre;
+in float aRadius;
+in float aFrom;
+in float aUntil;
+
+uniform mat4 uViewProj;
+uniform float uStep;
+uniform float uStepT;
+
+out vec2 vLocal;
+out float vSolid;
+
+float solidity(float step, float t, float from, float until) {
+  if (step < from - 0.5) return 0.0;
+  if (step < from + 0.5) return t;
+  if (step < until + 0.5) return 1.0;
+  if (step < until + 1.5) return 1.0 - t;
+  return 0.0;
+}
+
+void main() {
+  vLocal = aCorner;
+  vSolid = solidity(uStep, uStepT, aFrom, aUntil);
+  // Just above the ground, so it never fights the floor for depth.
+  vec3 p = aCentre + vec3(aCorner.x * aRadius, 0.01, aCorner.y * aRadius);
+  gl_Position = uViewProj * vec4(p, 1.0);
+}`;
+
+const SHADOW_FS = `#version 300 es
+precision highp float;
+in vec2 vLocal;
+in float vSolid;
+uniform float uStrength;
+out vec4 frag;
+void main() {
+  float edge = 1.0 - clamp(length(vLocal), 0.0, 1.0);
+  float mask = edge * edge * vSolid * uStrength;
+  // Multiplied onto the ground rather than drawn over it, so a shadow darkens
+  // whatever is beneath it instead of painting a grey disc on top.
+  frag = vec4(vec3(1.0 - mask), 1.0);
 }`;
 
 const SKY_VS = `#version 300 es
@@ -279,6 +353,8 @@ export const SHADERS = {
   'cube fragment': CUBE_FS,
   'mesh vertex': MESH_VS,
   'mesh fragment': CUBE_FS,
+  'shadow vertex': SHADOW_VS,
+  'shadow fragment': SHADOW_FS,
   'sky vertex': SKY_VS,
   'sky fragment': SKY_FS,
   'floor vertex': FLOOR_VS,
@@ -337,6 +413,7 @@ export function createRenderer(canvas) {
 
   const cube = program(gl, CUBE_VS, CUBE_FS, 'cube');
   const mesh = program(gl, MESH_VS, CUBE_FS, 'mesh');
+  const shadow = program(gl, SHADOW_VS, SHADOW_FS, 'shadow');
   const sky = program(gl, SKY_VS, SKY_FS, 'sky');
   const floor = program(gl, FLOOR_VS, FLOOR_FS, 'floor');
 
@@ -378,7 +455,7 @@ export function createRenderer(canvas) {
   function uploadMesh(surface) {
     meshIndexCount = surface.indices.length;
     for (const key of ['positions', 'normals', 'colours', 'seeds', 'objects',
-      'fromStep', 'untilStep']) {
+      'fromStep', 'untilStep', 'ao']) {
       if (meshBuffers[key]) gl.deleteBuffer(meshBuffers[key]);
       meshBuffers[key] = buffer(surface[key]);
     }
@@ -395,7 +472,36 @@ export function createRenderer(canvas) {
     attribute(mesh.handle, 'aObject', meshBuffers.objects, 1);
     attribute(mesh.handle, 'aFrom', meshBuffers.fromStep, 1);
     attribute(mesh.handle, 'aUntil', meshBuffers.untilStep, 1);
+    attribute(mesh.handle, 'aAo', meshBuffers.ao, 1);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, meshBuffers.indices);
+    gl.bindVertexArray(null);
+  }
+
+  // How much normals are averaged across the surface. 0 keeps every facet its
+  // own plane, which is what makes forms read as built rather than as moulded.
+  let smoothing = 0;
+
+  let shadowVao = null;
+  let shadowCount = 0;
+  const shadowBuffers = {};
+
+  function uploadShadows(patches) {
+    shadowCount = patches.count;
+    for (const [key, data] of Object.entries({
+      centres: patches.centres, radii: patches.radii,
+      fromStep: patches.fromStep, untilStep: patches.untilStep,
+    })) {
+      if (shadowBuffers[key]) gl.deleteBuffer(shadowBuffers[key]);
+      shadowBuffers[key] = buffer(data);
+    }
+    if (shadowVao) gl.deleteVertexArray(shadowVao);
+    shadowVao = gl.createVertexArray();
+    gl.bindVertexArray(shadowVao);
+    attribute(shadow.handle, 'aCorner', quadBuf, 2);
+    attribute(shadow.handle, 'aCentre', shadowBuffers.centres, 3, 1);
+    attribute(shadow.handle, 'aRadius', shadowBuffers.radii, 1, 1);
+    attribute(shadow.handle, 'aFrom', shadowBuffers.fromStep, 1, 1);
+    attribute(shadow.handle, 'aUntil', shadowBuffers.untilStep, 1, 1);
     gl.bindVertexArray(null);
   }
 
@@ -517,6 +623,7 @@ export function createRenderer(canvas) {
     gl.uniform1f(cube.u.uSelected, flip < 0 ? -1 : selected);
     gl.uniform1f(cube.u.uTint, flip < 0 ? 0.72 : 1.0);
     gl.uniform1f(cube.u.uAmbient, weather.ambient ?? 1);
+    gl.uniform1f(cube.u.uSmooth, smoothing);
     gl.uniform3fv(cube.u.uSun, weather.sun);
     gl.uniform3fv(cube.u.uSky, weather.sky);
     gl.uniform1f(cube.u.uFogNear, weather.fogNear ?? 26);
@@ -537,6 +644,7 @@ export function createRenderer(canvas) {
     gl.uniform1f(mesh.u.uSelected, flip < 0 ? -1 : selected);
     gl.uniform1f(mesh.u.uTint, flip < 0 ? 0.72 : 1.0);
     gl.uniform1f(mesh.u.uAmbient, weather.ambient ?? 1);
+    gl.uniform1f(mesh.u.uSmooth, smoothing);
     gl.uniform3fv(mesh.u.uSun, weather.sun);
     gl.uniform3fv(mesh.u.uSky, weather.sky);
     gl.uniform1f(mesh.u.uFogNear, weather.fogNear ?? 26);
@@ -556,8 +664,9 @@ export function createRenderer(canvas) {
 
   function draw({
     matrix, eye, time, weather = WEATHER.clear, shimmer = 0.004,
-    selected = -1, step = 0, stepT = 1, surface = 'cubes',
+    selected = -1, step = 0, stepT = 1, surface = 'cubes', smooth = 0,
   }) {
+    smoothing = smooth;
     const view = resize();
     lastView = view;
     gl.enable(gl.SCISSOR_TEST);
@@ -605,7 +714,23 @@ export function createRenderer(canvas) {
     gl.uniform1i(floor.u.uScars, 0);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-    // 4. The field itself.
+    // 4. Contact shadows, multiplied onto the ground so things sit on it.
+    if (shadowCount) {
+      gl.blendFunc(gl.DST_COLOR, gl.ZERO);
+      gl.depthMask(false);
+      gl.useProgram(shadow.handle);
+      gl.bindVertexArray(shadowVao);
+      gl.uniformMatrix4fv(shadow.u.uViewProj, false, matrix);
+      gl.uniform1f(shadow.u.uStep, step);
+      gl.uniform1f(shadow.u.uStepT, stepT);
+      gl.uniform1f(shadow.u.uStrength, 0.55);
+      gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, shadowCount);
+      gl.bindVertexArray(null);
+      gl.depthMask(true);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    }
+
+    // 5. The field itself.
     gl.disable(gl.BLEND);
     drawField(surface, matrix, 1, weather, time, shimmer, selected, step, stepT);
 
@@ -616,6 +741,7 @@ export function createRenderer(canvas) {
     gl,
     upload,
     uploadMesh,
+    uploadShadows,
     updatePositions,
     setScars,
     draw,
