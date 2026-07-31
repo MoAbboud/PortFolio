@@ -121,6 +121,7 @@ service.
 | UC-12 | Librarian | Add a missing thing | Draw it, or run the notebook | The library grows and the word resolves from then on, in this canvas and every later one |
 | UC-13 | Narrator | Record a take | Enter play mode and start | One continuous run from the first framing to the final pull-back, with nothing on screen but the world |
 | UC-14 | Narrator | Line the picture up with a voice track | Cut the capture in a video editor | The sync flash at the head of the take makes it a one-second job |
+| UC-17 | Narrator | Point at something while talking over a shot | Turn the pen on and draw | Marks on the frame that stay where they were drawn, in a colour that shows against the sky |
 | UC-15 | Builder | Keep a canvas | Save | A plain file on disk carrying the script, the world and the route, readable without Trail |
 | UC-16 | Builder | Reuse a world | Open an old canvas, paste a new script | The same place tells a different story |
 

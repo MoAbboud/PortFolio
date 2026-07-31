@@ -7,9 +7,14 @@ canvas, with a camera that walks a route through it and pulls back at the end to
 whole thing. Cheap enough to redo, consistent enough to be a visual identity, repeatable enough
 that a retake is free, and containing no artificial intelligence of any kind at runtime.
 
-Nothing is built yet. The concept is settled and has been through one major revision. The first
-question a build has to answer is whether a camera tour of a static voxel world holds attention
-for the length of a video.
+**The app is built and running.** The renderer, the camera, the route, the weather, the picking
+and the canvas file all exist, with 239 tests behind them. What does not exist is content: the
+three models are placeholders, the `.vox` importer has not been written, and the script panel -
+the app's actual concept - is missing entirely.
+
+The question this plan was framed around, whether a camera tour of a static voxel world holds
+attention, has had a soft yes on a first look and has not been tested properly on a real
+canvas. It cannot be, until there is one.
 
 ## Order of work
 
@@ -28,12 +33,12 @@ flowchart LR
 | Stage | Goal | Done when | Status |
 | --- | --- | --- | --- |
 | 1 | Concept | The workflow, the look and the boundary are settled, and the rejected designs are recorded | Done |
-| 2 | Voxel format and import | The recipe voxeliser, hollowing and encoding, three primitive recipes, then the `.vox` reader and a CC0 pack. Ordered lowest effort first, so the app runs early | Not started |
-| 3 | Field and camera | Sky, shiny floor, 16:9 frame, 400,000 static cubes at 60 frames, and a rectangle plus a pitch producing a correct framing | Not started |
-| 4 | Script, canvas and route | Edit mode: paste a script, get a tray of what it mentions, drag objects onto a plan, split the script into stages, draw a frame per stage, live preview | Not started |
-| 5 | Play mode | Ghosting, flying, weather cross-fade, scars, motion, name tags, the sync flash, and no interface at all | Not started |
-| 6 | Preparation pipeline | A Colab notebook that turns CC0 packs into `library.js` and `lookup.js`. **Not on the critical path** | Not started |
-| 7 | First real video | A narration of yours, built, recorded, cut against your voice, published | Not started |
+| 2 | Voxel format and import | The recipe voxeliser, hollowing and encoding, three primitive recipes, then the `.vox` reader and a CC0 pack | **Part done.** Voxeliser, hollowing, encoding and three models exist. The `.vox` reader does not, and it is the next real step |
+| 3 | Field and camera | Sky, shiny floor, 16:9 frame, a rectangle plus a pitch producing a correct framing | **Done**, and past it: free roaming, picking, dragging, a smooth surface, occlusion and contact shadows. Frame rate at full budget is still untested |
+| 4 | Script, canvas and route | Paste a script, get a tray of what it mentions, drag objects onto a plan, split the script into stages, draw a frame per stage | **Half done.** Objects can be placed, turned, ranged and saved, and a canvas file exists. **The script half does not exist at all**, and it is the app's whole concept |
+| 5 | Play mode | Ghosting, flying, weather cross-fade, scars, motion, name tags, the sync flash, and no interface at all | **Done**, apart from snow and motion in the cube path |
+| 6 | Preparation pipeline | A Colab notebook that turns CC0 packs into `library.js` and `lookup.js`. **Not on the critical path** | Not started. Survey and licence rules done, in `07-pipeline.md` |
+| 7 | First real video | A narration of yours, built, recorded, cut against your voice, published | Not started. Blocked on content, not on code |
 
 ### Why shapes come first, and in what order
 
@@ -59,19 +64,19 @@ This also de-risks the pipeline: by the time the notebook is written it will be 
 good Trail model looks like, which is not obvious now and cannot be worked out from a
 specification.
 
-### The test that matters, and it is early
+### The test that matters, and it has only half happened
 
-Build the smallest possible version of stages 2 and 3 and answer one question: **is a camera
-flying between three objects on a voxel diorama something a person would watch?**
+The question was: **is a camera flying between three objects on a voxel diorama something a
+person would watch?**
 
-Three hand-drawn objects, three framings, one flight between each, sixty seconds, no edit
-mode, no weather, no library. The objects are ones you drew yourself, which is the point of
-putting the importer first: the test is run against real content. If that is dull, more features will not rescue it and the honest
-response is to reconsider before building an editor on top.
+It was built and looked at, and the verdict was *"it looks pretty good for a first run"*. That
+is encouraging and it is not the test. The test is a full run on a canvas built for a real
+script, and it cannot happen while the only models are three placeholders written to have
+something on screen.
 
-The previous version of this plan had a much scarier early test - whether a hundred thousand
-cubes morphing between shapes looked good - and that whole risk was removed by the canvas
-design. What is left is a real question but a milder one, and the answer is knowable in a day.
+**Everything buildable without content is now built.** Further rendering work will keep
+polishing stand-in shapes. The two things that move the project are the `.vox` importer, which
+brings real objects in, and the script panel, which is the reason the app exists.
 
 ## Decisions already made
 

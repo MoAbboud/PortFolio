@@ -144,10 +144,43 @@ export function surfaceNets(grid, { roundness = 0.6, passes = 4 } = {}) {
     normals,
     values: Uint8Array.from(value),
     ao: occlusion(px, py, pz, normals, count, at),
+    motion: motionFor(px, py, pz, count, grid),
+    motions: grid.motions ?? [],
     indices: Uint32Array.from(indices),
     count,
     triangles: indices.length / 3,
   };
+}
+
+/**
+ * Which moving part each vertex belongs to.
+ *
+ * A vertex sits between cells, so it takes the motion of the nearest occupied
+ * one. A vertex on the seam between a swaying arm and a still body will pick a
+ * side, which is correct enough: the seam is inside the join.
+ */
+function motionFor(px, py, pz, count, grid) {
+  const out = new Uint8Array(count);
+  if (!grid.motion) return out;
+  const [nx, ny, nz] = grid.dims;
+  for (let v = 0; v < count; v++) {
+    let best = 0;
+    // The eight cells around the vertex; take the first that is solid.
+    for (let k = 0; k < 2 && !best; k++) {
+      for (let j = 0; j < 2 && !best; j++) {
+        for (let i = 0; i < 2 && !best; i++) {
+          const x = Math.floor(px[v]) + i;
+          const y = Math.floor(py[v]) + j;
+          const z = Math.floor(pz[v]) + k;
+          if (x < 0 || y < 0 || z < 0 || x >= nx || y >= ny || z >= nz) continue;
+          const at = (z * ny + y) * nx + x;
+          if (grid.cells[at]) best = grid.motion[at];
+        }
+      }
+    }
+    out[v] = best;
+  }
+  return out;
 }
 
 // Thirteen directions, at two distances. Enough to tell a crease from a bulge

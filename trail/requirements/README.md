@@ -14,10 +14,13 @@ wrong and it gets fixed rather than worked around.
 | [06-context.md](06-context.md) | Working memory and handoff. Read this first |
 | [07-pipeline.md](07-pipeline.md) | Where shapes come from: the CC0 sources, licensing, the Colab notebook, the word lookup |
 
-**Start with [06-context.md](06-context.md).** Nothing has been built yet, every decision here
-came out of two conversations, and the second one cancelled several things the first one
-settled. The context file records what was cancelled and why, which is the only way to avoid
-rebuilding it by accident.
+**Start with [06-context.md](06-context.md), then run the app.** It records what exists, what
+was cancelled and why, and where the difficulty actually is. Several decisions here replaced
+earlier ones, and the context file is the only place that says what they replaced.
+
+    Set-Location "C:\Users\Absol\OneDrive\Documents\GitHub\PortFol\trail"
+    npx --yes serve .      # then open the address it prints
+    npm test               # 239 tests, about two seconds
 
 Four things worth knowing before editing:
 

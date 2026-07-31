@@ -92,6 +92,10 @@ test worth trusting.
 - [x] 30 more tests over the camera and the scene builder, in Node
 - [x] A startup test that runs the page against a stubbed browser and draws frames, since
       `index.html` is the one file the other tests cannot reach
+- [x] The stub resolves only ids that exist in the markup, so code left pointing at a
+      deleted control fails there rather than in a browser
+- [x] Reaching for a control that is not in the markup names the id and says where to look
+- [x] Failures carry their stack and the line they came from, not just a message
 - [x] Free roaming: drag to orbit, right-drag to pan, wheel to close in, hold to walk
 - [x] Roaming produces framings, not eye positions, so any angle found can be saved
 - [x] Ascend and descend, as two held buttons and as `q` and `e`. Lifts the point being
@@ -172,7 +176,22 @@ test worth trusting.
 - [x] Rain: one fixed cloud of drops that follows the camera and wraps around it, so a
       fixed count covers any shot. Density is a weather value and cross-fades in
 - [ ] Snow. Rain exists; snow is the same pass with a different fall and drift
-- [ ] Looped object motion from `aPivot` and `aMotion`. The data exists; nothing reads it
+- [x] Looped object motion: `sway`, `spin`, `bob` and `liquid`, turning a vertex about a
+      pivot in the shader. No rig, no skeleton, and nothing per frame on the processor
+- [x] The tree's canopy sways, in three parts on different phases, while its trunk stays still
+- [ ] Motion in the cube path. Only the surface reads pivots so far
+
+### Drawing on the frame
+
+- [x] A pen layer over the composed frame, with its own floating panel at the bottom right,
+      opposite the main one so the two never crowd each other
+- [x] Six colours, a width, undo and clear
+- [x] Points kept as fractions of the frame, so a mark stays on what it was drawn on when
+      the window resizes or goes fullscreen
+- [x] Strokes drawn as curves through midpoints, so a line looks drawn rather than plotted
+- [x] The layer only takes pointer events while the pen is on, and sits below the panels
+      so the controls never stop being clickable
+- [ ] Marks are not saved. They are for talking over a shot, and vanish on reload
 
 ## Stage 5 - Play mode, originally listed
 

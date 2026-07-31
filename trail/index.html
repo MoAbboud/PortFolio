@@ -15,11 +15,35 @@
   #stage.dragging { cursor: grabbing; }
   #stage.panning { cursor: move; }
   #stage.moving { cursor: cell; }
-  /* The tag layer sits exactly over the composed frame, never over the letterbox. */
+  /* The tag and pen layers sit exactly over the composed frame, never over
+     the letterbox, so a mark stays on the thing it was drawn on. */
   #tags { position: fixed; z-index: 1; pointer-events: none; }
+  /* Below the panels. While drawing, this layer takes every pointer event over
+     the frame, and if it sat above the controls they would stop being clickable. */
+  #pen { position: fixed; z-index: 2; pointer-events: none; }
+  #pen.on { pointer-events: auto; cursor: crosshair; }
+
+  /* The pen's own floating panel, opposite the main one. */
+  #penui {
+    position: fixed; right: 16px; bottom: 16px; z-index: 4;
+    background: rgba(8, 14, 22, .84); border: 1px solid rgba(255,255,255,.14);
+    border-radius: 7px; padding: 9px 10px; backdrop-filter: blur(7px);
+    display: flex; flex-direction: column; gap: 8px; width: 152px;
+  }
+  #penui .swatches { display: flex; gap: 5px; }
+  #penui .swatches button {
+    flex: 1; height: 19px; padding: 0; cursor: pointer;
+    border: 1px solid rgba(255,255,255,.25); border-radius: 3px;
+  }
+  #penui .swatches button[aria-pressed=true] {
+    outline: 2px solid #fff; outline-offset: 1px; border-color: #fff;
+  }
+  #penui .line { display: flex; gap: 5px; }
+  #b-draw { width: 100%; }
+  #b-draw[aria-pressed=true] { background: #7fb0e8; border-color: #7fb0e8; color: #0a1018; }
 
   #hud {
-    position: fixed; left: 16px; top: 14px; bottom: 14px; z-index: 2;
+    position: fixed; left: 16px; top: 14px; bottom: 14px; z-index: 3;
     width: 250px; overflow-y: auto; overscroll-behavior: contain;
     background: rgba(8, 14, 22, .8); border: 1px solid rgba(255,255,255,.14);
     border-radius: 7px; backdrop-filter: blur(7px);
@@ -90,16 +114,18 @@
 
   #toast {
     position: fixed; left: 50%; bottom: 42px; transform: translateX(-50%);
-    z-index: 4; background: rgba(12,20,30,.92); border: 1px solid rgba(255,255,255,.18);
+    z-index: 6; background: rgba(12,20,30,.92); border: 1px solid rgba(255,255,255,.18);
     border-radius: 5px; padding: 8px 14px; opacity: 0; transition: opacity .25s;
     pointer-events: none; white-space: pre;
   }
   #toast.on { opacity: 1; }
 
-  #flash { position: fixed; inset: 0; background: #fff; z-index: 5; opacity: 0; pointer-events: none; }
+  #flash { position: fixed; inset: 0; background: #fff; z-index: 7; opacity: 0; pointer-events: none; }
   #error {
-    position: fixed; inset: 0; display: none; place-content: center;
-    padding: 6vw; z-index: 9; background: #12161c; white-space: pre-wrap; line-height: 1.7;
+    position: fixed; inset: 0; display: none; z-index: 9;
+    padding: 5vh 6vw; background: #12161c; overflow: auto;
+    white-space: pre-wrap; line-height: 1.7; color: #e8c07f;
+    font-size: 13px; align-content: center;
   }
   .hidden { display: none !important; }
 </style>
@@ -107,6 +133,19 @@
 <body>
 <canvas id="stage"></canvas>
 <canvas id="tags"></canvas>
+<canvas id="pen"></canvas>
+<div id="penui">
+  <button class="btn" id="b-draw" aria-pressed="false">draw</button>
+  <div class="swatches" id="swatches"></div>
+  <div class="ctl">
+    <div class="row"><span class="dim">width</span><span class="val" id="v-pen">3</span></div>
+    <input type="range" id="r-pen" min="1" max="12" step="1" value="3">
+  </div>
+  <div class="line">
+    <button class="btn" id="b-undo">undo</button>
+    <button class="btn" id="b-clear">clear</button>
+  </div>
+</div>
 <div id="flash"></div>
 <div id="toast"></div>
 <div id="hud">
@@ -204,8 +243,9 @@
       <k>q e</k>down / up<br>
       <k>f</k>fit everything<br>
       <k>space</k>play / route<br>
+      <k>d</k>draw on the frame<br>
       <k>enter</k>fullscreen<br>
-      <k>h</k>hide this panel
+      <k>h</k>hide the panels
     </div>
   </details>
 
@@ -259,11 +299,19 @@ if (location.protocol === 'file:') {
 }
 
 window.addEventListener('error', function (event) {
-  if (event.message) trailFail('An error was thrown.', event.message);
+  if (!event.message) return;
+  var where = event.filename
+    ? '\n\nWhere:\n  ' + event.filename + ' line ' + event.lineno + ', column ' + event.colno
+    : '';
+  var stack = event.error && event.error.stack ? '\n\n' + event.error.stack : '';
+  trailFail('An error was thrown.', event.message + where + stack);
 }, true);
 
 window.addEventListener('unhandledrejection', function (event) {
-  trailFail('A promise failed.', String((event.reason && event.reason.message) || event.reason));
+  var reason = event.reason;
+  var detail = reason && reason.message ? reason.message : String(reason);
+  if (reason && reason.stack) detail += '\n\n' + reason.stack;
+  trailFail('A promise failed.', detail);
 });
 
 setTimeout(function () {
@@ -300,6 +348,7 @@ import { lerpWeather, resolve as resolveWeather, stampsUpTo } from './lib/weathe
 import { scarMap } from './lib/scars.js';
 import { multiply } from './lib/mat4.js';
 import { serialise, parse, isRefusal } from './lib/canvas.js';
+import * as pen from './lib/pen.js';
 
 // Reached only if every module above loaded. The classic script watches for it.
 window.__trail.started = true;
@@ -334,7 +383,27 @@ const canvas = document.getElementById('stage');
 const flash = document.getElementById('flash');
 const hud = document.getElementById('hud');
 const toast = document.getElementById('toast');
-const el = (id) => document.getElementById(id);
+/**
+ * An element, or a useful complaint.
+ *
+ * Reaching for a control that is not in the markup used to surface as "cannot
+ * read properties of null", several frames away from the line that caused it
+ * and naming nothing. Renaming and removing controls is ordinary work, so the
+ * failure has to say which id, and where to look.
+ */
+const el = (id) => {
+  const node = document.getElementById(id);
+  if (node) return node;
+  const error = new Error(
+    `The page has no element with id "${id}".\n\n`
+    + 'Something in the code is reaching for a control that is not in the\n'
+    + 'markup. It was probably renamed or removed and this reference was left\n'
+    + `behind. Either add an element with id "${id}", or delete whatever is\n`
+    + 'still asking for it.'
+  );
+  error.missingId = id;
+  throw error;
+};
 
 let toastTimer;
 function say(message) {
@@ -637,8 +706,12 @@ async function main() {
     } else if (key === 'enter') {
       event.preventDefault();
       toggleFullscreen();
+    } else if (key === 'd') {
+      penMode(!ink.on);
     } else if (key === 'h') {
-      hud.classList.toggle('hidden');
+      const hiding = !hud.classList.contains('hidden');
+      hud.classList.toggle('hidden', hiding);
+      el('penui').classList.toggle('hidden', hiding);
     } else if (key >= '1' && key <= String(route.length)) {
       state.mode = 'route';
       state.pinned = Number(key) - 1;
@@ -845,6 +918,105 @@ async function main() {
       flash.style.opacity = '0';
     });
   }
+  // --- the pen --------------------------------------------------------------
+  // Marks on the glass, not in the world. They do not turn with the camera and
+  // they are not part of the canvas: this is for pointing at a shot while
+  // talking over it.
+
+  const penCanvas = el('pen');
+  const penCtx = penCanvas.getContext('2d');
+  const strokes = [];
+  const ink = { on: false, colour: pen.COLOURS[0], width: pen.WIDTH.default };
+  let inkDirty = true;
+  let drawing = null;
+
+  function paintInk() {
+    const view = renderer.view.css;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.round(view.w * dpr);
+    const h = Math.round(view.h * dpr);
+    if (penCanvas.width !== w || penCanvas.height !== h) {
+      penCanvas.width = w;
+      penCanvas.height = h;
+      inkDirty = true;
+    }
+    penCanvas.style.left = `${view.x}px`;
+    penCanvas.style.top = `${view.y}px`;
+    penCanvas.style.width = `${view.w}px`;
+    penCanvas.style.height = `${view.h}px`;
+    if (!inkDirty) return;
+    inkDirty = false;
+    penCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    pen.draw(penCtx, strokes, view.w, view.h);
+  }
+
+  function penMode(on) {
+    ink.on = on;
+    penCanvas.classList.toggle('on', on);
+    el('b-draw').setAttribute('aria-pressed', String(on));
+  }
+
+  penCanvas.addEventListener('pointerdown', (event) => {
+    if (!ink.on) return;
+    event.preventDefault();
+    penCanvas.setPointerCapture(event.pointerId);
+    const rect = penCanvas.getBoundingClientRect();
+    drawing = pen.start(ink.colour, ink.width);
+    pen.extend(drawing, ...pen.toFrame(event.clientX, event.clientY,
+      { x: rect.left, y: rect.top, w: rect.width, h: rect.height }));
+    strokes.push(drawing);
+    inkDirty = true;
+  });
+
+  penCanvas.addEventListener('pointermove', (event) => {
+    if (!drawing) return;
+    const rect = penCanvas.getBoundingClientRect();
+    const at = pen.toFrame(event.clientX, event.clientY,
+      { x: rect.left, y: rect.top, w: rect.width, h: rect.height });
+    if (pen.extend(drawing, ...at)) inkDirty = true;
+  });
+
+  const endStroke = () => { drawing = null; };
+  penCanvas.addEventListener('pointerup', endStroke);
+  penCanvas.addEventListener('pointercancel', endStroke);
+
+  // Swatches are built from the palette, so adding a colour is a one-line edit.
+  const swatches = el('swatches');
+  pen.COLOURS.forEach((colour) => {
+    const button = document.createElement('button');
+    button.style.background = colour;
+    button.dataset.v = colour;
+    button.title = colour;
+    button.addEventListener('click', () => {
+      ink.colour = colour;
+      paintSwatches();
+      if (!ink.on) penMode(true);
+    });
+    swatches.append(button);
+  });
+  function paintSwatches() {
+    for (const b of swatches.children) {
+      b.setAttribute('aria-pressed', String(b.dataset.v === ink.colour));
+    }
+  }
+  paintSwatches();
+
+  el('b-draw').addEventListener('click', () => penMode(!ink.on));
+  el('b-undo').addEventListener('click', () => {
+    if (pen.undo(strokes)) inkDirty = true;
+    else say('nothing to undo');
+  });
+  el('b-clear').addEventListener('click', () => {
+    if (!strokes.length) return;
+    strokes.length = 0;
+    inkDirty = true;
+    say('marks cleared');
+  });
+  el('r-pen').addEventListener('input', (event) => {
+    ink.width = Number(event.target.value);
+    el('v-pen').textContent = String(ink.width);
+  });
+
   // --- the panel ------------------------------------------------------------
   // Keys move the camera. Everything that is a value lives here, in one place,
   // with its number showing, so nothing has to be remembered.
@@ -1084,6 +1256,7 @@ async function main() {
       stepT,
     });
     drawTags(matrix, state.mode === 'roam' ? route.length - 1 : step);
+    paintInk();
 
     const fill = renderer.view.fill;
     const percent = Math.round(fill * 100);
@@ -1098,10 +1271,29 @@ async function main() {
 }
 
 main().catch((error) => {
-  window.__trail.fail('Something failed while starting up.',
-    `${error.message}\n\nServed from: ${location.href}`);
+  window.__trail.fail('Something failed while starting up.', report(error));
   console.error(error);
 });
+
+/** Everything worth knowing about a failure, in the order it is worth knowing it. */
+function report(error) {
+  const lines = [error?.message ?? String(error)];
+
+  // The first frame inside the page is the one that matters. The rest of the
+  // stack is usually the browser's own machinery.
+  const frames = String(error?.stack ?? '')
+    .split('\n')
+    .slice(1)
+    .map((line) => line.trim())
+    .filter((line) => line.includes(location.origin) || line.includes('at '));
+  if (frames.length) {
+    lines.push('', 'Where:', ...frames.slice(0, 4).map((f) => `  ${f}`));
+  }
+
+  lines.push('', `Served from: ${location.href}`);
+  lines.push('The full error and its stack are in the browser console.');
+  return lines.join('\n');
+}
 </script>
 </body>
 </html>

@@ -193,6 +193,42 @@ test('occlusion stays within its range', () => {
   }
 });
 
+test('vertices inherit the moving part they belong to', () => {
+  const grid = hollow(voxelise(model('tree')));
+  const mesh = surfaceNets(grid, { roundness: 0 });
+
+  assert.ok(mesh.motions.length > 0, 'the tree should declare moving parts');
+  assert.equal(mesh.motion.length, mesh.count);
+
+  const moving = [...mesh.motion].filter((m) => m > 0).length;
+  assert.ok(moving > 0, 'nothing in the tree moves');
+  assert.ok(moving < mesh.count, 'the whole tree moves, including the trunk');
+
+  // Every motion index must point at a part that exists.
+  for (const index of mesh.motion) {
+    assert.ok(index <= mesh.motions.length, `motion ${index} has no part behind it`);
+  }
+});
+
+test('only the parts that should move do', () => {
+  const grid = hollow(voxelise(model('tree')));
+  const mesh = surfaceNets(grid, { roundness: 0 });
+  const heightOf = (v) => mesh.positions[v * 3 + 1];
+
+  let lowStill = 0, lowMoving = 0;
+  for (let v = 0; v < mesh.count; v++) {
+    if (heightOf(v) > 1.0) continue;      // the trunk, below the canopy
+    if (mesh.motion[v]) lowMoving++; else lowStill++;
+  }
+  assert.ok(lowStill > lowMoving, 'the trunk should mostly be still');
+});
+
+test('a model with no moving parts still meshes', () => {
+  const mesh = surfaceNets(hollow(voxelise(model('house'))), { roundness: 0 });
+  assert.equal(mesh.motions.length, 0);
+  assert.ok([...mesh.motion].every((m) => m === 0), 'a house should not sway');
+});
+
 test('meshing is deterministic, so a scene looks the same every load', () => {
   const grid = hollow(voxelise(model('tree')));
   const a = surfaceNets(grid, { roundness: 0.6 });

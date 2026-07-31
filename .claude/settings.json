@@ -16,7 +16,8 @@
       "Read(//c/Users/Absol/OneDrive/Documents/GitHub/PortFol/trail/**)",
       "Bash(grep -n \"^  select\\(-1\\);\\\\|^  }$\" index.html)",
       "Bash(node --test test/startup.test.js)",
-      "Bash(cd \"c:/Users/Absol/OneDrive/Documents/GitHub/PortFol/trail\" *)"
+      "Bash(cd \"c:/Users/Absol/OneDrive/Documents/GitHub/PortFol/trail\" *)",
+      "Bash(node --test test/pen.test.js)"
     ],
     "additionalDirectories": [
       "\\tmp"

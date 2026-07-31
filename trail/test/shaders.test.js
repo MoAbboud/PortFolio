@@ -112,7 +112,7 @@ test('every instance attribute the renderer binds is declared by the cube shader
 test('every vertex attribute the mesh path binds is declared by the mesh shader', () => {
   const vertex = SHADERS['mesh vertex'];
   for (const name of ['aPos', 'aNormal', 'aColour', 'aSeed', 'aObject', 'aFrom',
-    'aUntil', 'aAo']) {
+    'aUntil', 'aAo', 'aPivot', 'aMotion']) {
     assert.match(vertex, new RegExp(`in\\s+\\w+\\s+${name}\\s*;`),
       `${name} is bound by render.js but declared by no shader`);
   }

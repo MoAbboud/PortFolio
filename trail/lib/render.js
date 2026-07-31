@@ -143,6 +143,8 @@ in float aObject;
 in float aFrom;
 in float aUntil;
 in float aAo;
+in vec3 aPivot;
+in vec4 aMotion;   // kind, amplitude in radians, phase, axis
 
 uniform mat4 uViewProj;
 uniform float uTime;
@@ -151,6 +153,29 @@ uniform float uShimmer;
 uniform float uSelected;
 uniform float uStep;
 uniform float uStepT;
+
+// Small looped movement about a point. Enough for an arm swaying, a wheel
+// turning, a canopy in the wind and water on a pool; deliberately not enough
+// for a walk cycle, which is not what a diorama needs.
+vec3 turned(vec3 p, vec3 pivot, vec4 m, float t) {
+  if (m.x < 0.5 || m.y == 0.0) return p;
+  float wave = sin(t * 1.15 + m.z);
+  vec3 rel = p - pivot;
+
+  if (m.x > 2.5 && m.x < 3.5) return p + vec3(0.0, wave * m.y * 0.6, 0.0);   // bob
+  if (m.x > 3.5) {
+    // liquid: a travelling wave, so a surface moves rather than pulsing.
+    return p + vec3(0.0, sin(t * 1.6 + p.x * 2.2 + p.z * 1.7) * m.y * 0.5, 0.0);
+  }
+
+  float angle = m.x > 1.5 ? t * m.y * 3.0 : wave * m.y;   // spin, or sway
+  float c = cos(angle), s = sin(angle);
+  vec3 out3 = rel;
+  if (m.w < 0.5)      out3 = vec3(rel.x, rel.y * c - rel.z * s, rel.y * s + rel.z * c);
+  else if (m.w < 1.5) out3 = vec3(rel.x * c + rel.z * s, rel.y, -rel.x * s + rel.z * c);
+  else                out3 = vec3(rel.x * c - rel.y * s, rel.x * s + rel.y * c, rel.z);
+  return pivot + out3;
+}
 
 out vec3 vColour;
 out vec3 vNormal;
@@ -177,7 +202,7 @@ void main() {
   // reads as not-yet-arrived the same way a smaller cube did.
   float breathe = sin(uTime * 1.1 + aSeed * 6.2831853) * uShimmer * 3.0;
   float shrink = mix(-0.06, 0.0, vSolid);
-  vec3 p = aPos + aNormal * (breathe + shrink);
+  vec3 p = turned(aPos, aPivot, aMotion, uTime) + aNormal * (breathe + shrink);
 
   vY = p.y;
   p.y *= uFlip;
@@ -512,7 +537,7 @@ export function createRenderer(canvas) {
   function uploadMesh(surface) {
     meshIndexCount = surface.indices.length;
     for (const key of ['positions', 'normals', 'colours', 'seeds', 'objects',
-      'fromStep', 'untilStep', 'ao']) {
+      'fromStep', 'untilStep', 'ao', 'pivots', 'motion']) {
       if (meshBuffers[key]) gl.deleteBuffer(meshBuffers[key]);
       meshBuffers[key] = buffer(surface[key]);
     }
@@ -530,6 +555,8 @@ export function createRenderer(canvas) {
     attribute(mesh.handle, 'aFrom', meshBuffers.fromStep, 1);
     attribute(mesh.handle, 'aUntil', meshBuffers.untilStep, 1);
     attribute(mesh.handle, 'aAo', meshBuffers.ao, 1);
+    attribute(mesh.handle, 'aPivot', meshBuffers.pivots, 3);
+    attribute(mesh.handle, 'aMotion', meshBuffers.motion, 4);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, meshBuffers.indices);
     gl.bindVertexArray(null);
   }

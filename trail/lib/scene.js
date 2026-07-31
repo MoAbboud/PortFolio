@@ -119,8 +119,14 @@ export function assembleMeshes(items) {
   const fromStep = new Float32Array(count);
   const untilStep = new Float32Array(count);
   const ao = new Float32Array(count);
+  // Where a vertex turns, and how. Zero amplitude means it does not.
+  const pivots = new Float32Array(count * 3);
+  const motion = new Float32Array(count * 4);
   const indices = new Uint32Array(triangles);
   const ranges = [];
+
+  const MOTION_KIND = { sway: 1, spin: 2, bob: 3, liquid: 4 };
+  const AXIS = { x: 0, y: 1, z: 2 };
 
   let at = 0;
   let face = 0;
@@ -151,6 +157,21 @@ export function assembleMeshes(items) {
       colours[(at + v) * 3 + 2] = colour[2];
       seeds[at + v] = fract(Math.sin(v * 12.9898 + index * 7.233) * 43758.5453);
       ao[at + v] = mesh.ao ? mesh.ao[v] : 1;
+
+      // A pivot is a point in the model, so it is placed exactly as the vertex
+      // beside it: scaled, turned, and moved with the object.
+      const part = mesh.motion?.[v] ? mesh.motions[mesh.motion[v] - 1] : null;
+      if (part) {
+        const [ox, oy, oz] = part.pivot;
+        const sx = ox * scale, sy = oy * scale, sz = oz * scale;
+        pivots[(at + v) * 3] = to[0] + sx * cos - sz * sin;
+        pivots[(at + v) * 3 + 1] = to[1] + sy;
+        pivots[(at + v) * 3 + 2] = to[2] + sx * sin + sz * cos;
+        motion[(at + v) * 4] = MOTION_KIND[part.type] ?? 0;
+        motion[(at + v) * 4 + 1] = ((part.amp ?? 4) * Math.PI) / 180;
+        motion[(at + v) * 4 + 2] = (part.phase ?? 0) * Math.PI * 2;
+        motion[(at + v) * 4 + 3] = AXIS[part.axis ?? 'x'] ?? 0;
+      }
     }
 
     objects.fill(index, at, at + mesh.count);
@@ -166,6 +187,7 @@ export function assembleMeshes(items) {
 
   return {
     positions, normals, colours, seeds, objects, fromStep, untilStep, ao,
+    pivots, motion,
     indices, ranges, count, triangles: triangles / 3,
   };
 }

@@ -208,6 +208,29 @@ test('the page starts, loads its models, and draws', async () => {
   assert.ok(stub.frames() > 1, 'the page never drew a frame');
 });
 
+test('a control that is not in the markup is reported by name', async () => {
+  // Removing a control and leaving code that reaches for it is ordinary work
+  // gone slightly wrong, and it used to surface as "cannot read properties of
+  // null" naming nothing. This checks the complaint, not just the crash.
+  const ids = declaredIds();
+  ids.delete('b-play');
+
+  const stub = stubBrowser({ ids });
+  const scratch = new URL('../.startup-missing.mjs', import.meta.url);
+  writeFileSync(scratch, extractModule());
+  try {
+    await import(`${scratch.href}?t=${Date.now()}`);
+    for (let i = 0; i < 20; i++) await new Promise((r) => setTimeout(r, 0));
+  } finally {
+    rmSync(scratch, { force: true });
+  }
+
+  assert.equal(stub.failures.length, 1, 'a missing control should stop the page');
+  const said = stub.failures[0];
+  assert.match(said, /b-play/, 'the failure must name the id that is missing');
+  assert.match(said, /markup/i, 'and say where to look for it');
+});
+
 test('every element the page reaches for exists in its own markup', () => {
   // The other half of the same class of bug: renaming a panel row and leaving
   // something reading the old id.
