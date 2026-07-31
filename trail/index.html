@@ -19,29 +19,74 @@
   #tags { position: fixed; z-index: 1; pointer-events: none; }
 
   #hud {
-    position: fixed; left: 16px; top: 14px; z-index: 2;
-    background: rgba(8, 14, 22, .74); border: 1px solid rgba(255,255,255,.14);
-    border-radius: 6px; padding: 10px 13px; min-width: 232px;
-    backdrop-filter: blur(6px); pointer-events: none;
+    position: fixed; left: 16px; top: 14px; bottom: 14px; z-index: 2;
+    width: 250px; overflow-y: auto; overscroll-behavior: contain;
+    background: rgba(8, 14, 22, .8); border: 1px solid rgba(255,255,255,.14);
+    border-radius: 7px; backdrop-filter: blur(7px);
   }
-  #hud b { color: #fff; font-weight: 600; }
-  .row { display: flex; justify-content: space-between; gap: 20px; }
+  #hud::-webkit-scrollbar { width: 7px; }
+  #hud::-webkit-scrollbar-thumb { background: rgba(255,255,255,.18); border-radius: 4px; }
+
+  #hud .head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 9px 12px; border-bottom: 1px solid rgba(255,255,255,.12);
+    position: sticky; top: 0; background: rgba(8,14,22,.94); z-index: 1;
+  }
+  #hud .head b { letter-spacing: .14em; text-transform: uppercase; font-size: 11px; }
+  #hud .head span { color: #7f8fa2; }
+
+  /* Categories. Native disclosure, so collapsing costs no code. */
+  #hud details { border-bottom: 1px solid rgba(255,255,255,.08); }
+  #hud summary {
+    cursor: pointer; padding: 7px 12px; color: #8ea0b4; user-select: none;
+    letter-spacing: .09em; text-transform: uppercase; font-size: 10.5px;
+  }
+  #hud summary:hover { color: #cfd9e4; background: rgba(255,255,255,.04); }
+  #hud summary::marker { color: #56657a; }
+  #hud .body { padding: 2px 12px 11px; }
+
+  .row { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
   .dim { color: #8ea0b4; }
-  .sep { margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,.12); }
-  .lift { display: flex; align-items: center; gap: 5px; }
-  .lift button {
-    pointer-events: auto; cursor: pointer;
-    width: 22px; height: 19px; padding: 0; margin: 0;
-    font: inherit; font-size: 10px; line-height: 1;
-    color: #cfd9e4; background: rgba(255,255,255,.09);
-    border: 1px solid rgba(255,255,255,.2); border-radius: 3px;
+  #hud b { color: #fff; font-weight: 600; }
+
+  /* Sliders */
+  .ctl { margin: 9px 0; }
+  .ctl .row { margin-bottom: 3px; }
+  .ctl .val { color: #7fb0e8; font-variant-numeric: tabular-nums; }
+  input[type=range] {
+    -webkit-appearance: none; appearance: none; width: 100%; height: 15px;
+    background: transparent; cursor: pointer; margin: 0; display: block;
   }
-  .lift button:hover { background: rgba(255,255,255,.2); color: #fff; }
-  .lift button:active { background: #7fb0e8; color: #0a1018; }
-  .keys { color: #8ea0b4; }
-  .keys k { display: inline-block; min-width: 62px; color: #cfd9e4; font-style: normal; }
+  input[type=range]::-webkit-slider-runnable-track {
+    height: 3px; border-radius: 2px; background: rgba(255,255,255,.17);
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none; margin-top: -5px;
+    width: 13px; height: 13px; border-radius: 50%;
+    background: #7fb0e8; border: none;
+  }
+  input[type=range]:hover::-webkit-slider-thumb { background: #a8ccf2; }
+  input[type=range]::-moz-range-track { height: 3px; border-radius: 2px; background: rgba(255,255,255,.17); }
+  input[type=range]::-moz-range-thumb { width: 13px; height: 13px; border: none; border-radius: 50%; background: #7fb0e8; }
+
+  /* Segmented choices and plain buttons */
+  .seg { display: flex; gap: 4px; margin: 9px 0; flex-wrap: wrap; }
+  .seg button, .btn {
+    flex: 1 1 auto; cursor: pointer; padding: 5px 7px; min-width: 0;
+    font: inherit; font-size: 11px; color: #cfd9e4;
+    background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.16);
+    border-radius: 4px; white-space: nowrap;
+  }
+  .seg button:hover, .btn:hover { background: rgba(255,255,255,.17); color: #fff; }
+  .seg button[aria-pressed=true] { background: #7fb0e8; border-color: #7fb0e8; color: #0a1018; }
+  .btn { margin: 4px 0; }
+  .buttons { display: flex; gap: 5px; margin: 8px 0 2px; }
+
+  .keys { color: #8ea0b4; line-height: 1.75; }
+  .keys k { display: inline-block; min-width: 74px; color: #cfd9e4; font-style: normal; }
   #mode { color: #7fd4a0; }
   #mode.route { color: #7fb0e8; }
+  .warn { color: #e8c07f; }
 
   #toast {
     position: fixed; left: 50%; bottom: 42px; transform: translateX(-50%);
@@ -65,54 +110,119 @@
 <div id="flash"></div>
 <div id="toast"></div>
 <div id="hud">
-  <div class="row"><span class="dim">mode</span><b id="mode">-</b></div>
-  <div class="row"><span class="dim">step</span><b id="s-step">-</b></div>
-  <div class="row"><span class="dim">selected</span><b id="s-sel">nothing</b></div>
-  <div class="row"><span class="dim">surface</span><b id="s-surface">mesh</b></div>
-  <div class="row"><span class="dim">roundness</span><b id="s-round">-</b></div>
-  <div class="row"><span class="dim">shading</span><b id="s-shade">flat</b></div>
-  <div class="row"><span class="dim">triangles</span><b id="s-tris">-</b></div>
-  <div class="row"><span class="dim">cubes</span><b id="s-cubes">-</b></div>
-  <div class="row"><span class="dim">cube size</span><b id="s-cube">-</b></div>
-  <div class="row"><span class="dim">frame</span><b id="s-fps">-</b></div>
-  <div class="row"><span class="dim">frame fills</span><b id="s-fill">-</b></div>
-  <div class="sep row">
-    <span class="dim">height</span>
-    <span class="lift">
-      <b id="s-height">0.0</b>
-      <button id="down" title="descend (q)">&#9660;</button>
-      <button id="up" title="ascend (e)">&#9650;</button>
-    </span>
-  </div>
-  <div class="row"><span class="dim">centre</span><b id="s-centre">-</b></div>
-  <div class="row"><span class="dim">width</span><b id="s-width">-</b></div>
-  <div class="row"><span class="dim">pitch / yaw</span><b id="s-angles">-</b></div>
-  <div class="sep keys">
-    <k>click</k>select an object<br>
-    <k>drag it</k>move it<br>
-    <k>, .</k>turn it<br>
-    <k>esc</k>deselect<br>
-    <k>p</k>copy arrangement<br>
-  </div>
-  <div class="sep keys">
-    <k>drag</k>orbit<br>
-    <k>right-drag</k>pan the ground<br>
-    <k>wheel</k>closer / further<br>
-    <k>w a s d</k>walk (hold)<br>
-    <k>q e</k>down / up<br>
-    <k>m</k>cubes / solid<br>
-    <k>; '</k>roundness<br>
-    <k>n</k>flat / smooth<br>
-    <k>[ ]</k>cube size<br>
-    <k>f</k>fit everything<br>
-    <k>c</k>copy this framing<br>
-    <k>enter</k>fullscreen (no bars)<br>
-    <k>space</k>back to the route<br>
-    <k>1 - 3</k>go to a step<br>
-    <k>r</k>restart the route<br>
-    <k>h</k>hide this panel
-  </div>
+  <div class="head"><b>trail</b><span id="s-fps">-</span></div>
+
+  <details open>
+    <summary>playback</summary>
+    <div class="body">
+      <div class="row"><span class="dim">mode</span><b id="mode">-</b></div>
+      <div class="row"><span class="dim">step</span><b id="s-step">-</b></div>
+      <div class="seg" id="steps"></div>
+      <div class="buttons">
+        <button class="btn" id="b-play">play</button>
+        <button class="btn" id="b-restart">restart</button>
+      </div>
+    </div>
+  </details>
+
+  <details open>
+    <summary>look</summary>
+    <div class="body">
+      <div class="seg" id="surface">
+        <button data-v="mesh">solid</button>
+        <button data-v="cubes">cubes</button>
+      </div>
+      <div class="ctl">
+        <div class="row"><span class="dim">roundness</span><span class="val" id="v-round">0%</span></div>
+        <input type="range" id="r-round" min="0" max="100" step="5" value="0">
+      </div>
+      <div class="ctl">
+        <div class="row"><span class="dim">shading</span><span class="val" id="v-shade">flat</span></div>
+        <input type="range" id="r-shade" min="0" max="100" step="5" value="0">
+      </div>
+      <div class="ctl">
+        <div class="row"><span class="dim">block size</span><span class="val" id="v-cube">100%</span></div>
+        <input type="range" id="r-cube" min="40" max="300" step="10" value="100">
+      </div>
+    </div>
+  </details>
+
+  <details>
+    <summary>weather</summary>
+    <div class="body">
+      <div class="seg" id="weather">
+        <button data-v="">step</button>
+        <button data-v="clear">clear</button>
+        <button data-v="overcast">overcast</button>
+        <button data-v="storm">storm</button>
+        <button data-v="fog">fog</button>
+        <button data-v="dusk">dusk</button>
+        <button data-v="night">night</button>
+      </div>
+      <div class="row"><span class="dim">rain</span><b id="s-rain">-</b></div>
+    </div>
+  </details>
+
+  <details>
+    <summary>object</summary>
+    <div class="body">
+      <div class="row"><span class="dim">selected</span><b id="s-sel">nothing</b></div>
+      <div class="ctl">
+        <div class="row"><span class="dim">turn</span><span class="val" id="v-rot">-</span></div>
+        <input type="range" id="r-rot" min="0" max="355" step="5" value="0" disabled>
+      </div>
+      <div class="ctl">
+        <div class="row"><span class="dim">size</span><span class="val" id="v-scale">-</span></div>
+        <input type="range" id="r-scale" min="30" max="300" step="5" value="100" disabled>
+      </div>
+      <div class="ctl">
+        <div class="row"><span class="dim">appears at step</span><span class="val" id="v-from">-</span></div>
+        <input type="range" id="r-from" min="1" max="3" step="1" value="1" disabled>
+      </div>
+    </div>
+  </details>
+
+  <details>
+    <summary>canvas</summary>
+    <div class="body">
+      <div class="buttons">
+        <button class="btn" id="b-save">save</button>
+        <button class="btn" id="b-open">open</button>
+      </div>
+      <button class="btn" id="b-frame">copy this framing</button>
+      <input type="file" id="file" accept=".json,application/json" hidden>
+    </div>
+  </details>
+
+  <details>
+    <summary>camera</summary>
+    <div class="body keys">
+      <k>drag</k>orbit<br>
+      <k>right-drag</k>pan<br>
+      <k>wheel</k>closer / further<br>
+      <k>w a s d</k>walk<br>
+      <k>q e</k>down / up<br>
+      <k>f</k>fit everything<br>
+      <k>space</k>play / route<br>
+      <k>enter</k>fullscreen<br>
+      <k>h</k>hide this panel
+    </div>
+  </details>
+
+  <details>
+    <summary>readout</summary>
+    <div class="body">
+      <div class="row"><span class="dim">frame fills</span><b id="s-fill">-</b></div>
+      <div class="row"><span class="dim">triangles</span><b id="s-tris">-</b></div>
+      <div class="row"><span class="dim">blocks</span><b id="s-cubes">-</b></div>
+      <div class="row"><span class="dim">height</span><b id="s-height">0.0</b></div>
+      <div class="row"><span class="dim">centre</span><b id="s-centre">-</b></div>
+      <div class="row"><span class="dim">width</span><b id="s-width">-</b></div>
+      <div class="row"><span class="dim">pitch / yaw</span><b id="s-angles">-</b></div>
+    </div>
+  </details>
 </div>
+
 <div id="error"></div>
 
 <!--
@@ -189,6 +299,7 @@ import { createRenderer } from './lib/render.js';
 import { lerpWeather, resolve as resolveWeather, stampsUpTo } from './lib/weather.js';
 import { scarMap } from './lib/scars.js';
 import { multiply } from './lib/mat4.js';
+import { serialise, parse, isRefusal } from './lib/canvas.js';
 
 // Reached only if every module above loaded. The classic script watches for it.
 window.__trail.started = true;
@@ -268,7 +379,8 @@ async function main() {
 
   // A working copy, because objects get moved around and the original list is
   // only the starting arrangement.
-  const layout = PLACEMENTS.map((p) => ({ ...p, at: [...p.at] }));
+  let layout = PLACEMENTS.map((p) => ({ ...p, at: [...p.at] }));
+  let route = ROUTE.map((s) => ({ ...s, framing: { ...s.framing } }));
 
   let surface = 'mesh';     // 'cubes' | 'mesh'
   // No relaxation and no averaged normals. Together those two produce a crisp
@@ -294,7 +406,6 @@ async function main() {
     renderer.uploadMesh(merged);
     renderer.uploadShadows(contactShadows(scene, layout));
     el('s-tris').textContent = merged.triangles.toLocaleString();
-    el('s-round').textContent = `${Math.round(roundness * 100)}%`;
     return merged;
   }
 
@@ -308,7 +419,6 @@ async function main() {
     boxes = objectBoxes(scene);
     extent = bounds(scene);
     el('s-cubes').textContent = scene.count.toLocaleString();
-    el('s-cube').textContent = `${(cubeScale * 100).toFixed(0)}%`;
     remesh();
     return scene;
   }
@@ -329,10 +439,13 @@ async function main() {
     boxes = objectBoxes(scene);
     // The surface is built from placements too, so it has to follow.
     if (surface === 'mesh') remesh();
+    autosave();
   }
 
   rebuild();
-  const duration = routeDuration(ROUTE) / 1000;
+  // Recomputed when a canvas is opened, since a different route runs for a
+  // different length of time.
+  let duration = routeDuration(route) / 1000;
 
   // --- state ----------------------------------------------------------------
   // Roaming and the route produce the same kind of value, so switching between
@@ -344,12 +457,13 @@ async function main() {
     pinned: null,
     roaming: fit(extent),
     selected: -1,
+    forcedWeather: null,
   };
 
   function currentRoute() {
     return state.pinned === null
-      ? routeAt(ROUTE, state.clock)
-      : { framing: ROUTE[state.pinned].framing, step: state.pinned, phase: 'held' };
+      ? routeAt(route, state.clock)
+      : { framing: route[state.pinned].framing, step: state.pinned, phase: 'held' };
   }
 
   /** Take over the camera, starting exactly where the route had left it. */
@@ -450,15 +564,12 @@ async function main() {
 
   function select(index) {
     state.selected = index;
-    if (index < 0) {
-      el('s-sel').textContent = 'nothing';
-      return;
-    }
-    const p = layout[index];
-    el('s-sel').textContent = `${p.model}  ${(p.rot ?? 0).toFixed(0)}°`;
-    say(`${p.model} selected - drag to move, , . to turn`);
+    el('s-sel').textContent = index < 0 ? 'nothing' : layout[index].model;
+    paintObject();
+    if (index >= 0) say(`${layout[index].model} selected - drag to move it`);
   }
-  select(-1);
+  // Nothing is selected to begin with, and the panel says so in its markup.
+  // Calling select() here would reach the object controls before they exist.
 
   canvas.addEventListener('wheel', (event) => {
     event.preventDefault();
@@ -486,17 +597,8 @@ async function main() {
 
   addEventListener('keyup', (event) => held.delete(event.key.toLowerCase()));
 
-  // The two buttons hold, exactly as the keys do, so a press-and-hold climbs
-  // smoothly rather than nudging once per click.
-  for (const [id, key] of [['up', 'e'], ['down', 'q']]) {
-    const button = el(id);
-    const start = (event) => { event.preventDefault(); roam(); held.add(key); };
-    const stop = () => held.delete(key);
-    button.addEventListener('pointerdown', start);
-    button.addEventListener('pointerup', stop);
-    button.addEventListener('pointerleave', stop);
-    button.addEventListener('pointercancel', stop);
-  }
+  // Climbing is q and e. It used to have a pair of buttons in the panel too,
+  // and they went when the panel was cut back to camera keys only.
 
   addEventListener('keydown', async (event) => {
     const key = event.key.toLowerCase();
@@ -508,62 +610,17 @@ async function main() {
       return;
     }
 
-    if ((key === ',' || key === '.') && state.selected >= 0) {
-      const step = (key === '.' ? 1 : -1) * (event.shiftKey ? 5 : 15);
-      reposition(state.selected, rotateBy(layout[state.selected], step));
-      select(state.selected);
-      return;
-    }
-
+    // Keys move the camera and drive the take. Everything that is a value -
+    // roundness, cube size, shading, weather - is a control in the panel, so
+    // there is one place to look for it rather than a legend to memorise.
     if (key === 'escape') {
       select(-1);
       return;
     }
 
-    if (key === 'p') {
-      const text = layout
-        .map((p) => `  { model: '${p.model}', at: [${p.at.map((v) => Number(v.toFixed(2)))}]`
-          + `${p.rot ? `, rot: ${Number((p.rot).toFixed(1))}` : ''}`
-          + `${p.scale && p.scale !== 1 ? `, scale: ${p.scale}` : ''} },`)
-        .join('\n');
-      const block = `const PLACEMENTS = [\n${text}\n];`;
-      try {
-        await navigator.clipboard.writeText(block);
-        say('arrangement copied - paste it over PLACEMENTS in index.html');
-      } catch {
-        say('clipboard refused; the arrangement is in the console');
-      }
-      console.log(block);
-      return;
-    }
-
-    if (key === 'm') {
-      surface = surface === 'mesh' ? 'cubes' : 'mesh';
-      el('s-surface').textContent = surface;
-      say(surface === 'mesh' ? 'solid surface' : 'cubes');
-      return;
-    }
-
-    if (key === ';' || key === "'") {
-      roundness = Math.min(1, Math.max(0, roundness + (key === "'" ? 0.15 : -0.15)));
-      surface = 'mesh';
-      el('s-surface').textContent = surface;
-      remesh();
-      say(`roundness ${Math.round(roundness * 100)}%`);
-      return;
-    }
-
-    if (key === 'n') {
-      smoothing = smoothing > 0 ? 0 : 1;
-      el('s-shade').textContent = smoothing ? 'smooth' : 'flat';
-      say(smoothing ? 'smooth shading' : 'flat shading');
-      return;
-    }
-
-    if (key === '[' || key === ']') {
-      cubeScale = Math.min(4, Math.max(0.25, cubeScale * (key === ']' ? 1.2 : 1 / 1.2)));
-      const built = rebuild();
-      say(`cubes ${(cubeScale * 100).toFixed(0)}%   ${built.count.toLocaleString()} cubes`);
+    if (key === 's' && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      download();
       return;
     }
 
@@ -575,16 +632,6 @@ async function main() {
       roam();
       state.roaming = fit(extent, { pitch: 42, yaw: state.roaming.yaw });
       say('framed everything');
-    } else if (key === 'c') {
-      const framing = tidy(state.mode === 'roam' ? state.roaming : currentRoute().framing);
-      const text = `{ framing: ${JSON.stringify(framing)}, hold: 5000, approachTime: 3000 },`;
-      try {
-        await navigator.clipboard.writeText(text);
-        say('framing copied - paste it into ROUTE in index.html');
-      } catch {
-        say('clipboard refused; the framing is in the console');
-      }
-      console.log(text);
     } else if (key === 'r') {
       state.clock = 0; state.pinned = null; toRoute(); sync();
     } else if (key === 'enter') {
@@ -592,7 +639,7 @@ async function main() {
       toggleFullscreen();
     } else if (key === 'h') {
       hud.classList.toggle('hidden');
-    } else if (key >= '1' && key <= String(ROUTE.length)) {
+    } else if (key >= '1' && key <= String(route.length)) {
       state.mode = 'route';
       state.pinned = Number(key) - 1;
       state.playing = false;
@@ -621,16 +668,103 @@ async function main() {
     if (!document.fullscreenElement) say('press enter for fullscreen');
   });
 
+  // --- keeping the work -----------------------------------------------------
+  // The canvas file is the whole state of a video. Autosaved to the browser so
+  // a reload is never a loss, and saveable to disk so it can live next to the
+  // script it belongs to.
+
+  const STORE = 'trail.canvas';
+  let scarredUpTo = -2;
+
+  function current() {
+    return serialise({
+      layout,
+      route,
+      look: { surface, roundness, smoothing, cubeScale },
+      title: 'untitled',
+    });
+  }
+
+  let saveTimer;
+  function autosave() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      try {
+        localStorage.setItem(STORE, JSON.stringify(current()));
+      } catch {
+        // A browser refusing storage costs the convenience and nothing else.
+      }
+    }, 400);
+  }
+
+  function apply(canvas) {
+    layout = canvas.layout;
+    route = canvas.route;
+    surface = canvas.look.surface;
+    roundness = canvas.look.roundness;
+    smoothing = canvas.look.smoothing;
+    cubeScale = canvas.look.cubeScale;
+    state.selected = -1;
+    state.pinned = null;
+    state.clock = 0;
+    scarredUpTo = -2;
+    duration = routeDuration(route) / 1000;
+    rebuild();
+    select(-1);
+    paintPanel();
+  }
+
+  function restore() {
+    let saved;
+    try {
+      saved = localStorage.getItem(STORE);
+    } catch { return false; }
+    if (!saved) return false;
+    try {
+      apply(parse(saved));
+      return true;
+    } catch (error) {
+      // A stored canvas that cannot be read is not worth keeping.
+      try { localStorage.removeItem(STORE); } catch { /* nothing to do */ }
+      console.warn('the saved canvas could not be read:', error.message);
+      return false;
+    }
+  }
+
+  function download() {
+    const text = JSON.stringify(current(), null, 2);
+    const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'canvas.json';
+    link.click();
+    URL.revokeObjectURL(url);
+    say('canvas.json saved');
+  }
+
+  // Drop a canvas file anywhere on the page to open it.
+  addEventListener('dragover', (event) => event.preventDefault());
+  addEventListener('drop', async (event) => {
+    event.preventDefault();
+    const file = event.dataTransfer?.files?.[0];
+    if (!file) return;
+    try {
+      apply(parse(await file.text()));
+      say(`opened ${file.name}`);
+    } catch (error) {
+      say(isRefusal(error) ? error.message : `could not open ${file.name}`);
+    }
+  });
+
   // --- what the weather leaves behind ---------------------------------------
   // Derived from the steps rather than accumulated over time, so jumping
   // straight to the last step looks exactly like playing the whole route.
 
-  let scarredUpTo = -2;
   function scarsFor(step) {
     if (step === scarredUpTo) return;
     scarredUpTo = step;
     renderer.setScars(
-      scarMap(stampsUpTo(ROUTE, step), SCARS),
+      scarMap(stampsUpTo(route, step), SCARS),
       SCARS.resolution,
       SCARS.extent,
     );
@@ -711,6 +845,150 @@ async function main() {
       flash.style.opacity = '0';
     });
   }
+  // --- the panel ------------------------------------------------------------
+  // Keys move the camera. Everything that is a value lives here, in one place,
+  // with its number showing, so nothing has to be remembered.
+
+  const slider = (id, read, write, { live = true, after } = {}) => {
+    const input = el(id);
+    const label = el(id.replace('r-', 'v-'));
+    const show = () => { label.textContent = read(Number(input.value)); };
+    let pending;
+    input.addEventListener('input', () => {
+      show();
+      if (live) write(Number(input.value));
+      // Rebuilding a model is tens of milliseconds, which is fine on release
+      // and terrible on every pixel of a drag.
+      clearTimeout(pending);
+      pending = setTimeout(() => { after?.(Number(input.value)); autosave(); }, 90);
+    });
+    return { input, show, set: (v) => { input.value = String(v); show(); } };
+  };
+
+  const segment = (id, get, set) => {
+    const box = el(id);
+    const paint = () => {
+      for (const b of box.querySelectorAll('button')) {
+        b.setAttribute('aria-pressed', String(b.dataset.v === String(get() ?? '')));
+      }
+    };
+    box.addEventListener('click', (event) => {
+      const button = event.target.closest('button');
+      if (!button) return;
+      set(button.dataset.v);
+      paint();
+      autosave();
+    });
+    paint();
+    return { paint };
+  };
+
+  const roundSlider = slider('r-round', (v) => `${v}%`,
+    () => {}, { live: false, after: (v) => { roundness = v / 100; remesh(); } });
+  const shadeSlider = slider('r-shade',
+    (v) => (v === 0 ? 'flat' : v === 100 ? 'smooth' : `${v}%`),
+    (v) => { smoothing = v / 100; });
+  const cubeSlider = slider('r-cube', (v) => `${v}%`,
+    () => {}, { live: false, after: (v) => { cubeScale = v / 100; rebuild(); } });
+
+  const surfaceSeg = segment('surface', () => surface, (v) => {
+    surface = v === 'cubes' ? 'cubes' : 'mesh';
+  });
+  const weatherSeg = segment('weather', () => state.forcedWeather ?? '', (v) => {
+    state.forcedWeather = v || null;
+  });
+
+  // One button per step, built from the route rather than written out, so a
+  // longer route does not need the panel edited.
+  function buildSteps() {
+    const box = el('steps');
+    box.innerHTML = '';
+    route.forEach((_, i) => {
+      const button = document.createElement('button');
+      button.textContent = String(i + 1);
+      button.dataset.v = String(i);
+      button.addEventListener('click', () => {
+        state.mode = 'route';
+        state.pinned = i;
+        state.playing = false;
+      });
+      box.append(button);
+    });
+    el('r-from').max = String(route.length);
+  }
+
+  el('b-play').addEventListener('click', () => {
+    if (state.mode === 'roam') toRoute();
+    else state.playing = !state.playing;
+  });
+  el('b-restart').addEventListener('click', () => {
+    state.clock = 0; state.pinned = null; toRoute(); sync();
+  });
+  el('b-save').addEventListener('click', download);
+  el('b-open').addEventListener('click', () => el('file').click());
+  el('file').addEventListener('change', async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      apply(parse(await file.text()));
+      say(`opened ${file.name}`);
+    } catch (error) {
+      say(isRefusal(error) ? error.message : `could not open ${file.name}`);
+    }
+    event.target.value = '';
+  });
+  el('b-frame').addEventListener('click', async () => {
+    const framing = tidy(state.mode === 'roam' ? state.roaming : currentRoute().framing);
+    const text = `{ framing: ${JSON.stringify(framing)}, hold: 5000, approachTime: 3000 },`;
+    try {
+      await navigator.clipboard.writeText(text);
+      say('framing copied');
+    } catch {
+      say('clipboard refused; the framing is in the console');
+    }
+    console.log(text);
+  });
+
+  // The object controls act on whatever is selected, and are dead when nothing is.
+  const objectSliders = [
+    ['r-rot', (p) => (p.rot ?? 0), (p, v) => rotateBy({ ...p, rot: 0 }, v), (v) => `${v} deg`],
+    ['r-scale', (p) => (p.scale ?? 1) * 100, (p, v) => ({ ...p, scale: v / 100 }), (v) => `${v}%`],
+    ['r-from', (p) => (p.from ?? 0) + 1, (p, v) => ({ ...p, from: v - 1 }), (v) => `${v}`],
+  ];
+  for (const [id, , change, format] of objectSliders) {
+    const input = el(id);
+    const label = el(id.replace('r-', 'v-'));
+    input.addEventListener('input', () => {
+      label.textContent = format(Number(input.value));
+      if (state.selected < 0) return;
+      reposition(state.selected, change(layout[state.selected], Number(input.value)));
+    });
+  }
+
+  function paintObject() {
+    const chosen = state.selected >= 0 ? layout[state.selected] : null;
+    for (const [id, read, , format] of objectSliders) {
+      const input = el(id);
+      input.disabled = !chosen;
+      const value = chosen ? Math.round(read(chosen)) : Number(input.min);
+      input.value = String(value);
+      el(id.replace('r-', 'v-')).textContent = chosen ? format(value) : '-';
+    }
+  }
+
+  function paintPanel() {
+    roundSlider.set(Math.round(roundness * 100));
+    shadeSlider.set(Math.round(smoothing * 100));
+    cubeSlider.set(Math.round(cubeScale * 100));
+    surfaceSeg.paint();
+    weatherSeg.paint();
+    buildSteps();
+    paintObject();
+  }
+
+  // Whatever was being worked on last time, if anything.
+  if (restore()) say('picked up where you left off');
+  paintPanel();
   sync();
 
   let last = performance.now();
@@ -756,7 +1034,7 @@ async function main() {
     let framing;
     let step = state.pinned ?? 0;
     let stepT = 1;
-    let weather = resolveWeather(ROUTE[step]?.weather);
+    let weather = resolveWeather(route[step]?.weather);
 
     if (state.mode === 'roam') {
       // No drift while roaming: it would fight the hand on the mouse.
@@ -771,20 +1049,22 @@ async function main() {
       step = at.step;
       el('mode').textContent = state.playing ? at.phase : 'paused';
       el('mode').className = 'route';
-      el('s-step').textContent = `${at.step + 1} / ${ROUTE.length}`;
+      el('s-step').textContent = `${at.step + 1} / ${route.length}`;
 
-      if (at.phase === 'fly' && ROUTE[at.step + 1]) {
+      if (at.phase === 'fly' && route[at.step + 1]) {
         // A flight is where the weather turns and the next part of the canvas
         // arrives. Both land together, which reads as one change rather than two.
-        const flight = (ROUTE[at.step + 1].approachTime ?? 2500) / 1000;
+        const flight = (route[at.step + 1].approachTime ?? 2500) / 1000;
         const into = Math.min(1, Math.max(0, at.into ?? 0));
-        weather = lerpWeather(ROUTE[at.step].weather, ROUTE[at.step + 1].weather, into);
+        weather = lerpWeather(route[at.step].weather, route[at.step + 1].weather, into);
         step = at.step + 1;
         stepT = Math.min(1, (into * flight * 1000) / SOLIDIFY);
       }
     }
 
-    scarsFor(state.mode === 'roam' ? ROUTE.length - 1 : step);
+    if (state.forcedWeather) weather = resolveWeather(state.forcedWeather);
+    scarsFor(state.mode === 'roam' ? route.length - 1 : step);
+    el('s-rain').textContent = `${Math.round((weather.rain ?? 0) * 100)}%`;
 
     const [cx, cz] = centreOf(framing);
     el('s-height').textContent = (framing.y ?? 0).toFixed(1);
@@ -800,10 +1080,10 @@ async function main() {
       smooth: smoothing,
       // While roaming, show the canvas as the story left it rather than ghosting
       // half of it: roaming is for looking at the world, not for playing it.
-      step: state.mode === 'roam' ? ROUTE.length - 1 : step,
+      step: state.mode === 'roam' ? route.length - 1 : step,
       stepT,
     });
-    drawTags(matrix, state.mode === 'roam' ? ROUTE.length - 1 : step);
+    drawTags(matrix, state.mode === 'roam' ? route.length - 1 : step);
 
     const fill = renderer.view.fill;
     const percent = Math.round(fill * 100);

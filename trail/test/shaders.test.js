@@ -63,7 +63,7 @@ test('a fragment shader states its precision and its output', () => {
 
 test('what a vertex shader sends out, its fragment shader takes in', () => {
   const pairs = [['cube', 'cube'], ['mesh', 'mesh'], ['shadow', 'shadow'],
-    ['sky', 'sky'], ['floor', 'floor']];
+    ['rain', 'rain'], ['sky', 'sky'], ['floor', 'floor']];
   const declared = (source, keyword) => {
     const names = [];
     const pattern = new RegExp(`^\\s*${keyword}\\s+\\w+\\s+(\\w+)\\s*;`, 'gm');
@@ -92,6 +92,7 @@ test('every uniform the renderer sets is declared by some shader', () => {
     'uSun', 'uSky', 'uFogNear', 'uFogFar',
     'uHorizon', 'uSunColour', 'uExtent', 'uFloor', 'uEye',
     'uScars', 'uScarExtent', 'uStrength', 'uSmooth',
+    'uRain', 'uBox', 'uScale', 'uColour',
   ];
   for (const name of used) {
     assert.match(all, new RegExp(`uniform\\s+\\w+\\s+${name}\\s*;`),

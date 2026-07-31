@@ -90,6 +90,8 @@ test worth trusting.
 - [x] The sync flash at the start of a run
 - [x] A route: hold, fly, hold, resting on the final framing
 - [x] 30 more tests over the camera and the scene builder, in Node
+- [x] A startup test that runs the page against a stubbed browser and draws frames, since
+      `index.html` is the one file the other tests cannot reach
 - [x] Free roaming: drag to orbit, right-drag to pan, wheel to close in, hold to walk
 - [x] Roaming produces framings, not eye positions, so any angle found can be saved
 - [x] Ascend and descend, as two held buttons and as `q` and `e`. Lifts the point being
@@ -104,6 +106,10 @@ test worth trusting.
 - [x] Selected objects lift out of the scene without their own colours changing
 - [x] `p` copies the arrangement, ready to paste back over `PLACEMENTS`
 - [x] Fullscreen on `enter`, which is the only way to get a 16:9 viewport in a browser
+- [x] The panel is categories with real controls: sliders for anything with a value,
+      segmented buttons for anything with a choice, and a number showing beside each
+- [x] **Keys are for the camera and the take only.** Anything that is a value is a control,
+      so there is one place to look for it rather than a legend to memorise
 - [ ] Cloud in the sky shader. Currently a plain gradient
 - [ ] Boxes are axis-aligned, so a rotated object has a slightly loose grab area
 - [ ] Confirm 60 frames a second at **full** budget. The test scene is 20,528 cubes, which is
@@ -128,8 +134,11 @@ test worth trusting.
 
 ### The canvas
 
-- [ ] Canvas file schema and a validator that refuses a bad file with the reason
-- [ ] Version migration, forward only, one version at a time
+- [x] Canvas file schema and a validator that refuses a bad file with the reason
+- [x] Version migration, forward only, one version at a time
+- [x] Autosave to browser storage, so a reload is never a loss
+- [x] Save to disk with ctrl+s, and open by dropping a file on the page
+- [x] A stable round trip, so saving twice produces the same file
 - [ ] Top-down orthographic plan of the canvas
 - [ ] Drag an object from the tray onto the plan
 - [ ] Move, rotate and scale a placed object
@@ -160,7 +169,9 @@ test worth trusting.
       things read as curved. Authoring is unchanged; only what is drawn is different
 - [x] A roundness dial from faceted to fully relaxed, and `m` to compare against the cubes
 - [x] Both paths share one fragment shader, so they cannot disagree about light or fog
-- [ ] Rain and snow particles. Storm currently changes the light but nothing falls
+- [x] Rain: one fixed cloud of drops that follows the camera and wraps around it, so a
+      fixed count covers any shot. Density is a weather value and cross-fades in
+- [ ] Snow. Rain exists; snow is the same pass with a different fall and drift
 - [ ] Looped object motion from `aPivot` and `aMotion`. The data exists; nothing reads it
 
 ## Stage 5 - Play mode, originally listed

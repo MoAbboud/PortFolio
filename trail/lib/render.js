@@ -238,6 +238,60 @@ void main() {
   frag = vec4(vec3(1.0 - mask), 1.0);
 }`;
 
+// Rain. One fixed cloud of drops that follows the camera and wraps around it,
+// so a fixed number of instances covers any shot without ever running out or
+// being wasted on somewhere you are not looking.
+const RAIN_VS = `#version 300 es
+in vec3 aPos;
+in vec3 aSeed;
+
+uniform mat4 uViewProj;
+uniform vec3 uEye;
+uniform float uTime;
+uniform float uRain;
+uniform float uBox;
+uniform float uScale;
+
+out float vFade;
+
+void main() {
+  // Thin out by hiding the drops beyond the current density, rather than by
+  // uploading a different number of them.
+  if (aSeed.x > uRain) {
+    gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+    vFade = 0.0;
+    return;
+  }
+
+  float fall = uTime * (9.0 + aSeed.y * 5.0);
+  vec3 drift = vec3(1.4, 0.0, 0.7) * uTime;
+  vec3 base = aSeed * uBox + drift - vec3(0.0, fall, 0.0);
+
+  // Wrap into a box centred on the camera.
+  vec3 centred = base - uEye + uBox * 0.5;
+  vec3 wrapped = mod(centred, uBox) - uBox * 0.5 + uEye;
+
+  // A drop is a thin streak, stretched along the way it is falling.
+  vec3 stretched = aPos * vec3(uScale, uScale * 14.0, uScale);
+  vec3 world = wrapped + stretched;
+
+  // Fade out at the edge of the box so drops appear and vanish unnoticed.
+  float edge = length((wrapped - uEye).xz) / (uBox * 0.5);
+  vFade = clamp(1.6 - edge * 1.6, 0.0, 1.0);
+
+  gl_Position = uViewProj * vec4(world, 1.0);
+}`;
+
+const RAIN_FS = `#version 300 es
+precision highp float;
+in float vFade;
+uniform vec3 uColour;
+out vec4 frag;
+void main() {
+  if (vFade <= 0.01) discard;
+  frag = vec4(uColour, vFade * 0.34);
+}`;
+
 const SKY_VS = `#version 300 es
 in vec2 aCorner;
 out vec2 vNdc;
@@ -355,6 +409,8 @@ export const SHADERS = {
   'mesh fragment': CUBE_FS,
   'shadow vertex': SHADOW_VS,
   'shadow fragment': SHADOW_FS,
+  'rain vertex': RAIN_VS,
+  'rain fragment': RAIN_FS,
   'sky vertex': SKY_VS,
   'sky fragment': SKY_FS,
   'floor vertex': FLOOR_VS,
@@ -414,6 +470,7 @@ export function createRenderer(canvas) {
   const cube = program(gl, CUBE_VS, CUBE_FS, 'cube');
   const mesh = program(gl, MESH_VS, CUBE_FS, 'mesh');
   const shadow = program(gl, SHADOW_VS, SHADOW_FS, 'shadow');
+  const rain = program(gl, RAIN_VS, RAIN_FS, 'rain');
   const sky = program(gl, SKY_VS, SKY_FS, 'sky');
   const floor = program(gl, FLOOR_VS, FLOOR_FS, 'floor');
 
@@ -476,6 +533,25 @@ export function createRenderer(canvas) {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, meshBuffers.indices);
     gl.bindVertexArray(null);
   }
+
+  // The drops. Allocated once and never resized; how many are visible is a
+  // uniform, so weather can change without touching a buffer.
+  const RAIN_DROPS = 9000;
+  const rainSeeds = new Float32Array(RAIN_DROPS * 3);
+  // Deterministic, so a re-recorded take has the rain in the same places.
+  for (let i = 0; i < RAIN_DROPS; i++) {
+    for (let a = 0; a < 3; a++) {
+      const n = Math.sin((i + 1) * (12.9898 + a * 7.13) + a * 3.7) * 43758.5453;
+      rainSeeds[i * 3 + a] = n - Math.floor(n);
+    }
+  }
+  const rainSeedBuf = buffer(rainSeeds);
+  const rainVao = gl.createVertexArray();
+  gl.bindVertexArray(rainVao);
+  attribute(rain.handle, 'aPos', posBuf, 3);
+  attribute(rain.handle, 'aSeed', rainSeedBuf, 3, 1);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idxBuf);
+  gl.bindVertexArray(null);
 
   // How much normals are averaged across the surface. 0 keeps every facet its
   // own plane, which is what makes forms read as built rather than as moulded.
@@ -733,6 +809,27 @@ export function createRenderer(canvas) {
     // 5. The field itself.
     gl.disable(gl.BLEND);
     drawField(surface, matrix, 1, weather, time, shimmer, selected, step, stepT);
+
+    // 6. Rain, in front of the world but hidden behind anything solid.
+    const falling = weather.rain ?? 0;
+    if (falling > 0.001) {
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.depthMask(false);
+      gl.useProgram(rain.handle);
+      gl.bindVertexArray(rainVao);
+      gl.uniformMatrix4fv(rain.u.uViewProj, false, matrix);
+      gl.uniform3fv(rain.u.uEye, eye);
+      gl.uniform1f(rain.u.uTime, time);
+      gl.uniform1f(rain.u.uRain, falling);
+      gl.uniform1f(rain.u.uBox, 60);
+      gl.uniform1f(rain.u.uScale, 0.022);
+      gl.uniform3fv(rain.u.uColour, weather.horizon ?? [0.8, 0.85, 0.9]);
+      gl.drawElementsInstanced(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0, RAIN_DROPS);
+      gl.bindVertexArray(null);
+      gl.depthMask(true);
+      gl.disable(gl.BLEND);
+    }
 
     gl.disable(gl.SCISSOR_TEST);
   }

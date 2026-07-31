@@ -396,7 +396,15 @@ of the above rather than the theory of it.
 | `ui/*` | Plan, panels, step strip. Edit mode only | No |
 | `app` | Wiring, and nothing else | No |
 
-Eight of the twelve are pure. The interesting logic - voxelising, hollowing, framing,
+Eight of the twelve are pure.
+
+**The page itself is the exception, and it is where the bugs have been.** `index.html` holds
+the wiring, cannot be imported by an ordinary test, and has produced two failures that a
+single run would have caught: a function reading a constant declared later in the file, and
+code reading an element id that a panel rewrite had removed. There is now a startup test that
+stubs a browser - a DOM that answers to everything, and a WebGL2 context that says yes -
+evaluates the page's module, loads the models, builds the scene and draws a few frames. It
+proves nothing about how any of it looks. It proves the thing that keeps breaking. The interesting logic - voxelising, hollowing, framing,
 cross-fading, budget arithmetic - is all in the pure half, which means it is all testable
 without a browser, a screen or a GPU.
 

@@ -14,6 +14,7 @@ export const PRESETS = {
     ambient: 1.00,
     fogNear: 26,
     fogFar: 190,
+    rain: 0,
     scar: null,
   },
   overcast: {
@@ -25,6 +26,7 @@ export const PRESETS = {
     ambient: 0.86,
     fogNear: 20,
     fogFar: 150,
+    rain: 0,
     scar: null,
   },
   storm: {
@@ -36,6 +38,7 @@ export const PRESETS = {
     ambient: 0.62,
     fogNear: 14,
     fogFar: 110,
+    rain: 1,
     scar: 'wet',
   },
   fog: {
@@ -47,6 +50,7 @@ export const PRESETS = {
     ambient: 0.78,
     fogNear: 6,
     fogFar: 55,
+    rain: 0.18,
     scar: 'pale',
   },
   dusk: {
@@ -58,6 +62,7 @@ export const PRESETS = {
     ambient: 0.80,
     fogNear: 22,
     fogFar: 170,
+    rain: 0,
     scar: null,
   },
   night: {
@@ -69,6 +74,7 @@ export const PRESETS = {
     ambient: 0.52,
     fogNear: 18,
     fogFar: 130,
+    rain: 0,
     scar: null,
   },
 };
@@ -110,6 +116,7 @@ export function lerpWeather(from, to, t) {
     ambient: mix(a.ambient, b.ambient, k),
     fogNear: mix(a.fogNear, b.fogNear, k),
     fogFar: mix(a.fogFar, b.fogFar, k),
+    rain: mix(a.rain ?? 0, b.rain ?? 0, k),
     scar: k >= 0.5 ? b.scar : a.scar,
   };
 }

@@ -10,7 +10,8 @@ const near = (a, b, tolerance = 1e-6) =>
 // --- weather ----------------------------------------------------------------
 
 test('every preset carries a full set of numbers', () => {
-  const required = ['sky', 'horizon', 'floor', 'sun', 'sunColour', 'ambient', 'fogNear', 'fogFar'];
+  const required = ['sky', 'horizon', 'floor', 'sun', 'sunColour', 'ambient',
+    'fogNear', 'fogFar', 'rain'];
   for (const [name, preset] of Object.entries(PRESETS)) {
     for (const key of required) {
       assert.ok(key in preset, `${name} is missing ${key}`);
@@ -61,6 +62,21 @@ test('a cross-fade is clamped outside its range', () => {
 test('a mark on the ground does not fade in; it belongs to the step it came with', () => {
   assert.equal(lerpWeather('clear', 'storm', 0.2).scar, null);
   assert.equal(lerpWeather('clear', 'storm', 0.8).scar, 'wet');
+});
+
+test('only the weathers that should rain do', () => {
+  assert.equal(PRESETS.storm.rain, 1);
+  assert.ok(PRESETS.fog.rain > 0 && PRESETS.fog.rain < 0.5, 'fog should be a drift, not a downpour');
+  for (const name of ['clear', 'overcast', 'dusk', 'night']) {
+    assert.equal(PRESETS[name].rain, 0, `${name} should be dry`);
+  }
+});
+
+test('rain arrives gradually rather than switching on', () => {
+  const quarter = lerpWeather('clear', 'storm', 0.25);
+  assert.ok(quarter.rain > 0 && quarter.rain < 1, `rain jumped to ${quarter.rain}`);
+  assert.equal(lerpWeather('clear', 'storm', 0).rain, 0);
+  assert.equal(lerpWeather('clear', 'storm', 1).rain, 1);
 });
 
 test('only the weathers that should mark the ground do', () => {

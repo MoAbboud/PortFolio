@@ -131,6 +131,9 @@ service.
   *"that way its not too automated."*
 - A word the library cannot match must be visible as a gap. Silently ignoring it is the one
   failure that is invisible until the video is being built.
+- Keys move the camera and drive the take. Anything with a value or a choice - roundness,
+  block size, shading, weather - is a control in the panel with its number beside it. A
+  legend of two-dozen keys is a thing to memorise, and the panel is a thing to read.
 - Play mode carries no interface at all. Not a control, not a counter, not a hint. If it can be
   seen, it is in the video permanently.
 - The mode toggle must be impossible to hit by accident during a take.
