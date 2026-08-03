@@ -52,7 +52,9 @@ test worth trusting.
 - [x] `tools/inspect.js`: cube counts, budget share, and coloured silhouettes from three
       angles, so a model can be judged before a renderer exists
 - [x] 21 tests, running in Node against the pure module
-- [ ] Apply a tint at build time, replacing slot colours per instance
+- [x] Tints applied per placement, so one figure recipe serves every character. A slot
+      carries the recipe's own colour as a fallback, so an untinted model is not grey
+- [x] Tints saved in the canvas file: a character's colours travel with them
 - [ ] Confirm they read at the framing they will be seen at, not up close
 
 ### 2b - Import, so the test is worth trusting
@@ -98,8 +100,9 @@ test worth trusting.
 
 ### 2c - Draw, when something specific is missing
 
-- [ ] MagicaVoxel is installed. Use it for the figure, and for anything a shot pushes in on
-- [ ] Draw the figure's arms as separate parts, so it has something that moves
+- [x] **The figure**, hand-authored as a recipe rather than imported: 470 blocks, 1.89 units
+      tall, three tint slots, and arms that sway on opposite phases
+- [ ] MagicaVoxel is installed. Use it for anything a shot pushes in on
 
 ## Stage 3 - Field and camera
 

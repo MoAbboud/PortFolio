@@ -7,6 +7,8 @@ const LAYOUT = [
   { model: 'house', at: [-6, 0, -4], rot: 14, from: 0 },
   { model: 'car', at: [2.4, 0, 3.2], rot: -24, from: 1, label: 'the car' },
   { model: 'tree', at: [7, 0, -5], scale: 1.25, from: 2, until: 4 },
+  { model: 'person', at: [1, 0, 1], from: 0, label: 'Marla',
+    tints: { primary: '#e08a3c', hair: '#2b2118' } },
 ];
 
 const ROUTE = [
@@ -30,6 +32,8 @@ test('a canvas survives being written out and read back', () => {
     assert.equal(o.from, LAYOUT[i].from);
   });
   assert.equal(back.layout[1].label, 'the car');
+  // A character's colours are part of who they are, so they travel with them.
+  assert.deepEqual(back.layout[3].tints, { primary: '#e08a3c', hair: '#2b2118' });
   assert.equal(back.layout[2].until, 4);
   assert.deepEqual(back.look, LOOK);
 });

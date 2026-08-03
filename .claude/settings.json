@@ -33,7 +33,10 @@
       "Read(//c/Users/Absol/AppData/Local/Temp/**)",
       "Read(//c/Users/Absol/AppData/Local/Temp/voxsheets/**)",
       "Bash(cd \"c:/Users/Absol/OneDrive/Documents/GitHub/PortFol/trail\" && mkdir -p models/packs && cp \"C:/Users/Absol/AppData/Local/Temp/voxpack/Models.vox\" models/packs/medieval.vox && mv models/names/models.json models/names/medieval.json && ls -la models/packs models/names && du -sh models/packs/medieval.vox)",
-      "Bash(git -C .. status --porcelain trail/models)"
+      "Bash(git -C .. status --porcelain trail/models)",
+      "Bash(node tools/inspect.js --plain person)",
+      "Bash(.vox)",
+      "Bash(grep -n \"258\\\\|three hand-written\\\\|three crude placeholder\\\\|`.vox` importer, then the script panel\" requirements/06-context.md)"
     ],
     "additionalDirectories": [
       "\\tmp",

@@ -81,6 +81,17 @@ test('an untinted slot falls back rather than throwing', () => {
   assert.ok(placed.colours.every(Number.isFinite));
 });
 
+test('a placement with no tint takes the model\'s own colours', () => {
+  const grid = voxelise({
+    id: 'figure', unit: 1, anchor: 'base',
+    tints: { primary: '#ff0000' },
+    parts: [{ solid: 'box', at: [0, 0.5, 0], size: [1, 1, 1], color: '#primary' }],
+  });
+  near(place(grid, {}).colours[0], 1, 1e-4);
+  // And a placement that does ask still wins.
+  near(place(grid, { tints: { primary: '#0000ff' } }).colours[2], 1, 1e-4);
+});
+
 test('seeds are the same every time, so a take re-records identically', () => {
   const a = place(hollow(voxelise(model('tree'))), { at: [1, 0, 2] });
   const b = place(hollow(voxelise(model('tree'))), { at: [1, 0, 2] });

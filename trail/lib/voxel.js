@@ -149,7 +149,12 @@ export function voxelise(recipe) {
     if (palette.length >= 255) {
       throw new Error(`recipe "${recipe.id}": more than 255 colours`);
     }
-    palette.push(isTintSlot(key) ? { slot: key.slice(1) } : { hex: key });
+    // A tint slot carries the recipe's own colour as a fallback, so a model
+    // placed without one still looks like itself rather than turning grey.
+    const slot = key.slice(1);
+    palette.push(isTintSlot(key)
+      ? { slot, hex: recipe.tints?.[slot] }
+      : { hex: key });
     const index = palette.length; // cell values are 1-based
     paletteKey.set(key, index);
     return index;

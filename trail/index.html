@@ -391,7 +391,13 @@ window.__trail.started = true;
 // which is how the canvas reveals itself rather than being handed over at once.
 const PLACEMENTS = [
   { model: 'house', at: [-6, 0, -4], rot: 14, from: 0 },
-  { model: 'car',   at: [2.4, 0, 3.2], rot: -24, from: 1, label: 'the car' },
+  { model: 'car',   at: [2.4, 0, 3.2], rot: -24, from: 1 },
+  // One figure recipe serves every character: the tints are who they are, and
+  // the label is what the viewer reads.
+  { model: 'person', at: [0.6, 0, 1.4], rot: 200, from: 1, label: 'Marla',
+    tints: { primary: '#e08a3c', hair: '#2b2118', skin: '#d9a97e' } },
+  { model: 'person', at: [-0.7, 0, 2.1], rot: 20, from: 1, label: 'Devon',
+    tints: { primary: '#3c7ae0', hair: '#4a3327', skin: '#c68a5e' } },
   { model: 'tree',  at: [7, 0, -5], from: 0 },
   { model: 'tree',  at: [-13.5, 0, 3.5], scale: 1.25, from: 2 },
   { model: 'tree',  at: [9.5, 0, 5.5], scale: 0.8, from: 2 },

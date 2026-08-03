@@ -1,6 +1,7 @@
 {
   "note": "What the library holds when the page opens. Adding a model is a file and a line here, never a code change.",
   "recipes": [
+    "person",
     "house",
     "car",
     "tree"

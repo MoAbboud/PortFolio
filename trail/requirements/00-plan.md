@@ -7,10 +7,11 @@ canvas, with a camera that walks a route through it and pulls back at the end to
 whole thing. Cheap enough to redo, consistent enough to be a visual identity, repeatable enough
 that a retake is free, and containing no artificial intelligence of any kind at runtime.
 
-**The app is built and running.** The renderer, the camera, the route, the weather, the picking
-and the canvas file all exist, with 239 tests behind them. What does not exist is content: the
-three models are placeholders, the `.vox` importer has not been written, and the script panel -
-the app's actual concept - is missing entirely.
+**The app is built, running, and has a library.** The renderer, the camera, the route, the
+weather, the picking, the canvas file and the pen all exist, with 262 tests behind them, and
+367 named models load when the page opens. What is missing is the script panel - the app's
+actual concept - and a mesh voxeliser, since the available voxel packs do not suit the
+subject the user writes about.
 
 The question this plan was framed around, whether a camera tour of a static voxel world holds
 attention, has had a soft yes on a first look and has not been tested properly on a real
@@ -33,7 +34,7 @@ flowchart LR
 | Stage | Goal | Done when | Status |
 | --- | --- | --- | --- |
 | 1 | Concept | The workflow, the look and the boundary are settled, and the rejected designs are recorded | Done |
-| 2 | Voxel format and import | The recipe voxeliser, hollowing and encoding, three primitive recipes, then the `.vox` reader and a CC0 pack | **Part done.** Voxeliser, hollowing, encoding and three models exist. The `.vox` reader does not, and it is the next real step |
+| 2 | Voxel format and import | The recipe voxeliser, the `.vox` reader, and a library that loads on open | **Done.** 367 models load from a manifest: the figure, three recipes, and a named CC0 pack. A mesh voxeliser, for the packs that suit the subject, is the next piece |
 | 3 | Field and camera | Sky, shiny floor, 16:9 frame, a rectangle plus a pitch producing a correct framing | **Done**, and past it: free roaming, picking, dragging, a smooth surface, occlusion and contact shadows. Frame rate at full budget is still untested |
 | 4 | Script, canvas and route | Paste a script, get a tray of what it mentions, drag objects onto a plan, split the script into stages, draw a frame per stage | **Half done.** Objects can be placed, turned, ranged and saved, and a canvas file exists. **The script half does not exist at all**, and it is the app's whole concept |
 | 5 | Play mode | Ghosting, flying, weather cross-fade, scars, motion, name tags, the sync flash, and no interface at all | **Done**, apart from snow and motion in the cube path |
@@ -53,7 +54,8 @@ rather than a finished library:
 | --- | --- | --- |
 | Three primitive recipes | About ten lines of JSON each, no downloads, no new format | The app runs and the renderer is testable, today |
 | The `.vox` reader and a CC0 pack | 150 lines, plus finding a pack | Content good enough that the sixty-second test can be trusted |
-| MagicaVoxel | Installed, waiting | Anything specific that is missing, and the figure |
+| The figure, hand-authored | A day | Tintable per character and able to sway, which no import can be |
+| MagicaVoxel | Installed, waiting | Anything specific that is still missing |
 
 The split matters because the two tests are different. Primitives answer "does the renderer
 work". They do not answer "is this watchable", and a crude house could produce a false negative
@@ -71,12 +73,12 @@ person would watch?**
 
 It was built and looked at, and the verdict was *"it looks pretty good for a first run"*. That
 is encouraging and it is not the test. The test is a full run on a canvas built for a real
-script, and it cannot happen while the only models are three placeholders written to have
-something on screen.
+script, and that is finally possible: there is a library of 367 named models and a figure.
 
-**Everything buildable without content is now built.** Further rendering work will keep
-polishing stand-in shapes. The two things that move the project are the `.vox` importer, which
-brings real objects in, and the script panel, which is the reason the app exists.
+**What has never been tried is the thing the app is for** - taking a real script, cutting it
+into stages, building a canvas for it, and watching the result. Two pieces stand in the way:
+a mesh voxeliser, since the available voxel packs are medieval rather than modern, and the
+script panel.
 
 ## Decisions already made
 

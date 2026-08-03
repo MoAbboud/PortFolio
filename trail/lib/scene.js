@@ -8,7 +8,8 @@ const HEX3 = /^#[0-9a-f]{3}$/i;
 function rgb(entry, tints) {
   if (!entry) return [0.7, 0.7, 0.7];
   if (entry.slot) {
-    const colour = tints?.[entry.slot] ?? '#c8c8c8';
+    // What this placement asked for, then the model's own colour, then grey.
+    const colour = tints?.[entry.slot] ?? entry.hex ?? '#c8c8c8';
     return rgb({ hex: colour }, null);
   }
   let h = entry.hex.slice(1);

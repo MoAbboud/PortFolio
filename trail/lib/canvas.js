@@ -30,6 +30,7 @@ export function serialise({ layout, route, look = {}, title = 'untitled' }) {
       ...(p.from ? { from: p.from } : {}),
       ...(p.until !== undefined ? { until: p.until } : {}),
       ...(p.label ? { label: p.label } : {}),
+      ...(p.tints && Object.keys(p.tints).length ? { tints: { ...p.tints } } : {}),
     })),
     // Steps are written in full rather than relying on defaults. A file meant
     // to be read and edited by hand should say what it means, and it also keeps
@@ -107,6 +108,7 @@ export function parse(input) {
       from: o.from ?? 0,
       ...(o.until !== undefined ? { until: o.until } : {}),
       ...(o.label ? { label: o.label } : {}),
+      ...(o.tints && typeof o.tints === 'object' ? { tints: { ...o.tints } } : {}),
     })),
     route: migrated.steps.map((s) => ({
       framing: { pitch: 25, yaw: 0, y: 0, ...s.framing },

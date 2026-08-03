@@ -126,7 +126,18 @@ test('tint slots are kept as slots, not as colours', () => {
     id: 'tinted', unit: 1, anchor: 'base',
     parts: [{ solid: 'box', at: [0, 0.5, 0], size: [1, 1, 1], color: '#primary' }],
   });
-  assert.deepEqual(grid.palette[0], { slot: 'primary' });
+  assert.deepEqual(grid.palette[0], { slot: 'primary', hex: undefined });
+});
+
+test('a tint slot carries the recipe\'s own colour as a fallback', () => {
+  // Without this, a model placed with no tint turns grey rather than looking
+  // like itself, which is what the library preview would show.
+  const grid = voxelise({
+    id: 'tinted', unit: 1, anchor: 'base',
+    tints: { primary: '#3f6fb5' },
+    parts: [{ solid: 'box', at: [0, 0.5, 0], size: [1, 1, 1], color: '#primary' }],
+  });
+  assert.deepEqual(grid.palette[0], { slot: 'primary', hex: '#3f6fb5' });
 });
 
 test('motion is recorded per cell, and only where there is a pivot', () => {
