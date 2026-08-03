@@ -31,10 +31,13 @@
       "Bash(python -c ' *)",
       "Bash(node tools/sheet.js \"C:\\\\Users\\\\Absol\\\\AppData\\\\Local\\\\Temp\\\\voxpack\\\\Models.vox\" \"C:\\\\Users\\\\Absol\\\\AppData\\\\Local\\\\Temp\\\\voxsheets\" 64)",
       "Read(//c/Users/Absol/AppData/Local/Temp/**)",
-      "Read(//c/Users/Absol/AppData/Local/Temp/voxsheets/**)"
+      "Read(//c/Users/Absol/AppData/Local/Temp/voxsheets/**)",
+      "Bash(cd \"c:/Users/Absol/OneDrive/Documents/GitHub/PortFol/trail\" && mkdir -p models/packs && cp \"C:/Users/Absol/AppData/Local/Temp/voxpack/Models.vox\" models/packs/medieval.vox && mv models/names/models.json models/names/medieval.json && ls -la models/packs models/names && du -sh models/packs/medieval.vox)",
+      "Bash(git -C .. status --porcelain trail/models)"
     ],
     "additionalDirectories": [
-      "\\tmp"
+      "\\tmp",
+      "C:\\Users\\Absol\\AppData\\Local\\Temp\\voxpack"
     ]
   }
 }

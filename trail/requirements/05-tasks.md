@@ -63,7 +63,10 @@ test worth trusting.
 - [x] Z-up to Y-up, with the depth axis reversed so a model is not mirrored
 - [x] The palette compacted to the colours a model actually uses
 - [x] A file with no palette comes in grey and says so, rather than inventing colours
-- [x] Drop a `.vox` on the page and it joins the library and lands in the middle of the shot
+- [x] **The library loads from a manifest when the page opens.** `models/index.json` lists
+      the recipes and the packs; adding a model is a file and a line of data, never code
+- [x] Packs load after the first frame, so the scene is on screen before megabytes are fetched
+- [x] Drop a `.vox` on the page as well, for anything not in the manifest
 - [x] Imported models re-anchor with the block size slider, like recipes do
 - [x] A CC0 `.vox` pack found and verified: FuzzyManStudios' Medieval Theme Voxels on
       OpenGameArt. 363 models in one 800 KB archive, all 363 parse

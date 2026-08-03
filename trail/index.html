@@ -443,8 +443,8 @@ function say(message) {
   toastTimer = setTimeout(() => toast.classList.remove('on'), 1800);
 }
 
-async function loadRecipe(name) {
-  const url = new URL(`./models/${name}.json`, location.href).href;
+async function loadJson(path) {
+  const url = new URL(`./models/${path}`, location.href).href;
   let response;
   try {
     response = await fetch(url);
@@ -459,12 +459,25 @@ async function loadRecipe(name) {
   return response.json();
 }
 
+const loadRecipe = (name) => loadJson(`${name}.json`);
+
+/** Bytes, for a pack rather than a description. */
+async function loadBytes(path) {
+  const url = new URL(`./models/${path}`, location.href).href;
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`${url} returned ${response.status}`);
+  return new Uint8Array(await response.arrayBuffer());
+}
+
 async function main() {
   const renderer = createRenderer(canvas);
 
-  const names = [...new Set(PLACEMENTS.map((p) => p.model))];
+  // What the library holds is a manifest, not a list in the code, so adding a
+  // model is a file and a line of data.
+  const manifest = await loadJson('index.json');
+  const wanted = [...new Set([...manifest.recipes, ...PLACEMENTS.map((p) => p.model)])];
   const recipes = Object.fromEntries(
-    await Promise.all(names.map(async (n) => [n, await loadRecipe(n)]))
+    await Promise.all(wanted.map(async (n) => [n, await loadRecipe(n)]))
   );
 
   // Cube size is a property of each recipe. This multiplies all of them at once
@@ -873,14 +886,18 @@ async function main() {
    * placed. Converting all of them up front would cost seconds for models that
    * may never be used.
    */
-  async function addVoxFile(name, bytes) {
-    const base = name.replace(/\.vox$/i, '').replace(/[^a-z0-9_-]+/gi, '-').toLowerCase();
+  /**
+   * Take in a file of models.
+   *
+   * A `.vox` file can hold hundreds, so they are parsed once and only converted
+   * when one is first placed. Names come from a file beside the pack if there
+   * is one, because a `.vox` carries none of its own.
+   */
+  function addPack(base, bytes, names = null) {
     const vox = readVox(bytes);
-    const named = await packNames(base, vox.models.length);
-
     const taken = new Set([...Object.keys(recipes), ...Object.keys(sources)]);
     for (let i = 0; i < vox.models.length; i++) {
-      let id = named?.[i] ?? (vox.models.length === 1 ? base : `${base}-${i + 1}`);
+      let id = names?.[i] ?? (vox.models.length === 1 ? base : `${base}-${i + 1}`);
       // Two models may be given the same name, and two packs may share one.
       // Numbering the later ones keeps every entry reachable.
       if (taken.has(id)) {
@@ -892,11 +909,35 @@ async function main() {
       sources[id] = { vox, model: i };
     }
     paintLibrary();
-    if (vox.models.length === 1) {
-      placeModel(base);
-    } else {
-      say(`${name}: ${vox.models.length} models added to the library`);
+    return vox;
+  }
+
+  /** Everything the manifest says the library holds. Runs after the first frame. */
+  async function loadPacks() {
+    for (const pack of manifest.packs ?? []) {
+      try {
+        const base = pack.file.split('/').pop().replace(/\.vox$/i, '');
+        const [bytes, names] = await Promise.all([
+          loadBytes(pack.file),
+          pack.names ? loadJson(pack.names).then((d) => d.names).catch(() => null) : null,
+        ]);
+        const vox = addPack(base, bytes, names);
+        say(`${pack.title ?? base}: ${vox.models.length} models`);
+      } catch (error) {
+        // A missing pack costs its models and nothing else.
+        say(`could not load ${pack.file}`);
+        console.error(error);
+      }
     }
+  }
+
+  /** A file dropped on the page, rather than one the manifest knew about. */
+  async function addVoxFile(name, bytes) {
+    const base = name.replace(/\.vox$/i, '').replace(/[^a-z0-9_-]+/gi, '-').toLowerCase();
+    const names = await packNames(base, readVox(bytes).models.length);
+    const vox = addPack(base, bytes, names);
+    if (vox.models.length === 1) placeModel(base);
+    else say(`${name}: ${vox.models.length} models added`);
     if (vox.usedDefaultPalette) say(`${name} carried no palette, so it is grey`);
   }
 
@@ -1354,6 +1395,10 @@ async function main() {
   if (restore()) say('picked up where you left off');
   paintPanel();
   sync();
+
+  // After the first frame, so the scene is on screen before a few megabytes of
+  // models are fetched and parsed.
+  requestAnimationFrame(() => { loadPacks(); });
 
   let last = performance.now();
   let frames = 0, fpsClock = 0;

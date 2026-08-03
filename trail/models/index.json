@@ -1,0 +1,18 @@
+{
+  "note": "What the library holds when the page opens. Adding a model is a file and a line here, never a code change.",
+  "recipes": [
+    "house",
+    "car",
+    "tree"
+  ],
+  "packs": [
+    {
+      "file": "Models.vox",
+      "names": "names/models.json",
+      "title": "Medieval Theme Voxels",
+      "author": "FuzzyManStudios",
+      "licence": "CC0",
+      "source": "https://opengameart.org/content/medieval-theme-voxels-asset-pack"
+    }
+  ]
+}

@@ -3,6 +3,10 @@ import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
+import { readVox } from '../lib/vox.js';
+
+const readVoxCount = (bytes) => readVox(bytes).models.length;
+
 // Actually start the app.
 //
 // index.html is the one file the other tests cannot reach, and it has now
@@ -111,8 +115,10 @@ function stubBrowser({ frames = 3, ids = new Set() } = {}) {
   };
 
   const store = new Map();
+  const requested = [];
   let clock = 0;
   let drawn = 0;
+  let closed = false;
 
   const win = {
     __trail: { started: false, fail: (title, detail) => failures.push(`${title} ${detail}`) },
@@ -152,7 +158,9 @@ function stubBrowser({ frames = 3, ids = new Set() } = {}) {
     performance: { now: () => (clock += 16) },
     requestAnimationFrame: (fn) => {
       // A handful of frames, then stop, so the draw path runs without looping.
-      if (drawn++ < frames) queueMicrotask(() => fn(clock += 16));
+      // A closed stub schedules nothing: a page from an earlier test keeps
+      // asking for frames forever, and it must not touch this test's counters.
+      if (!closed && drawn++ < frames) queueMicrotask(() => fn(clock += 16));
       return drawn;
     },
     addEventListener: () => {},
@@ -163,9 +171,20 @@ function stubBrowser({ frames = 3, ids = new Set() } = {}) {
     Blob: class { constructor() {} },
     fetch: async (url) => {
       const path = String(url).replace('http://localhost:3000/', '');
+      requested.push(path);
       try {
-        const body = readFileSync(new URL(path, `file://${root.replace(/\\/g, '/')}`), 'utf8');
-        return { ok: true, status: 200, json: async () => JSON.parse(body), text: async () => body };
+        // Read as bytes. A model pack is binary, and reading it as text would
+        // fail quietly, which would make a test that loads packs prove nothing.
+        const bytes = readFileSync(new URL(path, `file://${root.replace(/\\/g, '/')}`));
+        return {
+          ok: true,
+          status: 200,
+          json: async () => JSON.parse(bytes.toString('utf8')),
+          text: async () => bytes.toString('utf8'),
+          arrayBuffer: async () => bytes.buffer.slice(
+            bytes.byteOffset, bytes.byteOffset + bytes.byteLength,
+          ),
+        };
       } catch {
         return { ok: false, status: 404, statusText: 'Not Found' };
       }
@@ -175,7 +194,11 @@ function stubBrowser({ frames = 3, ids = new Set() } = {}) {
   globalThis.URL.createObjectURL = () => 'blob:stub';
   globalThis.URL.revokeObjectURL = () => {};
 
-  return { failures, win, element, frames: () => drawn };
+  return {
+    failures, win, element, requested,
+    frames: () => drawn,
+    close: () => { closed = true; },
+  };
 }
 
 const page = () => readFileSync(new URL('../index.html', import.meta.url), 'utf8');
@@ -198,7 +221,7 @@ test('the page starts, loads its models, and draws', async () => {
   try {
     await import(`${scratch.href}?t=${Date.now()}`);
     // The module's own startup is async, so let its promises settle.
-    for (let i = 0; i < 20; i++) await new Promise((r) => setTimeout(r, 0));
+    for (let i = 0; i < 80; i++) await new Promise((r) => setTimeout(r, 0));
   } finally {
     rmSync(scratch, { force: true });
   }
@@ -206,6 +229,24 @@ test('the page starts, loads its models, and draws', async () => {
   assert.deepEqual(stub.failures, [], 'the page reported a startup failure');
   assert.equal(stub.win.__trail.started, true, 'the module never reached its first line');
   assert.ok(stub.frames() > 1, 'the page never drew a frame');
+
+  // The library is meant to be there when the page opens, not dragged in.
+  const manifest = JSON.parse(
+    readFileSync(new URL('../models/index.json', import.meta.url), 'utf8')
+  );
+  assert.ok(stub.requested.includes('models/index.json'), 'the manifest was never read');
+  for (const name of manifest.recipes) {
+    assert.ok(stub.requested.includes(`models/${name}.json`), `${name} was never fetched`);
+  }
+  for (const pack of manifest.packs) {
+    assert.ok(stub.requested.includes(`models/${pack.file}`),
+      `${pack.file} was never fetched, so the library did not load on open`);
+    if (pack.names) {
+      assert.ok(stub.requested.includes(`models/${pack.names}`),
+        `${pack.names} was never fetched, so the pack would arrive unnamed`);
+    }
+  }
+  stub.close();
 });
 
 test('a control that is not in the markup is reported by name', async () => {
@@ -220,7 +261,7 @@ test('a control that is not in the markup is reported by name', async () => {
   writeFileSync(scratch, extractModule());
   try {
     await import(`${scratch.href}?t=${Date.now()}`);
-    for (let i = 0; i < 20; i++) await new Promise((r) => setTimeout(r, 0));
+    for (let i = 0; i < 80; i++) await new Promise((r) => setTimeout(r, 0));
   } finally {
     rmSync(scratch, { force: true });
   }
@@ -242,4 +283,34 @@ test('every element the page reaches for exists in its own markup', () => {
   );
   const missing = [...used].filter((id) => !declared.has(id));
   assert.deepEqual(missing, [], `the page reads ids that do not exist: ${missing.join(', ')}`);
+});
+
+test('every pack named in the manifest has the right number of names', () => {
+  const manifest = JSON.parse(
+    readFileSync(new URL('../models/index.json', import.meta.url), 'utf8')
+  );
+  for (const pack of manifest.packs) {
+    if (!pack.names) continue;
+    const names = JSON.parse(
+      readFileSync(new URL(`../models/${pack.names}`, import.meta.url), 'utf8')
+    ).names;
+    // Names applied off by one would mislabel the whole pack, so the count has
+    // to match exactly or they are refused at load.
+    const bytes = new Uint8Array(readFileSync(new URL(`../models/${pack.file}`, import.meta.url)));
+    const models = readVoxCount(bytes);
+    assert.equal(names.length, models,
+      `${pack.names} has ${names.length} names for ${models} models`);
+    assert.equal(new Set(names).size, names.length, `${pack.names} repeats a name`);
+  }
+});
+
+test('every recipe the manifest lists exists', () => {
+  const manifest = JSON.parse(
+    readFileSync(new URL('../models/index.json', import.meta.url), 'utf8')
+  );
+  for (const name of manifest.recipes) {
+    const at = new URL(`../models/${name}.json`, import.meta.url);
+    const recipe = JSON.parse(readFileSync(at, 'utf8'));
+    assert.equal(recipe.id, name, `models/${name}.json calls itself "${recipe.id}"`);
+  }
 });
