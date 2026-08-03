@@ -2,7 +2,7 @@
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
 
-Nothing is built. Everything past stage 1 is `[ ]` and that is honest rather than an oversight.
+The app runs. Items past stage 1 are marked honestly: `[x]` means built and tested.
 
 ## Stage 1 - Concept
 
@@ -57,9 +57,34 @@ test worth trusting.
 
 ### 2b - Import, so the test is worth trusting
 
-- [ ] `.vox` reader: `SIZE`, `XYZI` and `RGBA` chunks, everything else skipped
-- [ ] Confirm the palette mapping: `.vox` indices 0-254 to Trail's palette 1-255
-- [ ] Find a CC0 `.vox` pack. itch.io's voxel tag and OpenGameArt both carry them
+- [x] `.vox` reader: `SIZE`, `XYZI` and `RGBA` chunks, everything else skipped
+- [x] Confirm the palette mapping: a voxel's colour index is one-based, which is what
+      leaves 0 free to mean empty
+- [x] Z-up to Y-up, with the depth axis reversed so a model is not mirrored
+- [x] The palette compacted to the colours a model actually uses
+- [x] A file with no palette comes in grey and says so, rather than inventing colours
+- [x] Drop a `.vox` on the page and it joins the library and lands in the middle of the shot
+- [x] Imported models re-anchor with the block size slider, like recipes do
+- [x] A CC0 `.vox` pack found and verified: FuzzyManStudios' Medieval Theme Voxels on
+      OpenGameArt. 363 models in one 800 KB archive, all 363 parse
+- [x] Multi-model files: every model joins the library, and each is only converted the
+      first time it is placed. Converting 363 up front would cost seconds for nothing
+- [x] A library list in the panel, with a filter, showing what can be placed and what
+      already is. It says when it is showing only part of a long list
+- [x] Remove an object, by button or by the delete key
+- [x] `tools/sheet.js`: renders a pack to isometric contact sheets as PNG, written by hand
+      rather than by adding an image library. A pack of nameless models cannot be judged
+      from block counts; this is how you look at them
+- [x] All 363 models of the medieval pack named, from those sheets. Category first, so
+      filtering for `table` or `bush` finds the whole family
+- [x] `models/names/<pack>.json` is read on import, so a pack arrives named. A file with
+      the wrong number of names is ignored with a warning rather than applied crookedly
+- [x] Duplicate names are numbered, so every model stays reachable
+- [ ] Imported models are not saved in the canvas file. They vanish on reload
+- [ ] Some names are guesses at a small picture. Rename anything wrong; there is no
+      rename control in the app yet
+- [ ] **Kenney's "Voxel Pack" is 197 PNG sprites, not 3D models.** Several guides describe
+      it as voxel models. It is isometric 2D art and is no use here
 - [ ] **Do not use MagicaVoxel's bundled samples.** No explicit CC0 grant, so under the rule
       they are out
 - [ ] **Do not use `enkisoftware/voxel-models`.** It ranks first in searches and it is CC-BY

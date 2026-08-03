@@ -17,7 +17,21 @@
       "Bash(grep -n \"^  select\\(-1\\);\\\\|^  }$\" index.html)",
       "Bash(node --test test/startup.test.js)",
       "Bash(cd \"c:/Users/Absol/OneDrive/Documents/GitHub/PortFol/trail\" *)",
-      "Bash(node --test test/pen.test.js)"
+      "Bash(node --test test/pen.test.js)",
+      "Bash(node --test test/vox.test.js)",
+      "Bash(cd /tmp)",
+      "Bash(curl -sL --max-time 25 \"https://opengameart.org/content/medieval-theme-voxels-asset-pack\")",
+      "Bash(grep -oiE \"\\(license|CC0|public domain|\\\\.vox|\\\\.zip|file[^<]{0,40}|Attribution[^<]{0,60}\\)\")",
+      "Bash(grep -viE \"^\\\\s*$\")",
+      "Bash(curl -sIL --max-time 20 \"https://opengameart.org/sites/default/files/models_8.zip\")",
+      "Bash(sed 's/<[^>]*>/ /g' oga.html)",
+      "Bash(curl -sL --max-time 25 \"https://www.kenney.nl/assets/voxel-pack\")",
+      "Bash(grep -oiE \".{0,120}\\(license|CC0|\\\\.vox|format|magicavoxel|include\\).{0,120}\")",
+      "Bash(curl -sL --max-time 60 -o kenney_voxel.zip \"https://www.kenney.nl/media/pages/assets/voxel-pack/a3a73d0ff7-1677662501/kenney_voxel-pack.zip\")",
+      "Bash(python -c ' *)",
+      "Bash(node tools/sheet.js \"C:\\\\Users\\\\Absol\\\\AppData\\\\Local\\\\Temp\\\\voxpack\\\\Models.vox\" \"C:\\\\Users\\\\Absol\\\\AppData\\\\Local\\\\Temp\\\\voxsheets\" 64)",
+      "Read(//c/Users/Absol/AppData/Local/Temp/**)",
+      "Read(//c/Users/Absol/AppData/Local/Temp/voxsheets/**)"
     ],
     "additionalDirectories": [
       "\\tmp"

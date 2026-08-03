@@ -115,6 +115,7 @@ which is fine for testing and not fine for a finished library.
 
 | Source | Notes |
 | --- | --- |
+| **Medieval Theme Voxels**, by FuzzyManStudios on OpenGameArt | **Verified and in use.** CC0, 363 models in a single 800 KB `.vox`, all of which parse. *"Credit is not necessary, but highly appreciated"* |
 | itch.io, voxel and magicavoxel tags | Several genuinely CC0 packs. Check each pack's own page; free and CC0 are not the same thing |
 | OpenGameArt, CC0 filter | Carries `.vox` files alongside mesh exports |
 
@@ -124,6 +125,7 @@ which is fine for testing and not fine for a finished library.
 | --- | --- |
 | MagicaVoxel's bundled sample files | The application is free to use, but there is no explicit CC0 grant covering the samples. Unclear means out |
 | `enkisoftware/voxel-models` | Ranks first in searches for free voxel models. It is CC-BY 4.0, not CC0 |
+| Kenney's "Voxel Pack" | CC0, and **it is 197 PNG sprites rather than 3D models**. Several guides describe it as "190 voxel models". It is isometric 2D art |
 
 | Source | What | Role |
 | --- | --- | --- |

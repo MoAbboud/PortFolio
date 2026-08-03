@@ -106,6 +106,24 @@
   .btn { margin: 4px 0; }
   .buttons { display: flex; gap: 5px; margin: 8px 0 2px; }
 
+  #filter {
+    width: 100%; box-sizing: border-box; margin: 4px 0 8px; padding: 5px 7px;
+    font: inherit; font-size: 11px; color: #dfe6ee;
+    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.16);
+    border-radius: 4px;
+  }
+  #filter::placeholder { color: #6f8095; }
+  .list { max-height: 190px; overflow-y: auto; margin: 6px 0 2px; }
+  .list button {
+    display: block; width: 100%; text-align: left; cursor: pointer;
+    padding: 3px 6px; margin: 0 0 2px; font: inherit; font-size: 11px;
+    color: #cfd9e4; background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.1); border-radius: 3px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .list button:hover { background: rgba(255,255,255,.18); color: #fff; }
+  .list button.drawn { color: #9ed5ff; }
+
   .keys { color: #8ea0b4; line-height: 1.75; }
   .keys k { display: inline-block; min-width: 74px; color: #cfd9e4; font-style: normal; }
   #mode { color: #7fd4a0; }
@@ -203,6 +221,16 @@
   </details>
 
   <details>
+    <summary>library</summary>
+    <div class="body">
+      <input type="text" id="filter" placeholder="filter models" autocomplete="off">
+      <div class="row"><span class="dim">models</span><b id="s-lib">-</b></div>
+      <div class="list" id="library"></div>
+      <div class="dim" id="s-more"></div>
+    </div>
+  </details>
+
+  <details>
     <summary>object</summary>
     <div class="body">
       <div class="row"><span class="dim">selected</span><b id="s-sel">nothing</b></div>
@@ -218,6 +246,7 @@
         <div class="row"><span class="dim">appears at step</span><span class="val" id="v-from">-</span></div>
         <input type="range" id="r-from" min="1" max="3" step="1" value="1" disabled>
       </div>
+      <button class="btn" id="b-remove">remove from canvas</button>
     </div>
   </details>
 
@@ -335,7 +364,7 @@ setTimeout(function () {
 </script>
 
 <script type="module">
-import { voxelise, hollow } from './lib/voxel.js';
+import { voxelise, hollow, anchor as reanchor } from './lib/voxel.js';
 import {
   assemble, assembleMeshes, contactShadows, bounds, place, objectBoxes,
 } from './lib/scene.js';
@@ -349,6 +378,7 @@ import { scarMap } from './lib/scars.js';
 import { multiply } from './lib/mat4.js';
 import { serialise, parse, isRefusal } from './lib/canvas.js';
 import * as pen from './lib/pen.js';
+import { readVox, toGrid, isBadVox } from './lib/vox.js';
 
 // Reached only if every module above loaded. The classic script watches for it.
 window.__trail.started = true;
@@ -445,6 +475,12 @@ async function main() {
   let grids = {};
   let scene;
   let boxes = [];
+  // Models drawn in a voxel editor and dropped onto the page. They live beside
+  // the recipes and nothing downstream can tell the difference.
+  const imported = {};
+  // Models read from a .vox file but not yet converted. A pack is often one
+  // file with hundreds inside, and most of them will never be placed.
+  const sources = {};
 
   // A working copy, because objects get moved around and the original list is
   // only the starting arrangement.
@@ -482,6 +518,12 @@ async function main() {
     grids = {};
     for (const [name, recipe] of Object.entries(recipes)) {
       grids[name] = hollow(voxelise({ ...recipe, unit: recipe.unit * cubeScale }));
+    }
+    // Drawn models come in already voxelised, so they only need re-scaling and
+    // hollowing. Re-anchoring is what makes the block size slider reach them.
+    for (const [name, grid] of Object.entries(imported)) {
+      const unit = grid.baseUnit * cubeScale;
+      grids[name] = hollow(reanchor({ ...grid, unit }, grid.anchor));
     }
     scene = assemble(layout.map(({ model, ...rest }) => ({ grid: grids[model], ...rest })));
     renderer.upload(scene);
@@ -687,6 +729,12 @@ async function main() {
       return;
     }
 
+    if ((key === 'delete' || key === 'backspace') && state.selected >= 0) {
+      event.preventDefault();
+      removeSelected();
+      return;
+    }
+
     if (key === 's' && (event.ctrlKey || event.metaKey)) {
       event.preventDefault();
       download();
@@ -815,17 +863,120 @@ async function main() {
     say('canvas.json saved');
   }
 
-  // Drop a canvas file anywhere on the page to open it.
+  /**
+   * Bring in models drawn in MagicaVoxel.
+   *
+   * A `.vox` file is already a voxel grid with an indexed palette, so this
+   * skips voxelising, normalising and colour quantisation entirely. A file can
+   * hold hundreds of models - a whole pack is often one file - so they are
+   * parsed once and kept, and each one is only converted when it is first
+   * placed. Converting all of them up front would cost seconds for models that
+   * may never be used.
+   */
+  async function addVoxFile(name, bytes) {
+    const base = name.replace(/\.vox$/i, '').replace(/[^a-z0-9_-]+/gi, '-').toLowerCase();
+    const vox = readVox(bytes);
+    const named = await packNames(base, vox.models.length);
+
+    const taken = new Set([...Object.keys(recipes), ...Object.keys(sources)]);
+    for (let i = 0; i < vox.models.length; i++) {
+      let id = named?.[i] ?? (vox.models.length === 1 ? base : `${base}-${i + 1}`);
+      // Two models may be given the same name, and two packs may share one.
+      // Numbering the later ones keeps every entry reachable.
+      if (taken.has(id)) {
+        let n = 2;
+        while (taken.has(`${id}-${n}`)) n++;
+        id = `${id}-${n}`;
+      }
+      taken.add(id);
+      sources[id] = { vox, model: i };
+    }
+    paintLibrary();
+    if (vox.models.length === 1) {
+      placeModel(base);
+    } else {
+      say(`${name}: ${vox.models.length} models added to the library`);
+    }
+    if (vox.usedDefaultPalette) say(`${name} carried no palette, so it is grey`);
+  }
+
+  /**
+   * Names for a pack, if anyone has written them down.
+   *
+   * A `.vox` file carries no names, so a pack arrives as hundreds of numbers.
+   * A file beside it in `models/names/` can say what each one is, which turns
+   * an unusable list into something you can filter for "table".
+   */
+  async function packNames(base, count) {
+    try {
+      const response = await fetch(new URL(`./models/names/${base}.json`, location.href).href);
+      if (!response.ok) return null;
+      const data = await response.json();
+      if (!Array.isArray(data.names) || data.names.length !== count) {
+        say(`names for ${base} do not match this file, so they were ignored`);
+        return null;
+      }
+      return data.names;
+    } catch {
+      return null;   // No names is the ordinary case, not a failure.
+    }
+  }
+
+  /** Convert a model the first time it is wanted, then keep it. */
+  function materialise(id) {
+    if (imported[id]) return imported[id];
+    const source = sources[id];
+    if (!source) return null;
+    const grid = toGrid(source.vox, { model: source.model, unit: 0.12, anchor: 'base', id });
+    imported[id] = { ...grid, baseUnit: 0.12 };
+    return imported[id];
+  }
+
+  /** Put a model on the canvas, in the middle of whatever is being looked at. */
+  function placeModel(id) {
+    if (!recipes[id] && !materialise(id)) {
+      say(`there is no model called ${id}`);
+      return;
+    }
+    const framing = state.mode === 'roam' ? state.roaming : currentRoute().framing;
+    const [cx, cz] = centreOf(framing);
+    layout.push({ model: id, at: [cx, 0, cz], rot: 0, from: 0 });
+    rebuild();
+    select(layout.length - 1);
+    paintLibrary();
+    autosave();
+    say(`${id} placed, ${(scene.ranges.at(-1)?.count ?? 0).toLocaleString()} blocks`);
+  }
+
+  /** Take the selected object off the canvas. */
+  function removeSelected() {
+    if (state.selected < 0) { say('nothing selected'); return; }
+    const gone = layout[state.selected].model;
+    layout.splice(state.selected, 1);
+    rebuild();
+    select(-1);
+    paintLibrary();
+    autosave();
+    say(`${gone} removed`);
+  }
+
+  // Drop a canvas or a model anywhere on the page.
   addEventListener('dragover', (event) => event.preventDefault());
   addEventListener('drop', async (event) => {
     event.preventDefault();
     const file = event.dataTransfer?.files?.[0];
     if (!file) return;
     try {
-      apply(parse(await file.text()));
-      say(`opened ${file.name}`);
+      if (/\.vox$/i.test(file.name)) {
+        await addVoxFile(file.name, new Uint8Array(await file.arrayBuffer()));
+      } else {
+        apply(parse(await file.text()));
+        say(`opened ${file.name}`);
+      }
     } catch (error) {
-      say(isRefusal(error) ? error.message : `could not open ${file.name}`);
+      const known = isRefusal(error) || isBadVox(error);
+      say(known ? error.message : `could not open ${file.name}`);
+      if (!known) console.error(error);
     }
   });
 
@@ -1017,6 +1168,46 @@ async function main() {
     el('v-pen').textContent = String(ink.width);
   });
 
+  // --- the library ----------------------------------------------------------
+  // Everything that can be placed: the built-in recipes, and every model read
+  // from a dropped file. A pack arrives as one file with hundreds inside, so
+  // this needs a filter rather than a list you scroll.
+
+  const SHOWN = 60;
+
+  function libraryNames() {
+    return [...new Set([...Object.keys(recipes), ...Object.keys(sources)])].sort();
+  }
+
+  function paintLibrary() {
+    const all = libraryNames();
+    const needle = el('filter').value.trim().toLowerCase();
+    const matching = needle ? all.filter((n) => n.includes(needle)) : all;
+    const placed = new Set(layout.map((p) => p.model));
+
+    el('s-lib').textContent = needle
+      ? `${matching.length} of ${all.length}`
+      : String(all.length);
+
+    const list = el('library');
+    list.innerHTML = '';
+    for (const name of matching.slice(0, SHOWN)) {
+      const button = document.createElement('button');
+      button.textContent = name;
+      if (placed.has(name)) button.className = 'drawn';
+      button.addEventListener('click', () => placeModel(name));
+      list.append(button);
+    }
+    // Never silently truncate: a list that stops at sixty with no note reads as
+    // a library with sixty things in it.
+    el('s-more').textContent = matching.length > SHOWN
+      ? `showing ${SHOWN}, filter to narrow`
+      : '';
+  }
+
+  el('filter').addEventListener('input', paintLibrary);
+  el('b-remove').addEventListener('click', removeSelected);
+
   // --- the panel ------------------------------------------------------------
   // Keys move the camera. Everything that is a value lives here, in one place,
   // with its number showing, so nothing has to be remembered.
@@ -1156,6 +1347,7 @@ async function main() {
     weatherSeg.paint();
     buildSteps();
     paintObject();
+    paintLibrary();
   }
 
   // Whatever was being worked on last time, if anything.
