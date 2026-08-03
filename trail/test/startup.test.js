@@ -26,7 +26,10 @@ class FakeElement {
     this.id = id;
     this.textContent = '';
     this.innerHTML = '';
-    this.value = '0';
+    // An empty text input reads as '', not '0'. Defaulting to '0' made the
+    // library's filter box look as though it contained "0", which filtered out
+    // every model and hid the fact that no previews were being drawn.
+    this.value = '';
     this.min = '0';
     this.max = '100';
     this.disabled = false;
@@ -59,14 +62,22 @@ class FakeElement {
   click() {}
   getBoundingClientRect() { return { left: 0, top: 0, width: 1600, height: 900 }; }
   getContext(kind) { return kind === 'webgl2' ? fakeGl() : fake2d(); }
+  showModal() { this.open = true; }
+  close() { this.open = false; }
   setPointerCapture() {}
   releasePointerCapture() {}
   hasPointerCapture() { return false; }
   focus() {}
 }
 
+// What the 2D layers were asked to draw. A preview that never reaches
+// putImageData is a preview that did not happen, and the panel would be empty.
+let drawn2d = [];
+
 const fake2d = () => new Proxy({}, {
-  get: (_, name) => (name === 'measureText' ? () => ({ width: 40 }) : () => {}),
+  get: (_, name) => (name === 'measureText'
+    ? () => ({ width: 40 })
+    : (...args) => { drawn2d.push([name, ...args]); }),
 });
 
 /**
@@ -116,6 +127,7 @@ function stubBrowser({ frames = 3, ids = new Set() } = {}) {
 
   const store = new Map();
   const requested = [];
+  drawn2d = [];
   let clock = 0;
   let drawn = 0;
   let closed = false;
@@ -155,12 +167,15 @@ function stubBrowser({ frames = 3, ids = new Set() } = {}) {
       setItem: (k, v) => store.set(k, v),
       removeItem: (k) => store.delete(k),
     },
-    performance: { now: () => (clock += 16) },
+    // Time advances per frame, not per reading. A clock that jumps on every
+    // call makes any "work for N milliseconds" loop exit before doing anything,
+    // which silently hid the library's previews.
+    performance: { now: () => clock },
     requestAnimationFrame: (fn) => {
       // A handful of frames, then stop, so the draw path runs without looping.
       // A closed stub schedules nothing: a page from an earlier test keeps
       // asking for frames forever, and it must not touch this test's counters.
-      if (!closed && drawn++ < frames) queueMicrotask(() => fn(clock += 16));
+      if (!closed && drawn++ < frames) queueMicrotask(() => { clock += 16; fn(clock); });
       return drawn;
     },
     addEventListener: () => {},
@@ -169,6 +184,15 @@ function stubBrowser({ frames = 3, ids = new Set() } = {}) {
     clearTimeout: globalThis.clearTimeout,
     URL: globalThis.URL,
     Blob: class { constructor() {} },
+    // The library draws model previews into these. Without it the thumbnail
+    // path throws in a frame callback and the test quietly covers nothing.
+    ImageData: class {
+      constructor(data, width, height) {
+        this.data = data;
+        this.width = width;
+        this.height = height;
+      }
+    },
     fetch: async (url) => {
       const path = String(url).replace('http://localhost:3000/', '');
       requested.push(path);
@@ -197,6 +221,10 @@ function stubBrowser({ frames = 3, ids = new Set() } = {}) {
   return {
     failures, win, element, requested,
     frames: () => drawn,
+    drew: (name) => drawn2d.filter((c) => c[0] === name).length,
+    // The page asks for a frame every frame, so a fixed budget is spent by the
+    // render loop long before a test can interact. This hands back some more.
+    allowFrames: (n) => { drawn = Math.max(0, drawn - n); },
     close: () => { closed = true; },
   };
 }
@@ -214,7 +242,7 @@ function extractModule() {
 const declaredIds = () => new Set([...page().matchAll(/id="([^"]+)"/g)].map((m) => m[1]));
 
 test('the page starts, loads its models, and draws', async () => {
-  const stub = stubBrowser({ ids: declaredIds() });
+  const stub = stubBrowser({ ids: declaredIds(), frames: 60 });
   const scratch = new URL('../.startup-test.mjs', import.meta.url);
   writeFileSync(scratch, extractModule());
 
@@ -229,6 +257,17 @@ test('the page starts, loads its models, and draws', async () => {
   assert.deepEqual(stub.failures, [], 'the page reported a startup failure');
   assert.equal(stub.win.__trail.started, true, 'the module never reached its first line');
   assert.ok(stub.frames() > 1, 'the page never drew a frame');
+
+  // Previews are only drawn while the library is open, so open it the way a
+  // click does. A frame callback that throws is swallowed, so what matters is
+  // what the previews produced rather than the absence of an error.
+  const open = stub.element('b-library').listeners.get('click')?.[0];
+  assert.ok(open, 'there is no way to open the library');
+  stub.allowFrames(60);
+  open();
+  for (let i = 0; i < 40; i++) await new Promise((r) => setTimeout(r, 0));
+  assert.ok(stub.drew('putImageData') > 5,
+    `the library drew ${stub.drew('putImageData')} previews; it would open empty`);
 
   // The library is meant to be there when the page opens, not dragged in.
   const manifest = JSON.parse(
@@ -313,4 +352,39 @@ test('every recipe the manifest lists exists', () => {
     const recipe = JSON.parse(readFileSync(at, 'utf8'));
     assert.equal(recipe.id, name, `models/${name}.json calls itself "${recipe.id}"`);
   }
+});
+
+test('the manifest records where every pack came from', () => {
+  // The packs are not in the repository, so this is what makes them
+  // replaceable. A pack with no download recorded is a library that cannot be
+  // rebuilt on another machine.
+  const manifest = JSON.parse(
+    readFileSync(new URL('../models/index.json', import.meta.url), 'utf8')
+  );
+  assert.ok(Array.isArray(manifest.downloads), 'the manifest records no downloads');
+  for (const download of manifest.downloads) {
+    assert.ok(download.folder, 'a download has no folder');
+    assert.ok(!String(download.from).startsWith('UNKNOWN'),
+      `${download.folder} has no download URL recorded`);
+  }
+});
+
+test('anything not established as CC0 is held back rather than offered', () => {
+  // The output is monetised video and the rule is CC0 only. A model whose
+  // licence has not been established must not appear in the library at all: one
+  // that cannot be seen cannot be placed in a video by accident.
+  const manifest = JSON.parse(
+    readFileSync(new URL('../models/index.json', import.meta.url), 'utf8')
+  );
+  const entries = [...manifest.packs, ...(manifest.meshes ?? [])];
+
+  // Every licence is either CC0 or an explicit admission that it is not known.
+  for (const entry of entries) {
+    assert.ok(entry.licence === 'CC0' || entry.licence.startsWith('UNKNOWN'),
+      `${entry.file} claims a licence of "${entry.licence}", which is neither`);
+  }
+
+  // And the page must gate on it, not merely record it.
+  assert.match(page(), /mesh\.licence !== 'CC0'/,
+    'the page lists meshes without checking their licence');
 });

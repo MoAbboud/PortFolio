@@ -74,8 +74,22 @@ test worth trusting.
       OpenGameArt. 363 models in one 800 KB archive, all 363 parse
 - [x] Multi-model files: every model joins the library, and each is only converted the
       first time it is placed. Converting 363 up front would cost seconds for nothing
-- [x] A library list in the panel, with a filter, showing what can be placed and what
+- [x] A library of previews in the panel, with a filter, showing what can be placed and what
       already is. It says when it is showing only part of a long list
+- [x] `lib/thumb.js` draws a model as isometric pixels. Pure, so the same code makes contact
+      sheets in Node and previews in the panel, and both are tested without a browser
+- [x] Previews are cached and drawn a few per frame, so opening the panel never stutters
+- [x] `[` and `]` cycle the selected object through the models on show, keeping its position,
+      turn and step range while only the model underneath changes
+- [x] The library is a dialog, big, with a search and as many columns as fit
+- [x] Previews are drawn only while the dialog is open, so opening the page does not convert
+      the whole library
+- [x] `tools/scan.js` walks `models/` and writes the manifest, so adding a pack is dropping a
+      file in and running `npm run scan`. Licences and names already written are kept
+- [x] Shadows follow a moved object. They were uploaded only inside the mesh rebuild, so in
+      cube mode an object left its shadow behind
+- [x] Meshes are cached and only built for what is on the canvas. Rebuilding every materialised
+      model on every frame of a drag got slower the more of the library had been browsed
 - [x] Remove an object, by button or by the delete key
 - [x] `tools/sheet.js`: renders a pack to isometric contact sheets as PNG, written by hand
       rather than by adding an image library. A pack of nameless models cannot be judged
@@ -85,7 +99,12 @@ test worth trusting.
 - [x] `models/names/<pack>.json` is read on import, so a pack arrives named. A file with
       the wrong number of names is ignored with a warning rather than applied crookedly
 - [x] Duplicate names are numbered, so every model stays reachable
-- [ ] Imported models are not saved in the canvas file. They vanish on reload
+- [x] A canvas is restored only once the packs it may refer to have loaded
+- [x] An object whose model is not in the library is dropped rather than carried, so layout,
+      ranges and boxes can never fall out of step
+- [x] A buffer slice that no longer fits triggers a rebuild rather than a partial write
+- [ ] Imported models are not saved in the canvas file, so a canvas only works while the pack
+      it used is listed in `models/index.json`
 - [ ] Some names are guesses at a small picture. Rename anything wrong; there is no
       rename control in the app yet
 - [ ] **Kenney's "Voxel Pack" is 197 PNG sprites, not 3D models.** Several guides describe
@@ -97,6 +116,24 @@ test worth trusting.
 - [ ] Allow a composition to mix `.vox` parts and recipe solids on the same lattice
 - [ ] Accept that packs from different artists disagree on scale, palette and style. Fine for a
       test, and a problem for a real library
+
+### 2d - Meshes, which is where modern subjects live
+
+- [x] `lib/obj.js`: OBJ and MTL to a voxel grid. Only the surface is filled, because Trail
+      hollows everything anyway, which removes the hardest part of mesh voxelisation
+- [x] The cube size follows the model's own extent, so any units arrive at one chunkiness
+- [x] `Kd` is converted from linear to sRGB. Taken literally, every material comes out
+      almost black
+- [x] When every material shares one colour - what a texture atlas leaves behind - the
+      material names are used instead. A bed's DarkBrown, Sheets and Wood are far better
+      read as those than as three identical greys
+- [x] Meshes are listed by path in the manifest and read only when first wanted. Reading
+      158 OBJ files at startup would be tens of megabytes for models never used
+- [x] `tools/scan.js` finds OBJ files, names them from their filenames, and reads the
+      licence from the nearest licence file in their own pack
+- [ ] Models whose colour is only in a texture atlas still come out one colour. Sampling
+      the texture needs UVs and a PNG decoder
+- [ ] Up axis is assumed to be Y. True for 152 of the 158 downloaded, but not guaranteed
 
 ### 2c - Draw, when something specific is missing
 

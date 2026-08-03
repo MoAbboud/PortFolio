@@ -87,3 +87,13 @@ GoogleService-Info.plist
 
 # Trail working memory - kept local until the project is ready to be public
 trail/requirements/06-context.md
+
+# Trail models: keep what was written here, not what was downloaded.
+#
+# The recipes, the names and the manifest are the project's own work and are a
+# few kilobytes. The packs are 681 MB of somebody else's models, replaceable
+# from the URLs recorded in models/index.json. `npm run scan` rebuilds the
+# manifest after re-downloading them.
+trail/models/*.vox
+trail/models/*/
+!trail/models/names/

@@ -113,16 +113,49 @@
     border-radius: 4px;
   }
   #filter::placeholder { color: #6f8095; }
-  .list { max-height: 190px; overflow-y: auto; margin: 6px 0 2px; }
-  .list button {
-    display: block; width: 100%; text-align: left; cursor: pointer;
-    padding: 3px 6px; margin: 0 0 2px; font: inherit; font-size: 11px;
-    color: #cfd9e4; background: rgba(255,255,255,.05);
-    border: 1px solid rgba(255,255,255,.1); border-radius: 3px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  .list {
+    display: grid; gap: 7px;
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
   }
-  .list button:hover { background: rgba(255,255,255,.18); color: #fff; }
-  .list button.drawn { color: #9ed5ff; }
+  .list button {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    cursor: pointer; padding: 6px 4px 4px; font: inherit; font-size: 10.5px;
+    color: #9fb0c4; background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.09); border-radius: 4px;
+    overflow: hidden;
+  }
+  .list button span {
+    max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .list button canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+  .list button:hover { background: rgba(255,255,255,.16); color: #fff; }
+  .list button.drawn { border-color: #7fb0e8; color: #9ed5ff; }
+
+  /* The library, big enough to browse rather than squint at. */
+  #browser {
+    width: min(1100px, 92vw); height: min(760px, 88vh);
+    padding: 0; border: 1px solid rgba(255,255,255,.16); border-radius: 9px;
+    background: rgba(10, 15, 22, .97); color: #dfe6ee;
+    font: 12.5px/1.55 ui-monospace, "Cascadia Mono", Consolas, monospace;
+    flex-direction: column; overflow: hidden;
+  }
+  #browser[open] { display: flex; }
+  #browser::backdrop { background: rgba(0, 0, 0, .55); backdrop-filter: blur(2px); }
+  .browser-head {
+    display: flex; align-items: center; gap: 10px; padding: 11px 14px;
+    border-bottom: 1px solid rgba(255,255,255,.12); flex: 0 0 auto;
+  }
+  .browser-head b { letter-spacing: .14em; text-transform: uppercase; font-size: 11px; }
+  .browser-head input { flex: 1; margin: 0; }
+  .browser-head .btn { flex: 0 0 auto; margin: 0; }
+  .browser-body { flex: 1 1 auto; overflow-y: auto; padding: 12px 14px; }
+  .browser-foot {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 14px; border-top: 1px solid rgba(255,255,255,.1); flex: 0 0 auto;
+  }
+  .browser-foot .btn { flex: 0 0 auto; margin: 0; min-width: 92px; }
+  .browser-foot .btn:disabled { opacity: .35; cursor: default; }
+  .browser-foot span { flex: 1; text-align: center; }
 
   .keys { color: #8ea0b4; line-height: 1.75; }
   .keys k { display: inline-block; min-width: 74px; color: #cfd9e4; font-style: normal; }
@@ -220,13 +253,11 @@
     </div>
   </details>
 
-  <details>
+  <details open>
     <summary>library</summary>
     <div class="body">
-      <input type="text" id="filter" placeholder="filter models" autocomplete="off">
+      <button class="btn" id="b-library">browse models</button>
       <div class="row"><span class="dim">models</span><b id="s-lib">-</b></div>
-      <div class="list" id="library"></div>
-      <div class="dim" id="s-more"></div>
     </div>
   </details>
 
@@ -270,6 +301,7 @@
       <k>wheel</k>closer / further<br>
       <k>w a s d</k>walk<br>
       <k>q e</k>down / up<br>
+      <k>[ ]</k>cycle the model<br>
       <k>f</k>fit everything<br>
       <k>space</k>play / route<br>
       <k>d</k>draw on the frame<br>
@@ -291,6 +323,21 @@
     </div>
   </details>
 </div>
+
+<dialog id="browser">
+  <div class="browser-head">
+    <b>library</b>
+    <input type="text" id="filter" placeholder="search" autocomplete="off">
+    <span class="dim" id="s-found">-</span>
+    <button class="btn" id="b-close">close</button>
+  </div>
+  <div class="browser-body"><div class="list" id="library"></div></div>
+  <div class="browser-foot">
+    <button class="btn" id="b-prev">previous</button>
+    <span class="dim" id="s-more"></span>
+    <button class="btn" id="b-next">next</button>
+  </div>
+</dialog>
 
 <div id="error"></div>
 
@@ -378,7 +425,9 @@ import { scarMap } from './lib/scars.js';
 import { multiply } from './lib/mat4.js';
 import { serialise, parse, isRefusal } from './lib/canvas.js';
 import * as pen from './lib/pen.js';
+import { thumbnail } from './lib/thumb.js';
 import { readVox, toGrid, isBadVox } from './lib/vox.js';
+import { readObj, readMtl, voxeliseMesh } from './lib/obj.js';
 
 // Reached only if every module above loaded. The classic script watches for it.
 window.__trail.started = true;
@@ -467,6 +516,12 @@ async function loadJson(path) {
 
 const loadRecipe = (name) => loadJson(`${name}.json`);
 
+/** Text, for a mesh and the file naming its colours. */
+async function loadText(path) {
+  const response = await fetch(new URL(`./models/${path}`, location.href).href);
+  return response.ok ? response.text() : null;
+}
+
 /** Bytes, for a pack rather than a description. */
 async function loadBytes(path) {
   const url = new URL(`./models/${path}`, location.href).href;
@@ -519,18 +574,39 @@ async function main() {
    * voxeliser still produces a grid. Only what is drawn is different, and the
    * cubes stay uploaded so the two can be compared with one key.
    */
+  const meshCache = new Map();
+
   function remesh() {
+    // Only what is on the canvas, and only once per model. Meshing every grid
+    // meant the whole library, which grows as previews are drawn, and meshing
+    // it again on every frame of a drag.
     const meshes = {};
-    for (const [name, grid] of Object.entries(grids)) {
-      meshes[name] = surfaceNets(grid, { roundness });
+    for (const p of layout) {
+      if (meshes[p.model]) continue;
+      let built = meshCache.get(p.model);
+      if (!built) {
+        built = surfaceNets(grids[p.model], { roundness });
+        meshCache.set(p.model, built);
+      }
+      meshes[p.model] = built;
     }
     const merged = assembleMeshes(
-      layout.map(({ model, ...rest }) => ({ mesh: meshes[model], grid: grids[model], ...rest }))
+      layout.map((p) => ({ mesh: meshes[p.model], grid: grids[p.model], ...p }))
     );
     renderer.uploadMesh(merged);
-    renderer.uploadShadows(contactShadows(scene, layout));
     el('s-tris').textContent = merged.triangles.toLocaleString();
     return merged;
+  }
+
+  /**
+   * Where the objects sit on the ground.
+   *
+   * Shadows are placed from the objects' own boxes, so they have to follow
+   * anything that moves. This used to live inside the mesh rebuild, which meant
+   * a dragged object left its shadow behind whenever the cubes were showing.
+   */
+  function refreshShadows() {
+    renderer.uploadShadows(contactShadows(scene, layout));
   }
 
   function rebuild() {
@@ -544,12 +620,23 @@ async function main() {
       const unit = grid.baseUnit * cubeScale;
       grids[name] = hollow(reanchor({ ...grid, unit }, grid.anchor));
     }
-    scene = assemble(layout.map(({ model, ...rest }) => ({ grid: grids[model], ...rest })));
+    // An entry whose model is not loaded would leave layout, scene.ranges and
+    // boxes out of step, and a drag would then move the wrong object and write
+    // over its neighbour's cubes. Drop it rather than carry a hole.
+    const missing = layout.filter((p) => !grids[p.model]).map((p) => p.model);
+    if (missing.length) {
+      layout = layout.filter((p) => grids[p.model]);
+      state.selected = -1;
+      say(`left out ${[...new Set(missing)].join(', ')}: not in the library`);
+    }
+    scene = assemble(layout.map((p) => ({ grid: grids[p.model], ...p })));
     renderer.upload(scene);
     boxes = objectBoxes(scene);
     extent = bounds(scene);
     el('s-cubes').textContent = scene.count.toLocaleString();
+    meshCache.clear();
     remesh();
+    refreshShadows();
     return scene;
   }
 
@@ -561,14 +648,23 @@ async function main() {
    * alone entirely.
    */
   function reposition(index, placement) {
+    const swapped = layout[index].model !== placement.model;
     layout[index] = placement;
+    // A different model has a different number of cubes, so its slice of the
+    // buffers no longer fits and the whole field has to be built again.
+    if (swapped) { rebuild(); autosave(); return; }
     const part = place(grids[placement.model], placement);
     const range = scene.ranges[index];
+    // If the slice no longer fits, writing into it would overwrite the next
+    // object's cubes. That is what made a dragged figure turn into half a tree.
+    if (!range || part.count !== range.count) { rebuild(); autosave(); return; }
     scene.positions.set(part.positions.subarray(0, range.count * 3), range.start * 3);
     renderer.updatePositions(scene.positions, range.start, range.count);
     boxes = objectBoxes(scene);
-    // The surface is built from placements too, so it has to follow.
+    // The surface and the shadows are both built from placements, so both have
+    // to follow. Shadows regardless of which way the field is being drawn.
     if (surface === 'mesh') remesh();
+    refreshShadows();
     autosave();
   }
 
@@ -748,6 +844,12 @@ async function main() {
       return;
     }
 
+    if (key === '[' || key === ']') {
+      event.preventDefault();
+      cycleSelected(key === ']' ? 1 : -1);
+      return;
+    }
+
     if ((key === 'delete' || key === 'backspace') && state.selected >= 0) {
       event.preventDefault();
       removeSelected();
@@ -912,14 +1014,40 @@ async function main() {
         id = `${id}-${n}`;
       }
       taken.add(id);
-      sources[id] = { vox, model: i };
+      sources[id] = { kind: 'vox', vox, model: i };
     }
     paintLibrary();
     return vox;
   }
 
+  /**
+   * Every mesh the manifest lists, by path only.
+   *
+   * A mesh pack ships one OBJ per model and they are large - a house is
+   * thirty thousand triangles - so nothing is read here. Listing them costs
+   * nothing and each is fetched and voxelised the first time it is wanted.
+   */
+  function listMeshes() {
+    let added = 0;
+    let held = 0;
+    for (const mesh of manifest.meshes ?? []) {
+      if (sources[mesh.name] || recipes[mesh.name]) continue;
+      // The rule is CC0 only and the output is monetised video, so anything
+      // whose licence has not been established is not offered at all. A model
+      // that cannot be seen cannot be placed in a video by accident.
+      if (mesh.licence !== 'CC0') { held++; continue; }
+      sources[mesh.name] = { kind: 'obj', file: mesh.file };
+      added++;
+    }
+    if (added) paintLibrary();
+    if (held) say(`${held} models held back: their licence is not recorded as CC0`);
+    return added;
+  }
+
   /** Everything the manifest says the library holds. Runs after the first frame. */
   async function loadPacks() {
+    const meshes = listMeshes();
+    if (meshes) say(`${meshes} mesh models listed`);
     for (const pack of manifest.packs ?? []) {
       try {
         const base = pack.file.split('/').pop().replace(/\.vox$/i, '');
@@ -969,21 +1097,47 @@ async function main() {
     }
   }
 
-  /** Convert a model the first time it is wanted, then keep it. */
-  function materialise(id) {
+  /**
+   * Convert a model the first time it is wanted, then keep it.
+   *
+   * A voxel model is already a grid and comes back at once. A mesh has to be
+   * fetched and voxelised, which is why this is asynchronous: doing it for all
+   * of them at startup would read tens of megabytes for models never used.
+   */
+  const pendingWork = new Map();
+  async function materialise(id) {
     if (imported[id]) return imported[id];
+    if (pendingWork.has(id)) return pendingWork.get(id);
     const source = sources[id];
     if (!source) return null;
-    const grid = toGrid(source.vox, { model: source.model, unit: 0.12, anchor: 'base', id });
-    imported[id] = { ...grid, baseUnit: 0.12 };
-    return imported[id];
+
+    const work = (async () => {
+      let grid;
+      if (source.kind === 'obj') {
+        const objText = await loadText(source.file);
+        if (!objText) throw new Error(`could not read ${source.file}`);
+        const mtlText = await loadText(source.file.replace(/\.obj$/i, '.mtl'));
+        grid = voxeliseMesh(readObj(objText, readMtl(mtlText ?? '')), { id, cells: 34 });
+      } else {
+        grid = toGrid(source.vox, { model: source.model, unit: 0.12, anchor: 'base', id });
+      }
+      imported[id] = { ...grid, baseUnit: grid.unit };
+      pendingWork.delete(id);
+      return imported[id];
+    })();
+
+    pendingWork.set(id, work);
+    return work;
   }
 
   /** Put a model on the canvas, in the middle of whatever is being looked at. */
-  function placeModel(id) {
-    if (!recipes[id] && !materialise(id)) {
-      say(`there is no model called ${id}`);
-      return;
+  async function placeModel(id) {
+    if (!recipes[id]) {
+      const grid = await materialise(id).catch((error) => {
+        say(`could not read ${id}: ${error.message}`);
+        return null;
+      });
+      if (!grid) return;
     }
     const framing = state.mode === 'roam' ? state.roaming : currentRoute().framing;
     const [cx, cz] = centreOf(framing);
@@ -1220,40 +1374,149 @@ async function main() {
   // from a dropped file. A pack arrives as one file with hundreds inside, so
   // this needs a filter rather than a list you scroll.
 
-  const SHOWN = 60;
+  // A page of models. Everything is reachable by paging rather than by
+  // narrowing the search until the list happens to be short enough.
+  const PAGE = 60;
+  const THUMB = 72;
+  let page = 0;
+
+  // Drawing a preview means converting the model, which is the expensive part.
+  // Both are cached, and the tiles fill in a few at a time so opening the panel
+  // never stutters.
+  const thumbs = new Map();
+  let thumbQueue = [];
+  let thumbRunning = false;
+
+  async function drawThumbInto(canvasEl, id) {
+    const cached = thumbs.get(id);
+    if (cached) {
+      canvasEl.getContext('2d').putImageData(cached, 0, 0);
+      return true;
+    }
+    const grid = recipes[id] ? grids[id] : await materialise(id).catch(() => null);
+    if (!grid) return false;
+    const pixels = thumbnail(grid, THUMB);
+    const image = new ImageData(pixels, THUMB, THUMB);
+    thumbs.set(id, image);
+    canvasEl.getContext('2d').putImageData(image, 0, 0);
+    return true;
+  }
+
+  function runThumbQueue() {
+    if (thumbRunning) return;
+    thumbRunning = true;
+    const step = () => {
+      const started = performance.now();
+      // A few milliseconds a frame: the panel fills in visibly rather than
+      // freezing while sixty models are converted.
+      while (thumbQueue.length && performance.now() - started < 6) {
+        const job = thumbQueue.shift();
+        // A mesh has to be fetched, so this may finish after the frame does.
+        // Nothing waits on it: the tile fills in whenever it is ready.
+        if (job.canvas.isConnected !== false) drawThumbInto(job.canvas, job.id);
+      }
+      if (thumbQueue.length) requestAnimationFrame(step);
+      else thumbRunning = false;
+    };
+    requestAnimationFrame(step);
+  }
 
   function libraryNames() {
     return [...new Set([...Object.keys(recipes), ...Object.keys(sources)])].sort();
   }
 
+  /** The models currently listed, which is what the cycle keys step through. */
+  let listed = [];
+
   function paintLibrary() {
     const all = libraryNames();
     const needle = el('filter').value.trim().toLowerCase();
-    const matching = needle ? all.filter((n) => n.includes(needle)) : all;
+    listed = needle ? all.filter((n) => n.includes(needle)) : all;
     const placed = new Set(layout.map((p) => p.model));
 
-    el('s-lib').textContent = needle
-      ? `${matching.length} of ${all.length}`
-      : String(all.length);
+    el('s-lib').textContent = String(all.length);
+    el('s-found').textContent = needle
+      ? `${listed.length} of ${all.length}`
+      : `${all.length} models`;
 
+    const pages = Math.max(1, Math.ceil(listed.length / PAGE));
+    page = Math.min(Math.max(0, page), pages - 1);
+    const from = page * PAGE;
+    const slice = listed.slice(from, from + PAGE);
+
+    el('b-prev').disabled = page === 0;
+    el('b-next').disabled = page >= pages - 1;
+    el('s-more').textContent = listed.length
+      ? `${from + 1} to ${from + slice.length} of ${listed.length}   -   page ${page + 1} of ${pages}`
+      : 'nothing matches';
+
+    // Drawing a preview converts the model, so none are drawn while the dialog
+    // is shut. Otherwise opening the page would convert the whole library.
     const list = el('library');
     list.innerHTML = '';
-    for (const name of matching.slice(0, SHOWN)) {
+    thumbQueue = [];
+    if (!el('browser').open) return;
+
+    for (const name of slice) {
       const button = document.createElement('button');
-      button.textContent = name;
+      button.title = name;
       if (placed.has(name)) button.className = 'drawn';
-      button.addEventListener('click', () => placeModel(name));
+
+      const tile = document.createElement('canvas');
+      tile.width = THUMB;
+      tile.height = THUMB;
+      button.append(tile);
+
+      const label = document.createElement('span');
+      label.textContent = name;
+      button.append(label);
+
+      button.addEventListener('click', () => {
+        placeModel(name).then(paintLibrary);
+      });
       list.append(button);
+      thumbQueue.push({ canvas: tile, id: name });
     }
-    // Never silently truncate: a list that stops at sixty with no note reads as
-    // a library with sixty things in it.
-    el('s-more').textContent = matching.length > SHOWN
-      ? `showing ${SHOWN}, filter to narrow`
-      : '';
+    runThumbQueue();
   }
 
-  el('filter').addEventListener('input', paintLibrary);
+  /**
+   * Step the selected object through the models on show.
+   *
+   * Trying a shape in place beats placing and deleting: the object keeps its
+   * position, turn and step range while only the model underneath changes.
+   */
+  async function cycleSelected(by) {
+    if (state.selected < 0) { say('select an object first'); return; }
+    if (!listed.length) { say('no models listed'); return; }
+    const current = layout[state.selected].model;
+    const at = listed.indexOf(current);
+    const next = listed[((at < 0 ? 0 : at + by) % listed.length + listed.length) % listed.length];
+    if (!recipes[next] && !await materialise(next).catch(() => null)) return;
+    reposition(state.selected, { ...layout[state.selected], model: next });
+    select(state.selected);
+    paintLibrary();
+    say(next);
+  }
+
+  el('filter').addEventListener('input', () => { page = 0; paintLibrary(); });
+  el('b-prev').addEventListener('click', () => { page--; paintLibrary(); });
+  el('b-next').addEventListener('click', () => { page++; paintLibrary(); });
   el('b-remove').addEventListener('click', removeSelected);
+
+  const browser = el('browser');
+  function openLibrary() {
+    // Open first, then paint: previews are only drawn while the dialog is up,
+    // so painting before opening fills nothing and the library appears empty.
+    if (!browser.open) browser.showModal();
+    paintLibrary();
+    el('filter').focus();
+  }
+  el('b-library').addEventListener('click', openLibrary);
+  el('b-close').addEventListener('click', () => browser.close());
+  // A dialog takes the keyboard, and the camera keys would otherwise reach the
+  // page through it.
+  browser.addEventListener('keydown', (event) => event.stopPropagation());
 
   // --- the panel ------------------------------------------------------------
   // Keys move the camera. Everything that is a value lives here, in one place,
@@ -1294,7 +1557,7 @@ async function main() {
   };
 
   const roundSlider = slider('r-round', (v) => `${v}%`,
-    () => {}, { live: false, after: (v) => { roundness = v / 100; remesh(); } });
+    () => {}, { live: false, after: (v) => { roundness = v / 100; meshCache.clear(); remesh(); } });
   const shadeSlider = slider('r-shade',
     (v) => (v === 0 ? 'flat' : v === 100 ? 'smooth' : `${v}%`),
     (v) => { smoothing = v / 100; });
@@ -1398,13 +1661,18 @@ async function main() {
   }
 
   // Whatever was being worked on last time, if anything.
-  if (restore()) say('picked up where you left off');
   paintPanel();
   sync();
 
   // After the first frame, so the scene is on screen before a few megabytes of
   // models are fetched and parsed.
-  requestAnimationFrame(() => { loadPacks(); });
+  // Packs first, then whatever was being worked on. Restoring before the
+  // library exists means the canvas refers to models that are not there yet.
+  requestAnimationFrame(async () => {
+    await loadPacks();
+    if (restore()) say('picked up where you left off');
+    paintPanel();
+  });
 
   let last = performance.now();
   let frames = 0, fpsClock = 0;

@@ -167,3 +167,64 @@ test('a scene made of coarser cubes is cheaper but keeps its extent', () => {
   assert.ok(Math.abs(width(coarse) - width(fine)) < 1.0,
     'changing cube size must not change how big the house is');
 });
+
+test('a model that is not in the library is refused by name', () => {
+  // This surfaced as "cannot read properties of undefined (reading 'unit')"
+  // several frames from the cause, naming nothing. A canvas can outlive the
+  // library it was built against, so the failure has to say which model.
+  assert.throws(
+    () => place(undefined, { model: 'table-oak', at: [0, 0, 0] }),
+    /there is no model called "table-oak"/,
+  );
+  assert.throws(() => place(null, {}), /there is no model called "unknown"/);
+});
+
+test('every object keeps its own slice of the buffers', () => {
+  // The ranges are what a drag writes into. If one object's slice overlapped
+  // the next, moving a figure would overwrite its neighbour's cubes, which is
+  // exactly what turned a dragged person into half a tree.
+  const grids = {
+    house: hollow(voxelise(model('house'))),
+    car: hollow(voxelise(model('car'))),
+    tree: hollow(voxelise(model('tree'))),
+  };
+  const placements = [
+    { grid: grids.house, at: [0, 0, 0] },
+    { grid: grids.car, at: [10, 0, 0] },
+    { grid: grids.tree, at: [20, 0, 0] },
+  ];
+  const scene = assemble(placements);
+
+  let expected = 0;
+  scene.ranges.forEach((range, i) => {
+    assert.equal(range.start, expected, `object ${i} does not start where the last one ended`);
+    assert.equal(range.count, count(placements[i].grid), `object ${i} has the wrong size`);
+    expected += range.count;
+  });
+  assert.equal(expected, scene.count, 'the ranges do not cover the whole field');
+});
+
+test('moving an object writes exactly its own cubes and no others', () => {
+  const grids = {
+    house: hollow(voxelise(model('house'))),
+    tree: hollow(voxelise(model('tree'))),
+  };
+  const placements = [
+    { grid: grids.house, at: [0, 0, 0] },
+    { grid: grids.tree, at: [10, 0, 0] },
+  ];
+  const scene = assemble(placements);
+  const before = [...scene.positions];
+
+  // Move the first object, as a drag does.
+  const moved = place(grids.house, { at: [3, 0, 0] });
+  const range = scene.ranges[0];
+  assert.equal(moved.count, range.count, 'the same model must fill the same slice');
+  scene.positions.set(moved.positions.subarray(0, range.count * 3), range.start * 3);
+
+  // The second object must be untouched, to the last float.
+  const second = scene.ranges[1];
+  for (let i = second.start * 3; i < (second.start + second.count) * 3; i++) {
+    assert.equal(scene.positions[i], before[i], 'moving one object disturbed another');
+  }
+});

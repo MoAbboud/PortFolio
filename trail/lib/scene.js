@@ -25,6 +25,16 @@ function rgb(entry, tints) {
  * calculation.
  */
 export function place(grid, placement = {}) {
+  // A missing grid used to surface as "cannot read properties of undefined",
+  // several frames from the cause and naming nothing. A canvas can outlive the
+  // library it was built against, so this has to say which model is missing.
+  if (!grid || !grid.cells) {
+    throw new Error(
+      `there is no model called "${placement.model ?? 'unknown'}" in the library.\n`
+      + 'A canvas can refer to a model that is no longer loaded, usually because\n'
+      + 'the pack it came from has not been listed in models/index.json.'
+    );
+  }
   const at = placement.at ?? [0, 0, 0];
   const scale = placement.scale ?? 1;
   const rot = ((placement.rot ?? 0) * Math.PI) / 180;
@@ -109,6 +119,11 @@ export function assemble(placements) {
  * lands in one buffer and one draw.
  */
 export function assembleMeshes(items) {
+  for (const item of items) {
+    if (!item.mesh || !item.grid) {
+      throw new Error(`there is no model called "${item.model ?? 'unknown'}" in the library.`);
+    }
+  }
   const count = items.reduce((n, item) => n + item.mesh.count, 0);
   const triangles = items.reduce((n, item) => n + item.mesh.indices.length, 0);
 

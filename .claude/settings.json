@@ -36,7 +36,15 @@
       "Bash(git -C .. status --porcelain trail/models)",
       "Bash(node tools/inspect.js --plain person)",
       "Bash(.vox)",
-      "Bash(grep -n \"258\\\\|three hand-written\\\\|three crude placeholder\\\\|`.vox` importer, then the script panel\" requirements/06-context.md)"
+      "Bash(grep -n \"258\\\\|three hand-written\\\\|three crude placeholder\\\\|`.vox` importer, then the script panel\" requirements/06-context.md)",
+      "Bash(node --test test/thumb.test.js)",
+      "Bash(cp index.html /tmp/idx.good)",
+      "Bash(node /tmp/dbg.mjs)",
+      "Bash(cp index.html /tmp/idx.keep)",
+      "Bash(node tools/scan.js)",
+      "Bash(npm run *)",
+      "Bash(node --test test/obj.test.js)",
+      "Bash(awk '{printf \"%.0f MB  %s\\\\n\", $1/1048576, substr\\($0, index\\($0,$2\\)\\)}')"
     ],
     "additionalDirectories": [
       "\\tmp",

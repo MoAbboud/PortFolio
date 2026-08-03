@@ -1,10 +1,859 @@
 {
-  "note": "What the library holds when the page opens. Adding a model is a file and a line here, never a code change.",
+  "note": "What the library holds when the page opens. Written by tools/scan.js; run it after adding models. The packs themselves are not in the repository: re-download them from `downloads` below and run the tool again.",
+  "downloads": [
+    {
+      "folder": "Buildings Pack - Jan 2019-20260803T200313Z-1-001",
+      "from": "https://quaternius.com",
+      "licence": "CC0"
+    },
+    {
+      "folder": "Downtown City MegaKit[Standard]",
+      "from": "https://quaternius.com",
+      "licence": "CC0"
+    },
+    {
+      "folder": "Farm Buildings - Sept 2018-20260803T200359Z-1-001",
+      "from": "https://quaternius.com",
+      "licence": "CC0"
+    },
+    {
+      "folder": "Furniture Pack - Oct 2017-20260803T200510Z-1-001",
+      "from": "https://quaternius.com",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "folder": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001",
+      "from": "https://quaternius.com",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "folder": "Public Transport Pack - Feb 2017-20260803T200524Z-1-001",
+      "from": "https://quaternius.com",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "folder": "Realistic Car Pack - Nov 2018-20260803T200324Z-1-001",
+      "from": "https://quaternius.com",
+      "licence": "CC0"
+    },
+    {
+      "folder": "Ships by @Quaternius-20260803T200452Z-1-001",
+      "from": "https://quaternius.com",
+      "licence": "CC0"
+    },
+    {
+      "folder": "Ultimate Animated Animals - July 2021-20260803T200235Z-1-001",
+      "from": "https://quaternius.com",
+      "licence": "CC0"
+    },
+    {
+      "folder": "Universal Animation Library[Standard]",
+      "from": "https://quaternius.com",
+      "licence": "CC0"
+    },
+    {
+      "folder": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001",
+      "from": "https://quaternius.com",
+      "licence": "CC0"
+    }
+  ],
   "recipes": [
-    "person",
-    "house",
     "car",
+    "house",
+    "person",
     "tree"
+  ],
+  "meshes": [
+    {
+      "file": "Buildings Pack - Jan 2019-20260803T200313Z-1-001/Buildings Pack - Jan 2019/OBJ/Building1_Large.obj",
+      "name": "building1-large",
+      "licence": "CC0"
+    },
+    {
+      "file": "Buildings Pack - Jan 2019-20260803T200313Z-1-001/Buildings Pack - Jan 2019/OBJ/Building1_Small.obj",
+      "name": "building1-small",
+      "licence": "CC0"
+    },
+    {
+      "file": "Buildings Pack - Jan 2019-20260803T200313Z-1-001/Buildings Pack - Jan 2019/OBJ/Building2_Large.obj",
+      "name": "building2-large",
+      "licence": "CC0"
+    },
+    {
+      "file": "Buildings Pack - Jan 2019-20260803T200313Z-1-001/Buildings Pack - Jan 2019/OBJ/Building2_Small.obj",
+      "name": "building2-small",
+      "licence": "CC0"
+    },
+    {
+      "file": "Buildings Pack - Jan 2019-20260803T200313Z-1-001/Buildings Pack - Jan 2019/OBJ/Building3_Big.obj",
+      "name": "building3-big",
+      "licence": "CC0"
+    },
+    {
+      "file": "Buildings Pack - Jan 2019-20260803T200313Z-1-001/Buildings Pack - Jan 2019/OBJ/Building3_Small.obj",
+      "name": "building3-small",
+      "licence": "CC0"
+    },
+    {
+      "file": "Buildings Pack - Jan 2019-20260803T200313Z-1-001/Buildings Pack - Jan 2019/OBJ/Building4.obj",
+      "name": "building4",
+      "licence": "CC0"
+    },
+    {
+      "file": "Buildings Pack - Jan 2019-20260803T200313Z-1-001/Buildings Pack - Jan 2019/OBJ/House1.obj",
+      "name": "house1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Buildings Pack - Jan 2019-20260803T200313Z-1-001/Buildings Pack - Jan 2019/OBJ/House2.obj",
+      "name": "house2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Farm Buildings - Sept 2018-20260803T200359Z-1-001/Farm Buildings - Sept 2018/OBJ/Barn.obj",
+      "name": "barn",
+      "licence": "CC0"
+    },
+    {
+      "file": "Farm Buildings - Sept 2018-20260803T200359Z-1-001/Farm Buildings - Sept 2018/OBJ/BigBarn.obj",
+      "name": "big-barn",
+      "licence": "CC0"
+    },
+    {
+      "file": "Farm Buildings - Sept 2018-20260803T200359Z-1-001/Farm Buildings - Sept 2018/OBJ/ChickenCoop.obj",
+      "name": "chicken-coop",
+      "licence": "CC0"
+    },
+    {
+      "file": "Farm Buildings - Sept 2018-20260803T200359Z-1-001/Farm Buildings - Sept 2018/OBJ/Fence.obj",
+      "name": "fence",
+      "licence": "CC0"
+    },
+    {
+      "file": "Farm Buildings - Sept 2018-20260803T200359Z-1-001/Farm Buildings - Sept 2018/OBJ/Fence2.obj",
+      "name": "fence2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Farm Buildings - Sept 2018-20260803T200359Z-1-001/Farm Buildings - Sept 2018/OBJ/OpenBarn.obj",
+      "name": "open-barn",
+      "licence": "CC0"
+    },
+    {
+      "file": "Farm Buildings - Sept 2018-20260803T200359Z-1-001/Farm Buildings - Sept 2018/OBJ/Silo.obj",
+      "name": "silo",
+      "licence": "CC0"
+    },
+    {
+      "file": "Farm Buildings - Sept 2018-20260803T200359Z-1-001/Farm Buildings - Sept 2018/OBJ/Silo_House.obj",
+      "name": "silo-house",
+      "licence": "CC0"
+    },
+    {
+      "file": "Farm Buildings - Sept 2018-20260803T200359Z-1-001/Farm Buildings - Sept 2018/OBJ/SmallBarn.obj",
+      "name": "small-barn",
+      "licence": "CC0"
+    },
+    {
+      "file": "Farm Buildings - Sept 2018-20260803T200359Z-1-001/Farm Buildings - Sept 2018/OBJ/TowerWindmill.obj",
+      "name": "tower-windmill",
+      "licence": "CC0"
+    },
+    {
+      "file": "Farm Buildings - Sept 2018-20260803T200359Z-1-001/Farm Buildings - Sept 2018/OBJ/WaterTower.obj",
+      "name": "water-tower",
+      "licence": "CC0"
+    },
+    {
+      "file": "Farm Buildings - Sept 2018-20260803T200359Z-1-001/Farm Buildings - Sept 2018/OBJ/Well.obj",
+      "name": "well",
+      "licence": "CC0"
+    },
+    {
+      "file": "Farm Buildings - Sept 2018-20260803T200359Z-1-001/Farm Buildings - Sept 2018/OBJ/Windmill.obj",
+      "name": "windmill",
+      "licence": "CC0"
+    },
+    {
+      "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/Bed.obj",
+      "name": "bed",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/BedKing.obj",
+      "name": "bed-king",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/BookCase.obj",
+      "name": "book-case",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/BookCaseBooks.obj",
+      "name": "book-case-books",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/BookCaseLarge.obj",
+      "name": "book-case-large",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/BookCaseLargeBooks.obj",
+      "name": "book-case-large-books",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/Chair.obj",
+      "name": "chair",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/ChairCushioned.obj",
+      "name": "chair-cushioned",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/ChairHandle.obj",
+      "name": "chair-handle",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/Closet.obj",
+      "name": "closet",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/Closet2.obj",
+      "name": "closet2",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/CoffeeTable.obj",
+      "name": "coffee-table",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/CoffeeTable2.obj",
+      "name": "coffee-table2",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/Lamp.obj",
+      "name": "lamp",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/Lamp2.obj",
+      "name": "lamp2",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/Plant.obj",
+      "name": "plant",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/Sofa.obj",
+      "name": "sofa",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/SofaDouble.obj",
+      "name": "sofa-double",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/SofaLong.obj",
+      "name": "sofa-long",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/Stool.obj",
+      "name": "stool",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/Table.obj",
+      "name": "table",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/Vase.obj",
+      "name": "vase",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/Vase2.obj",
+      "name": "vase2",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/Burger.obj",
+      "name": "burger",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/Cake.obj",
+      "name": "cake",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/Cookie.obj",
+      "name": "cookie",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/Cupcake.obj",
+      "name": "cupcake",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/CupcakeCherry.obj",
+      "name": "cupcake-cherry",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/CupcakeCherry2.obj",
+      "name": "cupcake-cherry2",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/Donut.obj",
+      "name": "donut",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/Donut2.obj",
+      "name": "donut2",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/Hotdog.obj",
+      "name": "hotdog",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/Icecream.obj",
+      "name": "icecream",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/Icecream2.obj",
+      "name": "icecream2",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/Icecream3.obj",
+      "name": "icecream3",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/Milkshake.obj",
+      "name": "milkshake",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/Pizza.obj",
+      "name": "pizza",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/Soda.obj",
+      "name": "soda",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/SodaCan.obj",
+      "name": "soda-can",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Public Transport Pack - Feb 2017-20260803T200524Z-1-001/Public Transport Pack - Feb 2017/OBJ/Ambulance.obj",
+      "name": "ambulance",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Public Transport Pack - Feb 2017-20260803T200524Z-1-001/Public Transport Pack - Feb 2017/OBJ/Bicycle.obj",
+      "name": "bicycle",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Public Transport Pack - Feb 2017-20260803T200524Z-1-001/Public Transport Pack - Feb 2017/OBJ/Bus.obj",
+      "name": "bus",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Public Transport Pack - Feb 2017-20260803T200524Z-1-001/Public Transport Pack - Feb 2017/OBJ/SchoolBus.obj",
+      "name": "school-bus",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Public Transport Pack - Feb 2017-20260803T200524Z-1-001/Public Transport Pack - Feb 2017/OBJ/SquareFrameBicycle.obj",
+      "name": "square-frame-bicycle",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Public Transport Pack - Feb 2017-20260803T200524Z-1-001/Public Transport Pack - Feb 2017/OBJ/Taxi.obj",
+      "name": "taxi",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Public Transport Pack - Feb 2017-20260803T200524Z-1-001/Public Transport Pack - Feb 2017/OBJ/TrafficCone.obj",
+      "name": "traffic-cone",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Public Transport Pack - Feb 2017-20260803T200524Z-1-001/Public Transport Pack - Feb 2017/OBJ/TrafficLight.obj",
+      "name": "traffic-light",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Public Transport Pack - Feb 2017-20260803T200524Z-1-001/Public Transport Pack - Feb 2017/OBJ/TrafficSign1.obj",
+      "name": "traffic-sign1",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Public Transport Pack - Feb 2017-20260803T200524Z-1-001/Public Transport Pack - Feb 2017/OBJ/TrafficSign2.obj",
+      "name": "traffic-sign2",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Public Transport Pack - Feb 2017-20260803T200524Z-1-001/Public Transport Pack - Feb 2017/OBJ/TrafficSign3.obj",
+      "name": "traffic-sign3",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Public Transport Pack - Feb 2017-20260803T200524Z-1-001/Public Transport Pack - Feb 2017/OBJ/Train.obj",
+      "name": "train",
+      "licence": "UNKNOWN - check before publishing"
+    },
+    {
+      "file": "Realistic Car Pack - Nov 2018-20260803T200324Z-1-001/Realistic Car Pack - Nov 2018/OBJ/Cop.obj",
+      "name": "cop",
+      "licence": "CC0"
+    },
+    {
+      "file": "Realistic Car Pack - Nov 2018-20260803T200324Z-1-001/Realistic Car Pack - Nov 2018/OBJ/NormalCar1.obj",
+      "name": "normal-car1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Realistic Car Pack - Nov 2018-20260803T200324Z-1-001/Realistic Car Pack - Nov 2018/OBJ/NormalCar2.obj",
+      "name": "normal-car2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Realistic Car Pack - Nov 2018-20260803T200324Z-1-001/Realistic Car Pack - Nov 2018/OBJ/SUV.obj",
+      "name": "suv",
+      "licence": "CC0"
+    },
+    {
+      "file": "Realistic Car Pack - Nov 2018-20260803T200324Z-1-001/Realistic Car Pack - Nov 2018/OBJ/SportsCar.obj",
+      "name": "sports-car",
+      "licence": "CC0"
+    },
+    {
+      "file": "Realistic Car Pack - Nov 2018-20260803T200324Z-1-001/Realistic Car Pack - Nov 2018/OBJ/SportsCar2.obj",
+      "name": "sports-car2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Realistic Car Pack - Nov 2018-20260803T200324Z-1-001/Realistic Car Pack - Nov 2018/OBJ/Taxi.obj",
+      "name": "taxi-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ships by @Quaternius-20260803T200452Z-1-001/Ships by @Quaternius/OBJ/Boat.obj",
+      "name": "boat",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ships by @Quaternius-20260803T200452Z-1-001/Ships by @Quaternius/OBJ/BoatWSail.obj",
+      "name": "boat-wsail",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ships by @Quaternius-20260803T200452Z-1-001/Ships by @Quaternius/OBJ/CruiseShip.obj",
+      "name": "cruise-ship",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ships by @Quaternius-20260803T200452Z-1-001/Ships by @Quaternius/OBJ/Lifeboat.obj",
+      "name": "lifeboat",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ships by @Quaternius-20260803T200452Z-1-001/Ships by @Quaternius/OBJ/Sail ship.obj",
+      "name": "sail-ship",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ships by @Quaternius-20260803T200452Z-1-001/Ships by @Quaternius/OBJ/Viking boat.obj",
+      "name": "viking-boat",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Animated Animals - July 2021-20260803T200235Z-1-001/Ultimate Animated Animals - July 2021/OBJ/Alpaca.obj",
+      "name": "alpaca",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Animated Animals - July 2021-20260803T200235Z-1-001/Ultimate Animated Animals - July 2021/OBJ/Bull.obj",
+      "name": "bull",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Animated Animals - July 2021-20260803T200235Z-1-001/Ultimate Animated Animals - July 2021/OBJ/Cow.obj",
+      "name": "cow",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Animated Animals - July 2021-20260803T200235Z-1-001/Ultimate Animated Animals - July 2021/OBJ/Deer.obj",
+      "name": "deer",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Animated Animals - July 2021-20260803T200235Z-1-001/Ultimate Animated Animals - July 2021/OBJ/Donkey.obj",
+      "name": "donkey",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Animated Animals - July 2021-20260803T200235Z-1-001/Ultimate Animated Animals - July 2021/OBJ/Fox.obj",
+      "name": "fox",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Animated Animals - July 2021-20260803T200235Z-1-001/Ultimate Animated Animals - July 2021/OBJ/Horse.obj",
+      "name": "horse",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Animated Animals - July 2021-20260803T200235Z-1-001/Ultimate Animated Animals - July 2021/OBJ/Horse_White.obj",
+      "name": "horse-white",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Animated Animals - July 2021-20260803T200235Z-1-001/Ultimate Animated Animals - July 2021/OBJ/Husky.obj",
+      "name": "husky",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Animated Animals - July 2021-20260803T200235Z-1-001/Ultimate Animated Animals - July 2021/OBJ/ShibaInu.obj",
+      "name": "shiba-inu",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Animated Animals - July 2021-20260803T200235Z-1-001/Ultimate Animated Animals - July 2021/OBJ/Stag.obj",
+      "name": "stag",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Animated Animals - July 2021-20260803T200235Z-1-001/Ultimate Animated Animals - July 2021/OBJ/Wolf.obj",
+      "name": "wolf",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Characters/OBJ/Characters_GermanShepherd.obj",
+      "name": "characters-german-shepherd",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Characters/OBJ/Characters_Lis.obj",
+      "name": "characters-lis",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Characters/OBJ/Characters_Matt.obj",
+      "name": "characters-matt",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Characters/OBJ/Characters_Pug.obj",
+      "name": "characters-pug",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Characters/OBJ/Characters_Sam.obj",
+      "name": "characters-sam",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Characters/OBJ/Characters_Shaun.obj",
+      "name": "characters-shaun",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Characters/OBJ/Zombie_Arm.obj",
+      "name": "zombie-arm",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Characters/OBJ/Zombie_Basic.obj",
+      "name": "zombie-basic",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Characters/OBJ/Zombie_Chubby.obj",
+      "name": "zombie-chubby",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Characters/OBJ/Zombie_Ribcage.obj",
+      "name": "zombie-ribcage",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/Barrel.obj",
+      "name": "barrel",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/Blood_1.obj",
+      "name": "blood-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/Blood_2.obj",
+      "name": "blood-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/Blood_3.obj",
+      "name": "blood-3",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/Chest.obj",
+      "name": "chest",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/Chest_Special.obj",
+      "name": "chest-special",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/CinderBlock.obj",
+      "name": "cinder-block",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/Container_Green.obj",
+      "name": "container-green",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/Container_Red.obj",
+      "name": "container-red",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/Couch.obj",
+      "name": "couch",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/FireHydrant.obj",
+      "name": "fire-hydrant",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/Pallet.obj",
+      "name": "pallet",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/Pallet_Broken.obj",
+      "name": "pallet-broken",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/Pipes.obj",
+      "name": "pipes",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/PlasticBarrier.obj",
+      "name": "plastic-barrier",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/StreetLights.obj",
+      "name": "street-lights",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/Street_4Way.obj",
+      "name": "street-4-way",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/Street_Straight.obj",
+      "name": "street-straight",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/Street_Straight_Crack1.obj",
+      "name": "street-straight-crack1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/Street_Straight_Crack2.obj",
+      "name": "street-straight-crack2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/Street_T.obj",
+      "name": "street-t",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/Street_Turn.obj",
+      "name": "street-turn",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/TownSign.obj",
+      "name": "town-sign",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/TrafficBarrier_1.obj",
+      "name": "traffic-barrier-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/TrafficBarrier_2.obj",
+      "name": "traffic-barrier-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/TrafficCone_1.obj",
+      "name": "traffic-cone-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/TrafficCone_2.obj",
+      "name": "traffic-cone-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/TrafficLight_1.obj",
+      "name": "traffic-light-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/TrafficLight_2.obj",
+      "name": "traffic-light-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/TrashBag_1.obj",
+      "name": "trash-bag-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/TrashBag_2.obj",
+      "name": "trash-bag-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/WaterTower.obj",
+      "name": "water-tower-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/Wheel.obj",
+      "name": "wheel",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Environment/OBJ/Wheels_Stack.obj",
+      "name": "wheels-stack",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Vehicles/OBJ/Vehicle_Pickup.obj",
+      "name": "vehicle-pickup",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Vehicles/OBJ/Vehicle_Pickup_Armored.obj",
+      "name": "vehicle-pickup-armored",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Vehicles/OBJ/Vehicle_Sports.obj",
+      "name": "vehicle-sports",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Vehicles/OBJ/Vehicle_Sports_Armored.obj",
+      "name": "vehicle-sports-armored",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Vehicles/OBJ/Vehicle_Truck.obj",
+      "name": "vehicle-truck",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Vehicles/OBJ/Vehicle_Truck_Armored.obj",
+      "name": "vehicle-truck-armored",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Weapons/OBJ/Axe.obj",
+      "name": "axe",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Weapons/OBJ/Guitar.obj",
+      "name": "guitar",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Weapons/OBJ/Knife.obj",
+      "name": "knife",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Weapons/OBJ/Pistol.obj",
+      "name": "pistol",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Weapons/OBJ/Rifle.obj",
+      "name": "rifle",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Weapons/OBJ/SMG.obj",
+      "name": "smg",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Weapons/OBJ/Shotgun.obj",
+      "name": "shotgun",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Weapons/OBJ/Spear.obj",
+      "name": "spear",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Weapons/OBJ/WoodenBat_Barbed.obj",
+      "name": "wooden-bat-barbed",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Weapons/OBJ/WoodenBat_Saw.obj",
+      "name": "wooden-bat-saw",
+      "licence": "CC0"
+    }
   ],
   "packs": [
     {
