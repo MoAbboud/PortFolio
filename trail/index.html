@@ -427,7 +427,8 @@ import { serialise, parse, isRefusal } from './lib/canvas.js';
 import * as pen from './lib/pen.js';
 import { thumbnail } from './lib/thumb.js';
 import { readVox, toGrid, isBadVox } from './lib/vox.js';
-import { readObj, readMtl, voxeliseMesh } from './lib/obj.js';
+import { readObj, readMtl, voxeliseMesh, atHeight } from './lib/obj.js';
+import { readGltf, readGlb, externalBuffers } from './lib/gltf.js';
 
 // Reached only if every module above loaded. The classic script watches for it.
 window.__trail.started = true;
@@ -528,6 +529,27 @@ async function loadBytes(path) {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`${url} returned ${response.status}`);
   return new Uint8Array(await response.arrayBuffer());
+}
+
+/**
+ * A glTF model, as triangles.
+ *
+ * A `.glb` carries its numbers inside it and is one request. A `.gltf` keeps
+ * them in a companion `.bin` named in the document, which has to be fetched
+ * separately and relative to the model rather than to the page, because a pack
+ * puts every model and every buffer in one folder together.
+ */
+async function loadMesh(source) {
+  if (source.kind === 'glb') {
+    const { json, binary } = readGlb(await loadBytes(source.file));
+    return readGltf(json, [binary], { name: source.file });
+  }
+  const json = await loadJson(source.file);
+  const folder = source.file.slice(0, source.file.lastIndexOf('/') + 1);
+  const buffers = await Promise.all(externalBuffers(json).map(
+    (uri) => (uri ? loadBytes(folder + uri) : null)
+  ));
+  return readGltf(json, buffers, { name: source.file });
 }
 
 async function main() {
@@ -1036,7 +1058,11 @@ async function main() {
       // whose licence has not been established is not offered at all. A model
       // that cannot be seen cannot be placed in a video by accident.
       if (mesh.licence !== 'CC0') { held++; continue; }
-      sources[mesh.name] = { kind: 'obj', file: mesh.file };
+      // The format is the extension. Nothing downstream cares which it was:
+      // all three arrive as triangles and leave as the same voxel grid.
+      const kind = mesh.file.toLowerCase().endsWith('.obj') ? 'obj'
+        : mesh.file.toLowerCase().endsWith('.glb') ? 'glb' : 'gltf';
+      sources[mesh.name] = { kind, file: mesh.file, height: mesh.height };
       added++;
     }
     if (added) paintLibrary();
@@ -1118,9 +1144,14 @@ async function main() {
         if (!objText) throw new Error(`could not read ${source.file}`);
         const mtlText = await loadText(source.file.replace(/\.obj$/i, '.mtl'));
         grid = voxeliseMesh(readObj(objText, readMtl(mtlText ?? '')), { id, cells: 34 });
+      } else if (source.kind === 'gltf' || source.kind === 'glb') {
+        grid = voxeliseMesh(await loadMesh(source), { id, cells: 34 });
       } else {
         grid = toGrid(source.vox, { model: source.model, unit: 0.12, anchor: 'base', id });
       }
+      // A pack that normalised its models before exporting has lost their real
+      // sizes, so the manifest carries the height back.
+      if (source.height) grid = atHeight(grid, source.height);
       imported[id] = { ...grid, baseUnit: grid.unit };
       pendingWork.delete(id);
       return imported[id];

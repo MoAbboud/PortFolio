@@ -20,7 +20,7 @@ earlier ones, and the context file is the only place that says what they replace
 
     Set-Location "C:\Users\Absol\OneDrive\Documents\GitHub\PortFol\trail"
     npx --yes serve .      # then open the address it prints
-    npm test               # 262 tests, about two seconds
+    npm test               # 331 tests, about four seconds
 
 Four things worth knowing before editing:
 

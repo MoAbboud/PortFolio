@@ -7,11 +7,13 @@ canvas, with a camera that walks a route through it and pulls back at the end to
 whole thing. Cheap enough to redo, consistent enough to be a visual identity, repeatable enough
 that a retake is free, and containing no artificial intelligence of any kind at runtime.
 
-**The app is built, running, and has a library.** The renderer, the camera, the route, the
-weather, the picking, the canvas file and the pen all exist, with 262 tests behind them, and
-367 named models load when the page opens. What is missing is the script panel - the app's
-actual concept - and a mesh voxeliser, since the available voxel packs do not suit the
-subject the user writes about.
+**The app is built, running, and has a library of everything on disk.** The renderer, the
+camera, the route, the weather, the picking, the canvas file and the pen all exist, with 331
+tests behind them, and 684 models load when the page opens - four recipes, a 363-model voxel
+pack, and 317 meshes read as OBJ, glTF or `.glb`. Nothing is held back for licence.
+
+**What is missing is the script panel, and only the script panel.** It is the app's actual
+concept, and there is no longer a content reason to build anything else first.
 
 The question this plan was framed around, whether a camera tour of a static voxel world holds
 attention, has had a soft yes on a first look and has not been tested properly on a real
@@ -34,7 +36,7 @@ flowchart LR
 | Stage | Goal | Done when | Status |
 | --- | --- | --- | --- |
 | 1 | Concept | The workflow, the look and the boundary are settled, and the rejected designs are recorded | Done |
-| 2 | Voxel format and import | The recipe voxeliser, the `.vox` reader, and a library that loads on open | **Done.** 367 models load from a manifest: the figure, three recipes, and a named CC0 pack. A mesh voxeliser, for the packs that suit the subject, is the next piece |
+| 2 | Voxel format and import | The recipe voxeliser, the `.vox` reader, and a library that loads on open | **Done, and past it.** 684 models load from a manifest: the figure, three recipes, a named CC0 voxel pack, and 317 meshes in three formats. Every mesh has been checked all the way to a grid |
 | 3 | Field and camera | Sky, shiny floor, 16:9 frame, a rectangle plus a pitch producing a correct framing | **Done**, and past it: free roaming, picking, dragging, a smooth surface, occlusion and contact shadows. Frame rate at full budget is still untested |
 | 4 | Script, canvas and route | Paste a script, get a tray of what it mentions, drag objects onto a plan, split the script into stages, draw a frame per stage | **Half done.** Objects can be placed, turned, ranged and saved, and a canvas file exists. **The script half does not exist at all**, and it is the app's whole concept |
 | 5 | Play mode | Ghosting, flying, weather cross-fade, scars, motion, name tags, the sync flash, and no interface at all | **Done**, apart from snow and motion in the cube path |
@@ -76,9 +78,8 @@ is encouraging and it is not the test. The test is a full run on a canvas built 
 script, and that is finally possible: there is a library of 367 named models and a figure.
 
 **What has never been tried is the thing the app is for** - taking a real script, cutting it
-into stages, building a canvas for it, and watching the result. Two pieces stand in the way:
-a mesh voxeliser, since the available voxel packs are medieval rather than modern, and the
-script panel.
+into stages, building a canvas for it, and watching the result. **One piece stands in the way,
+and it is the script panel.**
 
 ## Decisions already made
 
@@ -126,6 +127,17 @@ value.
 | Built to last, and extended by data rather than by code | The user's requirement: best practices, SOLID, live as long as possible, updateable on the fly. Translated into module boundaries, pure testable logic, versioned file formats and a hard rule that new content is never new code. See the engineering standards section of `03-architecture.md`, which is honest about where SOLID applies literally and where it does not |
 | A step range per object, so a person can be in two places | Chosen over objects that move between steps, visible duplicates, and a composition rule forbidding it. Two placements of the same person, adjacent ranges, one fading out as the other solidifies. It costs one instance attribute and one comparison, where moving objects would have destroyed the static-field property the renderer rests on |
 
+### From the third conversation, which filled the library
+
+| Decision | Reason |
+| --- | --- |
+| **Read glTF and `.glb`, not only OBJ** | The packs shipped since about 2019 are glTF, and two of them sat on disk contributing nothing while `npm run scan` reported success. The reader emits the same `{triangles, colours}` the OBJ reader does, so the voxeliser, the palette, the hollowing and the mesher were all reused unchanged - which is the module boundary earning its keep |
+| **A licence is established from its source, with the evidence recorded** | Three 2017 Quaternius packs shipped with no licence file, holding back 51 models. `quaternius.com/faq.html` states that all models are CC0, and that statement is now quoted in the manifest against each pack. Chosen over marking them CC0 on the author's reputation alone, which is probably right and leaves nothing a later reader can check. **A test refuses a CC0 claim that has neither a licence file nor an evidence note**, so the difference between establishing and assuming cannot quietly disappear |
+| **`scan.js` keeps what was written by hand** | It preserved pack and download notes but rewrote every mesh entry, so a corrected licence would have been silently undone by the next scan. The tool that rediscovers files must not also discard judgements |
+| **Real height per model, as manifest data** | The animals pack normalised every model before export, so a shiba inu arrived as tall as a bull. Chosen over one multiplier per pack, which cannot express a per-model error, and over editing the meshes, which a re-download would undo. Consistent with the standard the project already holds: new content is data, never code |
+| **Material names are matched longest-first** | Names used to be tried in written order, so a general word shadowed a specific one and every chair in the furniture pack came out the colour of hair. It also lets the table grow without the author having to reason about position |
+| **Measure the library rather than reasoning about it** | Both of this session's surprises were things these documents asserted confidently: that the library lacked modern subjects, while a pack of characters, cars and streets sat in it unread; and that mesh normalisation would be the hard part, when ten packs of eleven already agreed to within a few per cent. One script answered each |
+
 ### Carried forward from the first conversation
 
 | Decision | Reason |
@@ -160,7 +172,7 @@ value.
 | --- | --- | --- |
 | A camera tour of a static world is dull | The format does not hold for the length of a video and the whole thing needs rethinking | The sixty-second test at stage 2, before any editor exists. Four motion sources were chosen specifically against this, and the reveal is the structural answer |
 | Shapes do not read as what they are | The viewer is confused rather than impressed and the narration carries the whole video alone | Cube edge scales with object size for exactly this reason. Test every model at the framing it will be seen at, never up close in an editor |
-| Dataset models arrive unusable | The library never fills and the promise of "type a word" does not land | Normalisation of scale, up-axis and facing is the genuinely hard part of the pipeline and is where its effort should go. Start with curated low-poly sources, which are far more consistent than scanned data |
+| ~~Dataset models arrive unusable~~ | The library never fills and the promise of "type a word" does not land | **Happened, and it was mild.** Measured across 317 meshes: ten packs of eleven agree at one unit to the metre and agree with the hand-authored figure, the up-axis assumption held everywhere, and nothing arrived on its side. One pack had been normalised before export and is corrected by twelve numbers of data. The response - start with curated low-poly sources by few artists - is what made the difference |
 | The word lookup is confidently wrong | A script names something and gets a plausible but wrong object, silently | Edit mode shows what a word resolved to before it is placed. A wrong match is a visible wrong object, never a silent substitution |
 | The reveal is mush | The payoff shot, which the whole format is built around, does not land | Compose for it from the first object. Cube edge, spacing and canvas size all answer to the reveal rather than to the close-ups |
 | The cube budget is exceeded | Dropped frames, permanently, in the recording | A hard cap of 400,000 with a running total while building, and a warning before a take rather than after |

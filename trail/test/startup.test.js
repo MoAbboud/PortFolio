@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, rmSync, existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { readVox } from '../lib/vox.js';
@@ -387,4 +387,98 @@ test('anything not established as CC0 is held back rather than offered', () => {
   // And the page must gate on it, not merely record it.
   assert.match(page(), /mesh\.licence !== 'CC0'/,
     'the page lists meshes without checking their licence');
+});
+
+test('a licence established by hand carries the evidence that established it', () => {
+  // Some packs simply shipped without a licence file. Writing CC0 in the
+  // manifest is how they become usable, and the rule is that the reason is
+  // written down beside it - otherwise a later reader cannot tell an
+  // established licence from a guess, and the whole rule quietly rots.
+  const manifest = JSON.parse(
+    readFileSync(new URL('../models/index.json', import.meta.url), 'utf8')
+  );
+  const root = new URL('../models/', import.meta.url);
+  for (const download of manifest.downloads ?? []) {
+    if (download.licence !== 'CC0') continue;
+    const folder = new URL(`./${download.folder}/`, root);
+    if (!existsSync(folder)) continue;      // Not downloaded on this machine.
+    // A licence file sits at the top of a pack, or one folder in when the
+    // download wrapped it. Looking only there keeps this off the thousands of
+    // model files underneath.
+    const licenceIn = (where) => readdirSync(where, { withFileTypes: true })
+      .some((entry) => entry.isFile() && /^licen[cs]e[^/\\]*\.txt$/i.test(entry.name));
+    const inside = readdirSync(folder, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => new URL(`./${entry.name}/`, folder));
+    if (licenceIn(folder) || inside.some(licenceIn)) continue;
+    assert.ok(download.established,
+      `${download.folder} is recorded as CC0 with no licence file and no `
+      + '"established" note saying how that was determined');
+  }
+});
+
+test('every mesh listed is in a format the page can actually read', () => {
+  // A pack arriving as FBX and being listed anyway would put models in the
+  // library that fail the moment they are placed. This is the check that
+  // failed to exist when nine packs of OBJ were scanned and two packs of glTF
+  // were silently skipped.
+  const manifest = JSON.parse(
+    readFileSync(new URL('../models/index.json', import.meta.url), 'utf8')
+  );
+  const kinds = new Set();
+  for (const mesh of manifest.meshes ?? []) {
+    const kind = mesh.file.split('.').pop().toLowerCase();
+    assert.ok(['obj', 'gltf', 'glb'].includes(kind),
+      `${mesh.file} is a .${kind}, which nothing here reads`);
+    kinds.add(kind);
+  }
+  // And the page must handle each format the manifest actually uses.
+  for (const kind of kinds) {
+    assert.match(page(), new RegExp(`'${kind}'`),
+      `the manifest lists .${kind} models and the page never mentions that kind`);
+  }
+});
+
+test('one model of every listed format loads all the way to a grid', async () => {
+  // The manifest can name a format the reader mishandles, which no amount of
+  // listing catches. This takes the first model of each format and runs it
+  // through the real path, and it is skipped for a format whose pack is not
+  // downloaded on this machine.
+  const manifest = JSON.parse(
+    readFileSync(new URL('../models/index.json', import.meta.url), 'utf8')
+  );
+  const { readObj, readMtl, voxeliseMesh } = await import('../lib/obj.js');
+  const { readGltf, readGlb, externalBuffers } = await import('../lib/gltf.js');
+  const at = (file) => new URL(`../models/${file}`, import.meta.url);
+
+  const seen = new Set();
+  for (const mesh of manifest.meshes ?? []) {
+    const kind = mesh.file.split('.').pop().toLowerCase();
+    if (seen.has(kind) || !existsSync(at(mesh.file))) continue;
+    seen.add(kind);
+
+    let triangles;
+    if (kind === 'obj') {
+      const mtl = at(mesh.file.replace(/\.obj$/i, '.mtl'));
+      triangles = readObj(
+        readFileSync(at(mesh.file), 'utf8'),
+        readMtl(existsSync(mtl) ? readFileSync(mtl, 'utf8') : '')
+      );
+    } else if (kind === 'glb') {
+      const { json, binary } = readGlb(new Uint8Array(readFileSync(at(mesh.file))));
+      triangles = readGltf(json, [binary], { name: mesh.name });
+    } else {
+      const json = JSON.parse(readFileSync(at(mesh.file), 'utf8'));
+      const folder = mesh.file.slice(0, mesh.file.lastIndexOf('/') + 1);
+      triangles = readGltf(
+        json,
+        externalBuffers(json).map((uri) => (uri ? new Uint8Array(readFileSync(at(folder + uri))) : null)),
+        { name: mesh.name }
+      );
+    }
+
+    const grid = voxeliseMesh(triangles, { id: mesh.name, cells: 34 });
+    assert.ok(grid.dims.every((d) => d > 0), `${mesh.name} voxelised to nothing`);
+    assert.ok(grid.palette.length > 0, `${mesh.name} came out with no colours at all`);
+  }
 });

@@ -44,7 +44,10 @@
       "Bash(node tools/scan.js)",
       "Bash(npm run *)",
       "Bash(node --test test/obj.test.js)",
-      "Bash(awk '{printf \"%.0f MB  %s\\\\n\", $1/1048576, substr\\($0, index\\($0,$2\\)\\)}')"
+      "Bash(awk '{printf \"%.0f MB  %s\\\\n\", $1/1048576, substr\\($0, index\\($0,$2\\)\\)}')",
+      "WebFetch(domain:quaternius.com)",
+      "Bash(node --input-type=module -e ' *)",
+      "Bash(node --test test/gltf.test.js)"
     ],
     "additionalDirectories": [
       "\\tmp",

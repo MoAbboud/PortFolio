@@ -33,11 +33,50 @@ const NAMED = [
   ['leaf', '#4c7a3a'], ['grass', '#5d8f43'], ['dirt', '#7a5c3c'],
   ['stone', '#8d9095'], ['roof', '#7a3f34'], ['tyre', '#22242a'],
   ['tire', '#22242a'], ['rubber', '#22242a'], ['eye', '#f2f2f2'],
+
+  // A city, which is what the modern packs are made of. Without these a
+  // building's facets come back as the hash fallback - stable, but arbitrary -
+  // and a street of them reads as confetti.
+  ['concrete', '#a8a49b'], ['asphalt', '#3c3f45'], ['tarmac', '#3c3f45'],
+  ['sidewalk', '#b0aca4'], ['pavement', '#b0aca4'], ['kerb', '#b5b1a8'],
+  ['curb', '#b5b1a8'], ['redbrick', '#a8412f'], ['brick', '#9c4a38'],
+  ['slate', '#4e535a'], ['marble', '#e0dcd4'], ['plaster', '#ded6c8'],
+  ['stucco', '#d6ccb8'], ['ornament', '#c4bda9'], ['decal', '#e2ded2'],
+  ['trimdark', '#8d8578'], ['trim', '#c9c3b4'],
+  // A "fake interior" is the dark room a shop window looks into, which is a
+  // different thing from an interior wall, and the two are named alike.
+  ['fakeinterior', '#26272c'], ['interiorwall', '#cfc7b8'],
+  ['interiorfloor', '#8a7f70'], ['interiorroof', '#6e675c'],
+  ['interior', '#2e2f35'], ['curtain', '#b6a893'], ['blind', '#cfc6b4'],
+
+  // Materials that turn up across the furniture, food and character packs.
+  ['chair', '#8a5f3c'], ['sheet', '#e6e2d8'], ['pillow', '#e8e2d2'],
+  ['cloth', '#b9a48c'], ['fabric', '#b9a48c'], ['leather', '#6b4630'],
+  ['denim', '#3f5a80'], ['paper', '#e5e0d4'], ['cardboard', '#b08c5c'],
+  ['plastic', '#c9c9cf'], ['chrome', '#b8bec4'], ['gold', '#d4af37'],
+  ['silver', '#c0c4c8'], ['copper', '#b06a3b'], ['bronze', '#96703c'],
+  ['water', '#4a86a8'], ['sand', '#d8c79a'], ['snow', '#eef2f6'],
+  ['flesh', '#c98f74'], ['bone', '#ded6c0'], ['zombie', '#7f9463'],
 ];
 
-const fromName = (name) => {
-  const lower = name.toLowerCase();
-  for (const [needle, hex] of NAMED) if (lower.includes(needle)) return hex;
+// Longest needle first, so a specific name always beats a general one that
+// happens to sit inside it. Without this the answer depended on the order of
+// the list above, which is a trap: "Chair" matched "hair" and came out the
+// colour of a head, and "FakeInterior" would have matched "interior" and been
+// lit rather than dark.
+const BY_LENGTH = [...NAMED].sort((a, b) => b[0].length - a[0].length);
+
+// Separators are noise. "MI_Trim_Dark", "trim-dark" and "TrimDark" are one
+// material as far as this is concerned.
+const plain = (name) => String(name).toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+// Exported because the glTF path needs exactly the same answer: both formats
+// hit the same wall, where the colour is in a texture and the name is all that
+// is left. Two tables would drift, and a bed would be one brown in one format
+// and another in the other.
+export const fromName = (name) => {
+  const lower = plain(name);
+  for (const [needle, hex] of BY_LENGTH) if (lower.includes(needle)) return hex;
   // Nothing recognisable: give it a stable colour of its own so that at least
   // different materials are different, rather than one flat mass.
   let hash = 0;
@@ -96,7 +135,9 @@ const toHex = (r, g, b) => `#${[r, g, b].map((v) => clamp255(v).toString(16).pad
 // sRGB. Without this every imported material comes out far too dark: a brown
 // that should read as wood arrives almost black.
 const toSrgb = (v) => (v <= 0.0031308 ? v * 12.92 : 1.055 * v ** (1 / 2.4) - 0.055);
-const linearHex = (r, g, b) => toHex(toSrgb(r), toSrgb(g), toSrgb(b));
+// glTF's `baseColorFactor` is linear for the same reason and needs the same
+// conversion, so this is shared rather than written twice.
+export const linearHex = (r, g, b) => toHex(toSrgb(r), toSrgb(g), toSrgb(b));
 
 /**
  * Triangles and their colours.
@@ -217,6 +258,24 @@ export function voxeliseMesh(mesh, { id = 'imported', cells = 34, anchor = 'base
     anchor,
     offset: [-midX, anchor === 'center' ? -(ny * unit) / 2 : 0, -midZ],
   };
+}
+
+/**
+ * The same grid, sized so that it stands a given number of units tall.
+ *
+ * The cube size normally follows the model's own extent, which is right when a
+ * pack was modelled at real scale - and every pack here is, at one unit to the
+ * metre, matching the hand-authored figure at 1.89. It is wrong when a pack
+ * normalised each model to fill the same box before exporting, because then a
+ * dog and a bull arrive the same size and no amount of care in the voxeliser
+ * can recover the difference. The real height is data the model no longer
+ * carries, so it is written in the manifest and applied here.
+ */
+export function atHeight(grid, height) {
+  const tall = grid.dims[1] * grid.unit;
+  if (!(height > 0) || !(tall > 0)) return grid;
+  const scale = height / tall;
+  return { ...grid, unit: grid.unit * scale, offset: grid.offset.map((v) => v * scale) };
 }
 
 /** An OBJ and its MTL, all the way to a grid. */

@@ -52,53 +52,23 @@ for (const file of files) {
 
 const packs = files.filter((f) => f.toLowerCase().endsWith('.vox')).sort();
 
-// Mesh packs ship one OBJ per model, often hundreds, so each is listed by path
+// Mesh packs ship one file per model, often hundreds, so each is listed by path
 // and given a name from its filename. They are read only when first wanted.
+//
+// Three formats, because the packs disagree: the older Quaternius sets are OBJ,
+// everything since about 2019 is glTF, and a `.glb` is the same document with
+// its buffer inside it.
+const MESH = /\.(obj|gltf|glb)$/i;
 const slug = (name) => name
-  .replace(/\.obj$/i, '')
+  .replace(MESH, '')
   .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
   .replace(/[^a-z0-9]+/gi, '-')
   .replace(/^-+|-+$/g, '')
   .toLowerCase();
 
-const licenceNear = (file) => {
-  // A pack's licence sits in its own folder, so walk back up looking for one.
-  const parts = file.split('/');
-  while (parts.length > 1) {
-    parts.pop();
-    const folder = parts.join('/');
-    const found = files.find((f) => f.startsWith(`${folder}/`)
-      && /^licen[cs]e[^/]*\.txt$/i.test(f.slice(folder.length + 1)));
-    if (found) {
-      const text = readFileSync(join(MODELS, found), 'utf8');
-      if (/CC0/i.test(text)) return 'CC0';
-      return 'UNKNOWN - check before publishing';
-    }
-  }
-  return 'UNKNOWN - check before publishing';
-};
-
 const previous = existsSync(MANIFEST)
   ? JSON.parse(readFileSync(MANIFEST, 'utf8'))
   : { recipes: [], packs: [], downloads: [] };
-
-const taken = new Set(recipes);
-const meshes = files
-  .filter((f) => f.toLowerCase().endsWith('.obj'))
-  .sort()
-  .map((file) => {
-    let name = slug(file.split('/').pop());
-    if (taken.has(name)) {
-      let n = 2;
-      while (taken.has(`${name}-${n}`)) n++;
-      name = `${name}-${n}`;
-    }
-    taken.add(name);
-    return { file, name, licence: licenceNear(file) };
-  });
-
-// Keep what someone has already said about each pack.
-const known = new Map((previous.packs ?? []).map((p) => [p.file, p]));
 
 // Where each pack came from. The packs themselves are not in the repository -
 // they are hundreds of megabytes of somebody else's models - so this is what
@@ -117,7 +87,74 @@ const downloads = folders.map((folder) => ({
   licence: knownSources.get(folder)?.licence
     ?? (files.some((f) => f.startsWith(`${folder}/`) && /licen[cs]e/i.test(f))
       ? 'CC0' : 'UNKNOWN - check before publishing'),
+  ...(knownSources.get(folder)?.established
+    ? { established: knownSources.get(folder).established } : {}),
 }));
+
+const declared = new Map(downloads.map((d) => [d.folder, d.licence]));
+
+const licenceNear = (file) => {
+  // A pack's licence sits in its own folder, so walk back up looking for one.
+  const parts = file.split('/');
+  while (parts.length > 1) {
+    parts.pop();
+    const folder = parts.join('/');
+    const found = files.find((f) => f.startsWith(`${folder}/`)
+      && /^licen[cs]e[^/]*\.txt$/i.test(f.slice(folder.length + 1)));
+    if (found) {
+      const text = readFileSync(join(MODELS, found), 'utf8');
+      if (/CC0/i.test(text)) return 'CC0';
+      return 'UNKNOWN - check before publishing';
+    }
+  }
+  // No file in the pack, so fall back to what has been established about the
+  // download itself. Some packs simply shipped without one, and establishing
+  // the licence by hand - with the evidence recorded in `downloads` - is the
+  // answer to that rather than leaving the models unreachable forever. This
+  // is also the only reason a rescan does not undo that work.
+  return declared.get(file.split('/')[0]) ?? 'UNKNOWN - check before publishing';
+};
+
+// A pack that ships several formats of the same model would otherwise arrive
+// twice, numbered, which doubles the library with nothing new in it. One entry
+// per model, and OBJ wins because it is the format with the most tested path.
+const RANK = { obj: 0, gltf: 1, glb: 2 };
+const best = new Map();
+for (const file of files.filter((f) => MESH.test(f)).sort()) {
+  const key = `${file.split('/')[0]}/${slug(file.split('/').pop())}`;
+  const rank = RANK[file.split('.').pop().toLowerCase()];
+  if (!best.has(key) || rank < best.get(key).rank) best.set(key, { file, rank });
+}
+
+// Anything written by hand about a model, kept across a rescan. Only the real
+// height so far, and only the file list is ever rediscovered - a pack that
+// needed its scale corrected should not need correcting again every time a new
+// pack is dropped in.
+const saidBefore = new Map((previous.meshes ?? []).map((m) => [m.file, m]));
+
+const taken = new Set(recipes);
+const meshes = [...best.values()]
+  .map((m) => m.file)
+  .sort()
+  .map((file) => {
+    let name = slug(file.split('/').pop());
+    if (taken.has(name)) {
+      let n = 2;
+      while (taken.has(`${name}-${n}`)) n++;
+      name = `${name}-${n}`;
+    }
+    taken.add(name);
+    const height = saidBefore.get(file)?.height;
+    return {
+      file,
+      name,
+      licence: licenceNear(file),
+      ...(height ? { height } : {}),
+    };
+  });
+
+// Keep what someone has already said about each pack.
+const known = new Map((previous.packs ?? []).map((p) => [p.file, p]));
 
 const manifest = {
   note: 'What the library holds when the page opens. Written by tools/scan.js;'

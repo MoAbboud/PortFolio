@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import { readObj, readMtl, boundsOf, voxeliseMesh, importObj } from '../lib/obj.js';
+import { readObj, readMtl, boundsOf, voxeliseMesh, importObj, atHeight } from '../lib/obj.js';
 import { hollow, count } from '../lib/voxel.js';
 import { thumbnail, coverage } from '../lib/thumb.js';
 import { assemble } from '../lib/scene.js';
@@ -183,4 +183,41 @@ test('bounds cover every vertex', () => {
   const { min, max } = boundsOf(readObj(CUBE_OBJ).triangles);
   assert.deepEqual(min, [0, 0, 0]);
   assert.deepEqual(max, [1, 1, 1]);
+});
+
+// --- correcting a pack that normalised its models ---------------------------
+
+test('a grid can be resized to a real height without changing its shape', () => {
+  const grid = importObj(CUBE_OBJ, CUBE_MTL, { id: 'cube', cells: 10 });
+  const tall = grid.dims[1] * grid.unit;
+  const sized = atHeight(grid, 1.5);
+
+  assert.ok(Math.abs(sized.dims[1] * sized.unit - 1.5) < 1e-6,
+    `asked for 1.5 units tall, got ${sized.dims[1] * sized.unit}`);
+  // The cells are untouched: this is a change of scale, not of shape.
+  assert.deepEqual(sized.dims, grid.dims);
+  assert.equal(sized.cells, grid.cells);
+  // And the placement offset scales with it, or the model would hover or sink.
+  assert.ok(Math.abs(sized.offset[0] / grid.offset[0] - 1.5 / tall) < 1e-6);
+});
+
+test('resizing to nothing is refused rather than collapsing a model', () => {
+  const grid = importObj(CUBE_OBJ, CUBE_MTL, { id: 'cube', cells: 10 });
+  assert.equal(atHeight(grid, 0), grid);
+  assert.equal(atHeight(grid, -3), grid);
+  assert.equal(atHeight(grid, undefined), grid);
+});
+
+test('a height written in the manifest is a plausible real-world size', () => {
+  // These are hand-written numbers, and a typo would put a five-metre dog in a
+  // shot. Nothing in the library is smaller than a mouse or taller than a
+  // house, so anything outside that is a slip rather than a decision.
+  const manifest = JSON.parse(
+    readFileSync(new URL('../models/index.json', import.meta.url), 'utf8')
+  );
+  for (const mesh of manifest.meshes ?? []) {
+    if (mesh.height === undefined) continue;
+    assert.ok(typeof mesh.height === 'number' && mesh.height > 0.05 && mesh.height < 30,
+      `${mesh.name} is recorded as ${mesh.height} units tall`);
+  }
 });

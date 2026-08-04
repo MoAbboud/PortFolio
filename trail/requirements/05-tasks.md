@@ -4,6 +4,10 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
 
 The app runs. Items past stage 1 are marked honestly: `[x]` means built and tested.
 
+**The next work is the script panel, in stage 4.** Every other stage is either done or off the
+critical path. The library holds 684 models and nothing is held back, so there is no longer a
+content reason to build anything else first.
+
 ## Stage 1 - Concept
 
 - [x] Decide how the narration gets in: written and split into stages by the user
@@ -131,9 +135,57 @@ test worth trusting.
       158 OBJ files at startup would be tens of megabytes for models never used
 - [x] `tools/scan.js` finds OBJ files, names them from their filenames, and reads the
       licence from the nearest licence file in their own pack
-- [ ] Models whose colour is only in a texture atlas still come out one colour. Sampling
-      the texture needs UVs and a PNG decoder
-- [ ] Up axis is assumed to be Y. True for 152 of the 158 downloaded, but not guaranteed
+- [ ] Models whose colour is only in a texture atlas still come out one colour per material.
+      Sampling the texture needs UVs and a PNG decoder. `tools/sheet.js` already contains a
+      PNG *writer*, so the inverse is the obvious next step if colour is judged too crude
+- [x] Up axis is assumed to be Y. Held for all 317 meshes across eleven packs
+
+### 2e - glTF, which is what the packs ship now
+
+Quaternius stopped exporting OBJ around 2019. Two packs on disk were invisible for that reason
+alone, and `npm run scan` reported nothing new, which looks exactly like working.
+
+- [x] `lib/gltf.js`: accessors, buffer views, byte strides, node transforms, `.glb`
+- [x] Output is `{triangles, colours}`, the same thing `readObj` returns, so `voxeliseMesh`
+      takes either without knowing which format it came from
+- [x] Node transforms composed down the tree, so a mesh lands where the document puts it
+- [x] `baseColorFactor` converted from linear light, like an MTL's `Kd`
+- [x] A pack whose colour is only in a texture falls back to the material names, which is the
+      whole Downtown City pack: no factor anywhere and every vertex colour white
+- [x] The material-name table extended with the words a city is made of, and **matching
+      changed to longest-first**, which fixed every chair coming out the colour of hair
+- [x] Data URI buffers and `.glb` binary chunks, so a self-contained file needs no second fetch
+- [x] Refusals name the model: no triangles, points-only, glTF 1.0, a sparse accessor, a
+      buffer that was never supplied
+- [x] 29 tests, against documents built in the test rather than downloaded packs
+- [x] `tools/scan.js` finds `.gltf` and `.glb`, and lists a model once when a pack ships it
+      in several formats
+- [x] A test asserts every mesh in the manifest is a format the page can read, and that one
+      model of each format loads all the way to a grid
+
+### 2f - The library is everything on disk
+
+- [x] Audit every pack against what the library actually offers. Two causes, both silent:
+      153 models in an unread format, and 51 held back by the licence gate
+- [x] Establish the licence of the three 2017 Quaternius packs that shipped without one, from
+      `quaternius.com/faq.html`, and record the evidence in the manifest as `established`
+- [x] A test refuses a pack recorded as CC0 with no licence file and no evidence, so an
+      established licence stays distinguishable from a guess
+- [x] `scan.js` keeps a mesh licence established by hand, instead of rewriting every mesh
+      entry from scratch and undoing the work on the next scan
+- [x] All 317 meshes put through the real path: none fail to voxelise
+- [x] **Scale measured rather than predicted.** Ten packs of eleven agree at one unit to the
+      metre, and agree with the hand-authored figure at 1.89
+- [x] `atHeight`, and a `height` per mesh in the manifest, for the animals pack, which had
+      been normalised before export so a shiba inu stood as tall as a bull
+- [x] `scan.js` keeps a height across a rescan
+- [ ] The Downtown City MegaKit is a **modular kit**: 38 wall panels, 15 cornices, 17 decals.
+      Only about 30 pieces are placeable as objects. Assembling a facade from panels is level
+      design, which the risk register says to stop rather than tool for
+- [ ] The Universal Animation Library is an animation set, not models. Trail does no skeletal
+      animation, so only its character mesh is of any use
+- [ ] Names come from filenames, so a mesh pack arrives named but not categorised. The `.vox`
+      pack is category-first - `table-oak`, `bush-low` - and mesh names are not
 
 ### 2c - Draw, when something specific is missing
 

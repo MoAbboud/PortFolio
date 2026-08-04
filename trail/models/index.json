@@ -19,17 +19,20 @@
     {
       "folder": "Furniture Pack - Oct 2017-20260803T200510Z-1-001",
       "from": "https://quaternius.com",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0",
+      "established": "These 2017 downloads shipped with no licence file. quaternius.com/faq.html states \"All models are under the CC0 License\", checked 2026-08-03, and every other Quaternius pack here carries an explicit CC0 1.0 file. Established rather than assumed, so scan.js keeps it."
     },
     {
       "folder": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001",
       "from": "https://quaternius.com",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0",
+      "established": "These 2017 downloads shipped with no licence file. quaternius.com/faq.html states \"All models are under the CC0 License\", checked 2026-08-03, and every other Quaternius pack here carries an explicit CC0 1.0 file. Established rather than assumed, so scan.js keeps it."
     },
     {
       "folder": "Public Transport Pack - Feb 2017-20260803T200524Z-1-001",
       "from": "https://quaternius.com",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0",
+      "established": "These 2017 downloads shipped with no licence file. quaternius.com/faq.html states \"All models are under the CC0 License\", checked 2026-08-03, and every other Quaternius pack here carries an explicit CC0 1.0 file. Established rather than assumed, so scan.js keeps it."
     },
     {
       "folder": "Realistic Car Pack - Nov 2018-20260803T200324Z-1-001",
@@ -110,6 +113,771 @@
       "licence": "CC0"
     },
     {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_90Angle_L.gltf",
+      "name": "brick-90-angle-l",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_90Angle_R.gltf",
+      "name": "brick-90-angle-r",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_BottomTrim.gltf",
+      "name": "brick-bottom-trim",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_Column_RedBricks.gltf",
+      "name": "brick-column-red-bricks",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_Column_Small.gltf",
+      "name": "brick-column-small",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_Column_TrimBricks.gltf",
+      "name": "brick-column-trim-bricks",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_CornerColumn_Bottom.gltf",
+      "name": "brick-corner-column-bottom",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_CornerColumn_Cap.gltf",
+      "name": "brick-corner-column-cap",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_CornerColumn_CapShort.gltf",
+      "name": "brick-corner-column-cap-short",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_CornerColumn_Center.gltf",
+      "name": "brick-corner-column-center",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_CornerColumn_Center_Half.gltf",
+      "name": "brick-corner-column-center-half",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_CornerColumn_Top.gltf",
+      "name": "brick-corner-column-top",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_Corner_Plain.gltf",
+      "name": "brick-corner-plain",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_HalfColumn_Bottom.gltf",
+      "name": "brick-half-column-bottom",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_HalfColumn_Center.gltf",
+      "name": "brick-half-column-center",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_HalfColumn_Top.gltf",
+      "name": "brick-half-column-top",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_HalfTrim.gltf",
+      "name": "brick-half-trim",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_Inset.gltf",
+      "name": "brick-inset",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_Inset_Window.gltf",
+      "name": "brick-inset-window",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_Inset_Window_Curved.gltf",
+      "name": "brick-inset-window-curved",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_Inset_Window_Curved_Small.gltf",
+      "name": "brick-inset-window-curved-small",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_InteriorWall_1.gltf",
+      "name": "brick-interior-wall-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_InteriorWall_3.gltf",
+      "name": "brick-interior-wall-3",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_InteriorWall_4.gltf",
+      "name": "brick-interior-wall-4",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_Ornament_Horizontal.gltf",
+      "name": "brick-ornament-horizontal",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_Plain_1.gltf",
+      "name": "brick-plain-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_Plain_3.gltf",
+      "name": "brick-plain-3",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_Plain_3_noWear.gltf",
+      "name": "brick-plain-3-no-wear",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_Plain_4.gltf",
+      "name": "brick-plain-4",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_RedWhite_DoubleWindow.gltf",
+      "name": "brick-red-white-double-window",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_TopTrim.gltf",
+      "name": "brick-top-trim",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_TopTrim_90Angle_L.gltf",
+      "name": "brick-top-trim-90-angle-l",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_TopTrim_90Angle_R.gltf",
+      "name": "brick-top-trim-90-angle-r",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_TopTrim_Corner.gltf",
+      "name": "brick-top-trim-corner",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_Window_CurvedDouble.gltf",
+      "name": "brick-window-curved-double",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_Window_Square_Single.gltf",
+      "name": "brick-window-square-single",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_Window_Trim.gltf",
+      "name": "brick-window-trim",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Brick_Window_Trim_Single.gltf",
+      "name": "brick-window-trim-single",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Building_Large_2.gltf",
+      "name": "building-large-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Building_Medium_2_001.gltf",
+      "name": "building-medium-2-001",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Building_Small_1.gltf",
+      "name": "building-small-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Cornice_Brick_90Angle_L.gltf",
+      "name": "cornice-brick-90-angle-l",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Cornice_Brick_90Angle_R.gltf",
+      "name": "cornice-brick-90-angle-r",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Cornice_Brick_Center.gltf",
+      "name": "cornice-brick-center",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Cornice_Brick_L.gltf",
+      "name": "cornice-brick-l",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Cornice_Brick_R.gltf",
+      "name": "cornice-brick-r",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Cornice_Metal_90Angle_L.gltf",
+      "name": "cornice-metal-90-angle-l",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Cornice_Metal_90Angle_R.gltf",
+      "name": "cornice-metal-90-angle-r",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Cornice_Metal_Center.gltf",
+      "name": "cornice-metal-center",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Cornice_Metal_L.gltf",
+      "name": "cornice-metal-l",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Cornice_Metal_R.gltf",
+      "name": "cornice-metal-r",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Cornice_Trim_90Angle_L.gltf",
+      "name": "cornice-trim-90-angle-l",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Cornice_Trim_90Angle_R.gltf",
+      "name": "cornice-trim-90-angle-r",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Cornice_Trim_Center.gltf",
+      "name": "cornice-trim-center",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Cornice_Trim_L.gltf",
+      "name": "cornice-trim-l",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Cornice_Trim_R.gltf",
+      "name": "cornice-trim-r",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Decal_ArrowForwardLeft.gltf",
+      "name": "decal-arrow-forward-left",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Decal_ArrowForwardRight.gltf",
+      "name": "decal-arrow-forward-right",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Decal_ArrowStraight.gltf",
+      "name": "decal-arrow-straight",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Decal_ArrowTurnLeft.gltf",
+      "name": "decal-arrow-turn-left",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Decal_ArrowTurnRight.gltf",
+      "name": "decal-arrow-turn-right",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Decal_Bikelane.gltf",
+      "name": "decal-bikelane",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Decal_BrokenLine_Straight.gltf",
+      "name": "decal-broken-line-straight",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Decal_Crosswalk.gltf",
+      "name": "decal-crosswalk",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Decal_Crosswalk_Wide.gltf",
+      "name": "decal-crosswalk-wide",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Decal_Curve_2Lane_Stripe.gltf",
+      "name": "decal-curve-2-lane-stripe",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Decal_Curve_4LaneShort.gltf",
+      "name": "decal-curve-4-lane-short",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Decal_Curve_4LaneShort_DoubleYellow.gltf",
+      "name": "decal-curve-4-lane-short-double-yellow",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Decal_Curve_4LaneShort_Stripe.gltf",
+      "name": "decal-curve-4-lane-short-stripe",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Decal_DoubleYellow_Straight.gltf",
+      "name": "decal-double-yellow-straight",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Decal_Only.gltf",
+      "name": "decal-only",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Decal_Slow.gltf",
+      "name": "decal-slow",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Decal_Stop.gltf",
+      "name": "decal-stop",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/DoorFrame_Metal_Single.gltf",
+      "name": "door-frame-metal-single",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/DoorFrame_Trim.gltf",
+      "name": "door-frame-trim",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/DoorFrame_Wooden.gltf",
+      "name": "door-frame-wooden",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Door_1.gltf",
+      "name": "door-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Door_2.gltf",
+      "name": "door-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Door_3.gltf",
+      "name": "door-3",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Entrance_Concrete_2x1.gltf",
+      "name": "entrance-concrete-2x1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Entrance_Concrete_2x2.gltf",
+      "name": "entrance-concrete-2x2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Floor_2x2.gltf",
+      "name": "floor-2x2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Floor_4x4.gltf",
+      "name": "floor-4x4",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Floor_Inset.gltf",
+      "name": "floor-inset",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Metal_Column_Bottom.gltf",
+      "name": "metal-column-bottom",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Metal_Column_Center.gltf",
+      "name": "metal-column-center",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Metal_Column_Small_Bottom.gltf",
+      "name": "metal-column-small-bottom",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Metal_Column_Small_Center.gltf",
+      "name": "metal-column-small-center",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Metal_Column_Small_Top.gltf",
+      "name": "metal-column-small-top",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Metal_Column_Top.gltf",
+      "name": "metal-column-top",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Metal_FirstFloor_Wall.gltf",
+      "name": "metal-first-floor-wall",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Metal_FirstFloor_Wall_1.gltf",
+      "name": "metal-first-floor-wall-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Metal_FirstFloor_Window.gltf",
+      "name": "metal-first-floor-window",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Metal_FullWindow.gltf",
+      "name": "metal-full-window",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Metal_Plain_1.gltf",
+      "name": "metal-plain-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Metal_Plain_3.gltf",
+      "name": "metal-plain-3",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Metal_Window.gltf",
+      "name": "metal-window",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Metal_Window_Half.gltf",
+      "name": "metal-window-half",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Prop_ACUnit.gltf",
+      "name": "prop-acunit",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Prop_Bollard.gltf",
+      "name": "prop-bollard",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Prop_Drain.gltf",
+      "name": "prop-drain",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Prop_ManholeCover.gltf",
+      "name": "prop-manhole-cover",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Prop_Planter_Single.gltf",
+      "name": "prop-planter-single",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Roof_2x2.gltf",
+      "name": "roof-2x2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Roof_2x2_90Angle_Center.gltf",
+      "name": "roof-2x2-90-angle-center",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Roof_2x2_90Angle_L.gltf",
+      "name": "roof-2x2-90-angle-l",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Roof_2x2_90Angle_R.gltf",
+      "name": "roof-2x2-90-angle-r",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Roof_4x4.gltf",
+      "name": "roof-4x4",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Roof_SlateCornice_Center.gltf",
+      "name": "roof-slate-cornice-center",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Roof_SlateCornice_Corner.gltf",
+      "name": "roof-slate-cornice-corner",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Roof_SlateCornice_InnerCorner.gltf",
+      "name": "roof-slate-cornice-inner-corner",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Roof_SlateCornice_Window_1.gltf",
+      "name": "roof-slate-cornice-window-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Roof_Slate_Center.gltf",
+      "name": "roof-slate-center",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Roof_Slate_Corner.gltf",
+      "name": "roof-slate-corner",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Roof_Slate_InnerCorner.gltf",
+      "name": "roof-slate-inner-corner",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Roof_Slate_Window_1.gltf",
+      "name": "roof-slate-window-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Sidewalk_Corner_Flat_3m.gltf",
+      "name": "sidewalk-corner-flat-3m",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Sidewalk_Corner_Flat_3m_Stripe.gltf",
+      "name": "sidewalk-corner-flat-3m-stripe",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Sidewalk_Corner_Round_3m.gltf",
+      "name": "sidewalk-corner-round-3m",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Sidewalk_Corner_Round_3m_Stripe.gltf",
+      "name": "sidewalk-corner-round-3m-stripe",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Sidewalk_NoCurb_3m.gltf",
+      "name": "sidewalk-no-curb-3m",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Sidewalk_Planter.gltf",
+      "name": "sidewalk-planter",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Sidewalk_Straight_3m.gltf",
+      "name": "sidewalk-straight-3m",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Sidewalk_Straight_3m_Stripe.gltf",
+      "name": "sidewalk-straight-3m-stripe",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Stairs_Entrance_Concrete.gltf",
+      "name": "stairs-entrance-concrete",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Stairs_Rails_Metal.gltf",
+      "name": "stairs-rails-metal",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Stairs_Rails_Metal_Straight_1.gltf",
+      "name": "stairs-rails-metal-straight-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Stairs_Rails_Metal_Straight_2.gltf",
+      "name": "stairs-rails-metal-straight-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Street_2Lane.gltf",
+      "name": "street-2-lane",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Street_2Lane_noSidewalk.gltf",
+      "name": "street-2-lane-no-sidewalk",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Street_4Lane.gltf",
+      "name": "street-4-lane",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Street_4Lane_noSidewalk.gltf",
+      "name": "street-4-lane-no-sidewalk",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Street_4WayIntersection.gltf",
+      "name": "street-4-way-intersection",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Street_Asphalt_6x6.gltf",
+      "name": "street-asphalt-6x6",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Street_Asphalt_9x9.gltf",
+      "name": "street-asphalt-9x9",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Street_Asphalt_Curve_2Lane.gltf",
+      "name": "street-asphalt-curve-2-lane",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Street_Asphalt_Curve_4Lane_Short.gltf",
+      "name": "street-asphalt-curve-4-lane-short",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Street_Curve_2Lane.gltf",
+      "name": "street-curve-2-lane",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Street_Curve_2Lane_Curb.gltf",
+      "name": "street-curve-2-lane-curb",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Street_Curve_4LaneShort.gltf",
+      "name": "street-curve-4-lane-short",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Street_Curve_4Lane_Short_Curb.gltf",
+      "name": "street-curve-4-lane-short-curb",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Street_TIntersection.gltf",
+      "name": "street-tintersection",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Trim_90Angle_TopCover.gltf",
+      "name": "trim-90-angle-top-cover",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Trim_Column_Bottom.gltf",
+      "name": "trim-column-bottom",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Trim_Column_Center.gltf",
+      "name": "trim-column-center",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Trim_Column_Top.gltf",
+      "name": "trim-column-top",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Trim_Corner.gltf",
+      "name": "trim-corner",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Trim_FirstFloor_Wall.gltf",
+      "name": "trim-first-floor-wall",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Trim_FirstFloor_Window_001.gltf",
+      "name": "trim-first-floor-window-001",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Trim_FirstFloor_Window_Columns.gltf",
+      "name": "trim-first-floor-window-columns",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Trim_Plain_3.gltf",
+      "name": "trim-plain-3",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Trim_Wall_Guard.gltf",
+      "name": "trim-wall-guard",
+      "licence": "CC0"
+    },
+    {
+      "file": "Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Trim_Window.gltf",
+      "name": "trim-window",
+      "licence": "CC0"
+    },
+    {
       "file": "Farm Buildings - Sept 2018-20260803T200359Z-1-001/Farm Buildings - Sept 2018/OBJ/Barn.obj",
       "name": "barn",
       "licence": "CC0"
@@ -177,257 +945,257 @@
     {
       "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/Bed.obj",
       "name": "bed",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/BedKing.obj",
       "name": "bed-king",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/BookCase.obj",
       "name": "book-case",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/BookCaseBooks.obj",
       "name": "book-case-books",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/BookCaseLarge.obj",
       "name": "book-case-large",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/BookCaseLargeBooks.obj",
       "name": "book-case-large-books",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/Chair.obj",
       "name": "chair",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/ChairCushioned.obj",
       "name": "chair-cushioned",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/ChairHandle.obj",
       "name": "chair-handle",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/Closet.obj",
       "name": "closet",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/Closet2.obj",
       "name": "closet2",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/CoffeeTable.obj",
       "name": "coffee-table",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/CoffeeTable2.obj",
       "name": "coffee-table2",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/Lamp.obj",
       "name": "lamp",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/Lamp2.obj",
       "name": "lamp2",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/Plant.obj",
       "name": "plant",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/Sofa.obj",
       "name": "sofa",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/SofaDouble.obj",
       "name": "sofa-double",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/SofaLong.obj",
       "name": "sofa-long",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/Stool.obj",
       "name": "stool",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/Table.obj",
       "name": "table",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/Vase.obj",
       "name": "vase",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Furniture Pack - Oct 2017-20260803T200510Z-1-001/Furniture Pack - Oct 2017/OBJ/Vase2.obj",
       "name": "vase2",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/Burger.obj",
       "name": "burger",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/Cake.obj",
       "name": "cake",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/Cookie.obj",
       "name": "cookie",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/Cupcake.obj",
       "name": "cupcake",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/CupcakeCherry.obj",
       "name": "cupcake-cherry",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/CupcakeCherry2.obj",
       "name": "cupcake-cherry2",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/Donut.obj",
       "name": "donut",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/Donut2.obj",
       "name": "donut2",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/Hotdog.obj",
       "name": "hotdog",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/Icecream.obj",
       "name": "icecream",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/Icecream2.obj",
       "name": "icecream2",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/Icecream3.obj",
       "name": "icecream3",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/Milkshake.obj",
       "name": "milkshake",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/Pizza.obj",
       "name": "pizza",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/Soda.obj",
       "name": "soda",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Junk Food Pack - Apr 2017-20260803T200517Z-1-001/Junk Food Pack - Apr 2017/OBJ/SodaCan.obj",
       "name": "soda-can",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Public Transport Pack - Feb 2017-20260803T200524Z-1-001/Public Transport Pack - Feb 2017/OBJ/Ambulance.obj",
       "name": "ambulance",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Public Transport Pack - Feb 2017-20260803T200524Z-1-001/Public Transport Pack - Feb 2017/OBJ/Bicycle.obj",
       "name": "bicycle",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Public Transport Pack - Feb 2017-20260803T200524Z-1-001/Public Transport Pack - Feb 2017/OBJ/Bus.obj",
       "name": "bus",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Public Transport Pack - Feb 2017-20260803T200524Z-1-001/Public Transport Pack - Feb 2017/OBJ/SchoolBus.obj",
       "name": "school-bus",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Public Transport Pack - Feb 2017-20260803T200524Z-1-001/Public Transport Pack - Feb 2017/OBJ/SquareFrameBicycle.obj",
       "name": "square-frame-bicycle",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Public Transport Pack - Feb 2017-20260803T200524Z-1-001/Public Transport Pack - Feb 2017/OBJ/Taxi.obj",
       "name": "taxi",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Public Transport Pack - Feb 2017-20260803T200524Z-1-001/Public Transport Pack - Feb 2017/OBJ/TrafficCone.obj",
       "name": "traffic-cone",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Public Transport Pack - Feb 2017-20260803T200524Z-1-001/Public Transport Pack - Feb 2017/OBJ/TrafficLight.obj",
       "name": "traffic-light",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Public Transport Pack - Feb 2017-20260803T200524Z-1-001/Public Transport Pack - Feb 2017/OBJ/TrafficSign1.obj",
       "name": "traffic-sign1",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Public Transport Pack - Feb 2017-20260803T200524Z-1-001/Public Transport Pack - Feb 2017/OBJ/TrafficSign2.obj",
       "name": "traffic-sign2",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Public Transport Pack - Feb 2017-20260803T200524Z-1-001/Public Transport Pack - Feb 2017/OBJ/TrafficSign3.obj",
       "name": "traffic-sign3",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Public Transport Pack - Feb 2017-20260803T200524Z-1-001/Public Transport Pack - Feb 2017/OBJ/Train.obj",
       "name": "train",
-      "licence": "UNKNOWN - check before publishing"
+      "licence": "CC0"
     },
     {
       "file": "Realistic Car Pack - Nov 2018-20260803T200324Z-1-001/Realistic Car Pack - Nov 2018/OBJ/Cop.obj",
@@ -497,61 +1265,83 @@
     {
       "file": "Ultimate Animated Animals - July 2021-20260803T200235Z-1-001/Ultimate Animated Animals - July 2021/OBJ/Alpaca.obj",
       "name": "alpaca",
-      "licence": "CC0"
+      "licence": "CC0",
+      "height": 1.8
     },
     {
       "file": "Ultimate Animated Animals - July 2021-20260803T200235Z-1-001/Ultimate Animated Animals - July 2021/OBJ/Bull.obj",
       "name": "bull",
-      "licence": "CC0"
+      "licence": "CC0",
+      "height": 1.6
     },
     {
       "file": "Ultimate Animated Animals - July 2021-20260803T200235Z-1-001/Ultimate Animated Animals - July 2021/OBJ/Cow.obj",
       "name": "cow",
-      "licence": "CC0"
+      "licence": "CC0",
+      "height": 1.5
     },
     {
       "file": "Ultimate Animated Animals - July 2021-20260803T200235Z-1-001/Ultimate Animated Animals - July 2021/OBJ/Deer.obj",
       "name": "deer",
-      "licence": "CC0"
+      "licence": "CC0",
+      "height": 1.4
     },
     {
       "file": "Ultimate Animated Animals - July 2021-20260803T200235Z-1-001/Ultimate Animated Animals - July 2021/OBJ/Donkey.obj",
       "name": "donkey",
-      "licence": "CC0"
+      "licence": "CC0",
+      "height": 1.3
     },
     {
       "file": "Ultimate Animated Animals - July 2021-20260803T200235Z-1-001/Ultimate Animated Animals - July 2021/OBJ/Fox.obj",
       "name": "fox",
-      "licence": "CC0"
+      "licence": "CC0",
+      "height": 0.5
     },
     {
       "file": "Ultimate Animated Animals - July 2021-20260803T200235Z-1-001/Ultimate Animated Animals - July 2021/OBJ/Horse.obj",
       "name": "horse",
-      "licence": "CC0"
+      "licence": "CC0",
+      "height": 1.9
     },
     {
       "file": "Ultimate Animated Animals - July 2021-20260803T200235Z-1-001/Ultimate Animated Animals - July 2021/OBJ/Horse_White.obj",
       "name": "horse-white",
-      "licence": "CC0"
+      "licence": "CC0",
+      "height": 1.9
     },
     {
       "file": "Ultimate Animated Animals - July 2021-20260803T200235Z-1-001/Ultimate Animated Animals - July 2021/OBJ/Husky.obj",
       "name": "husky",
-      "licence": "CC0"
+      "licence": "CC0",
+      "height": 0.6
     },
     {
       "file": "Ultimate Animated Animals - July 2021-20260803T200235Z-1-001/Ultimate Animated Animals - July 2021/OBJ/ShibaInu.obj",
       "name": "shiba-inu",
-      "licence": "CC0"
+      "licence": "CC0",
+      "height": 0.45
     },
     {
       "file": "Ultimate Animated Animals - July 2021-20260803T200235Z-1-001/Ultimate Animated Animals - July 2021/OBJ/Stag.obj",
       "name": "stag",
-      "licence": "CC0"
+      "licence": "CC0",
+      "height": 1.9
     },
     {
       "file": "Ultimate Animated Animals - July 2021-20260803T200235Z-1-001/Ultimate Animated Animals - July 2021/OBJ/Wolf.obj",
       "name": "wolf",
+      "licence": "CC0",
+      "height": 0.85
+    },
+    {
+      "file": "Universal Animation Library[Standard]/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb",
+      "name": "ual1-standard",
+      "licence": "CC0"
+    },
+    {
+      "file": "Universal Animation Library[Standard]/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard_RM.glb",
+      "name": "ual1-standard-rm",
       "licence": "CC0"
     },
     {
@@ -602,6 +1392,26 @@
     {
       "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Characters/OBJ/Zombie_Ribcage.obj",
       "name": "zombie-ribcage",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Characters/glTF/Characters_Lis_SingleWeapon.gltf",
+      "name": "characters-lis-single-weapon",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Characters/glTF/Characters_Matt_SingleWeapon.gltf",
+      "name": "characters-matt-single-weapon",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Characters/glTF/Characters_Sam_SingleWeapon.gltf",
+      "name": "characters-sam-single-weapon",
+      "licence": "CC0"
+    },
+    {
+      "file": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Characters/glTF/Characters_Shaun_SingleWeapon.gltf",
+      "name": "characters-shaun-single-weapon",
       "licence": "CC0"
     },
     {
