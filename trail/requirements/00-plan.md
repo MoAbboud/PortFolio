@@ -8,9 +8,10 @@ whole thing. Cheap enough to redo, consistent enough to be a visual identity, re
 that a retake is free, and containing no artificial intelligence of any kind at runtime.
 
 **The app is built, running, and has a library of everything on disk.** The renderer, the
-camera, the route, the weather, the picking, the canvas file and the pen all exist, with 331
-tests behind them, and 321 models load when the page opens - four recipes and 317 meshes read
-as OBJ, glTF or `.glb`. Nothing is held back for licence, and nothing in it is off-subject.
+camera, the route, the weather, the picking, the canvas file and the pen all exist, with 332
+tests behind them, and 220 models load when the page opens - four recipes and 216 meshes read
+as OBJ, glTF or `.glb`. Nothing is held back for licence, nothing in it is off-subject, and
+everything in it is a placeable object rather than a part of one.
 
 **What is missing is the script panel, and only the script panel.** It is the app's actual
 concept, and there is no longer a content reason to build anything else first.
@@ -36,7 +37,7 @@ flowchart LR
 | Stage | Goal | Done when | Status |
 | --- | --- | --- | --- |
 | 1 | Concept | The workflow, the look and the boundary are settled, and the rejected designs are recorded | Done |
-| 2 | Voxel format and import | The recipe voxeliser, the `.vox` reader, and a library that loads on open | **Done, and past it.** 321 models load from a manifest: the figure, three recipes, and 317 meshes in three formats. Every mesh has been checked all the way to a grid. The medieval voxel pack was retired as off-subject |
+| 2 | Voxel format and import | The recipe voxeliser, the `.vox` reader, and a library that loads on open | **Done, and past it.** 220 models load from a manifest: the figure, three recipes, and 216 meshes in three formats. Every mesh has been checked all the way to a grid. The medieval voxel pack was retired as off-subject, and 101 facade parts of the Downtown kit were excluded as parts rather than objects |
 | 3 | Field and camera | Sky, shiny floor, 16:9 frame, a rectangle plus a pitch producing a correct framing | **Done**, and past it: free roaming, picking, dragging, a smooth surface, occlusion and contact shadows. Frame rate at full budget is still untested |
 | 4 | Script, canvas and route | Paste a script, get a tray of what it mentions, drag objects onto a plan, split the script into stages, draw a frame per stage | **Half done.** Objects can be placed, turned, ranged and saved, and a canvas file exists. **The script half does not exist at all**, and it is the app's whole concept |
 | 5 | Play mode | Ghosting, flying, weather cross-fade, scars, motion, name tags, the sync flash, and no interface at all | **Done**, apart from snow and motion in the cube path |
@@ -75,7 +76,7 @@ person would watch?**
 
 It was built and looked at, and the verdict was *"it looks pretty good for a first run"*. That
 is encouraging and it is not the test. The test is a full run on a canvas built for a real
-script, and that is finally possible: there is a library of 321 named models and a figure.
+script, and that is finally possible: there is a library of 220 named models and a figure.
 
 **What has never been tried is the thing the app is for** - taking a real script, cutting it
 into stages, building a canvas for it, and watching the result. **One piece stands in the way,

@@ -5,7 +5,7 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
 The app runs. Items past stage 1 are marked honestly: `[x]` means built and tested.
 
 **The next work is the script panel, in stage 4.** Every other stage is either done or off the
-critical path. The library holds 321 models and nothing is held back, so there is no longer a
+critical path. The library holds 220 placeable models and nothing is held back, so there is no longer a
 content reason to build anything else first.
 
 ## Stage 1 - Concept
@@ -180,9 +180,16 @@ alone, and `npm run scan` reported nothing new, which looks exactly like working
 - [x] `atHeight`, and a `height` per mesh in the manifest, for the animals pack, which had
       been normalised before export so a shiba inu stood as tall as a bull
 - [x] `scan.js` keeps a height across a rescan
-- [ ] The Downtown City MegaKit is a **modular kit**: 38 wall panels, 15 cornices, 17 decals.
-      Only about 30 pieces are placeable as objects. Assembling a facade from panels is level
-      design, which the risk register says to stop rather than tool for
+- [x] The Downtown City MegaKit is a **modular kit**: 38 wall panels, 15 cornices, 17 decals.
+      **101 of its 153 are excluded as parts rather than objects**, leaving the 52 that can be
+      placed. Seven patterns in the manifest, kept across a rescan *and* across a re-download,
+      which a list of 101 filenames would not be. The scan reports how many it held back
+- [x] Measure where the disk actually goes before deleting anything for space. 675 MB in
+      `models/`, of which **557 MB is never opened** - textures, Blender sources, FBX. The 101
+      facade pieces are 2 MB, and the three buildings alone are 87 MB
+- [ ] 557 MB of formats Trail never reads is still on disk. Deleting it from the working tree
+      does not shrink `.git`, which is 285 MB and would need a history rewrite - the user's
+      call, not something to do quietly
 - [ ] The Universal Animation Library is an animation set, not models. Trail does no skeletal
       animation, so only its character mesh is of any use
 - [ ] Names come from filenames, so a mesh pack arrives named but not categorised. The `.vox`

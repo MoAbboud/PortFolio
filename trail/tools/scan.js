@@ -89,7 +89,38 @@ const downloads = folders.map((folder) => ({
       ? 'CC0' : 'UNKNOWN - check before publishing'),
   ...(knownSources.get(folder)?.established
     ? { established: knownSources.get(folder).established } : {}),
+  ...(knownSources.get(folder)?.exclude
+    ? { exclude: knownSources.get(folder).exclude } : {}),
+  ...(knownSources.get(folder)?.excluded
+    ? { excluded: knownSources.get(folder).excluded } : {}),
 }));
+
+/**
+ * Models a pack ships that are not objects.
+ *
+ * A modular kit is mostly parts: wall panels, cornices, road markings, window
+ * sections. They are meaningful only assembled into a building, which is level
+ * design rather than placing a thing in a scene, and a hundred of them buries
+ * the thirty models that are objects.
+ *
+ * Written as patterns against the filename, per download, so that it survives
+ * both a rescan and a re-download of the pack. A list of a hundred names would
+ * not survive either, and would have to be rebuilt by hand every time.
+ */
+const excluders = new Map(downloads.map((d) => [d.folder, (d.exclude ?? []).map((pattern) => {
+  try {
+    return new RegExp(pattern);
+  } catch (error) {
+    console.warn(`  ${d.folder}: "${pattern}" is not a pattern (${error.message}); ignored`);
+    return null;
+  }
+}).filter(Boolean)]));
+
+const excluded = (file) => {
+  const patterns = excluders.get(file.split('/')[0]) ?? [];
+  const base = file.split('/').pop().replace(MESH, '');
+  return patterns.some((pattern) => pattern.test(base));
+};
 
 const declared = new Map(downloads.map((d) => [d.folder, d.licence]));
 
@@ -120,7 +151,9 @@ const licenceNear = (file) => {
 // per model, and OBJ wins because it is the format with the most tested path.
 const RANK = { obj: 0, gltf: 1, glb: 2 };
 const best = new Map();
+let skipped = 0;
 for (const file of files.filter((f) => MESH.test(f)).sort()) {
+  if (excluded(file)) { skipped++; continue; }
   const key = `${file.split('/')[0]}/${slug(file.split('/').pop())}`;
   const rank = RANK[file.split('.').pop().toLowerCase()];
   if (!best.has(key) || rank < best.get(key).rank) best.set(key, { file, rank });
@@ -193,6 +226,12 @@ const byLicence = {};
 for (const m of meshes) byLicence[m.licence] = (byLicence[m.licence] ?? 0) + 1;
 for (const [licence, n] of Object.entries(byLicence)) {
   console.log(`  meshes  ${String(n).padStart(4)}  ${licence}`);
+}
+
+// Said out loud rather than dropped quietly. A tool that silently shows less
+// than what is on disk is the thing that hid two whole packs for a fortnight.
+if (skipped) {
+  console.log(`  held    ${String(skipped).padStart(4)}  excluded by pattern, see "exclude" in the manifest`);
 }
 
 const unlicensed = [...manifest.packs, ...meshes].filter((p) => p.licence.startsWith('UNKNOWN'));

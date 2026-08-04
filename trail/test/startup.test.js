@@ -417,6 +417,31 @@ test('a licence established by hand carries the evidence that established it', (
   }
 });
 
+test('an exclusion says what it dropped and why, and actually drops it', () => {
+  // A pattern that quietly matches more than it meant to would remove models
+  // nobody decided to remove, and the manifest would look correct. Both halves
+  // are checked: the reason is written down, and nothing listed matches.
+  const manifest = JSON.parse(
+    readFileSync(new URL('../models/index.json', import.meta.url), 'utf8')
+  );
+  for (const download of manifest.downloads ?? []) {
+    if (!download.exclude?.length) continue;
+    assert.ok(download.excluded,
+      `${download.folder} excludes models with no note saying why`);
+
+    const patterns = download.exclude.map((p) => new RegExp(p));
+    const listed = (manifest.meshes ?? []).filter((m) => m.file.startsWith(`${download.folder}/`));
+    for (const mesh of listed) {
+      const base = mesh.file.split('/').pop().replace(/\.(obj|gltf|glb)$/i, '');
+      const hit = patterns.find((p) => p.test(base));
+      assert.ok(!hit, `${mesh.file} matches the exclusion ${hit} yet is still in the library`);
+    }
+    // And it must not have swallowed the whole pack.
+    assert.ok(listed.length > 0,
+      `${download.folder} is excluded down to nothing, which is a pattern gone wrong`);
+  }
+});
+
 test('every mesh listed is in a format the page can actually read', () => {
   // A pack arriving as FBX and being listed anyway would put models in the
   // library that fail the moment they are placed. This is the check that
