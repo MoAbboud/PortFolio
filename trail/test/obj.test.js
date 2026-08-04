@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import { readObj, readMtl, boundsOf, voxeliseMesh, importObj, atHeight } from '../lib/obj.js';
+import { readObj, readMtl, boundsOf, voxeliseMesh, importObj, atHeight, fromName } from '../lib/obj.js';
 import { hollow, count } from '../lib/voxel.js';
 import { thumbnail, coverage } from '../lib/thumb.js';
 import { assemble } from '../lib/scene.js';
@@ -74,8 +74,12 @@ test('an MTL diffuse is read as sRGB, not left as linear', () => {
   assert.ok(level > 110 && level < 150, `0.216 linear should be mid grey, got ${hex}`);
 });
 
-test('a material with no colour at all still has one', () => {
-  assert.equal(readMtl('newmtl Bare\n').get('Bare'), '#bbbbbb');
+test('a material with no colour at all still has one, taken from its name', () => {
+  // It used to come back flat grey. A material that states no colour has told
+  // us nothing, and its name is the only evidence in the file, so it is read
+  // the same way a textured material's name is.
+  assert.match(readMtl('newmtl Bare\n').get('Bare'), /^#[0-9a-f]{6}$/);
+  assert.equal(readMtl('newmtl Wood\n').get('Wood'), fromName('Wood'));
 });
 
 test('when every material shares one colour, the names are used instead', () => {
@@ -220,4 +224,59 @@ test('a height written in the manifest is a plausible real-world size', () => {
     assert.ok(typeof mesh.height === 'number' && mesh.height > 0.05 && mesh.height < 30,
       `${mesh.name} is recorded as ${mesh.height} units tall`);
   }
+});
+
+// --- colours that cannot be believed -----------------------------------------
+
+test('a textured material does not have its Kd taken as its colour', () => {
+  // `map_Kd` means the colour is in the texture and `Kd` is a multiplier the
+  // texture is tinted by. Left at white or 0.8 grey, as it almost always is,
+  // taking it literally paints the model white - which is what happened to
+  // every model in the Zombie kit at once.
+  const textured = readMtl([
+    'newmtl Wood', 'Kd 0.800000 0.800000 0.800000', 'map_Kd Atlas.png',
+  ].join('\n'));
+  assert.equal(textured.get('Wood'), fromName('Wood'));
+  assert.notEqual(textured.get('Wood'), '#cccccc');
+});
+
+test('an exporter default grey is not evidence of anything', () => {
+  // Blender writes 0.8 or 0.64 when nobody picks a colour. A material called
+  // Sofa.002 with an untouched grey is a sofa, not a grey thing.
+  for (const grey of ['1.0 1.0 1.0', '0.8 0.8 0.8', '0.64 0.64 0.64']) {
+    const kept = readMtl(`newmtl Sofa.002\nKd ${grey}\n`);
+    assert.equal(kept.get('Sofa.002'), fromName('sofa'),
+      `Kd ${grey} was believed, so the sofa stays grey`);
+  }
+});
+
+test('a pale grey somebody actually chose is kept', () => {
+  // The other side of the rule. Concrete and kerbs really are pale grey, and
+  // matching "any light colour" rather than the exporter defaults would throw
+  // away a colour that was deliberate.
+  const chosen = readMtl('newmtl Concrete\nKd 0.700000 0.690000 0.660000\n');
+  const hex = chosen.get('Concrete');
+  assert.notEqual(hex, fromName('Concrete'), 'a chosen colour was overridden by the name');
+  assert.match(hex, /^#[0-9a-f]{6}$/);
+});
+
+test('a material named by the exporter falls back to the model name', () => {
+  // `Atlas` and `Material.001` say nothing. The filename is then the only
+  // evidence in the whole file about what the thing is.
+  const anonymous = readMtl('newmtl Material.001\nKd 0.64 0.64 0.64\n', { model: 'cookie' });
+  assert.equal(anonymous.get('Material.001'), fromName('cookie'));
+
+  const atlas = readMtl('newmtl Atlas\nKd 0.8 0.8 0.8\nmap_Kd Zombie_Atlas.png\n', { model: 'couch' });
+  assert.equal(atlas.get('Atlas'), fromName('couch'));
+});
+
+test('a meaningful material name still beats the model name', () => {
+  // The model name is a last resort, not a preference: a bed's Sheets and
+  // Pillow are better read as themselves than as "bed".
+  const bed = readMtl([
+    'newmtl Sheets', 'Kd 0.8 0.8 0.8', 'map_Kd Atlas.png',
+    'newmtl DarkWood', 'Kd 0.8 0.8 0.8', 'map_Kd Atlas.png',
+  ].join('\n'), { model: 'bed' });
+  assert.equal(bed.get('Sheets'), fromName('Sheets'));
+  assert.notEqual(bed.get('Sheets'), bed.get('DarkWood'));
 });

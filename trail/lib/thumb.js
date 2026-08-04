@@ -33,16 +33,6 @@ export function thumbnail(grid, size = 64, { pad = 4 } = {}) {
   const [nx, ny, nz] = grid.dims;
   const at = (i, j, k) => (k * ny + j) * nx + i;
 
-  // The isometric footprint of the whole grid, fitted to the tile.
-  const isoW = nx + nz;
-  const isoH = (nx + nz) / 2 + ny;
-  const scale = Math.min((size - pad * 2) / isoW, (size - pad * 2) / isoH);
-  if (!(scale > 0)) return pixels;
-  const cell = Math.max(1, Math.round(scale));
-
-  const shiftX = (size - isoW * scale) / 2 + nz * scale;
-  const shiftY = (size - isoH * scale) / 2 + ny * scale;
-
   // Painter's order, back to front.
   const order = [];
   for (let k = 0; k < nz; k++) {
@@ -52,14 +42,55 @@ export function thumbnail(grid, size = 64, { pad = 4 } = {}) {
       }
     }
   }
+  if (!order.length) return pixels;
   order.sort((a, b) => (a[0] + a[1] + a[2]) - (b[0] + b[1] + b[2]));
+
+  // Where each voxel lands, before any scaling. The vertical axis carries both
+  // the depth of the isometric floor and the height of the model, which is why
+  // it cannot be derived from the grid's dimensions on their own.
+  //
+  // **The two terms pull opposite ways, and this is the whole of the viewpoint.**
+  // Going further into the picture moves a voxel *down* the screen and going
+  // up moves it *up*, which is what looking down at something means. Adding
+  // them instead - which is what this did originally - puts the near corner of
+  // the ground at the top of the tile and shows the underside of everything.
+  const across = (i, k) => i - k;
+  const down = (i, j, k) => (i + k) / 2 - j;
+
+  // Fitted to what is actually drawn, not to the box the grid occupies. A cow
+  // fills nothing like its own bounding box - the corners of that box are
+  // empty air - so fitting the box leaves a picture that is off-centre and
+  // small. This is two passes over a few thousand voxels for a 96 pixel tile.
+  let minU = Infinity; let maxU = -Infinity;
+  let minV = Infinity; let maxV = -Infinity;
+  for (const [i, j, k] of order) {
+    const u = across(i, k);
+    const v = down(i, j, k);
+    if (u < minU) minU = u;
+    if (u > maxU) maxU = u;
+    if (v < minV) minV = v;
+    if (v > maxV) maxV = v;
+  }
+
+  // A voxel is drawn as a square, so it takes up room past its own corner:
+  // the span plus one cell has to fit, not the span alone.
+  const room = size - pad * 2;
+  const scale = Math.min(room / (maxU - minU + 1), room / (maxV - minV + 1));
+  if (!(scale > 0)) return pixels;
+  // Ceiling, not rounding. A cell narrower than the spacing leaves gaps between
+  // neighbouring voxels and the model comes out looking like a sieve.
+  const cell = Math.max(1, Math.ceil(scale));
+
+  // Centre on the drawn extent, including that trailing cell.
+  const shiftX = (size - ((maxU - minU) * scale + cell)) / 2 - minU * scale;
+  const shiftY = (size - ((maxV - minV) * scale + cell)) / 2 - minV * scale;
 
   for (const [i, j, k] of order) {
     const [r, g, b] = colourOf(grid.palette[grid.cells[at(i, j, k)] - 1]);
     const lit = j + 1 >= ny || !grid.cells[at(i, j + 1, k)] ? 1 : 0.66;
 
-    const sx = Math.round(shiftX + (i - k) * scale);
-    const sy = Math.round(shiftY - (i + k) * scale * 0.5 - j * scale);
+    const sx = Math.round(shiftX + across(i, k) * scale);
+    const sy = Math.round(shiftY + down(i, j, k) * scale);
 
     for (let py = 0; py < cell; py++) {
       const y = sy + py;

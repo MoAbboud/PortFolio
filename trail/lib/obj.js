@@ -57,6 +57,19 @@ const NAMED = [
   ['silver', '#c0c4c8'], ['copper', '#b06a3b'], ['bronze', '#96703c'],
   ['water', '#4a86a8'], ['sand', '#d8c79a'], ['snow', '#eef2f6'],
   ['flesh', '#c98f74'], ['bone', '#ded6c0'], ['zombie', '#7f9463'],
+
+  // Things this library actually holds. These are reached through a model's own
+  // filename when its materials say nothing, so they are named for the objects
+  // rather than for materials.
+  ['cookie', '#b07a3f'], ['cupcake', '#e2b7c4'], ['icecream', '#f0e2d0'],
+  ['donut', '#c98a5e'], ['doughnut', '#c98a5e'], ['burger', '#a86a35'],
+  ['hotdog', '#c26a3a'], ['pizza', '#c98b40'], ['cake', '#e6d2b8'],
+  ['soda', '#c0392f'], ['fries', '#e0b552'], ['blood', '#7e1d18'],
+  ['sofa', '#6d5a4a'], ['couch', '#6d5a4a'], ['vase', '#8fa6b5'],
+  ['barrel', '#6b4a2f'], ['crate', '#a87a4b'], ['chest', '#7a5636'],
+  ['pallet', '#a3763f'], ['cinder', '#9a9a94'], ['container', '#3f6f5a'],
+  ['hydrant', '#b5342c'], ['pipe', '#8a8f96'], ['sign', '#5d6b78'],
+  ['wheel', '#22242a'], ['guitar', '#8a5a30'],
 ];
 
 // Longest needle first, so a specific name always beats a general one that
@@ -94,17 +107,41 @@ function hslHex(h, s, l) {
   return toHex(r + m, g + m, b + m);
 }
 
+// Names an exporter invents when nobody chose one. They say nothing about what
+// the material is, so the model's own name is a better label than any of them.
+const ANONYMOUS = /^(material|default|none|untitled|atlas|texture|lambert|blinn|phong|standardsurface|surface)([._\s-]*\d+)?$/i;
+
+// The greys an exporter writes when nobody picked a colour: white, and
+// Blender's two defaults. Matched tightly rather than as "any pale grey",
+// because plenty of things - concrete, a kerb - really are a pale grey, and
+// those should keep the colour somebody chose for them.
+const DEFAULTS = [1, 0.8, 0.64];
+const untouched = (r, g, b) => Math.max(r, g, b) - Math.min(r, g, b) < 0.02
+  && DEFAULTS.some((grey) => Math.abs(r - grey) < 0.02);
+
 /**
  * Diffuse colours by material name, from an MTL file.
  *
- * If the file gives every material the same colour - which is what happens when
- * the real colours live in a texture - the names are used instead. A bed whose
- * materials are called DarkBrown, Sheets and Pillow is far better read as those
- * than as three identical greys.
+ * `Kd` is only the colour when the material has no texture. Once `map_Kd` is
+ * present, `Kd` is a multiplier the texture is tinted by, and it is almost
+ * always left at white or Blender's 0.8 grey - so taking it literally paints
+ * the model white. That is one root cause with three faces, and all three were
+ * in this library at once:
+ *
+ *   - one material, textured: the whole Zombie kit, every model white
+ *   - one material, untextured, never named or coloured: the Junk Food pack
+ *   - several materials where one has a real colour, so "they are all the same"
+ *     was false and the textured ones stayed white: the vehicles
+ *
+ * When a colour cannot be believed the name is read instead, and when the name
+ * is one an exporter invented - `Atlas`, `Material.001` - the model's own name
+ * is the last thing left that means anything. A file called `Cookie.obj` is
+ * better evidence about a cookie than a grey nobody chose.
  */
-export function readMtl(text) {
+export function readMtl(text, { model = '' } = {}) {
   const materials = new Map();
   const diffuse = new Map();
+  const textured = new Set();
   let current = null;
   for (const line of String(text).split('\n')) {
     const trimmed = line.trim();
@@ -115,15 +152,27 @@ export function readMtl(text) {
       const [r, g, b] = (trimmed.match(NUMBER) ?? []).map(Number);
       if ([r, g, b].every(Number.isFinite)) {
         materials.set(current, linearHex(r, g, b));
-        diffuse.set(current, `${r},${g},${b}`);
+        diffuse.set(current, [r, g, b]);
       }
+    } else if (current && /^map_Kd\s/i.test(trimmed)) {
+      textured.add(current);
     }
   }
 
-  const distinct = new Set(diffuse.values());
-  const useless = materials.size > 1 && distinct.size <= 1;
-  if (useless) {
-    for (const name of materials.keys()) materials.set(name, fromName(name));
+  // Every material sharing one colour is not a scheme, it is a texture that was
+  // not exported. Kept from before, and now only one of several reasons.
+  const distinct = new Set([...diffuse.values()].map((kd) => kd.join(',')));
+  const allAlike = materials.size > 1 && distinct.size <= 1;
+
+  for (const name of materials.keys()) {
+    const kd = diffuse.get(name);
+    const anonymous = ANONYMOUS.test(name.trim());
+    const believable = kd && !textured.has(name) && !allAlike && !untouched(...kd);
+    if (believable) continue;
+    // The material's own name first, then the model's. Both go through the
+    // same table, so a material called Sheets and a model called Couch are
+    // read the same way.
+    materials.set(name, fromName(anonymous && model ? model : name));
   }
   return materials;
 }
@@ -280,5 +329,5 @@ export function atHeight(grid, height) {
 
 /** An OBJ and its MTL, all the way to a grid. */
 export function importObj(objText, mtlText = '', options = {}) {
-  return voxeliseMesh(readObj(objText, readMtl(mtlText)), options);
+  return voxeliseMesh(readObj(objText, readMtl(mtlText, { model: options.id })), options);
 }

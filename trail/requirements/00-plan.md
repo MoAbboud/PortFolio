@@ -8,7 +8,7 @@ whole thing. Cheap enough to redo, consistent enough to be a visual identity, re
 that a retake is free, and containing no artificial intelligence of any kind at runtime.
 
 **The app is built, running, and has a library of everything on disk.** The renderer, the
-camera, the route, the weather, the picking, the canvas file and the pen all exist, with 332
+camera, the route, the weather, the picking, the canvas file and the pen all exist, with 342
 tests behind them, and 220 models load when the page opens - four recipes and 216 meshes read
 as OBJ, glTF or `.glb`. Nothing is held back for licence, nothing in it is off-subject, and
 everything in it is a placeable object rather than a part of one.

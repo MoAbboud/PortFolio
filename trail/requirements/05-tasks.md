@@ -83,6 +83,21 @@ test worth trusting.
       already is. It says when it is showing only part of a long list
 - [x] `lib/thumb.js` draws a model as isometric pixels. Pure, so the same code makes contact
       sheets in Node and previews in the panel, and both are tested without a browser
+- [x] **Previews are fitted and centred on the voxels drawn, not on the grid's bounding box.**
+      Three faults at once: the vertical offset was out by half the footprint so every model
+      was clipped at the top of its card, the fit used a box the model does not fill, and
+      cells narrower than their spacing drew a solid model as a sieve
+- [x] Previews are drawn at 128 and scaled down, not at 72 and scaled up. Fractional
+      nearest-neighbour upscaling made some voxels one pixel wide and others two, which is
+      what read as stretched. Measured: the size costs nothing, the voxel walk is the work
+- [x] **The preview looked at the underside of every model.** One sign in one line: depth and
+      height both moved a voxel up the screen, where looking down means they pull opposite
+      ways. Wrong since the module was written, and invisible until the tiles were fixed
+- [x] Tests for clipping, centring, tile usage, gaps and the viewpoint itself, each confirmed
+      by reintroducing the bug. Two old tests were the reason this survived: "nothing is ever
+      drawn outside the tile" only checked that something had been drawn, and "the top of a
+      shape is brighter than its side" was checking the lighting of a face that was not on
+      screen, because shading is taken from a neighbour rather than from the viewpoint
 - [x] Previews are cached and drawn a few per frame, so opening the panel never stutters
 - [x] `[` and `]` cycle the selected object through the models on show, keeping its position,
       turn and step range while only the model underneath changes
@@ -136,9 +151,18 @@ test worth trusting.
       158 OBJ files at startup would be tens of megabytes for models never used
 - [x] `tools/scan.js` finds OBJ files, names them from their filenames, and reads the
       licence from the nearest licence file in their own pack
-- [ ] Models whose colour is only in a texture atlas still come out one colour per material.
-      Sampling the texture needs UVs and a PNG decoder. `tools/sheet.js` already contains a
-      PNG *writer*, so the inverse is the obvious next step if colour is judged too crude
+- [x] **A colour is believed only when there is reason to.** Not when the material is
+      textured (`map_Kd` means `Kd` is a tint, not a colour), not when every material states
+      the same colour, and not when it is one of the greys an exporter writes by default -
+      white, 0.8, 0.64, matched tightly so a deliberate pale grey survives
+- [x] When a material name says nothing - `Atlas`, `Material.001` - the model's own filename
+      is read instead. A meaningful material name still wins over it
+- [x] 90 of 216 models came out plain white; now 18, and those are genuinely pale concrete
+- [ ] **Sample the texture atlas.** The Zombie kit - the most useful pack for this subject -
+      still gets one invented colour per model, so a character is a flat hash colour rather
+      than a person. `Zombie_Atlas.png` is 512x512 RGB in 6.1 KB, so it is flat patches, and
+      the OBJs carry `vt` coordinates. Needs a PNG decoder (the inverse of the writer already
+      in `tools/sheet.js`), `vt` parsing in `readObj`, and sampling per voxel. About 60 models
 - [x] Up axis is assumed to be Y. Held for all 317 meshes across eleven packs
 
 ### 2e - glTF, which is what the packs ship now

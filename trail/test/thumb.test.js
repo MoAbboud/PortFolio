@@ -41,13 +41,132 @@ test('everywhere the model is not stays transparent', () => {
   }
 });
 
+/** The box the drawn pixels actually occupy, and the gap to each edge. */
+const bounds = (pixels, size) => {
+  let x0 = Infinity; let y0 = Infinity; let x1 = -1; let y1 = -1;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      if (pixels[(y * size + x) * 4 + 3]) {
+        if (x < x0) x0 = x;
+        if (x > x1) x1 = x;
+        if (y < y0) y0 = y;
+        if (y > y1) y1 = y;
+      }
+    }
+  }
+  return { top: y0, bottom: size - 1 - y1, left: x0, right: size - 1 - x1 };
+};
+
 test('nothing is ever drawn outside the tile', () => {
   // A very tall model and a very wide one both have to be fitted, not clipped.
-  for (const dims of [[1, 40, 1], [40, 1, 40], [3, 3, 3]]) {
-    const pixels = thumbnail(block(dims), 48);
-    assert.equal(pixels.length, 48 * 48 * 4);
+  // This used to check only that something was drawn, which is why every
+  // preview in the library was running off the top of its tile unnoticed.
+  for (const dims of [[1, 40, 1], [40, 1, 40], [3, 3, 3], [40, 40, 2]]) {
+    const size = 48;
+    const pixels = thumbnail(block(dims), size);
+    assert.equal(pixels.length, size * size * 4);
     assert.ok(coverage(pixels) > 0, `${dims.join('x')} drew nothing`);
+
+    const { top, bottom, left, right } = bounds(pixels, size);
+    for (const [edge, gap] of Object.entries({ top, bottom, left, right })) {
+      assert.ok(gap >= 1,
+        `${dims.join('x')} touches the ${edge} of its tile, so it is clipped`);
+    }
   }
+});
+
+test('a preview looks down at a model rather than up at its underside', () => {
+  // A slab with a red top layer over a blue bottom one. Seen from above the
+  // red face is most of the picture; seen from below it is the blue one. This
+  // is the whole difference between the two signs in the projection, and the
+  // module got it wrong from the day it was written: it *lit* the top while
+  // *showing* the bottom, so no shading test noticed.
+  const [nx, ny, nz] = [8, 2, 8];
+  const cells = new Uint8Array(nx * ny * nz);
+  for (let k = 0; k < nz; k++) {
+    for (let j = 0; j < ny; j++) {
+      for (let i = 0; i < nx; i++) cells[(k * ny + j) * nx + i] = j === ny - 1 ? 1 : 2;
+    }
+  }
+  const grid = { dims: [nx, ny, nz], cells, palette: [{ hex: '#ff0000' }, { hex: '#0000ff' }] };
+
+  const pixels = thumbnail(grid, 96);
+  let top = 0;
+  let underneath = 0;
+  for (let p = 0; p < pixels.length; p += 4) {
+    if (!pixels[p + 3]) continue;
+    if (pixels[p] > pixels[p + 2]) top++;
+    else underneath++;
+  }
+  assert.ok(top > underneath * 2,
+    `the underside is ${underneath} pixels against ${top} on top, so the view is from below`);
+});
+
+test('a nearer voxel covers the one behind it', () => {
+  // Painter's order and the projection have to agree. If the depth term is
+  // flipped they disagree, and a far voxel paints over a near one.
+  const [nx, ny, nz] = [3, 1, 3];
+  const cells = new Uint8Array(nx * ny * nz);
+  for (let k = 0; k < nz; k++) for (let i = 0; i < nx; i++) cells[(k * ny + 0) * nx + i] = 1;
+  // The near corner of the ground is the one with the largest i and k.
+  cells[((nz - 1) * ny + 0) * nx + (nx - 1)] = 2;
+  const grid = { dims: [nx, ny, nz], cells, palette: [{ hex: '#101010' }, { hex: '#f0f0f0' }] };
+
+  const size = 64;
+  const pixels = thumbnail(grid, size);
+  // The near corner sits at the bottom of the diamond, so the lowest drawn row
+  // must belong to it.
+  let lowest = -1;
+  let lowestIsNear = false;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const p = (y * size + x) * 4;
+      if (!pixels[p + 3]) continue;
+      if (y > lowest) { lowest = y; lowestIsNear = pixels[p] > 128; }
+    }
+  }
+  assert.ok(lowestIsNear,
+    'the bottom of the picture is not the near corner, so depth runs the wrong way');
+});
+
+test('a preview sits in the middle of its tile', () => {
+  // The model is centred on what is drawn, not on the box the grid occupies,
+  // because a shape rarely reaches the corners of its own bounding box.
+  for (const dims of [[1, 40, 1], [40, 1, 40], [3, 3, 3], [6, 20, 4], [30, 4, 8]]) {
+    const size = 64;
+    const { top, bottom, left, right } = bounds(thumbnail(block(dims), size), size);
+    // One pixel of slack, because a voxel lands on a whole pixel or it blurs.
+    assert.ok(Math.abs(top - bottom) <= 1,
+      `${dims.join('x')} sits ${top} from the top and ${bottom} from the bottom`);
+    assert.ok(Math.abs(left - right) <= 1,
+      `${dims.join('x')} sits ${left} from the left and ${right} from the right`);
+  }
+});
+
+test('a preview uses the tile it is given rather than a corner of it', () => {
+  // Fitting to the grid's box rather than to the model left a building using a
+  // third of its tile and a street tile using a sixth.
+  const shown = coverage(thumbnail(block([8, 8, 8]), 64));
+  assert.ok(shown > 0.35, `a solid cube filled only ${(shown * 100).toFixed(1)}% of its tile`);
+});
+
+test('neighbouring voxels leave no gaps between them', () => {
+  // A cell narrower than the spacing draws a solid shape as a sieve. The face
+  // of a large block should be continuous, not stippled.
+  const size = 64;
+  const pixels = thumbnail(block([12, 12, 12]), size);
+  const { top, left } = bounds(pixels, size);
+  // Walk a horizontal line across the middle of the shape and count runs of
+  // transparent pixels inside it.
+  const y = Math.round(top + (size - top * 2) / 2);
+  let holes = 0;
+  let inside = false;
+  for (let x = left; x < size - left; x++) {
+    const solid = pixels[(y * size + x) * 4 + 3] > 0;
+    if (solid) inside = true;
+    else if (inside && x < size - left - 1) holes++;
+  }
+  assert.ok(holes <= 2, `a solid block has ${holes} gaps across its middle`);
 });
 
 test('a model keeps its own colours', () => {
