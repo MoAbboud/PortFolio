@@ -115,7 +115,7 @@ which is fine for testing and not fine for a finished library.
 
 | Source | Notes |
 | --- | --- |
-| **Medieval Theme Voxels**, by FuzzyManStudios on OpenGameArt | **Verified and in use.** CC0, 363 models in a single 800 KB `.vox`, all of which parse. *"Credit is not necessary, but highly appreciated"* |
+| **Medieval Theme Voxels**, by FuzzyManStudios on OpenGameArt | **Verified, used, and retired 2026-08-03.** CC0, 363 models in a single 800 KB `.vox`, all of which parse. *"Credit is not necessary, but highly appreciated"*. Removed from the library for being the wrong subject - it is barrels and anvils, and the videos are modern. Kept here because the verification stands if it is ever wanted |
 | itch.io, voxel and magicavoxel tags | Several genuinely CC0 packs. Check each pack's own page; free and CC0 are not the same thing |
 | OpenGameArt, CC0 filter | Carries `.vox` files alongside mesh exports |
 

@@ -1665,14 +1665,5 @@
       "licence": "CC0"
     }
   ],
-  "packs": [
-    {
-      "file": "Models.vox",
-      "names": "names/models.json",
-      "title": "Medieval Theme Voxels",
-      "author": "FuzzyManStudios",
-      "licence": "CC0",
-      "source": "https://opengameart.org/content/medieval-theme-voxels-asset-pack"
-    }
-  ]
+  "packs": []
 }

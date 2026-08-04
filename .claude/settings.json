@@ -47,7 +47,9 @@
       "Bash(awk '{printf \"%.0f MB  %s\\\\n\", $1/1048576, substr\\($0, index\\($0,$2\\)\\)}')",
       "WebFetch(domain:quaternius.com)",
       "Bash(node --input-type=module -e ' *)",
-      "Bash(node --test test/gltf.test.js)"
+      "Bash(node --test test/gltf.test.js)",
+      "Bash(rm models/Models.vox)",
+      "Bash(sed -i 's/stub.drew\\(.putImageData.\\) > 5,/stub.drew\\(\"putImageData\"\\) > 9999,/' test/startup.test.js)"
     ],
     "additionalDirectories": [
       "\\tmp",

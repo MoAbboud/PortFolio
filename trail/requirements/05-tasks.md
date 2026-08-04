@@ -5,7 +5,7 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
 The app runs. Items past stage 1 are marked honestly: `[x]` means built and tested.
 
 **The next work is the script panel, in stage 4.** Every other stage is either done or off the
-critical path. The library holds 684 models and nothing is held back, so there is no longer a
+critical path. The library holds 321 models and nothing is held back, so there is no longer a
 content reason to build anything else first.
 
 ## Stage 1 - Concept
@@ -75,7 +75,8 @@ test worth trusting.
 - [x] Drop a `.vox` on the page as well, for anything not in the manifest
 - [x] Imported models re-anchor with the block size slider, like recipes do
 - [x] A CC0 `.vox` pack found and verified: FuzzyManStudios' Medieval Theme Voxels on
-      OpenGameArt. 363 models in one 800 KB archive, all 363 parse
+      OpenGameArt. 363 models in one 800 KB archive, all 363 parse.
+      **Retired 2026-08-03: wrong subject.** The `.vox` path stays; the pack does not
 - [x] Multi-model files: every model joins the library, and each is only converted the
       first time it is placed. Converting 363 up front would cost seconds for nothing
 - [x] A library of previews in the panel, with a filter, showing what can be placed and what
@@ -109,8 +110,8 @@ test worth trusting.
 - [x] A buffer slice that no longer fits triggers a rebuild rather than a partial write
 - [ ] Imported models are not saved in the canvas file, so a canvas only works while the pack
       it used is listed in `models/index.json`
-- [ ] Some names are guesses at a small picture. Rename anything wrong; there is no
-      rename control in the app yet
+- [x] Some names are guesses at a small picture. Moot: the pack they name was retired,
+      though the names file is kept so it can come back named if it is ever wanted
 - [ ] **Kenney's "Voxel Pack" is 197 PNG sprites, not 3D models.** Several guides describe
       it as voxel models. It is isometric 2D art and is no use here
 - [ ] **Do not use MagicaVoxel's bundled samples.** No explicit CC0 grant, so under the rule
