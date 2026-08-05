@@ -1170,182 +1170,19 @@
       "licence": "CC0"
     }
   ],
-  "poses": [
+  "rigs": [
     {
-      "name": "person-standing",
+      "name": "mannequin",
       "file": "Universal Animation Library[Standard]/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb",
-      "clip": "Idle_Loop",
-      "time": 1,
+      "licence": "CC0",
       "slots": {
         "M_Main": "primary",
         "M_Joints": "secondary"
       },
-      "licence": "CC0"
-    },
-    {
-      "name": "person-talking",
-      "file": "Universal Animation Library[Standard]/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb",
-      "clip": "Idle_Talking_Loop",
-      "time": 1.2,
-      "slots": {
-        "M_Main": "primary",
-        "M_Joints": "secondary"
-      },
-      "licence": "CC0"
-    },
-    {
-      "name": "person-sitting",
-      "file": "Universal Animation Library[Standard]/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb",
-      "clip": "Sitting_Idle_Loop",
-      "time": 0.5,
-      "slots": {
-        "M_Main": "primary",
-        "M_Joints": "secondary"
-      },
-      "licence": "CC0"
-    },
-    {
-      "name": "person-sitting-talking",
-      "file": "Universal Animation Library[Standard]/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb",
-      "clip": "Sitting_Talking_Loop",
-      "time": 0.8,
-      "slots": {
-        "M_Main": "primary",
-        "M_Joints": "secondary"
-      },
-      "licence": "CC0"
-    },
-    {
-      "name": "person-pointing",
-      "file": "Universal Animation Library[Standard]/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb",
-      "clip": "Interact",
-      "time": 0.5,
-      "slots": {
-        "M_Main": "primary",
-        "M_Joints": "secondary"
-      },
-      "licence": "CC0"
-    },
-    {
-      "name": "person-reaching",
-      "file": "Universal Animation Library[Standard]/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb",
-      "clip": "PickUp_Table",
-      "time": 0.6,
-      "slots": {
-        "M_Main": "primary",
-        "M_Joints": "secondary"
-      },
-      "licence": "CC0"
-    },
-    {
-      "name": "person-walking",
-      "file": "Universal Animation Library[Standard]/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb",
-      "clip": "Walk_Loop",
-      "time": 0.3,
-      "slots": {
-        "M_Main": "primary",
-        "M_Joints": "secondary"
-      },
-      "licence": "CC0"
-    },
-    {
-      "name": "person-walking-formal",
-      "file": "Universal Animation Library[Standard]/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb",
-      "clip": "Walk_Formal_Loop",
-      "time": 0.4,
-      "slots": {
-        "M_Main": "primary",
-        "M_Joints": "secondary"
-      },
-      "licence": "CC0"
-    },
-    {
-      "name": "person-running",
-      "file": "Universal Animation Library[Standard]/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb",
-      "clip": "Jog_Fwd_Loop",
-      "time": 0.2,
-      "slots": {
-        "M_Main": "primary",
-        "M_Joints": "secondary"
-      },
-      "licence": "CC0"
-    },
-    {
-      "name": "person-punching",
-      "file": "Universal Animation Library[Standard]/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb",
-      "clip": "Punch_Cross",
-      "time": 0.4,
-      "slots": {
-        "M_Main": "primary",
-        "M_Joints": "secondary"
-      },
-      "licence": "CC0"
-    },
-    {
-      "name": "person-recoiling",
-      "file": "Universal Animation Library[Standard]/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb",
-      "clip": "Hit_Chest",
-      "time": 0.2,
-      "slots": {
-        "M_Main": "primary",
-        "M_Joints": "secondary"
-      },
-      "licence": "CC0"
-    },
-    {
-      "name": "person-fallen",
-      "file": "Universal Animation Library[Standard]/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb",
-      "clip": "Death01",
-      "time": 1.5,
-      "slots": {
-        "M_Main": "primary",
-        "M_Joints": "secondary"
-      },
-      "licence": "CC0"
-    },
-    {
-      "name": "person-crouching",
-      "file": "Universal Animation Library[Standard]/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb",
-      "clip": "Crouch_Idle_Loop",
-      "time": 0.5,
-      "slots": {
-        "M_Main": "primary",
-        "M_Joints": "secondary"
-      },
-      "licence": "CC0"
-    },
-    {
-      "name": "person-dancing",
-      "file": "Universal Animation Library[Standard]/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb",
-      "clip": "Dance_Loop",
-      "time": 1,
-      "slots": {
-        "M_Main": "primary",
-        "M_Joints": "secondary"
-      },
-      "licence": "CC0"
-    },
-    {
-      "name": "person-driving",
-      "file": "Universal Animation Library[Standard]/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb",
-      "clip": "Driving_Loop",
-      "time": 0.2,
-      "slots": {
-        "M_Main": "primary",
-        "M_Joints": "secondary"
-      },
-      "licence": "CC0"
-    },
-    {
-      "name": "person-pushing",
-      "file": "Universal Animation Library[Standard]/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb",
-      "clip": "Push_Loop",
-      "time": 0.4,
-      "slots": {
-        "M_Main": "primary",
-        "M_Joints": "secondary"
-      },
-      "licence": "CC0"
+      "pose": {
+        "clip": "Idle_Loop",
+        "time": 1
+      }
     }
   ],
   "packs": []

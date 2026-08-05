@@ -193,8 +193,10 @@ this is authoring rather than the skeletal animation the not-doing list rules ou
 - [x] Linear blend skinning on the processor, once, at import. 10 to 40 ms a pose
 - [x] A skinned mesh's own node transform is ignored, as the specification requires
 - [x] Weights normalised when an exporter has not made them sum to one
-- [x] **Each pose is a library entry**, named in `models/index.json`, so placing one is
-      placing a model and `[` and `]` step between poses in place
+- [x] **One library entry per rigged model, and the pose lives on the placed object.**
+      Reversed after seeing it: 309 poses across 22 rigged models would have been 309
+      entries burying the other 216. The pose is saved per object in the canvas file,
+      cached by model *and* pose, and stepped with a control in the object panel
 - [x] **The character's two materials are tint slots**, so one model is a whole cast. The
       first tintable model that is not a hand-authored voxel recipe
 - [x] `npm run clips` lists every pose in every rigged model, with lengths and heights
@@ -341,17 +343,26 @@ alone, and `npm run scan` reported nothing new, which looks exactly like working
 
 ### The script
 
-- [ ] Paste a script. It becomes one step holding all of it
-- [ ] Split a step at the cursor, and merge two steps back together
-- [ ] Tokenise: whitespace, punctuation, lowercase. No stemming, no stopwords, no grammar
-- [ ] Resolve every token against `lookup.js`. **The dictionary is the noun detector**
-- [ ] Object tray: one entry per model, with a thumbnail, the word, and a mention count
-- [ ] Order the tray by first appearance in the script
-- [ ] Gap list: every word with no model, visible rather than silently dropped
-- [ ] Name detection: capitalised, not sentence-initial, not in the dictionary, not a common
+- [x] Paste a script. It becomes one step holding all of it
+- [~] Split a step at the cursor, and merge two steps back together. **`splitStep` and
+      `mergeStep` are written and tested; the control needs step selection, which does not
+      exist yet**
+- [x] Tokenise: whitespace, punctuation, lowercase. No stemming, no stopwords, no grammar
+- [x] Resolve every token against the dictionary. **The dictionary is the noun detector**, and
+      it is built from the library's own model names rather than by a pipeline
+- [x] `models/synonyms.json`: 60 words, because model names are literal and scripts are not.
+      Every entry checked against the library as it is written, so nothing unplaceable is
+      offered. Measured: 8 words of a paragraph resolve on names alone, 13 with synonyms
+- [x] Object tray: one entry per model, with a preview, the word, and a mention count
+- [x] Order the tray by first appearance in the script
+- [x] Gap list: every word with no model, visible rather than silently dropped
+- [x] Name detection: capitalised, not sentence-initial, not in the dictionary, not a common
       capitalised word. **Offered, never assumed**
+- [x] Reading a script places nothing. A test records the object count before and after
 - [ ] Confirm a name as a cast member, with a colour and a tag
-- [ ] Tray search, so a thing the script never named can still be placed
+- [ ] Tray search
+- [ ] The gap list is dominated by "the", "a", "was". Ordering by count puts function words
+      first, which is backwards, and fixing it properly needs grammar the design rules out, so a thing the script never named can still be placed
 
 ### The canvas
 

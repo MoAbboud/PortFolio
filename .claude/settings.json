@@ -61,7 +61,10 @@
       "Bash(node tools/clips.js)",
       "Bash(grep -E \"^\\\\S+\\\\.\\(gltf|glb\\)$|poses,\")",
       "Bash(node tools/clips.js \"models/Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Characters/glTF/Matt.gltf\")",
-      "Bash(node --input-type=module --expose-gc -e ' *)"
+      "Bash(node --input-type=module --expose-gc -e ' *)",
+      "Bash(grep -n \"reposition\\(state.selected, { ...layout\\\\[state.selected\\\\], model: next }\\)\" index.html)",
+      "Bash(node --test test/script.test.js)",
+      "Bash(python3 -c ' *)"
     ],
     "additionalDirectories": [
       "\\tmp",

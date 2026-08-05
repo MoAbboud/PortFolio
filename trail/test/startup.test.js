@@ -22,8 +22,13 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 
 /** A DOM element that answers to everything the page asks of it. */
 class FakeElement {
-  constructor(id = '') {
+  constructor(id = '', tagName = 'DIV') {
     this.id = id;
+    // A real element knows what it is, and code asks: keyboard shortcuts have
+    // to stay out of anything being typed into, and they decide that from the
+    // tag. Without it every fake element looked like a div and a correct guard
+    // looked broken.
+    this.tagName = String(tagName).toUpperCase();
     this.textContent = '';
     this.innerHTML = '';
     // An empty text input reads as '', not '0'. Defaulting to '0' made the
@@ -112,7 +117,7 @@ function fakeGl(calls = []) {
   return gl;
 }
 
-function stubBrowser({ frames = 3, ids = new Set() } = {}) {
+function stubBrowser({ frames = 3, ids = new Set(), tags = new Map() } = {}) {
   const failures = [];
   const byId = new Map();
   /**
@@ -124,12 +129,16 @@ function stubBrowser({ frames = 3, ids = new Set() } = {}) {
    */
   const element = (id) => {
     if (!ids.has(id)) return null;
-    if (!byId.has(id)) byId.set(id, new FakeElement(id));
+    if (!byId.has(id)) byId.set(id, new FakeElement(id, tags.get(id) ?? 'DIV'));
     return byId.get(id);
   };
 
   const store = new Map();
   const requested = [];
+  // Key handlers were bound to a listener that did nothing, so every hotkey on
+  // the page was invisible to this test. Recording them is what makes "does a
+  // shortcut fire while somebody is typing" a question that can be asked.
+  const keys = new Map();
   drawn2d = [];
   let clock = 0;
   let drawn = 0;
@@ -156,7 +165,7 @@ function stubBrowser({ frames = 3, ids = new Set() } = {}) {
     window: win,
     document: {
       getElementById: element,
-      createElement: () => new FakeElement(),
+      createElement: (tag) => new FakeElement('', tag),
       addEventListener: () => {},
       body: new FakeElement(),
       documentElement: new FakeElement(),
@@ -181,7 +190,10 @@ function stubBrowser({ frames = 3, ids = new Set() } = {}) {
       if (!closed && drawn++ < frames) queueMicrotask(() => { clock += 16; fn(clock); });
       return drawn;
     },
-    addEventListener: () => {},
+    addEventListener: (type, fn) => {
+      if (!keys.has(type)) keys.set(type, []);
+      keys.get(type).push(fn);
+    },
     removeEventListener: () => {},
     setTimeout: globalThis.setTimeout,
     clearTimeout: globalThis.clearTimeout,
@@ -223,6 +235,12 @@ function stubBrowser({ frames = 3, ids = new Set() } = {}) {
 
   return {
     failures, win, element, requested,
+    /** Press a key at something, the way a browser would. */
+    press: (key, target = null) => {
+      for (const fn of keys.get('keydown') ?? []) {
+        fn({ key, target, preventDefault: () => {}, stopPropagation: () => {} });
+      }
+    },
     frames: () => drawn,
     drew: (name) => drawn2d.filter((c) => c[0] === name).length,
     // The page asks for a frame every frame, so a fixed budget is spent by the
@@ -248,8 +266,13 @@ function extractModule() {
 /** Every id the markup actually declares. Nothing else will resolve. */
 const declaredIds = () => new Set([...page().matchAll(/id="([^"]+)"/g)].map((m) => m[1]));
 
+// What kind of element each id belongs to, so the stub can answer honestly.
+const declaredTags = () => new Map(
+  [...page().matchAll(/<([a-z]+)\b[^>]*\bid="([^"]+)"/gi)].map((m) => [m[2], m[1]])
+);
+
 test('the page starts, loads its models, and draws', async () => {
-  const stub = stubBrowser({ ids: declaredIds(), frames: 60 });
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 60 });
   const scratch = new URL('../.startup-test.mjs', import.meta.url);
   writeFileSync(scratch, extractModule());
 
@@ -300,6 +323,72 @@ test('the page starts, loads its models, and draws', async () => {
   swatch.value = '#123456';
   swatch.listeners.get('input')?.[0]?.();
   assert.deepEqual(stub.failures, [], 'changing a colour reported a failure');
+
+  // The app's concept, end to end: paste a narration and the panel says what
+  // of it can be built. Nothing here places anything - that stays manual.
+  const box = stub.element('script');
+  const placedBefore = stub.win.__trail.placed();
+  box.value = 'After midnight Marla arrived at the house. Her car was parked '
+    + 'on the road outside, and Devon waited on the couch with a guitar.';
+  box.listeners.get('input')?.[0]?.();
+  for (let i = 0; i < 30; i++) await new Promise((r) => setTimeout(r, 0));
+
+  const staged = stub.element('tray').children.map((c) => c.title.split(' - ')[0]);
+  for (const word of ['house', 'car', 'road', 'couch', 'guitar']) {
+    assert.ok(staged.includes(word), `"${word}" was not offered from the script`);
+  }
+  assert.ok(stub.element('castlist').textContent.includes('Marla'),
+    'a named person was not offered as cast');
+  assert.ok(stub.element('s-gaps').textContent !== '-',
+    'words with nothing to build should be visible, not silently dropped');
+  // Placing is the user's act, so reading a script must place nothing.
+  assert.equal(stub.win.__trail.placed(), placedBefore,
+    'reading a script put something on the canvas by itself');
+
+  // Every letter on this page does something, so a script box is unusable
+  // until the keys stay out of it. Delete removes the selected object; pressed
+  // while writing it must remove a character instead and leave the canvas be.
+  {
+    const before = stub.win.__trail.placed();
+    assert.ok(before > 0 && stub.win.__trail.posed(), 'nothing is selected to delete');
+    stub.press('Delete', box);
+    for (let i = 0; i < 10; i++) await new Promise((r) => setTimeout(r, 0));
+    assert.equal(stub.win.__trail.placed(), before,
+      'a hotkey fired while typing, so the script box cannot be written in');
+
+    // And it must still work when the keyboard is not somebody's typing.
+    stub.press('Delete', { tagName: 'CANVAS' });
+    for (let i = 0; i < 10; i++) await new Promise((r) => setTimeout(r, 0));
+    assert.equal(stub.win.__trail.placed(), before - 1,
+      'blocking keys while typing also stopped them working everywhere else');
+  }
+
+  // A rigged model is one entry in the library, and the poses it holds are
+  // reached on the placed object. Place it, step it forward, and the object
+  // must come out standing in a different pose than it started in.
+  filter.value = 'mannequin';
+  filter.listeners.get('input')?.[0]?.();
+  for (let i = 0; i < 20; i++) await new Promise((r) => setTimeout(r, 0));
+
+  const rigTile = stub.element('library').children.find((c) => c.title === 'mannequin');
+  assert.ok(rigTile, 'the rigged model is not in the library to place');
+  {
+    rigTile.listeners.get('click')?.[0]?.();
+    for (let i = 0; i < 60; i++) await new Promise((r) => setTimeout(r, 0));
+
+    const rows = stub.element('poses').children;
+    assert.ok(rows.length, 'a rigged model offered no poses at all');
+    const next = rows.flatMap((r) => r.children).find((c) => c.textContent === 'next pose');
+    assert.ok(next, 'there is no way to step to the next pose');
+
+    const before = stub.win.__trail.posed();
+    next.listeners.get('click')?.[0]?.();
+    for (let i = 0; i < 60; i++) await new Promise((r) => setTimeout(r, 0));
+    const after = stub.win.__trail.posed();
+    assert.ok(before && after && before !== after,
+      `the pose did not change: it was ${before} and is ${after}`);
+    assert.deepEqual(stub.failures, [], 'changing the pose reported a failure');
+  }
 
   // Browsing converts every model it previews, and a converted model is its
   // geometry - about half a megabyte each, so the whole library at once was a

@@ -79,6 +79,14 @@
   .ctl .val { color: #7fb0e8; font-variant-numeric: tabular-nums; }
   /* A tint slot. Small, because a row of them belongs beside its label rather
      than filling the panel the way a slider does. */
+  #script {
+    width: 100%; box-sizing: border-box; resize: vertical; margin: 0 0 6px;
+    background: rgba(0,0,0,.28); color: #dfe6ee; font: inherit; font-size: 11.5px;
+    border: 1px solid rgba(255,255,255,.14); border-radius: 4px; padding: 6px 7px;
+  }
+  #script:focus { outline: 1px solid rgba(127,176,232,.55); }
+  #gaplist, #castlist { max-height: 84px; overflow-y: auto; font-size: 10.5px; }
+  #castlist b { color: #9ed5ff; font-weight: normal; }
   input[type=color] {
     width: 46px; height: 20px; padding: 0; background: none; cursor: pointer;
     border: 1px solid rgba(255,255,255,.2); border-radius: 3px;
@@ -272,6 +280,22 @@
     </div>
   </details>
 
+  <details open>
+    <summary>script</summary>
+    <div class="body">
+      <!-- The app's concept. Paste the narration and Trail says which of its
+           words it can build; placing them is still entirely by hand. -->
+      <textarea id="script" rows="7" spellcheck="false"
+        placeholder="Paste your narration here."></textarea>
+      <div class="row"><span class="dim">can be built</span><b id="s-objects">-</b></div>
+      <div class="list" id="tray"></div>
+      <div class="row"><span class="dim">people named</span><b id="s-cast">-</b></div>
+      <div id="castlist" class="keys"></div>
+      <div class="row"><span class="dim">nothing to build</span><b id="s-gaps">-</b></div>
+      <div id="gaplist" class="keys"></div>
+    </div>
+  </details>
+
   <details>
     <summary>object</summary>
     <div class="body">
@@ -288,6 +312,9 @@
         <div class="row"><span class="dim">appears at step</span><span class="val" id="v-from">-</span></div>
         <input type="range" id="r-from" min="1" max="3" step="1" value="1" disabled>
       </div>
+      <!-- The pose a rigged model is standing in. One model in the library
+           holds dozens, and which one an object is in belongs to the object. -->
+      <div id="poses"></div>
       <!-- One row per tint slot the selected model offers, built when it is
            selected: a model decides how many colours it has, not the markup. -->
       <div id="tints"></div>
@@ -438,11 +465,12 @@ import { lerpWeather, resolve as resolveWeather, stampsUpTo } from './lib/weathe
 import { scarMap } from './lib/scars.js';
 import { multiply } from './lib/mat4.js';
 import { serialise, parse, isRefusal } from './lib/canvas.js';
+import { buildLookup, resolve, scriptOf } from './lib/script.js';
 import * as pen from './lib/pen.js';
 import { thumbnail, preview } from './lib/thumb.js';
 import { readVox, toGrid, isBadVox } from './lib/vox.js';
 import { readObj, readMtl, voxeliseMesh, atHeight } from './lib/obj.js';
-import { readGltf, readGlb, externalBuffers } from './lib/gltf.js';
+import { readGltf, readGlb, externalBuffers, clipNames } from './lib/gltf.js';
 
 // Reached only if every module above loaded. The classic script watches for it.
 window.__trail.started = true;
@@ -556,21 +584,21 @@ async function loadBytes(path) {
  * separately and relative to the model rather than to the page, because a pack
  * puts every model and every buffer in one folder together.
  */
-async function loadMesh(source) {
+async function loadMesh(source, pose = null) {
   // A pose and a set of tint slots travel with the model, so a rigged
   // character can be read once per pose and come out as an ordinary,
   // recolourable, entirely static object.
-  const how = { name: source.file, pose: source.pose ?? null, slots: source.slots ?? null };
+  const how = { name: source.file, pose: pose ?? null, slots: source.slots ?? null };
   if (source.kind === 'glb') {
     const { json, binary } = readGlb(await loadBytes(source.file));
-    return readGltf(json, [binary], how);
+    return { mesh: readGltf(json, [binary], how), clips: clipNames(json) };
   }
   const json = await loadJson(source.file);
   const folder = source.file.slice(0, source.file.lastIndexOf('/') + 1);
   const buffers = await Promise.all(externalBuffers(json).map(
     (uri) => (uri ? loadBytes(folder + uri) : null)
   ));
-  return readGltf(json, buffers, how);
+  return { mesh: readGltf(json, buffers, how), clips: clipNames(json) };
 }
 
 async function main() {
@@ -627,6 +655,22 @@ async function main() {
    * voxeliser still produces a grid. Only what is drawn is different, and the
    * cubes stay uploaded so the two can be compared with one key.
    */
+  /**
+   * What a placement is actually made of.
+   *
+   * A rigged model in one pose is different geometry from the same model in
+   * another, so everything that caches by model has to cache by pose as well:
+   * the grid, the converted mesh, the preview. The library name stays what the
+   * object says it is, and this is only ever a key.
+   */
+  const keyOf = (model, pose) => (
+    pose?.clip ? `${model}@${pose.clip}@${pose.time ?? 0}` : model
+  );
+  const keyFor = (placement) => keyOf(placement.model, placement.pose);
+
+  /** The pose an object is in, or the one its model starts in. */
+  const poseOf = (placement) => placement.pose ?? sources[placement.model]?.pose ?? null;
+
   const meshCache = new Map();
   // A drawn preview, kept so reopening the library is instant. Declared here
   // rather than beside the panel that fills it, so that the code which releases
@@ -641,23 +685,26 @@ async function main() {
     // it again on every frame of a drag.
     const meshes = {};
     for (const p of layout) {
-      if (meshes[p.model]) continue;
-      let built = meshCache.get(p.model);
+      const key = keyFor(p);
+      if (meshes[key]) continue;
+      let built = meshCache.get(key);
       if (!built) {
         // A model that arrived as a mesh is drawn as the mesh it is. Only the
         // hand-authored recipes, which are described as solids and carry tint
         // slots and pivots, still go round by way of cubes.
-        built = imported[p.model]?.drawn ?? surfaceNets(grids[p.model], { roundness });
-        meshCache.set(p.model, built);
+        built = imported[key]?.drawn ?? surfaceNets(grids[key], { roundness });
+        meshCache.set(key, built);
       }
-      meshes[p.model] = built;
+      meshes[key] = built;
     }
     const merged = assembleMeshes(
       // The palette travels with whichever geometry was used, so the two paths
       // cannot disagree about which colour a face is.
       layout.map((p) => ({
-        mesh: meshes[p.model],
-        grid: meshes[p.model]?.palette ? { palette: meshes[p.model].palette } : grids[p.model],
+        mesh: meshes[keyFor(p)],
+        grid: meshes[keyFor(p)]?.palette
+          ? { palette: meshes[keyFor(p)].palette }
+          : grids[keyFor(p)],
         ...p,
       }))
     );
@@ -691,13 +738,13 @@ async function main() {
     // An entry whose model is not loaded would leave layout, scene.ranges and
     // boxes out of step, and a drag would then move the wrong object and write
     // over its neighbour's cubes. Drop it rather than carry a hole.
-    const missing = layout.filter((p) => !grids[p.model]).map((p) => p.model);
+    const missing = layout.filter((p) => !grids[keyFor(p)]).map((p) => p.model);
     if (missing.length) {
-      layout = layout.filter((p) => grids[p.model]);
+      layout = layout.filter((p) => grids[keyFor(p)]);
       state.selected = -1;
       say(`left out ${[...new Set(missing)].join(', ')}: not in the library`);
     }
-    scene = assemble(layout.map((p) => ({ grid: grids[p.model], ...p })));
+    scene = assemble(layout.map((p) => ({ grid: grids[keyFor(p)], ...p })));
     renderer.upload(scene);
     boxes = objectBoxes(scene);
     extent = bounds(scene);
@@ -716,12 +763,12 @@ async function main() {
    * alone entirely.
    */
   function reposition(index, placement) {
-    const swapped = layout[index].model !== placement.model;
+    const swapped = keyFor(layout[index]) !== keyFor(placement);
     layout[index] = placement;
     // A different model has a different number of cubes, so its slice of the
     // buffers no longer fits and the whole field has to be built again.
     if (swapped) { rebuild(); autosave(); return; }
-    const part = place(grids[placement.model], placement);
+    const part = place(grids[keyFor(placement)], placement);
     const range = scene.ranges[index];
     // If the slice no longer fits, writing into it would overwrite the next
     // object's cubes. That is what made a dragged figure turn into half a tree.
@@ -874,6 +921,68 @@ async function main() {
     return found;
   }
 
+  /**
+   * Step the selected object through the poses its model holds.
+   *
+   * The poses are only known once the model has been read, which happens when
+   * it is first placed - so the list is whatever the file turned out to carry
+   * rather than anything written down here.
+   */
+  async function cyclePose(by) {
+    if (state.selected < 0) return;
+    const placement = layout[state.selected];
+    const clips = sources[placement.model]?.clips ?? [];
+    if (clips.length < 2) { say(`${placement.model} holds no other poses`); return; }
+
+    const now = poseOf(placement);
+    const at = clips.indexOf(now?.clip);
+    const next = clips[(((at < 0 ? 0 : at + by) % clips.length) + clips.length) % clips.length];
+    // Held a little way in, because the first frame of a clip is usually the
+    // rest pose it eases out of rather than the thing the clip is named for.
+    const pose = { clip: next, time: 0.5 };
+
+    if (!await materialise(placement.model, pose).catch((error) => {
+      say(`could not pose ${placement.model}: ${error.message}`);
+      return null;
+    })) return;
+
+    reposition(state.selected, { ...placement, pose });
+    paintPose();
+    say(`${placement.model}: ${next}`);
+  }
+
+  /** The pose row, when the selected model has poses to offer. */
+  function paintPose() {
+    const host = el('poses');
+    host.innerHTML = '';
+    if (state.selected < 0) return;
+    const placement = layout[state.selected];
+    const clips = sources[placement.model]?.clips ?? [];
+    if (clips.length < 2) return;
+
+    const row = document.createElement('div');
+    row.className = 'row';
+    const label = document.createElement('span');
+    label.className = 'dim';
+    label.textContent = 'pose';
+    const value = document.createElement('span');
+    value.className = 'val';
+    const now = poseOf(placement);
+    value.textContent = `${now?.clip ?? 'rest'} (${Math.max(1, clips.indexOf(now?.clip) + 1)}/${clips.length})`;
+    row.append(label, value);
+
+    const buttons = document.createElement('div');
+    buttons.className = 'row';
+    for (const [text, by] of [['previous pose', -1], ['next pose', 1]]) {
+      const button = document.createElement('button');
+      button.className = 'btn';
+      button.textContent = text;
+      button.addEventListener('click', () => { cyclePose(by); });
+      buttons.append(button);
+    }
+    host.append(row, buttons);
+  }
+
   /** A colour picker per slot, rebuilt whenever the selection changes. */
   function paintTints() {
     const host = el('tints');
@@ -911,6 +1020,7 @@ async function main() {
     state.selected = index;
     el('s-sel').textContent = index < 0 ? 'nothing' : layout[index].model;
     paintObject();
+    paintPose();
     paintTints();
     if (index >= 0) say(`${layout[index].model} selected - drag to move it`);
   }
@@ -941,13 +1051,39 @@ async function main() {
   const velocity = { forward: 0, right: 0, up: 0 };
   addEventListener('blur', () => held.clear());
 
-  addEventListener('keyup', (event) => held.delete(event.key.toLowerCase()));
+  /**
+   * Whether the keyboard belongs to something being typed into.
+   *
+   * Every letter on this page does something - `a` walks left, `r` restarts the
+   * take - so a script box is unusable until the keys know to stay out of it.
+   * Asked of the element rather than listed per control, because the next text
+   * field to be added would otherwise have the same bug on its first day.
+   */
+  const typing = (event) => {
+    const into = event.target;
+    if (!into) return false;
+    const tag = String(into.tagName ?? '').toLowerCase();
+    return tag === 'input' || tag === 'textarea' || tag === 'select' || !!into.isContentEditable;
+  };
+
+  addEventListener('keyup', (event) => {
+    if (typing(event)) return;
+    held.delete(event.key.toLowerCase());
+  });
 
   // Climbing is q and e. It used to have a pair of buttons in the panel too,
   // and they went when the panel was cut back to camera keys only.
 
   addEventListener('keydown', async (event) => {
     const key = event.key.toLowerCase();
+
+    // Nothing on this page is a shortcut while something is being written.
+    // Escape is the way out, because a field with the keyboard and no way to
+    // give it back is its own trap.
+    if (typing(event)) {
+      if (key === 'escape') event.target.blur?.();
+      return;
+    }
 
     if (WALK[key] || RISE[key]) {
       event.preventDefault();
@@ -1066,6 +1202,9 @@ async function main() {
     roundness = canvas.look.roundness;
     smoothing = canvas.look.smoothing;
     cubeScale = canvas.look.cubeScale;
+    // The script is only ever the steps read in order, so opening a canvas
+    // fills the box from them rather than from a field of its own.
+    el('script').value = scriptOf(canvas.route);
     state.selected = -1;
     state.pinned = null;
     state.clock = 0;
@@ -1073,6 +1212,7 @@ async function main() {
     duration = routeDuration(route) / 1000;
     rebuild();
     select(-1);
+    paintScript();
     paintPanel();
   }
 
@@ -1163,18 +1303,28 @@ async function main() {
       sources[mesh.name] = { kind, file: mesh.file, height: mesh.height };
       added++;
     }
-    // A rigged character is one file holding dozens of poses. Each is offered
-    // as its own model, so choosing one is choosing from the library rather
-    // than learning a new control, and `[` and `]` step between them in place.
-    for (const pose of manifest.poses ?? []) {
-      if (sources[pose.name] || recipes[pose.name]) continue;
-      if (pose.licence !== 'CC0') { held++; continue; }
-      sources[pose.name] = {
-        kind: pose.file.toLowerCase().endsWith('.glb') ? 'glb' : 'gltf',
-        file: pose.file,
-        height: pose.height,
-        pose: { clip: pose.clip, time: pose.time },
-        slots: pose.slots,
+    // A rigged model is **one** entry however many poses it holds. Which pose
+    // it stands in belongs to the object once it is placed, not to the library:
+    // there are 309 poses across the library and listing them would bury
+    // everything else.
+    for (const rig of manifest.rigs ?? []) {
+      // Said out loud. A rig quietly losing its name to a recipe is invisible,
+      // and the model simply never appears - which is how this was found.
+      if (sources[rig.name] || recipes[rig.name]) {
+        say(`"${rig.name}" is already in the library, so that rig was left out`);
+        continue;
+      }
+      if (rig.licence !== 'CC0') { held++; continue; }
+      sources[rig.name] = {
+        kind: rig.file.toLowerCase().endsWith('.glb') ? 'glb' : 'gltf',
+        file: rig.file,
+        height: rig.height,
+        slots: rig.slots,
+        rig: true,
+        // What it stands in until somebody says otherwise. Without one a rigged
+        // model arrives in its bind pose, which for a character is a T-pose.
+        pose: rig.pose ? { ...rig.pose } : null,
+        clips: [],
       };
       added++;
     }
@@ -1284,6 +1434,16 @@ async function main() {
 
   // What is being held, for the readout and for a test. A cache that quietly
   // stops releasing looks exactly like one that works.
+  // What the selected object is standing in, for a test. A pose that silently
+  // fails to change looks exactly like one that has no other poses to go to.
+  window.__trail.posed = () => (
+    state.selected < 0 ? null : keyFor(layout[state.selected])
+  );
+
+  // How many objects are on the canvas. Reading a script must never change it:
+  // Trail finds things, and putting them anywhere is the user's act.
+  window.__trail.placed = () => layout.length;
+
   window.__trail.held = () => ({
     converted: Object.keys(imported).length,
     previews: thumbs.size,
@@ -1291,10 +1451,11 @@ async function main() {
   });
 
   const pendingWork = new Map();
-  async function materialise(id) {
-    touch(id);
-    if (imported[id]) return imported[id];
-    if (pendingWork.has(id)) return pendingWork.get(id);
+  async function materialise(id, pose = null) {
+    const key = keyOf(id, pose);
+    touch(key);
+    if (imported[key]) return imported[key];
+    if (pendingWork.has(key)) return pendingWork.get(key);
     const source = sources[id];
     if (!source) return null;
 
@@ -1313,7 +1474,11 @@ async function main() {
         grid = voxeliseMesh(raw, { id, cells: 34 });
         drawn = fromTriangles(raw, { height: source.height });
       } else if (source.kind === 'gltf' || source.kind === 'glb') {
-        const raw = await loadMesh(source);
+        const wanted = pose ?? source.pose;
+        const { mesh: raw, clips } = await loadMesh(source, wanted);
+        // Discovered on the first read and kept, so the panel can offer the
+        // poses a model holds without opening the file again.
+        if (clips.length && !source.clips.length) source.clips = clips;
         grid = voxeliseMesh(raw, { id, cells: 34 });
         drawn = fromTriangles(raw, { height: source.height });
       } else {
@@ -1323,27 +1488,28 @@ async function main() {
       // sizes, so the manifest carries the height back. `fromTriangles` was
       // already given the same number.
       if (source.height) grid = atHeight(grid, source.height);
-      imported[id] = { ...grid, baseUnit: grid.unit, drawn };
-      return imported[id];
+      imported[key] = { ...grid, baseUnit: grid.unit, drawn };
+      return imported[key];
     })();
 
     // Cleared however it ends. Deleting only on success left a failed model's
     // rejected promise in the map forever: it could never be tried again, and
     // it held on to everything the attempt had allocated.
     work.finally(() => {
-      pendingWork.delete(id);
-      touch(id);
+      pendingWork.delete(key);
+      touch(key);
       forget();
     }).catch(() => {});
 
-    pendingWork.set(id, work);
+    pendingWork.set(key, work);
     return work;
   }
 
   /** Put a model on the canvas, in the middle of whatever is being looked at. */
   async function placeModel(id) {
+    const pose = sources[id]?.pose ? { ...sources[id].pose } : null;
     if (!recipes[id]) {
-      const grid = await materialise(id).catch((error) => {
+      const grid = await materialise(id, pose).catch((error) => {
         say(`could not read ${id}: ${error.message}`);
         return null;
       });
@@ -1351,7 +1517,7 @@ async function main() {
     }
     const framing = state.mode === 'roam' ? state.roaming : currentRoute().framing;
     const [cx, cz] = centreOf(framing);
-    layout.push({ model: id, at: [cx, 0, cz], rot: 0, from: 0 });
+    layout.push({ model: id, at: [cx, 0, cz], rot: 0, from: 0, ...(pose ? { pose } : {}) });
     rebuild();
     select(layout.length - 1);
     paintLibrary();
@@ -1579,6 +1745,91 @@ async function main() {
     el('v-pen').textContent = String(ink.width);
   });
 
+  // --- the script -----------------------------------------------------------
+  //
+  // The concept, and the reason the rest exists. Paste the narration; Trail
+  // reads every word against the library and says which of them it can build.
+  // It never places anything: finding is automatic because it is tedious, and
+  // placing is manual because it is the part that makes the video yours.
+
+  let lookup = new Map();
+  let asked = { objects: [], cast: [], gaps: [], words: 0 };
+
+  /**
+   * The dictionary, rebuilt whenever the library changes.
+   *
+   * Straight from the model names, plus the synonyms file, because model names
+   * are literal and scripts are not - measured at 8 words of a paragraph on
+   * names alone and 13 with synonyms.
+   */
+  async function buildDictionary() {
+    let synonyms = {};
+    try {
+      synonyms = (await loadJson('synonyms.json')).words ?? {};
+    } catch {
+      // Optional. Without it the dictionary is model names only, which works
+      // and resolves rather less.
+    }
+    lookup = buildLookup(libraryNames(), synonyms);
+    paintScript();
+  }
+
+  /** What the script asks for, and what the library can answer with. */
+  function paintScript() {
+    const text = el('script').value;
+    asked = resolve(text, lookup);
+
+    el('s-objects').textContent = asked.objects.length
+      ? `${asked.objects.length} of ${asked.words} words`
+      : '-';
+    el('s-cast').textContent = asked.cast.length || '-';
+    el('s-gaps').textContent = asked.gaps.length || '-';
+
+    // The tray, in the order the story introduces things rather than
+    // alphabetically: a script is read from the top and so is this.
+    const tray = el('tray');
+    tray.innerHTML = '';
+    thumbQueue = thumbQueue.filter((job) => job.canvas.isConnected !== false);
+    for (const found of asked.objects) {
+      const model = found.models[0];
+      const button = document.createElement('button');
+      button.title = `${found.word} - ${found.models.join(', ')}`;
+      const tile = document.createElement('canvas');
+      tile.width = THUMB;
+      tile.height = THUMB;
+      button.append(tile);
+      const label = document.createElement('span');
+      label.textContent = found.count > 1 ? `${found.word} x${found.count}` : found.word;
+      button.append(label);
+      button.addEventListener('click', () => { placeModel(model).then(paintScript); });
+      tray.append(button);
+      thumbQueue.push({ canvas: tile, id: model });
+    }
+    runThumbQueue();
+
+    // Offered, never assumed. The heuristic misses anyone who only ever opens
+    // a sentence, and reads a place as a person; both are visible right here.
+    el('castlist').textContent = asked.cast.length
+      ? asked.cast.map((c) => `${c.name} x${c.count}`).join(', ')
+      : '';
+
+    // Visible rather than silently dropped. A gap is a decision - draw it,
+    // reword the line, or let the camera look elsewhere - and a decision
+    // nobody is shown is a decision nobody makes.
+    el('gaplist').textContent = asked.gaps.length
+      ? asked.gaps.slice(0, 60).map((g) => g.word).join(', ')
+      : '';
+  }
+
+  el('script').addEventListener('input', () => {
+    // Pasting makes one step holding everything; splitting it into stages is
+    // what creates the rest, so the script is exactly the steps joined up and
+    // can never drift out of step with the structure.
+    if (route[0]) route[0].text = el('script').value;
+    paintScript();
+    autosave();
+  });
+
   // --- the library ----------------------------------------------------------
   // Everything that can be placed: the built-in recipes, and every model read
   // from a dropped file. A pack arrives as one file with hundreds inside, so
@@ -1606,7 +1857,9 @@ async function main() {
       canvasEl.getContext('2d').putImageData(cached, 0, 0);
       return true;
     }
-    const grid = recipes[id] ? grids[id] : await materialise(id).catch(() => null);
+    const grid = recipes[id]
+      ? grids[id]
+      : await materialise(id, sources[id]?.pose ?? null).catch(() => null);
     if (!grid) return false;
     // A model that is drawn as a mesh is previewed as one, so the picture in
     // the library is the geometry that will actually appear on the canvas
@@ -1708,7 +1961,7 @@ async function main() {
     const current = layout[state.selected].model;
     const at = listed.indexOf(current);
     const next = listed[((at < 0 ? 0 : at + by) % listed.length + listed.length) % listed.length];
-    if (!recipes[next] && !await materialise(next).catch(() => null)) return;
+    if (!recipes[next] && !await materialise(next, sources[next]?.pose ?? null).catch(() => null)) return;
     reposition(state.selected, { ...layout[state.selected], model: next });
     select(state.selected);
     paintLibrary();
@@ -1897,6 +2150,9 @@ async function main() {
       rebuild();
     }
     if (restore()) say('picked up where you left off');
+    // Built once the library is complete, because the dictionary is the
+    // library's own names and a half-loaded library is a half-built dictionary.
+    await buildDictionary();
     paintPanel();
   });
 

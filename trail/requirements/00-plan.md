@@ -8,13 +8,17 @@ whole thing. Cheap enough to redo, consistent enough to be a visual identity, re
 that a retake is free, and containing no artificial intelligence of any kind at runtime.
 
 **The app is built, running, and has a library of everything on disk.** The renderer, the
-camera, the route, the weather, the picking, the canvas file and the pen all exist, with 378
+camera, the route, the weather, the picking, the canvas file and the pen all exist, with 402
 tests behind them, and 220 models load when the page opens - four recipes and 216 meshes read
 as OBJ, glTF or `.glb`. Nothing is held back for licence, nothing in it is off-subject, and
 everything in it is a placeable object rather than a part of one.
 
-**What is missing is the script panel, and only the script panel.** It is the app's actual
-concept, and there is no longer a content reason to build anything else first.
+**The script panel exists.** Paste a narration and Trail says which of its words it can
+build, in the order the story introduces them, with the people it named offered as cast and
+every unresolved word visible as a gap. It places nothing: finding is automatic because it is
+tedious, placing is manual because it is what makes the video yours.
+
+**What is left before a first video is a canvas built from a real script, and watching it.**
 
 The question this plan was framed around, whether a camera tour of a static voxel world holds
 attention, has had a soft yes on a first look and has not been tested properly on a real
@@ -158,7 +162,7 @@ value.
 
 | Question | Blocks | Notes |
 | --- | --- | --- |
-| How much of a real script does a CC0-only library resolve? | Stage 7 | The number that decides whether the licence rule is comfortable or painful, and the real cost of it. Not knowable until a real narration meets a real library. Measure it rather than predicting it |
+| ~~How much of a real script does a CC0-only library resolve?~~ | Answered | **62 per cent of the placeable nouns**, measured on a written paragraph against the library's own names. The licence rule is not what bites: model names are literal and scripts are not, so the lookup needs a synonym layer. Three words were abstract and five genuinely absent |
 | How long a script can a canvas hold? | Stage 7 | **Nothing caps a video's duration.** Holds are arbitrary and the route has no length limit. The ceiling is spatial: 400,000 cubes, 60 to 100 objects, 120 by 120 units. So the constraint is how many distinct places a narration visits, not how long it runs. At roughly 30 seconds a step, twenty minutes is about 40 steps introducing a couple of objects each, which lands at the edge of the budget - so one canvas probably carries 15 to 20 minutes, and a longer story uses a second canvas with a hard cut. Untested. Too crowded and the reveal is mush; too sparse and the flights are long and empty |
 | What do abstract nouns look like? | Stage 4 | "Reputation", "a rumour", "the internet" have no object. Options are a neutral abstract form, a symbol, or simply not staging them and letting the camera hold on something else. It will come up in the first script |
 | How is a crowd handled? | Stage 4 | Twenty figures is eighty thousand cubes. A crowd probably needs a coarser figure at a larger cube edge, which the format allows but nothing currently authors |
