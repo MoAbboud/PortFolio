@@ -628,6 +628,12 @@ async function main() {
    * cubes stay uploaded so the two can be compared with one key.
    */
   const meshCache = new Map();
+  // A drawn preview, kept so reopening the library is instant. Declared here
+  // rather than beside the panel that fills it, so that the code which releases
+  // a model can reach every cache it remains in - a function reading a
+  // constant declared four hundred lines later is how this page has broken
+  // three times.
+  const thumbs = new Map();
 
   function remesh() {
     // Only what is on the canvas, and only once per model. Meshing every grid
@@ -1238,8 +1244,55 @@ async function main() {
    * fetched and voxelised, which is why this is asynchronous: doing it for all
    * of them at startup would read tens of megabytes for models never used.
    */
+  /**
+   * How many converted models to hold on to.
+   *
+   * Browsing the library converts everything it draws a preview of, and a
+   * converted model is its geometry: measured at about half a megabyte each,
+   * so the whole library at once is a hundred megabytes that is never given
+   * back. Objects on the canvas are always kept - dropping one of those would
+   * empty the scene - so this only ever releases models nobody is using.
+   */
+  const KEEP_CONVERTED = 48;
+  const usedAt = new Map();
+  let useClock = 0;
+  const touch = (id) => usedAt.set(id, ++useClock);
+
+  function forget() {
+    const held = Object.keys(imported);
+    if (held.length <= KEEP_CONVERTED) return 0;
+    const onCanvas = new Set(layout.map((p) => p.model));
+    const spare = held
+      .filter((id) => !onCanvas.has(id))
+      .sort((a, b) => (usedAt.get(a) ?? 0) - (usedAt.get(b) ?? 0));
+
+    let over = held.length - KEEP_CONVERTED;
+    let gone = 0;
+    for (const id of spare) {
+      if (over <= 0) break;
+      delete imported[id];
+      usedAt.delete(id);
+      // Both caches are keyed by model, and a mesh built from a grid that is
+      // no longer held would be the largest thing left pointing at nothing.
+      meshCache.delete(id);
+      thumbs.delete(id);
+      over--;
+      gone++;
+    }
+    return gone;
+  }
+
+  // What is being held, for the readout and for a test. A cache that quietly
+  // stops releasing looks exactly like one that works.
+  window.__trail.held = () => ({
+    converted: Object.keys(imported).length,
+    previews: thumbs.size,
+    meshes: meshCache.size,
+  });
+
   const pendingWork = new Map();
   async function materialise(id) {
+    touch(id);
     if (imported[id]) return imported[id];
     if (pendingWork.has(id)) return pendingWork.get(id);
     const source = sources[id];
@@ -1271,9 +1324,17 @@ async function main() {
       // already given the same number.
       if (source.height) grid = atHeight(grid, source.height);
       imported[id] = { ...grid, baseUnit: grid.unit, drawn };
-      pendingWork.delete(id);
       return imported[id];
     })();
+
+    // Cleared however it ends. Deleting only on success left a failed model's
+    // rejected promise in the map forever: it could never be tried again, and
+    // it held on to everything the attempt had allocated.
+    work.finally(() => {
+      pendingWork.delete(id);
+      touch(id);
+      forget();
+    }).catch(() => {});
 
     pendingWork.set(id, work);
     return work;
@@ -1534,8 +1595,8 @@ async function main() {
 
   // Drawing a preview means converting the model, which is the expensive part.
   // Both are cached, and the tiles fill in a few at a time so opening the panel
-  // never stutters.
-  const thumbs = new Map();
+  // never stutters. `thumbs` itself is declared with the other caches, because
+  // releasing a model has to clear all of them together.
   let thumbQueue = [];
   let thumbRunning = false;
 

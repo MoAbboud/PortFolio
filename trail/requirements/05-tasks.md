@@ -198,6 +198,18 @@ this is authoring rather than the skeletal animation the not-doing list rules ou
 - [x] **The character's two materials are tint slots**, so one model is a whole cast. The
       first tintable model that is not a hand-authored voxel recipe
 - [x] `npm run clips` lists every pose in every rigged model, with lengths and heights
+- [x] **Converted models are released.** Browsing the library retained 103 MB and never
+      gave any back; capped at 48, never releasing anything on the canvas, it holds 27 MB
+- [x] A conversion that fails no longer keeps its rejected promise forever, which had
+      made a failed model impossible to retry
+- [x] The GPU side checked rather than assumed: every upload deletes its old buffers
+- [ ] **Facial expressions are not possible with these models.** Neither character has a
+      morph target or a face bone, and the atlas is flat colour patches, so there is no
+      face to move. Measured: at the route's framings a head is 12 to 53 px and an eye 2
+      to 7 px, so it would not read without deliberate 3 to 4 metre close-ups
+- [ ] **Attaching a model to a named joint** is the way in if it is ever wanted, and is
+      worth more for props: each character file carries ten weapons as separate meshes,
+      including a guitar
 - [x] **A model is finished according to how fine its own triangles are.** Measured: the
       shimmer was moving a character's vertices 2.1x the width of their own triangles,
       sliding neighbouring faces through each other, while a car's moved 0.1x and looked

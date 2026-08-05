@@ -301,6 +301,21 @@ test('the page starts, loads its models, and draws', async () => {
   swatch.listeners.get('input')?.[0]?.();
   assert.deepEqual(stub.failures, [], 'changing a colour reported a failure');
 
+  // Browsing converts every model it previews, and a converted model is its
+  // geometry - about half a megabyte each, so the whole library at once was a
+  // hundred megabytes that was never given back. Page through enough of it to
+  // go past the cap and check that something was actually released.
+  for (let turn = 0; turn < 4; turn++) {
+    stub.allowFrames(80);
+    stub.element('b-next').listeners.get('click')?.[0]?.();
+    for (let i = 0; i < 40; i++) await new Promise((r) => setTimeout(r, 0));
+  }
+  const held = stub.win.__trail.held();
+  assert.ok(held.converted <= 48,
+    `${held.converted} converted models are being held and nothing is released`);
+  assert.ok(held.previews <= 48 + 60,
+    `${held.previews} previews are being held`);
+
   // The library is meant to be there when the page opens, not dragged in.
   const manifest = JSON.parse(
     readFileSync(new URL('../models/index.json', import.meta.url), 'utf8')
