@@ -20,7 +20,8 @@ earlier ones, and the context file is the only place that says what they replace
 
     Set-Location "C:\Users\Absol\OneDrive\Documents\GitHub\PortFol\trail"
     npx --yes serve .      # then open the address it prints
-    npm test               # 342 tests, about five seconds
+    npm test               # 378 tests, about five seconds
+    npm run clips          # the poses every rigged model can be put into
 
 Four things worth knowing before editing:
 
@@ -29,10 +30,11 @@ through in a browser while a screen recorder points at it. Machine learning appe
 once, offline, in a Colab notebook that prepares the shape library. Nothing is learned,
 inferred or generated while the app is running.
 
-**Coarse cubes are the construction, not the look.** Objects are blocked out as chunky voxel
-solids and drawn as one smooth surface, with occlusion baked into the creases and a soft
-shadow underneath. The target is an illustration, not a voxel game. This replaced the original
-"field of cubes" identity once it was seen on a screen.
+**Imported models are drawn as the art they are, not as cubes.** A model that arrives as a
+mesh - which is all 216 of them - keeps the geometry its artist drew. Only the four
+hand-authored recipes are still built from voxel solids, because tint slots and sway are
+per-cube features and the figure needs both. Voxels were chosen when shapes were going to be
+generated; the library is real low-poly art now, and voxelising it only destroyed it.
 
 **Nothing morphs.** An earlier design had cubes flowing from one shape into another. It was
 cancelled. The world is built once and the story is told by moving the camera. If a proposal

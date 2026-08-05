@@ -81,6 +81,23 @@ test worth trusting.
       first time it is placed. Converting 363 up front would cost seconds for nothing
 - [x] A library of previews in the panel, with a filter, showing what can be placed and what
       already is. It says when it is showing only part of a long list
+- [x] **Imported models are drawn as the mesh their artist made**, not voxelised. One new
+      function, `fromTriangles`, returning exactly what `surfaceNets` returns, so the renderer,
+      ghosting, weather, the route, shadows and the canvas file are all untouched
+- [x] Occlusion baked from a coarse occupancy grid built for the purpose. Without it the
+      renderer's crease term does nothing and every model is lit flat
+- [x] **Normals welded by position, and the shimmer seed hashed from position.** Vertices are
+      kept per face so an edge stays an edge, which means a corner exists once per face
+      touching it - and the shimmer moves a vertex along its normal, so the copies walked
+      apart and tore visible holes in every model
+- [x] `preview` draws real geometry with a depth buffer, so the library shows what the canvas
+      will show
+- [x] The opening arrangement uses real pack models for the house and the car. It was four
+      voxel recipes, so the app opened showing the look that had just been rejected
+- [ ] **There is no tree in any of the eleven packs.** The recipe tree is the only one, and
+      the only model whose canopy sways. A CC0 nature pack is the answer if trees matter
+- [ ] The `house` and `car` recipes are no longer placed by default and are candidates for
+      retirement. `person` stays: it is the only tintable model and the only one that moves
 - [x] `lib/thumb.js` draws a model as isometric pixels. Pure, so the same code makes contact
       sheets in Node and previews in the panel, and both are tested without a browser
 - [x] **Previews are fitted and centred on the voxels drawn, not on the grid's bounding box.**
@@ -164,6 +181,42 @@ test worth trusting.
       the OBJs carry `vt` coordinates. Needs a PNG decoder (the inverse of the writer already
       in `tools/sheet.js`), `vt` parsing in `readObj`, and sampling per voxel. About 60 models
 - [x] Up axis is assumed to be Y. Held for all 317 meshes across eleven packs
+
+### 2g - Posing a rigged character
+
+A pose is chosen when a model is imported and baked into its vertices. Nothing is played, so
+this is authoring rather than the skeletal animation the not-doing list rules out.
+
+- [x] Read `skins`, joints, weights and inverse bind matrices
+- [x] Sample a clip at a moment: linear for translation and scale, spherical for rotation,
+      held at both ends so a time past the end gives the last frame
+- [x] Linear blend skinning on the processor, once, at import. 10 to 40 ms a pose
+- [x] A skinned mesh's own node transform is ignored, as the specification requires
+- [x] Weights normalised when an exporter has not made them sum to one
+- [x] **Each pose is a library entry**, named in `models/index.json`, so placing one is
+      placing a model and `[` and `]` step between poses in place
+- [x] **The character's two materials are tint slots**, so one model is a whole cast. The
+      first tintable model that is not a hand-authored voxel recipe
+- [x] `npm run clips` lists every pose in every rigged model, with lengths and heights
+- [x] **A model is finished according to how fine its own triangles are.** Measured: the
+      shimmer was moving a character's vertices 2.1x the width of their own triangles,
+      sliding neighbouring faces through each other, while a car's moved 0.1x and looked
+      right. Flat shading has the same cause: it suits a car and shatters a character
+- [x] `finishFor` ramps between 0.045 and 0.012 units, includes the placement's scale,
+      and scales the shimmer rather than switching it off. Verified across the library:
+      no model can be torn open, 25 drawn smooth, 192 left faceted
+- [x] **A colour per tint slot in the object panel.** Slots, saving and drawing all
+      existed already; the only way to set one had been editing the page source
+- [x] `scan.js` keeps hand-written poses across a rescan
+- [x] 13 tests, against a rig built in the test rather than a downloaded pack
+- [ ] **28 rigged models are in the library and only one is posed so far.** Matt, Lis, Sam and
+      Shaun carry 20 poses each - `Idle`, `Walk`, `Wave`, `Yes`, `No`, `Punch`, `Death` - and
+      the twelve animals carry 13 each
+- [ ] The named characters cannot be tinted: their colour is in `Zombie_Atlas.png`, so they
+      would come out one flat guessed colour each. Texture sampling is worth more because of it
+- [ ] **`scan.js` prefers OBJ over glTF, and the OBJ export carries no rig**, so the rigged
+      Matt is deduped out of the library while the static one stays. A pose entry names its
+      file directly and is unaffected, but the preference is worth revisiting
 
 ### 2e - glTF, which is what the packs ship now
 

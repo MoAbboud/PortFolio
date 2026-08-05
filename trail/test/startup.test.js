@@ -86,7 +86,7 @@ const fake2d = () => new Proxy({}, {
  * Constants are ALL_CAPS and get a distinct number each; anything else is a
  * method and does nothing. The two calls whose answers matter are answered.
  */
-function fakeGl() {
+function fakeGl(calls = []) {
   const constants = new Map();
   const target = {};
   const gl = new Proxy(target, {
@@ -97,7 +97,10 @@ function fakeGl() {
         if (!constants.has(name)) constants.set(name, constants.size + 1);
         return constants.get(name);
       }
-      return () => ({});
+      // Recorded, because a stub that only says yes cannot tell which of two
+      // paths the page took. Drawing cubes and drawing a surface are different
+      // calls, and the difference is the whole look of the app.
+      return (...args) => { calls.push([name, ...args]); return {}; };
     },
   });
   target.getShaderParameter = () => true;
@@ -231,6 +234,10 @@ function stubBrowser({ frames = 3, ids = new Set() } = {}) {
 
 const page = () => readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 
+// The models the opening arrangement names, read out of the page itself so the
+// test cannot drift from what actually ships.
+const PLACED = [...page().matchAll(/\{ model: '([^']+)'/g)].map((m) => m[1]);
+
 /** Pull the page's module out of index.html so Node can evaluate it. */
 function extractModule() {
   const match = /<script type="module">([\s\S]*?)<\/script>/.exec(page());
@@ -269,6 +276,31 @@ test('the page starts, loads its models, and draws', async () => {
   assert.ok(stub.drew('putImageData') > 5,
     `the library drew ${stub.drew('putImageData')} previews; it would open empty`);
 
+  // Placing a model that has tint slots must offer a colour for each of them.
+  // The slots, the canvas file and the renderer all supported tinting long
+  // before there was any way to do it, so this is the part that was missing.
+  // The library shows a page at a time and the figure is well past the first,
+  // so it is searched for the way anyone would.
+  const filter = stub.element('filter');
+  filter.value = 'person';
+  filter.listeners.get('input')?.[0]?.();
+  for (let i = 0; i < 20; i++) await new Promise((r) => setTimeout(r, 0));
+
+  const tile = stub.element('library').children.find((c) => c.title === 'person');
+  assert.ok(tile, 'searching the library for "person" did not find the figure');
+  tile.listeners.get('click')?.[0]?.();
+  for (let i = 0; i < 40; i++) await new Promise((r) => setTimeout(r, 0));
+
+  const pickers = stub.element('tints').children;
+  assert.ok(pickers.length >= 2,
+    `a figure has tint slots and the panel offered ${pickers.length} colours`);
+  const swatch = pickers[0].children.find((c) => c.type === 'color');
+  assert.ok(swatch, 'a tint row has no colour picker in it');
+  // And changing one must be accepted rather than throwing in a listener.
+  swatch.value = '#123456';
+  swatch.listeners.get('input')?.[0]?.();
+  assert.deepEqual(stub.failures, [], 'changing a colour reported a failure');
+
   // The library is meant to be there when the page opens, not dragged in.
   const manifest = JSON.parse(
     readFileSync(new URL('../models/index.json', import.meta.url), 'utf8')
@@ -277,6 +309,20 @@ test('the page starts, loads its models, and draws', async () => {
   for (const name of manifest.recipes) {
     assert.ok(stub.requested.includes(`models/${name}.json`), `${name} was never fetched`);
   }
+  // The opening arrangement may name models from a pack, and those are only
+  // listed until something asks for them. If nothing reads them the scene
+  // silently drops every one and opens emptier than it should.
+  const fromPacks = manifest.meshes.filter((m) => PLACED.includes(m.name));
+  assert.ok(fromPacks.length, 'the opening arrangement names no pack models at all');
+  // Decoded, because a pack folder has spaces in it and `new URL` escapes them
+  // on the way out. Comparing the raw path against the escaped one fails for a
+  // reason that has nothing to do with what is being tested.
+  const asked = stub.requested.map((path) => decodeURIComponent(path));
+  for (const mesh of fromPacks) {
+    assert.ok(asked.includes(`models/${mesh.file}`),
+      `${mesh.name} is in the opening arrangement and was never read, so it was dropped`);
+  }
+
   for (const pack of manifest.packs) {
     assert.ok(stub.requested.includes(`models/${pack.file}`),
       `${pack.file} was never fetched, so the library did not load on open`);

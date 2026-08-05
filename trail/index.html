@@ -77,6 +77,14 @@
   .ctl { margin: 9px 0; }
   .ctl .row { margin-bottom: 3px; }
   .ctl .val { color: #7fb0e8; font-variant-numeric: tabular-nums; }
+  /* A tint slot. Small, because a row of them belongs beside its label rather
+     than filling the panel the way a slider does. */
+  input[type=color] {
+    width: 46px; height: 20px; padding: 0; background: none; cursor: pointer;
+    border: 1px solid rgba(255,255,255,.2); border-radius: 3px;
+  }
+  input[type=color]::-webkit-color-swatch-wrapper { padding: 2px; }
+  input[type=color]::-webkit-color-swatch { border: none; border-radius: 2px; }
   input[type=range] {
     -webkit-appearance: none; appearance: none; width: 100%; height: 15px;
     background: transparent; cursor: pointer; margin: 0; display: block;
@@ -280,6 +288,9 @@
         <div class="row"><span class="dim">appears at step</span><span class="val" id="v-from">-</span></div>
         <input type="range" id="r-from" min="1" max="3" step="1" value="1" disabled>
       </div>
+      <!-- One row per tint slot the selected model offers, built when it is
+           selected: a model decides how many colours it has, not the markup. -->
+      <div id="tints"></div>
       <button class="btn" id="b-remove">remove from canvas</button>
     </div>
   </details>
@@ -418,7 +429,7 @@ import { voxelise, hollow, anchor as reanchor } from './lib/voxel.js';
 import {
   assemble, assembleMeshes, contactShadows, bounds, place, objectBoxes,
 } from './lib/scene.js';
-import { surfaceNets } from './lib/mesh.js';
+import { surfaceNets, fromTriangles } from './lib/mesh.js';
 import { toNdc, insideFrame, rayThrough, pick, groundPoint, dragTo, rotateBy } from './lib/pick.js';
 import { viewProjection, drift, routeAt, routeDuration } from './lib/camera.js';
 import { orbit, zoom, panScreen, walk, rise, fit, tidy, centreOf } from './lib/orbit.js';
@@ -428,7 +439,7 @@ import { scarMap } from './lib/scars.js';
 import { multiply } from './lib/mat4.js';
 import { serialise, parse, isRefusal } from './lib/canvas.js';
 import * as pen from './lib/pen.js';
-import { thumbnail } from './lib/thumb.js';
+import { thumbnail, preview } from './lib/thumb.js';
 import { readVox, toGrid, isBadVox } from './lib/vox.js';
 import { readObj, readMtl, voxeliseMesh, atHeight } from './lib/obj.js';
 import { readGltf, readGlb, externalBuffers } from './lib/gltf.js';
@@ -443,8 +454,11 @@ window.__trail.started = true;
 // `from` is the step an object solidifies at. Before it, the object is a ghost,
 // which is how the canvas reveals itself rather than being handed over at once.
 const PLACEMENTS = [
-  { model: 'house', at: [-6, 0, -4], rot: 14, from: 0 },
-  { model: 'car',   at: [2.4, 0, 3.2], rot: -24, from: 1 },
+  // Real models from a CC0 pack, drawn as the art they are. The figures below
+  // are still the hand-authored recipe, because it is the only model that can
+  // be tinted per character and the only one that moves.
+  { model: 'house1', at: [-6, 0, -4], rot: 14, from: 0 },
+  { model: 'normal-car1', at: [2.4, 0, 3.2], rot: -24, from: 1 },
   // One figure recipe serves every character: the tints are who they are, and
   // the label is what the viewer reads.
   { model: 'person', at: [0.6, 0, 1.4], rot: 200, from: 1, label: 'Marla',
@@ -543,16 +557,20 @@ async function loadBytes(path) {
  * puts every model and every buffer in one folder together.
  */
 async function loadMesh(source) {
+  // A pose and a set of tint slots travel with the model, so a rigged
+  // character can be read once per pose and come out as an ordinary,
+  // recolourable, entirely static object.
+  const how = { name: source.file, pose: source.pose ?? null, slots: source.slots ?? null };
   if (source.kind === 'glb') {
     const { json, binary } = readGlb(await loadBytes(source.file));
-    return readGltf(json, [binary], { name: source.file });
+    return readGltf(json, [binary], how);
   }
   const json = await loadJson(source.file);
   const folder = source.file.slice(0, source.file.lastIndexOf('/') + 1);
   const buffers = await Promise.all(externalBuffers(json).map(
     (uri) => (uri ? loadBytes(folder + uri) : null)
   ));
-  return readGltf(json, buffers, { name: source.file });
+  return readGltf(json, buffers, how);
 }
 
 async function main() {
@@ -561,7 +579,10 @@ async function main() {
   // What the library holds is a manifest, not a list in the code, so adding a
   // model is a file and a line of data.
   const manifest = await loadJson('index.json');
-  const wanted = [...new Set([...manifest.recipes, ...PLACEMENTS.map((p) => p.model)])];
+  // Only recipes are fetched as recipes. The arrangement may also name models
+  // from a pack, and those are listed by `loadPacks` and read when they are
+  // first wanted - asking for one as a `.json` here would simply 404.
+  const wanted = [...new Set(manifest.recipes)];
   const recipes = Object.fromEntries(
     await Promise.all(wanted.map(async (n) => [n, await loadRecipe(n)]))
   );
@@ -583,7 +604,14 @@ async function main() {
 
   // A working copy, because objects get moved around and the original list is
   // only the starting arrangement.
-  let layout = PLACEMENTS.map((p) => ({ ...p, at: [...p.at] }));
+  // Only the parts of the arrangement that can be built right now. Models from
+  // a pack are listed after the first frame, and the rest of the arrangement
+  // arrives with them - see `loadPacks` below. Starting with the whole thing
+  // would send the first rebuild down its "this model is missing" path before
+  // the page has finished setting itself up.
+  let layout = PLACEMENTS
+    .filter((p) => manifest.recipes.includes(p.model))
+    .map((p) => ({ ...p, at: [...p.at] }));
   let route = ROUTE.map((s) => ({ ...s, framing: { ...s.framing } }));
 
   let surface = 'mesh';     // 'cubes' | 'mesh'
@@ -610,13 +638,22 @@ async function main() {
       if (meshes[p.model]) continue;
       let built = meshCache.get(p.model);
       if (!built) {
-        built = surfaceNets(grids[p.model], { roundness });
+        // A model that arrived as a mesh is drawn as the mesh it is. Only the
+        // hand-authored recipes, which are described as solids and carry tint
+        // slots and pivots, still go round by way of cubes.
+        built = imported[p.model]?.drawn ?? surfaceNets(grids[p.model], { roundness });
         meshCache.set(p.model, built);
       }
       meshes[p.model] = built;
     }
     const merged = assembleMeshes(
-      layout.map((p) => ({ mesh: meshes[p.model], grid: grids[p.model], ...p }))
+      // The palette travels with whichever geometry was used, so the two paths
+      // cannot disagree about which colour a face is.
+      layout.map((p) => ({
+        mesh: meshes[p.model],
+        grid: meshes[p.model]?.palette ? { palette: meshes[p.model].palette } : grids[p.model],
+        ...p,
+      }))
     );
     renderer.uploadMesh(merged);
     el('s-tris').textContent = merged.triangles.toLocaleString();
@@ -813,10 +850,62 @@ async function main() {
   canvas.addEventListener('pointerup', endDrag);
   canvas.addEventListener('pointercancel', endDrag);
 
+  /**
+   * The colours a model leaves for someone else to fill in.
+   *
+   * A slot is a palette entry an artist marked as "decide this per placement".
+   * The figure has three; the rigged character has two. Anything with none is
+   * simply the colour it was drawn, and gets no controls.
+   */
+  function slotsOf(model) {
+    const palette = imported[model]?.drawn?.palette ?? grids[model]?.palette ?? [];
+    const found = new Map();
+    for (const entry of palette) {
+      // The model's own colour is the default, so an untinted placement looks
+      // like the model rather than going grey.
+      if (entry.slot && !found.has(entry.slot)) found.set(entry.slot, entry.hex ?? '#c8c8c8');
+    }
+    return found;
+  }
+
+  /** A colour picker per slot, rebuilt whenever the selection changes. */
+  function paintTints() {
+    const host = el('tints');
+    host.innerHTML = '';
+    if (state.selected < 0) return;
+    const placement = layout[state.selected];
+    const slots = slotsOf(placement.model);
+    if (!slots.size) return;
+
+    for (const [slot, fallback] of slots) {
+      const row = document.createElement('div');
+      row.className = 'row';
+      const label = document.createElement('span');
+      label.className = 'dim';
+      label.textContent = slot;
+      const picker = document.createElement('input');
+      picker.type = 'color';
+      picker.value = placement.tints?.[slot] ?? fallback;
+      picker.addEventListener('input', () => {
+        const object = layout[state.selected];
+        if (!object) return;
+        object.tints = { ...object.tints, [slot]: picker.value };
+        // Colour lives in the buffers the scene was assembled into, so the
+        // field has to be put together again. Which one depends on how it is
+        // being drawn, the same as moving an object does.
+        if (surface === 'mesh') remesh(); else rebuild();
+        autosave();
+      });
+      row.append(label, picker);
+      host.append(row);
+    }
+  }
+
   function select(index) {
     state.selected = index;
     el('s-sel').textContent = index < 0 ? 'nothing' : layout[index].model;
     paintObject();
+    paintTints();
     if (index >= 0) say(`${layout[index].model} selected - drag to move it`);
   }
   // Nothing is selected to begin with, and the panel says so in its markup.
@@ -1068,6 +1157,22 @@ async function main() {
       sources[mesh.name] = { kind, file: mesh.file, height: mesh.height };
       added++;
     }
+    // A rigged character is one file holding dozens of poses. Each is offered
+    // as its own model, so choosing one is choosing from the library rather
+    // than learning a new control, and `[` and `]` step between them in place.
+    for (const pose of manifest.poses ?? []) {
+      if (sources[pose.name] || recipes[pose.name]) continue;
+      if (pose.licence !== 'CC0') { held++; continue; }
+      sources[pose.name] = {
+        kind: pose.file.toLowerCase().endsWith('.glb') ? 'glb' : 'gltf',
+        file: pose.file,
+        height: pose.height,
+        pose: { clip: pose.clip, time: pose.time },
+        slots: pose.slots,
+      };
+      added++;
+    }
+
     if (added) paintLibrary();
     if (held) say(`${held} models held back: their licence is not recorded as CC0`);
     return added;
@@ -1142,20 +1247,30 @@ async function main() {
 
     const work = (async () => {
       let grid;
+      // The model as its artist drew it, kept for anything that came in as a
+      // mesh. This is what actually gets drawn; the grid beside it is only
+      // still built because the object's box, its shadow and the extent of the
+      // world are all measured from the cube field.
+      let drawn = null;
       if (source.kind === 'obj') {
         const objText = await loadText(source.file);
         if (!objText) throw new Error(`could not read ${source.file}`);
         const mtlText = await loadText(source.file.replace(/\.obj$/i, '.mtl'));
-        grid = voxeliseMesh(readObj(objText, readMtl(mtlText ?? '', { model: id })), { id, cells: 34 });
+        const raw = readObj(objText, readMtl(mtlText ?? '', { model: id }));
+        grid = voxeliseMesh(raw, { id, cells: 34 });
+        drawn = fromTriangles(raw, { height: source.height });
       } else if (source.kind === 'gltf' || source.kind === 'glb') {
-        grid = voxeliseMesh(await loadMesh(source), { id, cells: 34 });
+        const raw = await loadMesh(source);
+        grid = voxeliseMesh(raw, { id, cells: 34 });
+        drawn = fromTriangles(raw, { height: source.height });
       } else {
         grid = toGrid(source.vox, { model: source.model, unit: 0.12, anchor: 'base', id });
       }
       // A pack that normalised its models before exporting has lost their real
-      // sizes, so the manifest carries the height back.
+      // sizes, so the manifest carries the height back. `fromTriangles` was
+      // already given the same number.
       if (source.height) grid = atHeight(grid, source.height);
-      imported[id] = { ...grid, baseUnit: grid.unit };
+      imported[id] = { ...grid, baseUnit: grid.unit, drawn };
       pendingWork.delete(id);
       return imported[id];
     })();
@@ -1432,7 +1547,10 @@ async function main() {
     }
     const grid = recipes[id] ? grids[id] : await materialise(id).catch(() => null);
     if (!grid) return false;
-    const pixels = thumbnail(grid, THUMB);
+    // A model that is drawn as a mesh is previewed as one, so the picture in
+    // the library is the geometry that will actually appear on the canvas
+    // rather than a blocky stand-in for it.
+    const pixels = grid.drawn ? preview(grid.drawn, THUMB) : thumbnail(grid, THUMB);
     const image = new ImageData(pixels, THUMB, THUMB);
     thumbs.set(id, image);
     canvasEl.getContext('2d').putImageData(image, 0, 0);
@@ -1707,6 +1825,16 @@ async function main() {
   // library exists means the canvas refers to models that are not there yet.
   requestAnimationFrame(async () => {
     await loadPacks();
+    // The starting arrangement may name models from a pack, which are only
+    // listed until something asks for them. Read them now and build again, or
+    // the opening scene would drop every one of them as "not in the library".
+    const fromPacks = [...new Set(PLACEMENTS.map((p) => p.model))]
+      .filter((name) => !recipes[name] && sources[name]);
+    if (fromPacks.length) {
+      await Promise.all(fromPacks.map((name) => materialise(name).catch(() => null)));
+      layout = PLACEMENTS.map((p) => ({ ...p, at: [...p.at] }));
+      rebuild();
+    }
     if (restore()) say('picked up where you left off');
     paintPanel();
   });

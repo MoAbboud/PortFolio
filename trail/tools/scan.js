@@ -196,6 +196,10 @@ const manifest = {
   downloads,
   recipes: recipes.sort(),
   meshes,
+  // Poses are written by hand, never discovered. A rigged character is one
+  // file holding dozens of them, so each is a library entry naming the clip
+  // and the moment it is frozen at - which is data, exactly like a model.
+  poses: previous.poses ?? [],
   packs: packs.map((file) => {
     const before = known.get(file) ?? {};
     // A names file beside the pack, if one exists, under the pack's own name.
@@ -232,6 +236,10 @@ for (const [licence, n] of Object.entries(byLicence)) {
 // than what is on disk is the thing that hid two whole packs for a fortnight.
 if (skipped) {
   console.log(`  held    ${String(skipped).padStart(4)}  excluded by pattern, see "exclude" in the manifest`);
+}
+
+if (manifest.poses.length) {
+  console.log(`  poses   ${String(manifest.poses.length).padStart(4)}  kept from the manifest`);
 }
 
 const unlicensed = [...manifest.packs, ...meshes].filter((p) => p.licence.startsWith('UNKNOWN'));

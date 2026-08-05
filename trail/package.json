@@ -8,6 +8,7 @@
     "test": "node --test",
     "serve": "npx serve .",
     "inspect": "node tools/inspect.js",
-    "scan": "node tools/scan.js"
+    "scan": "node tools/scan.js",
+    "clips": "node tools/clips.js"
   }
 }

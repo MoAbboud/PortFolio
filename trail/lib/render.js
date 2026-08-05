@@ -32,6 +32,7 @@ out float vPicked;
 out float vSolid;
 out float vAo;
 out vec3 vWorld;
+out vec2 vFinish;
 
 // How present this cube is. Unvisited parts of the canvas are ghosts, they
 // solidify as the camera reaches them, and they fade back out once the story
@@ -64,6 +65,9 @@ void main() {
 
   vColour = aColour;
   vAo = 1.0;                     // a cube has no crease of its own
+  // A cube is as coarse as a thing gets: its facets are the whole point, and
+  // the shimmer was sized for it in the first place.
+  vFinish = vec2(0.0, 1.0);
   vPicked = abs(aObject - uSelected) < 0.5 ? 1.0 : 0.0;
   vNormal = vec3(aNormal.x, aNormal.y * uFlip, aNormal.z);
   vec4 clip = uViewProj * vec4(p, 1.0);
@@ -82,6 +86,7 @@ in float vPicked;
 in float vSolid;
 in float vAo;
 in vec3 vWorld;
+in vec2 vFinish;
 
 uniform vec3 uSun;
 uniform vec3 uSky;
@@ -101,7 +106,11 @@ void main() {
   vec3 faceted = normalize(cross(dFdx(vWorld), dFdy(vWorld)));
   vec3 averaged = normalize(vNormal);
   faceted *= sign(dot(faceted, averaged));   // derivatives do not know winding
-  vec3 n = normalize(mix(faceted, averaged, uSmooth));
+  // Faceting is right for a shape whose facets are meant to be seen. On a mesh
+  // whose triangles are smaller than the light changes across them it only
+  // shatters the surface, so a fine model asks for its own smoothing and the
+  // dial can still force more.
+  vec3 n = normalize(mix(faceted, averaged, max(uSmooth, vFinish.x)));
 
   // Wrapped lighting rather than a hard terminator. A flat cut between lit and
   // unlit is what makes low-poly read as a rendering; softening it and letting
@@ -145,6 +154,10 @@ in float aUntil;
 in float aAo;
 in vec3 aPivot;
 in vec4 aMotion;   // kind, amplitude in radians, phase, axis
+// How this model wants to be finished, decided from how fine its own triangles
+// are: x smooths its shading, y scales the ambient shimmer down. A chunky car
+// wants neither; a character built from millimetre triangles wants both.
+in vec2 aFinish;
 
 uniform mat4 uViewProj;
 uniform float uTime;
@@ -185,6 +198,7 @@ out float vPicked;
 out float vSolid;
 out float vAo;
 out vec3 vWorld;
+out vec2 vFinish;
 
 float solidity(float step, float t, float from, float until) {
   if (step < from - 0.5) return 0.0;
@@ -200,7 +214,10 @@ void main() {
   // A surface has to move along its own normal rather than per vertex, or the
   // shimmer would tear the mesh open. A ghost is pulled slightly inward, which
   // reads as not-yet-arrived the same way a smaller cube did.
-  float breathe = sin(uTime * 1.1 + aSeed * 6.2831853) * uShimmer * 3.0;
+  // Scaled to the model. Displacing a vertex further than its own triangles are
+  // wide slides neighbouring faces through each other, and a fine mesh comes
+  // apart into something that is not the shape any more.
+  float breathe = sin(uTime * 1.1 + aSeed * 6.2831853) * uShimmer * 3.0 * aFinish.y;
   float shrink = mix(-0.06, 0.0, vSolid);
   vec3 p = turned(aPos, aPivot, aMotion, uTime) + aNormal * (breathe + shrink);
 
@@ -210,6 +227,7 @@ void main() {
 
   vColour = aColour;
   vAo = aAo;
+  vFinish = aFinish;
   vPicked = abs(aObject - uSelected) < 0.5 ? 1.0 : 0.0;
   vNormal = vec3(aNormal.x, aNormal.y * uFlip, aNormal.z);
   vec4 clip = uViewProj * vec4(p, 1.0);
@@ -537,7 +555,7 @@ export function createRenderer(canvas) {
   function uploadMesh(surface) {
     meshIndexCount = surface.indices.length;
     for (const key of ['positions', 'normals', 'colours', 'seeds', 'objects',
-      'fromStep', 'untilStep', 'ao', 'pivots', 'motion']) {
+      'fromStep', 'untilStep', 'ao', 'pivots', 'motion', 'finish']) {
       if (meshBuffers[key]) gl.deleteBuffer(meshBuffers[key]);
       meshBuffers[key] = buffer(surface[key]);
     }
@@ -557,6 +575,7 @@ export function createRenderer(canvas) {
     attribute(mesh.handle, 'aAo', meshBuffers.ao, 1);
     attribute(mesh.handle, 'aPivot', meshBuffers.pivots, 3);
     attribute(mesh.handle, 'aMotion', meshBuffers.motion, 4);
+    attribute(mesh.handle, 'aFinish', meshBuffers.finish, 2);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, meshBuffers.indices);
     gl.bindVertexArray(null);
   }

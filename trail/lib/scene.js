@@ -138,6 +138,9 @@ export function assembleMeshes(items) {
   // Where a vertex turns, and how. Zero amplitude means it does not.
   const pivots = new Float32Array(count * 3);
   const motion = new Float32Array(count * 4);
+  // How each model wants to be finished, worked out from how fine its own
+  // triangles are. See `finishFor`.
+  const finish = new Float32Array(count * 2);
   const indices = new Uint32Array(triangles);
   const ranges = [];
 
@@ -153,6 +156,7 @@ export function assembleMeshes(items) {
     const cos = Math.cos(rot), sin = Math.sin(rot);
     const to = item.at ?? [0, 0, 0];
     const palette = grid.palette.map((entry) => rgb(entry, item.tints));
+    const [smoothness, wobble] = finishFor(mesh.edge, scale);
 
     for (let v = 0; v < mesh.count; v++) {
       const lx = mesh.positions[v * 3] * scale;
@@ -171,7 +175,19 @@ export function assembleMeshes(items) {
       colours[(at + v) * 3] = colour[0];
       colours[(at + v) * 3 + 1] = colour[1];
       colours[(at + v) * 3 + 2] = colour[2];
-      seeds[at + v] = fract(Math.sin(v * 12.9898 + index * 7.233) * 43758.5453);
+      // Seeded by where the vertex is, not by which one it is. The shimmer
+      // moves a vertex along its normal by an amount this decides, so two
+      // copies of one corner have to agree or they walk apart and tear a hole
+      // in the model. A mesh kept per face is nothing but copies of corners.
+      // Rounded to the same thousandth the normals are welded at.
+      finish[(at + v) * 2] = smoothness;
+      finish[(at + v) * 2 + 1] = wobble;
+      seeds[at + v] = fract(Math.sin(
+        Math.round(lx * 1000) * 12.9898
+        + Math.round(ly * 1000) * 78.233
+        + Math.round(lz * 1000) * 37.719
+        + index * 7.233,
+      ) * 43758.5453);
       ao[at + v] = mesh.ao ? mesh.ao[v] : 1;
 
       // A pivot is a point in the model, so it is placed exactly as the vertex
@@ -203,9 +219,39 @@ export function assembleMeshes(items) {
 
   return {
     positions, normals, colours, seeds, objects, fromStep, untilStep, ao,
-    pivots, motion,
+    pivots, motion, finish,
     indices, ranges, count, triangles: triangles / 3,
   };
+}
+
+// Where a triangle stops being big enough to be worth seeing as a facet, and
+// where it stops being big enough to survive being pushed around. Both are in
+// world units, and both were measured rather than guessed: the low-poly packs
+// sit around 0.05 to 0.09, and a rigged character around 0.006.
+const COARSE = 0.045;
+const FINE = 0.012;
+
+/**
+ * How a model wants to be finished, from how fine its own triangles are.
+ *
+ * Two problems with one cause. A chunky model is *meant* to look faceted, and
+ * the ambient shimmer moves it far less than one of its own triangles, so it
+ * breathes. A model whose triangles are millimetres across is neither: flat
+ * shading shatters it into something insect-like, and a shimmer sized for cubes
+ * moves every vertex further than its triangles are wide, sliding neighbouring
+ * faces through each other until the silhouette is not the model any more.
+ *
+ * So both answers are the same question - how big is a triangle here - and
+ * neither is a switch, because a model sitting between the two should sit
+ * between the two answers.
+ */
+export function finishFor(edge, scale = 1) {
+  const size = (edge ?? 0) * (scale || 1);
+  if (!(size > 0)) return [0, 1];
+  const t = Math.min(1, Math.max(0, (size - FINE) / (COARSE - FINE)));
+  // Coarse: facets on, full shimmer. Fine: smoothed, and shimmer cut back to
+  // a fraction of a triangle so it can never open the surface.
+  return [1 - t, 0.15 + 0.85 * t];
 }
 
 /**
