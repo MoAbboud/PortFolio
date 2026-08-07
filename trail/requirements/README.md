@@ -20,7 +20,7 @@ earlier ones, and the context file is the only place that says what they replace
 
     Set-Location "C:\Users\Absol\OneDrive\Documents\GitHub\PortFol\trail"
     npx --yes serve .      # then open the address it prints
-    npm test               # 388 tests, about six seconds
+    npm test               # 429 tests, about thirty seconds
     npm run clips          # the poses every rigged model can be put into
 
 Four things worth knowing before editing:
@@ -31,10 +31,11 @@ once, offline, in a Colab notebook that prepares the shape library. Nothing is l
 inferred or generated while the app is running.
 
 **Imported models are drawn as the art they are, not as cubes.** A model that arrives as a
-mesh - which is all 216 of them - keeps the geometry its artist drew. Only the four
-hand-authored recipes are still built from voxel solids, because tint slots and sway are
-per-cube features and the figure needs both. Voxels were chosen when shapes were going to be
-generated; the library is real low-poly art now, and voxelising it only destroyed it.
+mesh - which is all 363 of them - keeps the geometry its artist drew, and where its colour lives
+in a texture it is painted from that too. Only the four hand-authored recipes are still built
+from voxel solids, because tint slots and sway are per-cube features and the figure needs both.
+Voxels were chosen when shapes were going to be generated; the library is real low-poly art now,
+and voxelising it only destroyed it.
 
 **Nothing morphs.** An earlier design had cubes flowing from one shape into another. It was
 cancelled. The world is built once and the story is told by moving the camera. If a proposal

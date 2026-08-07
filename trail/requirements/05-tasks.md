@@ -5,9 +5,14 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
 The app runs. Items past stage 1 are marked honestly: `[x]` means built and tested.
 
 **The next work is not code.** Take one of your own narrations, cut it into stages, build the
-canvas for it, and watch it. Everything needed exists: paste a script and Trail says what it can
-build, place and pose and tint the objects, add a step, frame it from the view, split the words
-into stages, then play it. Nothing needs the page source any more.
+canvas for it, and watch it. Everything needed exists: place, pose and tint the objects from a
+library of 367, add a step, frame it from the view, cut its note into stages, then play it.
+Nothing needs the page source any more.
+
+**Reading the script is not part of that** - it was built and cancelled on 2026-08-07, and the
+script is a document beside the app now. An earlier version of this paragraph said Trail would
+tell you what it can build from a pasted narration. It will not, and it should not be made to
+again without being asked.
 
 The question the whole project was framed around - **is a camera tour of a static diorama
 something a person would watch** - is still unanswered, and it cannot be answered by more
@@ -109,9 +114,11 @@ test worth trusting.
 - [x] **The trees were blue.** "leaves" does not contain "leaf", and bark, flower, birch
       and maple were not in the name table. 77 of 740 materials still guess, 30 of them
       the Zombie kit's `Atlas`
-- [ ] **Texture sampling.** 128 models keep their colour only in a texture. The OBJ path
-      cannot reach it - the nature pack writes 88 absolute `C:/` paths - so it has to go
-      through glTF, which carries a relative filename and real UVs
+- [x] **Texture sampling.** 184 models keep their colour only in a texture and every one of
+      them is now painted from it. The plan here was wrong: it said the OBJ path could not
+      reach them because of the nature pack's 88 absolute `C:/` paths, so the OBJ-over-glTF
+      preference would have to flip. Taking the filename off the end resolves all 184, and
+      the preference was left alone
 - [ ] The `house` and `car` recipes are no longer placed by default and are candidates for
       retirement. `person` stays: it is the only tintable model and the only one that moves
 - [x] `lib/thumb.js` draws a model as isometric pixels. Pure, so the same code makes contact
@@ -191,11 +198,30 @@ test worth trusting.
 - [x] When a material name says nothing - `Atlas`, `Material.001` - the model's own filename
       is read instead. A meaningful material name still wins over it
 - [x] 90 of 216 models came out plain white; now 18, and those are genuinely pale concrete
-- [ ] **Sample the texture atlas.** The Zombie kit - the most useful pack for this subject -
-      still gets one invented colour per model, so a character is a flat hash colour rather
-      than a person. `Zombie_Atlas.png` is 512x512 RGB in 6.1 KB, so it is flat patches, and
-      the OBJs carry `vt` coordinates. Needs a PNG decoder (the inverse of the writer already
-      in `tools/sheet.js`), `vt` parsing in `readObj`, and sampling per voxel. About 60 models
+- [x] **Sample the texture atlas.** Done, and it is the change the Zombie kit needed: Matt
+      was one flat hash purple and is now a person in 25 colours. `lib/png.js` decodes,
+      `lib/texture.js` samples a colour per face, `readObj` reads `vt` and `readGltf` reads
+      `TEXCOORD_0`. 184 models across three packs, not 60
+- [x] A colour is sampled **across the face**, not at one texel of it, and transparent texels
+      are left out. A leaf texture is a cut-out on a field exporters leave black, and
+      averaging that in makes every canopy dark
+- [x] Colours are quantised to 250, because a detail texture gives a shade per face and a
+      model indexes a palette of 255. 23 of 363 models reach the cap; the furthest a face
+      moved was 42 of a possible 441
+- [x] **Where each image lives is written into the manifest by `npm run scan`.** A model's own
+      statement about it cannot be followed - two packs name a path from the artist's own
+      machine and a third names a file that is not in its folder - and a static server cannot
+      be asked to search. 26 images serve the whole library
+- [x] Decoded images are reduced to 512 on the longest side and held in a 24 MB cache. It is
+      only ever a saving: every colour is baked into the geometry at import, so dropping one
+      costs a decode and never a colour
+- [ ] **The `_C` texture of the nature pack's twisted tree is bright red**, so `bush-common`
+      is a red bush. Checked in both formats, which agree: it is the artist's colour. Left
+      alone deliberately
+- [ ] **The Downtown buildings are darker and browner than the name table made them.** The
+      pack's own preview render agrees with the texture, so this is the faithful answer and
+      the bright red brick was this project's invention. Worth a look by eye: it is the one
+      place the change makes something less illustrated
 - [x] Up axis is assumed to be Y. Held for all 317 meshes across eleven packs
 
 ### 2g - Posing a rigged character
@@ -242,11 +268,14 @@ this is authoring rather than the skeletal animation the not-doing list rules ou
 - [ ] **28 rigged models are in the library and only one is posed so far.** Matt, Lis, Sam and
       Shaun carry 20 poses each - `Idle`, `Walk`, `Wave`, `Yes`, `No`, `Punch`, `Death` - and
       the twelve animals carry 13 each
-- [ ] The named characters cannot be tinted: their colour is in `Zombie_Atlas.png`, so they
-      would come out one flat guessed colour each. Texture sampling is worth more because of it
+- [x] The named characters no longer come out one flat guessed colour each: they are painted
+      from `Zombie_Atlas.png`. They still cannot be **tinted**, because their colours come from
+      an image rather than from slots - which matters less now that the four of them are four
+      visibly different people
 - [ ] **`scan.js` prefers OBJ over glTF, and the OBJ export carries no rig**, so the rigged
       Matt is deduped out of the library while the static one stays. A pose entry names its
-      file directly and is unaffected, but the preference is worth revisiting
+      file directly and is unaffected, but the preference is worth revisiting. **Texture
+      sampling was expected to force this and did not** - both formats reach their images
 
 ### 2e - glTF, which is what the packs ship now
 

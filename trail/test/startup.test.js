@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { readVox } from '../lib/vox.js';
@@ -711,4 +711,94 @@ test('one model of every listed format loads all the way to a grid', async () =>
     assert.ok(grid.dims.every((d) => d > 0), `${mesh.name} voxelised to nothing`);
     assert.ok(grid.palette.length > 0, `${mesh.name} came out with no colours at all`);
   }
+});
+
+test('a model whose colour is in a texture is painted from it, not from its name', async () => {
+  // 184 of the library's models keep their colour only in a texture. Before
+  // this they were painted from a guess at the material name, which is how the
+  // Zombie kit's four named characters came out as one flat colour each - Matt
+  // was purple. The failure mode is silent, so this checks the colours rather
+  // than the absence of an error.
+  const manifest = JSON.parse(
+    readFileSync(new URL('../models/index.json', import.meta.url), 'utf8')
+  );
+  const at = (file) => new URL(`../models/${file}`, import.meta.url);
+  const textured = new Set(
+    (manifest.downloads ?? []).filter((d) => d.images).map((d) => d.folder)
+  );
+
+  // The smallest textured model there is, so this stays a test rather than a
+  // measurement. Skipped entirely when no textured pack is downloaded here.
+  const candidates = (manifest.meshes ?? [])
+    .filter((m) => textured.has(m.file.split('/')[0]) && m.file.endsWith('.obj') && existsSync(at(m.file)))
+    .map((m) => ({ ...m, size: statSync(at(m.file)).size }))
+    .sort((a, b) => a.size - b.size);
+  if (!candidates.length) return;
+  const model = candidates[0];
+
+  const { readObj, readMtl, textureRefs } = await import('../lib/obj.js');
+  const { readPng, reduce } = await import('../lib/png.js');
+  const { paint } = await import('../lib/texture.js');
+
+  const mtl = at(model.file.replace(/\.obj$/i, '.mtl'));
+  const mtlText = existsSync(mtl) ? readFileSync(mtl, 'utf8') : '';
+  const read = readObj(
+    readFileSync(at(model.file), 'utf8'),
+    readMtl(mtlText, { model: model.name }),
+    textureRefs(mtlText)
+  );
+
+  assert.ok(read.images.length, `${model.name} is in a textured pack and names no image`);
+  const index = (manifest.downloads ?? []).find((d) => d.folder === model.file.split('/')[0]).images;
+  const pictures = read.images.map((image) => {
+    const path = index[String(image.uri).toLowerCase()];
+    assert.ok(path, `nothing in the manifest says where ${image.uri} is`);
+    return reduce(readPng(new Uint8Array(readFileSync(at(path))), { name: image.name }), 512);
+  });
+
+  const done = paint(read, pictures);
+  assert.ok(done.painted > 0, `${model.name} has a texture and none of it reached a face`);
+  assert.notDeepEqual(done.colours, read.colours,
+    `${model.name} came out the same colours its material names would have given`);
+});
+
+test('placing a textured model makes the app read its texture', async () => {
+  // The modules above are pure and tested on their own. This is the wiring:
+  // that the page finds the image the manifest points at, decodes it, and holds
+  // on to it - which is what makes browsing a pack of sixty models one decode
+  // rather than sixty.
+  const manifest = JSON.parse(
+    readFileSync(new URL('../models/index.json', import.meta.url), 'utf8')
+  );
+  const at = (file) => new URL(`../models/${file}`, import.meta.url);
+  const textured = new Set(
+    (manifest.downloads ?? []).filter((d) => d.images).map((d) => d.folder)
+  );
+  const candidates = (manifest.meshes ?? [])
+    .filter((m) => textured.has(m.file.split('/')[0]) && existsSync(at(m.file)))
+    .map((m) => ({ ...m, size: statSync(at(m.file)).size }))
+    .sort((a, b) => a.size - b.size);
+  if (!candidates.length) return;
+  const model = candidates[0];
+
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 60 });
+  await runApp();
+  stub.allowFrames(200);
+  stub.element('b-library').listeners.get('click')?.[0]?.();
+
+  const filter = stub.element('filter');
+  filter.value = model.name;
+  filter.listeners.get('input')?.[0]?.();
+  for (let i = 0; i < 40; i++) await new Promise((r) => setTimeout(r, 0));
+
+  const tile = stub.element('library').children.find((c) => c.title === model.name);
+  assert.ok(tile, `searching the library for "${model.name}" did not find it`);
+  tile.listeners.get('click')?.[0]?.();
+  for (let i = 0; i < 200; i++) await new Promise((r) => setTimeout(r, 0));
+
+  assert.deepEqual(stub.failures, [], 'placing a textured model reported a failure');
+  const held = stub.win.__trail.held();
+  assert.ok(held.textures > 0,
+    `placing ${model.name} decoded no texture, so it was painted from its material name`);
+  assert.ok(held.textureBytes > 0, 'a texture was counted but weighs nothing');
 });

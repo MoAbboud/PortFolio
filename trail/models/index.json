@@ -29,7 +29,22 @@
         "^Floor_",
         "^DoorFrame_"
       ],
-      "excluded": "This is a modular kit, not a set of objects. 101 of its 153 models are facade parts - wall panels, columns, window sections, cornices, road markings, door frames, interior floor tiles - which mean nothing until assembled into a building. Assembling facades from panels is level design, which 00-plan.md lists as a risk to stop rather than tool for. The 52 that remain are objects: three buildings, five props, the streets, sidewalks, roofs, doors and stairs. The files are left on disk because they are 2 MB and the pack folder has to stay for the other 52; this is about what the library offers, not about space."
+      "excluded": "This is a modular kit, not a set of objects. 101 of its 153 models are facade parts - wall panels, columns, window sections, cornices, road markings, door frames, interior floor tiles - which mean nothing until assembled into a building. Assembling facades from panels is level design, which 00-plan.md lists as a risk to stop rather than tool for. The 52 that remain are objects: three buildings, five props, the streets, sidewalks, roofs, doors and stairs. The files are left on disk because they are 2 MB and the pack folder has to stay for the other 52; this is about what the library offers, not about space.",
+      "images": {
+        "t_concrete_asphalt_basecolor.png": "Downtown City MegaKit[Standard]/Textures/T_Concrete_Asphalt_BaseColor.png",
+        "t_concrete_basecolor.png": "Downtown City MegaKit[Standard]/Textures/T_Concrete_BaseColor.png",
+        "t_dark_interior.png": "Downtown City MegaKit[Standard]/Textures/T_dark_interior.png",
+        "t_dirt_basecolor.png": "Downtown City MegaKit[Standard]/Textures/T_Dirt_BaseColor.png",
+        "t_lit_interior_1.png": "Downtown City MegaKit[Standard]/Textures/T_lit_interior_1.png",
+        "t_lit_interior_2.png": "Downtown City MegaKit[Standard]/Textures/T_lit_interior_2.png",
+        "t_marblefloor_basecolor.png": "Downtown City MegaKit[Standard]/Textures/T_MarbleFloor_BaseColor.png",
+        "t_metalconcrete_basecolor.png": "Downtown City MegaKit[Standard]/Textures/T_MetalConcrete_BaseColor.png",
+        "t_ornaments_basecolor.png": "Downtown City MegaKit[Standard]/Textures/T_Ornaments_BaseColor.png",
+        "t_redbrick_basecolor.png": "Downtown City MegaKit[Standard]/Textures/T_RedBrick_BaseColor.png",
+        "t_roofslate_basecolor.png": "Downtown City MegaKit[Standard]/Textures/T_RoofSlate_BaseColor.png",
+        "t_street_decals.png": "Downtown City MegaKit[Standard]/Textures/T_Street_Decals.png",
+        "t_trim_basecolor.png": "Downtown City MegaKit[Standard]/Textures/T_Trim_BaseColor.png"
+      }
     },
     {
       "folder": "Farm Buildings - Sept 2018-20260803T200359Z-1-001",
@@ -67,7 +82,21 @@
     {
       "folder": "Stylized Nature MegaKit[Standard]",
       "from": "https://quaternius.com/packs/stylizednaturemegakit.html",
-      "licence": "CC0"
+      "licence": "CC0",
+      "images": {
+        "bark_deadtree.png": "Stylized Nature MegaKit[Standard]/glTF/Bark_DeadTree.png",
+        "bark_normaltree.png": "Stylized Nature MegaKit[Standard]/glTF/Bark_NormalTree.png",
+        "bark_twistedtree.png": "Stylized Nature MegaKit[Standard]/glTF/Bark_TwistedTree.png",
+        "flowers.png": "Stylized Nature MegaKit[Standard]/glTF/Flowers.png",
+        "grass.png": "Stylized Nature MegaKit[Standard]/glTF/Grass.png",
+        "leaf_pine_c.png": "Stylized Nature MegaKit[Standard]/glTF/Leaf_Pine_C.png",
+        "leaves.png": "Stylized Nature MegaKit[Standard]/glTF/Leaves.png",
+        "leaves_normaltree_c.png": "Stylized Nature MegaKit[Standard]/glTF/Leaves_NormalTree_C.png",
+        "leaves_twistedtree_c.png": "Stylized Nature MegaKit[Standard]/glTF/Leaves_TwistedTree_C.png",
+        "mushrooms.png": "Stylized Nature MegaKit[Standard]/glTF/Mushrooms.png",
+        "pathrocks_diffuse.png": "Stylized Nature MegaKit[Standard]/glTF/PathRocks_Diffuse.png",
+        "rocks_diffuse.png": "Stylized Nature MegaKit[Standard]/glTF/Rocks_Diffuse.png"
+      }
     },
     {
       "folder": "Ultimate Animated Animals - July 2021-20260803T200235Z-1-001",
@@ -87,7 +116,10 @@
     {
       "folder": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001",
       "from": "https://quaternius.com",
-      "licence": "CC0"
+      "licence": "CC0",
+      "images": {
+        "zombie_atlas.png": "Zombie Apocalypse Kit - March 2024-20260803T200051Z-1-001/Zombie Apocalypse Kit - March 2024/Zombie_Atlas.png"
+      }
     }
   ],
   "recipes": [

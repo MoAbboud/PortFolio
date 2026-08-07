@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import { readObj, readMtl, boundsOf, voxeliseMesh, importObj, atHeight, fromName } from '../lib/obj.js';
+import { textureRefs, readObj, readMtl, boundsOf, voxeliseMesh, importObj, atHeight, fromName } from '../lib/obj.js';
 import { hollow, count } from '../lib/voxel.js';
 import { thumbnail, coverage } from '../lib/thumb.js';
 import { assemble } from '../lib/scene.js';
@@ -307,4 +307,102 @@ test('a species name beats the part name, and the part name beats nothing', () =
   assert.equal(fromName('MapleTree_Leaves'), fromName('BirchTree_Leaves'));
   // A birch is pale, unlike every other bark.
   assert.notEqual(fromName('BirchTree_Bark'), fromName('NormalTree_Bark'));
+});
+
+// --- textures ----------------------------------------------------------------
+
+test('a material states the image it is painted with, reduced to a filename', () => {
+  // Two of the three packs that ship textured OBJ write a path from the machine
+  // the artist exported on. It cannot be followed, and the name at the end of
+  // it can - which is what the manifest records where to find.
+  const refs = textureRefs([
+    'newmtl Leaves_TwistedTree',
+    'Kd 0.640000 0.640000 0.640000',
+    'map_Kd C:/Leaves_TwistedTree_C.png',
+    'newmtl Atlas',
+    'map_Kd Zombie_Atlas.png',
+    'newmtl Plain',
+    'Kd 0.500000 0.200000 0.100000',
+  ].join('\n'));
+
+  assert.equal(refs.get('Leaves_TwistedTree'), 'Leaves_TwistedTree_C.png');
+  assert.equal(refs.get('Atlas'), 'Zombie_Atlas.png');
+  assert.equal(refs.has('Plain'), false, 'a material with no image asks for none');
+});
+
+test('options written before a texture filename are not mistaken for it', () => {
+  const refs = textureRefs('newmtl M\nmap_Kd -s 1 1 1 -o 0 0 0 Wall.png');
+  assert.equal(refs.get('M'), 'Wall.png');
+});
+
+test('texture coordinates are flipped, because an OBJ measures v upward', () => {
+  // An OBJ's origin is the bottom left of the image and a PNG is stored from
+  // the top down. Getting this wrong paints every model from the wrong half of
+  // its atlas, which looks like a plausible picture of the wrong thing.
+  const mesh = readObj([
+    'v 0 0 0', 'v 1 0 0', 'v 0 1 0',
+    'vt 0 0', 'vt 1 0', 'vt 0 1',
+    'usemtl M',
+    'f 1/1 2/2 3/3',
+  ].join('\n'), new Map([['M', '#ffffff']]), new Map([['M', 'atlas.png']]));
+
+  assert.equal(mesh.uvs.length, 1);
+  assert.deepEqual(mesh.uvs[0][0], [0, 1], 'v = 0 is the bottom of the picture');
+  assert.deepEqual(mesh.uvs[0][2], [0, 0], 'v = 1 is the top');
+  assert.deepEqual(mesh.images, [{ name: 'atlas.png', uri: 'atlas.png' }]);
+  assert.deepEqual(mesh.faceImage, [0]);
+});
+
+test('a face written without a texture coordinate is not given one', () => {
+  // `v`, `v/vt`, `v//vn` and `v/vt/vn` are all legal, and only two of them
+  // carry a coordinate. A reader that takes the second field regardless would
+  // read a normal's index as a texture coordinate.
+  const mesh = readObj([
+    'v 0 0 0', 'v 1 0 0', 'v 0 1 0', 'v 1 1 0',
+    'vt 0 0', 'vt 1 0', 'vt 0 1',
+    'vn 0 0 1',
+    'usemtl M',
+    'f 1 2 3',
+    'f 1//1 2//1 3//1',
+    'f 1/1/1 2/2/1 3/3/1',
+  ].join('\n'), new Map([['M', '#ffffff']]), new Map([['M', 'atlas.png']]));
+
+  assert.equal(mesh.uvs[0], null, 'no fields at all');
+  assert.equal(mesh.uvs[1], null, 'a normal but no texture coordinate');
+  assert.deepEqual(mesh.uvs[2][1], [1, 1], 'both, and the coordinate is read');
+});
+
+test('a polygon keeps the right coordinate on each triangle it fans into', () => {
+  const mesh = readObj([
+    'v 0 0 0', 'v 1 0 0', 'v 1 1 0', 'v 0 1 0',
+    'vt 0 0', 'vt 1 0', 'vt 1 1', 'vt 0 1',
+    'usemtl M',
+    'f 1/1 2/2 3/3 4/4',
+  ].join('\n'), new Map([['M', '#ffffff']]), new Map([['M', 'atlas.png']]));
+
+  assert.equal(mesh.triangles.length, 2, 'a quad is two triangles');
+  // The corners a triangle got and the coordinates it got must be the same
+  // corners, or a model is painted with its texture shuffled.
+  assert.deepEqual(mesh.uvs[0], [[0, 1], [1, 1], [1, 0]]);
+  assert.deepEqual(mesh.uvs[1], [[0, 1], [1, 0], [0, 0]]);
+});
+
+test('several materials sharing one image list it once', () => {
+  const mesh = readObj([
+    'v 0 0 0', 'v 1 0 0', 'v 0 1 0',
+    'vt 0 0', 'vt 1 0', 'vt 0 1',
+    'usemtl A', 'f 1/1 2/2 3/3',
+    'usemtl B', 'f 1/1 2/2 3/3',
+  ].join('\n'), new Map(), new Map([['A', 'shared.png'], ['B', 'shared.png']]));
+
+  assert.equal(mesh.images.length, 1, 'one image, fetched once');
+  assert.deepEqual(mesh.faceImage, [0, 0]);
+});
+
+test('a model with no textures reads exactly as it always did', () => {
+  const mesh = readObj('v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3');
+  assert.equal(mesh.triangles.length, 1);
+  assert.deepEqual(mesh.faceImage, [-1]);
+  assert.deepEqual(mesh.uvs, [null]);
+  assert.deepEqual(mesh.images, []);
 });

@@ -218,6 +218,50 @@ export function materialColours(json) {
 }
 
 /**
+ * The base colour image each material paints itself with.
+ *
+ * Returns one entry per material, or null where there is none. An image either
+ * names a file beside the document, which the caller has to fetch, or carries
+ * its own bytes - as a data URI, or as a slice of the binary chunk of a `.glb`.
+ * The Zombie kit does the last of those, so its four named characters arrive
+ * fully painted in a single request with nothing else to find.
+ *
+ * A second set of texture coordinates is not read. `texCoord` is 0 on every
+ * material in this library, and a reader that silently used the wrong set would
+ * paint a model from the wrong part of its atlas - so an unread one is refused
+ * by returning nothing and letting the material name answer instead.
+ */
+export function materialImages(json, buffers = []) {
+  const images = json.images ?? [];
+  const textures = json.textures ?? [];
+
+  return (json.materials ?? []).map((material) => {
+    const use = material.pbrMetallicRoughness?.baseColorTexture;
+    if (!use || (use.texCoord ?? 0) !== 0) return null;
+    const image = images[textures[use.index]?.source];
+    if (!image) return null;
+    const name = image.name ?? image.uri ?? `image-${use.index}`;
+
+    if (image.bufferView !== undefined) {
+      const view = json.bufferViews?.[image.bufferView];
+      const bytes = buffers[view?.buffer ?? 0];
+      if (!view || !bytes) return null;
+      const from = view.byteOffset ?? 0;
+      return { name, bytes: bytes.subarray(from, from + (view.byteLength ?? 0)) };
+    }
+    if (!image.uri) return null;
+    if (image.uri.startsWith('data:')) {
+      return { name, bytes: fromBase64(image.uri.slice(image.uri.indexOf(',') + 1)) };
+    }
+    // Written as a path relative to the document, and reduced to a filename for
+    // the same reason the OBJ path reduces one: what a pack states and where
+    // the file actually is do not always agree, and the manifest is what
+    // reconciles them.
+    return { name, uri: decodeURIComponent(image.uri).replace(/\\/g, '/').split('/').pop() };
+  });
+}
+
+/**
  * Triangles and their colours, in world space.
  *
  * `buffers` holds the bytes of each buffer the document declares, in order, as
@@ -238,8 +282,24 @@ export function readGltf(json, buffers = [], { name = 'model', pose = null, slot
   });
 
   const colours = materialColours(json);
+  // Which picture each material paints from, gathered once and listed in the
+  // order they are first wanted, so a caller fetches each file only once
+  // however many materials share it.
+  const perMaterial = materialImages(json, resolved);
+  const images = [];
+  const imageAt = new Map();
+  const imageFor = (material) => {
+    const image = perMaterial[material];
+    if (!image) return -1;
+    const key = image.uri ?? image.name;
+    if (!imageAt.has(key)) { images.push(image); imageAt.set(key, images.length - 1); }
+    return imageAt.get(key);
+  };
+
   const triangles = [];
   const faceColours = [];
+  const uvs = [];
+  const faceImage = [];
   // Which tint slot each face answers to, when the caller has said that a
   // material is one. A character with a body material and a trim material is
   // two slots, and that is the whole of how one model becomes a cast.
@@ -296,6 +356,12 @@ export function readGltf(json, buffers = [], { name = 'model', pose = null, slot
 
         const colour = colours[primitive.material] ?? GREY;
         const slot = slots?.[json.materials?.[primitive.material]?.name] ?? null;
+        const image = imageFor(primitive.material);
+        // Only worth reading when there is a picture to read it against.
+        const texture = image >= 0 && primitive.attributes.TEXCOORD_0 !== undefined
+          ? readAccessor(json, resolved, primitive.attributes.TEXCOORD_0, what)
+          : null;
+
         const corner = (i) => {
           const v = order[i];
           const at = v * points.components;
@@ -303,26 +369,35 @@ export function readGltf(json, buffers = [], { name = 'model', pose = null, slot
           if (!bones) return transform(world[index], x, y, z);
           return transform(blend(bones, v), x, y, z);
         };
+        // glTF measures texture coordinates downward from the top left, which
+        // is the way a PNG is stored, so unlike the OBJ path nothing is flipped.
+        const coord = (i) => {
+          const at = order[i] * texture.components;
+          return [texture.values[at], texture.values[at + 1]];
+        };
+        const face = (a, b, c) => {
+          faceColours.push(colour);
+          faceSlots.push(slot);
+          faceImage.push(texture ? image : -1);
+          uvs.push(texture ? [coord(a), coord(b), coord(c)] : null);
+        };
 
         if (mode === 4) {
           for (let i = 0; i + 2 < order.length; i += 3) {
             triangles.push([corner(i), corner(i + 1), corner(i + 2)]);
-            faceColours.push(colour);
-            faceSlots.push(slot);
+            face(i, i + 1, i + 2);
           }
         } else if (mode === 5) {          // strip
           for (let i = 0; i + 2 < order.length; i++) {
-            const tri = i % 2 ? [corner(i + 1), corner(i), corner(i + 2)]
-              : [corner(i), corner(i + 1), corner(i + 2)];
-            triangles.push(tri);
-            faceColours.push(colour);
-            faceSlots.push(slot);
+            const flip = i % 2;
+            triangles.push(flip ? [corner(i + 1), corner(i), corner(i + 2)]
+              : [corner(i), corner(i + 1), corner(i + 2)]);
+            if (flip) face(i + 1, i, i + 2); else face(i, i + 1, i + 2);
           }
         } else if (mode === 6) {          // fan
           for (let i = 1; i + 1 < order.length; i++) {
             triangles.push([corner(0), corner(i), corner(i + 1)]);
-            faceColours.push(colour);
-            faceSlots.push(slot);
+            face(0, i, i + 1);
           }
         }
       }
@@ -338,7 +413,7 @@ export function readGltf(json, buffers = [], { name = 'model', pose = null, slot
     throw new Error(`"${name}" has no triangles`
       + (skipped ? `: its ${skipped} primitives are points or lines` : ''));
   }
-  return { triangles, colours: faceColours, slots: faceSlots, vertices };
+  return { triangles, colours: faceColours, slots: faceSlots, uvs, faceImage, images, vertices };
 }
 
 /** A `.glb`, all the way to triangles. */

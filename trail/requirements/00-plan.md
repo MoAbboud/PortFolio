@@ -8,10 +8,14 @@ whole thing. Cheap enough to redo, consistent enough to be a visual identity, re
 that a retake is free, and containing no artificial intelligence of any kind at runtime.
 
 **The app is built, running, and has a library of everything on disk.** The renderer, the
-camera, the route, the weather, the picking, the canvas file and the pen all exist, with 388
-tests behind them, and 220 models load when the page opens - four recipes and 216 meshes read
+camera, the route, the weather, the picking, the canvas file and the pen all exist, with 429
+tests behind them, and 367 models load when the page opens - four recipes and 363 meshes read
 as OBJ, glTF or `.glb`. Nothing is held back for licence, nothing in it is off-subject, and
 everything in it is a placeable object rather than a part of one.
+
+**184 of those models are painted from their own textures**, as of 2026-08-07, rather than from
+a guess at a material name. That is what turned the Zombie kit's four named characters from one
+flat colour each into four recognisable people.
 
 **Reading the script was built and then cancelled**, on 2026-08-07. The script is a document
 beside the app now, not an input to it: objects are placed by hand from the library, and a step
@@ -42,9 +46,9 @@ flowchart LR
 | Stage | Goal | Done when | Status |
 | --- | --- | --- | --- |
 | 1 | Concept | The workflow, the look and the boundary are settled, and the rejected designs are recorded | Done |
-| 2 | Voxel format and import | The recipe voxeliser, the `.vox` reader, and a library that loads on open | **Done, and past it.** 220 models load from a manifest: the figure, three recipes, and 216 meshes in three formats. Every mesh has been checked all the way to a grid. The medieval voxel pack was retired as off-subject, and 101 facade parts of the Downtown kit were excluded as parts rather than objects |
+| 2 | Voxel format and import | The recipe voxeliser, the `.vox` reader, and a library that loads on open | **Done, and past it.** 367 models load from a manifest: the figure, three recipes, and 363 meshes in three formats. Every mesh has been checked all the way to a grid, and every one that keeps its colour in a texture is painted from it. The medieval voxel pack was retired as off-subject, and 101 facade parts of the Downtown kit were excluded as parts rather than objects |
 | 3 | Field and camera | Sky, shiny floor, 16:9 frame, a rectangle plus a pitch producing a correct framing | **Done**, and past it: free roaming, picking, dragging, a smooth surface, occlusion and contact shadows. Frame rate at full budget is still untested |
-| 4 | Script, canvas and route | Paste a script, get a tray of what it mentions, drag objects onto a plan, split the script into stages, draw a frame per stage | **Done, without the plan.** Paste a script and get a tray, cast and gaps; place, pose and tint objects; add a step, frame it from the view, split the words into stages, set hold and weather. **There is still no top-down plan** - placing is done in the 3D view and framing by roaming to it, which has turned out to be enough |
+| 4 | Canvas and route | Place objects, cut the notes into stages, draw a frame per stage | **Done, without the plan, and without the script.** Place, pose and tint objects; add a step, frame it from the view, split its note into stages, set hold and weather. **There is still no top-down plan** - placing is done in the 3D view and framing by roaming to it, which has turned out to be enough. Reading a script was built and cancelled |
 | 5 | Play mode | Ghosting, flying, weather cross-fade, scars, motion, name tags, the sync flash, and no interface at all | **Done**, apart from snow and motion in the cube path |
 | 6 | Preparation pipeline | A Colab notebook that turns CC0 packs into `library.js` and `lookup.js`. **Not on the critical path** | Not started. Survey and licence rules done, in `07-pipeline.md` |
 | 7 | First real video | A narration of yours, built, recorded, cut against your voice, published | Not started. Blocked on content, not on code |
@@ -143,6 +147,7 @@ value.
 | **`scan.js` keeps what was written by hand** | It preserved pack and download notes but rewrote every mesh entry, so a corrected licence would have been silently undone by the next scan. The tool that rediscovers files must not also discard judgements |
 | **Real height per model, as manifest data** | The animals pack normalised every model before export, so a shiba inu arrived as tall as a bull. Chosen over one multiplier per pack, which cannot express a per-model error, and over editing the meshes, which a re-download would undo. Consistent with the standard the project already holds: new content is data, never code |
 | **Material names are matched longest-first** | Names used to be tried in written order, so a general word shadowed a specific one and every chair in the furniture pack came out the colour of hair. It also lets the table grow without the author having to reason about position |
+| **A model is painted from its texture, and where that texture lives is manifest data** | 184 models keep their colour only in an image. The plan of record said the OBJ path could not reach them - 88 of the references are absolute paths from an artist's own machine - and that texture support would therefore have to flip the OBJ-over-glTF preference. Measured: taking the filename off the end of the path resolves all 184, so the preference was left alone and the rigged-model question stays separate. A browser cannot search a folder, so `npm run scan` resolves each reference once and writes it down, which keeps judgement in a tool and data in the page |
 | **Measure the library rather than reasoning about it** | Both of this session's surprises were things these documents asserted confidently: that the library lacked modern subjects, while a pack of characters, cars and streets sat in it unread; and that mesh normalisation would be the hard part, when ten packs of eleven already agreed to within a few per cent. One script answered each |
 
 ### Carried forward from the first conversation

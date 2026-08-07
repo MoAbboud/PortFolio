@@ -27,7 +27,9 @@ import { scriptOf, splitStep } from './script.js';
 import * as pen from './pen.js';
 import { thumbnail, preview } from './thumb.js';
 import { readVox, toGrid, isBadVox } from './vox.js';
-import { readObj, readMtl, voxeliseMesh, atHeight } from './obj.js';
+import { readObj, readMtl, textureRefs, voxeliseMesh, atHeight } from './obj.js';
+import { readPng, reduce } from './png.js';
+import { paint, quantise } from './texture.js';
 import { readGltf, readGlb, externalBuffers, clipNames } from './gltf.js';
 
 // Reached only if every module above loaded. The classic script watches for it.
@@ -159,12 +161,113 @@ async function loadMesh(source, pose = null) {
   return { mesh: readGltf(json, buffers, how), clips: clipNames(json) };
 }
 
+// --- textures ---------------------------------------------------------------
+//
+// 184 of the library's models keep their colour in a texture and nowhere else,
+// so without this they are painted from a guess at their material's name - which
+// is how the Zombie kit's four named characters came out as one flat hash colour
+// each. Sampling gives them the colours their artist chose.
+//
+// Where each image lives is manifest data, written by `npm run scan`, because a
+// model's own statement about it cannot be followed: two packs name a path from
+// the machine they were exported on and a third names a file that is not in its
+// own folder. Finding it means listing a directory, which a static server will
+// not do, so the question is settled once by a tool rather than guessed at here.
+
+/** Pack folder to the images it holds, by lower-case filename. */
+const textureIndex = new Map();
+
+// A decoded picture is worth keeping: one atlas serves sixty models, and a
+// single building asks for eleven images. It is only ever a saving, though -
+// every colour it produces is baked into the model's geometry at import - so
+// this is capped by weight and the oldest goes first. Dropping one costs a
+// decode and can never cost a colour.
+const TEXTURE_BUDGET = 24 * 1024 * 1024;
+const textures = new Map();
+let textureWeight = 0;
+
+function keepTexture(key, image) {
+  textures.set(key, image);
+  textureWeight += image ? image.pixels.length : 0;
+  while (textureWeight > TEXTURE_BUDGET && textures.size > 1) {
+    const [oldest, dropped] = textures.entries().next().value;
+    if (oldest === key) break;
+    textures.delete(oldest);
+    textureWeight -= dropped ? dropped.pixels.length : 0;
+  }
+  return image;
+}
+
+/**
+ * The picture behind each of a model's textures, in the order it asked for them.
+ *
+ * A missing or unreadable image is null rather than an error, and `paint` leaves
+ * those faces the colour they already had. A model that cannot find its texture
+ * should look like it did yesterday, not fail to appear.
+ */
+async function picturesFor(mesh, file) {
+  const folder = file.split('/')[0];
+  const index = textureIndex.get(folder) ?? {};
+
+  return Promise.all((mesh.images ?? []).map(async (image) => {
+    // Carried inside the document, which is what the Zombie kit's glTF does:
+    // nothing to find and nothing to fetch.
+    const key = image.bytes ? `${file}#${image.name}` : index[String(image.uri ?? '').toLowerCase()];
+    if (!key) return null;
+    if (textures.has(key)) {
+      // Read again so it counts as recently used, which is what keeps the
+      // atlas a whole pack shares from being dropped for a one-off.
+      const held = textures.get(key);
+      textures.delete(key);
+      textures.set(key, held);
+      return held;
+    }
+    try {
+      const bytes = image.bytes ?? await loadBytes(key);
+      // Held at 512 rather than the 2048 a pack ships. The question a face asks
+      // is what colour it is, which a smaller picture answers identically, and
+      // holding a dozen at full size is forty megabytes. An atlas that is
+      // already small is untouched, which matters: shrinking one bleeds a
+      // neighbouring island's colour across an edge.
+      return keepTexture(key, reduce(readPng(bytes, { name: image.name }), 512));
+    } catch (error) {
+      say(`${image.name}: ${error.message}`);
+      return keepTexture(key, null);
+    }
+  }));
+}
+
+/** The same model, painted from its textures wherever it has them. */
+async function painted(mesh, file) {
+  if (!mesh.images?.length) return mesh;
+  const done = paint(mesh, await picturesFor(mesh, file));
+  if (!done.painted) return done;
+  // A model carries one byte per vertex indexing a palette of 255, and a detail
+  // texture can hand back several hundred shades of one brown. Left alone,
+  // everything past the last palette entry collapses onto whichever colour
+  // happened to be there.
+  return { ...done, colours: quantise(done.colours, 250) };
+}
+
 async function main() {
   const renderer = createRenderer(canvas);
 
   // What the library holds is a manifest, not a list in the code, so adding a
   // model is a file and a line of data.
   const manifest = await loadJson('index.json');
+
+  /**
+   * Where each pack's textures actually are, settled by `npm run scan`.
+   *
+   * Without it a model states a filename that is not beside it and nothing can
+   * follow. Called from `begin` rather than run here, because everything above
+   * `begin` is a declaration and nothing above it runs.
+   */
+  function indexTextures() {
+    for (const download of manifest.downloads ?? []) {
+      if (download.images) textureIndex.set(download.folder, download.images);
+    }
+  }
   // Only recipes are fetched as recipes. The arrangement may also name models
   // from a pack, and those are listed by `loadPacks` and read when they are
   // first wanted - asking for one as a `.json` here would simply 404.
@@ -1015,6 +1118,8 @@ async function main() {
     converted: Object.keys(imported).length,
     previews: thumbs.size,
     meshes: meshCache.size,
+    textures: textures.size,
+    textureBytes: textureWeight,
   });
 
   const pendingWork = new Map();
@@ -1037,15 +1142,20 @@ async function main() {
         const objText = await loadText(source.file);
         if (!objText) throw new Error(`could not read ${source.file}`);
         const mtlText = await loadText(source.file.replace(/\.obj$/i, '.mtl'));
-        const raw = readObj(objText, readMtl(mtlText ?? '', { model: id }));
+        // The material names still decide the colour of anything with no
+        // texture, and they are the fallback for every face the texture cannot
+        // answer for, so both are read and the picture wins where there is one.
+        const read = readObj(objText, readMtl(mtlText ?? '', { model: id }), textureRefs(mtlText ?? ''));
+        const raw = await painted(read, source.file);
         grid = voxeliseMesh(raw, { id, cells: 34 });
         drawn = fromTriangles(raw, { height: source.height });
       } else if (source.kind === 'gltf' || source.kind === 'glb') {
         const wanted = pose ?? source.pose;
-        const { mesh: raw, clips } = await loadMesh(source, wanted);
+        const { mesh: read, clips } = await loadMesh(source, wanted);
         // Discovered on the first read and kept, so the panel can offer the
         // poses a model holds without opening the file again.
         if (clips.length && !source.clips.length) source.clips = clips;
+        const raw = await painted(read, source.file);
         grid = voxeliseMesh(raw, { id, cells: 34 });
         drawn = fromTriangles(raw, { height: source.height });
       } else {
@@ -1760,6 +1870,7 @@ async function main() {
    * up there runs at all.
    */
   function begin() {
+    indexTextures();
     buildSwatches();
     buildObjectSliders();
     rebuild();

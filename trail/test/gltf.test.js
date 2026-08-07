@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  readGltf, readGlb, importGlb, externalBuffers, materialColours, fromBase64,
+  readGltf, readGlb, importGlb, externalBuffers, materialColours, materialImages, fromBase64,
 } from '../lib/gltf.js';
+import { readFileSync } from 'node:fs';
 import { voxeliseMesh, fromName } from '../lib/obj.js';
 import { count } from '../lib/voxel.js';
 
@@ -336,4 +337,109 @@ test('a glTF cube voxelises to a solid box, like an OBJ one does', () => {
   assert.equal(at(Math.floor(nx / 2), Math.floor(ny / 2), Math.floor(nz / 2)), 0,
     'the inside was filled, which is work thrown away');
   assert.ok(count(grid) > 0);
+});
+
+// --- textures ----------------------------------------------------------------
+
+/** The same triangle, with texture coordinates and a material that names an image. */
+function texturedDoc({ image, texCoord = 0 } = {}) {
+  const positions = new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]);
+  const uvs = new Float32Array([0, 0, 1, 0, 0, 1]);
+  const indices = new Uint16Array([0, 1, 2]);
+  const png = new Uint8Array([137, 80, 78, 71, 1, 2, 3, 4]);
+
+  const parts = [new Uint8Array(positions.buffer), new Uint8Array(uvs.buffer),
+    new Uint8Array(indices.buffer), png];
+  const bytes = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
+  const offsets = [];
+  let at = 0;
+  for (const part of parts) { offsets.push(at); bytes.set(part, at); at += part.length; }
+
+  return {
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ nodes: [0] }],
+    nodes: [{ mesh: 0 }],
+    meshes: [{ primitives: [{ attributes: { POSITION: 0, TEXCOORD_0: 1 }, indices: 2, material: 0 }] }],
+    materials: [{
+      name: 'Painted',
+      pbrMetallicRoughness: { baseColorTexture: { index: 0, ...(texCoord ? { texCoord } : {}) } },
+    }],
+    textures: [{ source: 0 }],
+    images: [image ?? { name: 'Atlas', bufferView: 3, mimeType: 'image/png' }],
+    accessors: [
+      { bufferView: 0, componentType: 5126, count: 3, type: 'VEC3' },
+      { bufferView: 1, componentType: 5126, count: 3, type: 'VEC2' },
+      { bufferView: 2, componentType: 5123, count: 3, type: 'SCALAR' },
+    ],
+    bufferViews: parts.map((part, i) => ({ buffer: 0, byteOffset: offsets[i], byteLength: part.length })),
+    buffers: [{ byteLength: bytes.byteLength, uri: dataUri(bytes) }],
+  };
+}
+
+test('an image carried inside the document arrives as bytes, needing no fetch', () => {
+  // This is what the Zombie kit does, and it is why its four named characters
+  // are painted from a single request with nothing else to find.
+  const doc = texturedDoc();
+  const found = materialImages(doc, [fromBase64(doc.buffers[0].uri.split(',')[1])]);
+  assert.equal(found.length, 1);
+  assert.equal(found[0].name, 'Atlas');
+  assert.deepEqual([...found[0].bytes.slice(0, 4)], [137, 80, 78, 71], 'the PNG itself');
+  assert.equal(found[0].uri, undefined);
+});
+
+test('an image beside the document is named, and only by its filename', () => {
+  const doc = texturedDoc({ image: { name: 'Bark', uri: 'textures/Bark_NormalTree.png' } });
+  const found = materialImages(doc, []);
+  assert.equal(found[0].uri, 'Bark_NormalTree.png');
+  assert.equal(found[0].bytes, undefined);
+});
+
+test('a second set of texture coordinates is refused rather than read as the first', () => {
+  // Using TEXCOORD_0 where a material asked for TEXCOORD_1 paints a model from
+  // the wrong part of its atlas, which is a confident wrong answer.
+  const doc = texturedDoc({ texCoord: 1 });
+  assert.deepEqual(materialImages(doc, []), [null]);
+
+  const mesh = readGltf(doc);
+  assert.deepEqual(mesh.faceImage, [-1]);
+  assert.deepEqual(mesh.uvs, [null]);
+});
+
+test('texture coordinates are read as written, because glTF measures from the top', () => {
+  // The opposite of the OBJ path, which flips them. Both readers hand on
+  // coordinates in the picture's own terms so the sampler never has to ask
+  // which format a model came from.
+  const mesh = readGltf(texturedDoc());
+  assert.deepEqual(mesh.uvs[0][0], [0, 0]);
+  assert.deepEqual(mesh.uvs[0][1], [1, 0]);
+  assert.deepEqual(mesh.uvs[0][2], [0, 1]);
+  assert.deepEqual(mesh.faceImage, [0]);
+  assert.equal(mesh.images.length, 1);
+});
+
+test('a model with no texture is read exactly as it always was', () => {
+  const mesh = readGltf(triangleDoc({ material: 0 }));
+  assert.deepEqual(mesh.faceImage, [-1]);
+  assert.deepEqual(mesh.uvs, [null]);
+  assert.deepEqual(mesh.images, []);
+});
+
+test('every mesh listed in the manifest can find the textures it names', () => {
+  // The failure this guards against is silent: a model whose texture cannot be
+  // located falls back to a colour invented from its material's name, and looks
+  // exactly like one that was painted.
+  const manifest = JSON.parse(
+    readFileSync(new URL('../models/index.json', import.meta.url), 'utf8')
+  );
+  for (const download of manifest.downloads ?? []) {
+    for (const [named, path] of Object.entries(download.images ?? {})) {
+      assert.equal(named, named.toLowerCase(),
+        `${download.folder}: "${named}" is not lower case, so a lookup will miss it`);
+      assert.ok(path.startsWith(`${download.folder}/`),
+        `${download.folder}: "${named}" points outside its own pack, at ${path}`);
+      assert.equal(path.split('/').pop().toLowerCase(), named,
+        `${download.folder}: "${named}" points at ${path}, which is a different file`);
+    }
+  }
 });

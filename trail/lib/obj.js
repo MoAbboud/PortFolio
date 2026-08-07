@@ -201,6 +201,37 @@ export function readMtl(text, { model = '' } = {}) {
   return materials;
 }
 
+/**
+ * The image each material paints itself with, by material name.
+ *
+ * Read separately from `readMtl` because it answers a different question and
+ * has a different answer when there is no image: `readMtl` always produces a
+ * colour, and this produces nothing at all rather than a guess.
+ *
+ * **The path is reduced to a filename on purpose.** Two of the three packs that
+ * ship textured OBJ write a path from the machine the artist exported on -
+ * `C:/Leaves_TwistedTree_C.png`, 88 of them - and the remaining pack writes a
+ * bare filename that is not in the folder the MTL is in. Neither can be
+ * followed. What is reliable is the name at the end of it, which is why the
+ * manifest records where each of those names actually lives.
+ */
+export function textureRefs(text) {
+  const refs = new Map();
+  let current = null;
+  for (const line of String(text).split('\n')) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('newmtl ')) current = trimmed.slice(7).trim();
+    else if (current && /^map_Kd\s/i.test(trimmed)) {
+      const ref = trimmed.slice(trimmed.indexOf(' ') + 1).trim();
+      // Options like `-s 1 1 1` may precede the filename. The last word is the
+      // file in every case, because a filename is what the statement is for.
+      const file = ref.split(/\s+/).pop().replace(/\\/g, '/').split('/').pop();
+      if (file) refs.set(current, file);
+    }
+  }
+  return refs;
+}
+
 const clamp255 = (v) => Math.max(0, Math.min(255, Math.round(v * 255)));
 const toHex = (r, g, b) => `#${[r, g, b].map((v) => clamp255(v).toString(16).padStart(2, '0')).join('')}`;
 
@@ -213,38 +244,79 @@ const toSrgb = (v) => (v <= 0.0031308 ? v * 12.92 : 1.055 * v ** (1 / 2.4) - 0.0
 export const linearHex = (r, g, b) => toHex(toSrgb(r), toSrgb(g), toSrgb(b));
 
 /**
- * Triangles and their colours.
+ * Triangles, their colours, and where each one reads from its texture.
  *
  * Faces may be any polygon, so they are fanned into triangles. Vertex indices
  * are one-based and may be negative, meaning "counting back from the end".
+ *
+ * `textures` maps a material name to an image filename, as `textureRefs` reads
+ * them. Passing it is what makes the texture coordinates worth carrying: a face
+ * comes back knowing which picture its `uv` belongs to, and `paint` in
+ * `texture.js` turns the two into a colour once the picture has been fetched.
+ * Without it this behaves exactly as it did before.
  */
-export function readObj(text, materials = new Map()) {
+export function readObj(text, materials = new Map(), textures = new Map()) {
   const vertices = [];
+  const coords = [];
   const triangles = [];
   const colours = [];
+  const uvs = [];
+  const faceImage = [];
+  const images = [];
+  const imageAt = new Map();
   let colour = '#bbbbbb';
+  let image = -1;
 
   for (const raw of String(text).split('\n')) {
     const line = raw.trim();
     if (line.startsWith('v ')) {
       const [x, y, z] = (line.match(NUMBER) ?? []).map(Number);
       vertices.push([x, y, z]);
+    } else if (line.startsWith('vt ')) {
+      const [u, v] = (line.match(NUMBER) ?? []).map(Number);
+      // An OBJ measures v upward from the bottom of the image and a PNG is
+      // stored downward from the top, so this is where the two are reconciled.
+      // Both readers hand on coordinates in the picture's own terms, and the
+      // sampler never learns which format a model arrived in.
+      coords.push([u, 1 - v]);
     } else if (line.startsWith('usemtl ')) {
-      colour = materials.get(line.slice(7).trim()) ?? '#bbbbbb';
+      const name = line.slice(7).trim();
+      colour = materials.get(name) ?? '#bbbbbb';
+      const file = textures.get(name);
+      if (!file) image = -1;
+      else {
+        if (!imageAt.has(file)) { images.push({ name: file, uri: file }); imageAt.set(file, images.length - 1); }
+        image = imageAt.get(file);
+      }
     } else if (line.startsWith('f ')) {
-      const corners = line.slice(2).trim().split(/\s+/).map((part) => {
+      const parts = line.slice(2).trim().split(/\s+/);
+      const corners = parts.map((part) => {
         const index = Number.parseInt(part.split('/')[0], 10);
         return index < 0 ? vertices.length + index : index - 1;
       });
+      // A face may be written `v`, `v/vt`, `v//vn` or `v/vt/vn`, so the middle
+      // field is present, empty or absent, and only the first of those is a
+      // texture coordinate.
+      const texture = parts.map((part) => {
+        const field = part.split('/')[1];
+        if (!field) return -1;
+        const index = Number.parseInt(field, 10);
+        if (!Number.isFinite(index)) return -1;
+        return index < 0 ? coords.length + index : index - 1;
+      });
+
       for (let i = 1; i + 1 < corners.length; i++) {
         const tri = [corners[0], corners[i], corners[i + 1]].map((n) => vertices[n]);
         if (tri.some((v) => !v)) continue;
         triangles.push(tri);
         colours.push(colour);
+        const uv = [texture[0], texture[i], texture[i + 1]].map((n) => coords[n]);
+        uvs.push(uv.every(Boolean) ? uv : null);
+        faceImage.push(image);
       }
     }
   }
-  return { triangles, colours, vertices: vertices.length };
+  return { triangles, colours, uvs, faceImage, images, vertices: vertices.length };
 }
 
 /** The box a set of triangles occupies. */

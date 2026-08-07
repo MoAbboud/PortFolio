@@ -14,6 +14,7 @@
 import { readdirSync, readFileSync, writeFileSync, statSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join, relative, sep } from 'node:path';
+import { textureRefs } from '../lib/obj.js';
 
 const MODELS = fileURLToPath(new URL('../models/', import.meta.url));
 const MANIFEST = join(MODELS, 'index.json');
@@ -186,6 +187,89 @@ const meshes = [...best.values()]
     };
   });
 
+/**
+ * Where each texture a pack asks for actually is.
+ *
+ * A model states the image it is painted with, and in this library that
+ * statement can never be followed: two packs write a path from the machine the
+ * artist exported on - `C:/Leaves_TwistedTree_C.png`, 88 of them - and a third
+ * writes a bare filename that is not in the folder the model is in. What is
+ * reliable is the name at the end, and the file is somewhere in the pack.
+ *
+ * Finding it means listing a directory, which a static server cannot be asked
+ * to do, so it is settled here and written down. That also keeps the rule this
+ * project holds itself to: the page reads data, and the judgement about where a
+ * file lives is made once by a tool rather than guessed at every time a model
+ * is placed.
+ */
+function texturesFor(folder) {
+  const available = new Map();
+  for (const file of files) {
+    if (!file.startsWith(`${folder}/`) || !/\.png$/i.test(file)) continue;
+    const base = file.split('/').pop().toLowerCase();
+    // A pack ships the same atlas beside every group of models. The copy
+    // nearest the top is the one to name, so the answer does not depend on the
+    // order a directory happened to be read in.
+    const held = available.get(base);
+    if (!held || file.split('/').length < held.split('/').length) available.set(base, file);
+  }
+
+  const wanted = new Set();
+  const missing = new Set();
+  for (const mesh of meshes) {
+    if (!mesh.file.startsWith(`${folder}/`)) continue;
+    for (const ref of referencesOf(mesh.file)) {
+      const base = ref.toLowerCase();
+      if (available.has(base)) wanted.add(base);
+      else missing.add(ref);
+    }
+  }
+
+  return {
+    images: Object.fromEntries([...wanted].sort().map((base) => [base, available.get(base)])),
+    missing: [...missing],
+  };
+}
+
+/** The image filenames one model asks for, whatever format it arrived in. */
+function referencesOf(file) {
+  const full = join(MODELS, file);
+  try {
+    if (/\.obj$/i.test(file)) {
+      const text = readFileSync(full, 'utf8');
+      const named = text.match(/^mtllib\s+(.+)$/m)?.[1]?.trim();
+      if (!named) return [];
+      const beside = `${file.split('/').slice(0, -1).join('/')}/${named}`;
+      if (!files.includes(beside)) return [];
+      return [...textureRefs(readFileSync(join(MODELS, beside), 'utf8')).values()];
+    }
+    if (/\.gltf$/i.test(file)) {
+      const json = JSON.parse(readFileSync(full, 'utf8'));
+      const used = new Set();
+      for (const material of json.materials ?? []) {
+        const index = material.pbrMetallicRoughness?.baseColorTexture?.index;
+        if (index === undefined) continue;
+        const image = (json.images ?? [])[(json.textures ?? [])[index]?.source];
+        // An image carrying its own bytes needs nothing recorded about it.
+        if (!image?.uri || image.uri.startsWith('data:')) continue;
+        used.add(decodeURIComponent(image.uri).replace(/\\/g, '/').split('/').pop());
+      }
+      return [...used];
+    }
+  } catch (error) {
+    console.warn(`  ${file}: could not be read for its textures (${error.message})`);
+  }
+  // A `.glb` carries its images inside it.
+  return [];
+}
+
+const unresolved = [];
+for (const download of downloads) {
+  const { images, missing } = texturesFor(download.folder);
+  if (Object.keys(images).length) download.images = images;
+  for (const ref of missing) unresolved.push(`${download.folder}: ${ref}`);
+}
+
 // Keep what someone has already said about each pack.
 const known = new Map((previous.packs ?? []).map((p) => [p.file, p]));
 
@@ -241,6 +325,21 @@ if (skipped) {
 
 if (manifest.rigs.length) {
   console.log(`  rigs    ${String(manifest.rigs.length).padStart(4)}  kept from the manifest`);
+}
+
+const found = downloads.reduce((n, d) => n + Object.keys(d.images ?? {}).length, 0);
+if (found) {
+  console.log(`  texture ${String(found).padStart(4)}  images located, so models are painted rather than guessed`);
+}
+// Said out loud for the same reason the exclusions are: a model quietly falling
+// back to a colour invented from its material's name looks exactly like one
+// that was painted, and the whole point of this is that it does not have to.
+if (unresolved.length) {
+  console.log('');
+  console.log('These textures are named by a model and are not in its pack. Those models');
+  console.log('keep a colour read from their material names instead:');
+  for (const ref of unresolved.slice(0, 12)) console.log(`  ${ref}`);
+  if (unresolved.length > 12) console.log(`  ...and ${unresolved.length - 12} more`);
 }
 
 const unlicensed = [...manifest.packs, ...meshes].filter((p) => p.licence.startsWith('UNKNOWN'));
