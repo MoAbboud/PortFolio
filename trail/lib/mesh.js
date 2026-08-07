@@ -150,8 +150,10 @@ export function surfaceNets(grid, { roundness = 0.6, passes = 4 } = {}) {
     count,
     triangles: indices.length / 3,
     // A cube grid's triangles are a cell wide, near enough, and this is what
-    // lets a voxel surface and a real mesh be sized by the same rule.
+    // lets a voxel surface and a real mesh be sized by the same rule. A lattice
+    // is even, so its smallest triangles are its typical ones.
     edge: unit,
+    fine: unit,
   };
 }
 
@@ -422,10 +424,14 @@ export function fromTriangles(source, { height = 0, anchor = 'base' } = {}) {
     indices,
     count,
     triangles: faces.length,
-    // How wide a triangle is, typically. Everything that has to be sized
-    // against the model's own grain reads this: how far the shimmer may push a
-    // vertex, and whether facets are worth seeing at all.
-    edge: medianEdge(positions, count),
+    // How wide a triangle is, typically, and how wide the small ones are.
+    // **They answer different questions and a model needs both.** Whether
+    // facets are worth seeing is about the typical triangle; how far a vertex
+    // may be pushed is about the smallest, because that is what tears first. A
+    // character is a coarse torso and a face of tiny triangles, and judging it
+    // by the middle destroyed the face.
+    edge: percentileEdge(positions, count, 0.5),
+    fine: percentileEdge(positions, count, 0.1),
     // Carried so the page can place, box and shadow the model without ever
     // building a grid for it.
     palette,
@@ -572,17 +578,23 @@ function weld(positions, normals, count) {
 
 
 /**
- * How wide this model's triangles typically are.
+ * How wide this model's triangles are, at a given point in the range.
  *
- * A median rather than a mean, because one enormous ground plane among ten
+ * A percentile rather than a mean, because one enormous ground plane among ten
  * thousand small faces would drag an average up and say the model is coarse
  * when every part you look at is fine.
  *
- * Sampled rather than measured in full: a hundredth of the faces of a large
- * model is thousands of edges, which settles the middle long before it costs
- * anything.
+ * **The range is wider than it looks.** Measured across the library, the middle
+ * triangle is three to ten times the width of the small ones - a car, a tree
+ * and a person all mix a broad body with fine detail. So there is no single
+ * number that describes a model, and asking for one is what let the shimmer
+ * move a vertex further than a character's eye is wide.
+ *
+ * Sampled rather than measured in full: a two-thousandth of the faces of a
+ * large model is thousands of edges, which settles a percentile long before it
+ * costs anything.
  */
-function medianEdge(positions, count) {
+function percentileEdge(positions, count, at) {
   const faces = count / 3;
   if (!(faces > 0)) return 0;
   const step = Math.max(1, Math.floor(faces / 2000));
@@ -598,5 +610,6 @@ function medianEdge(positions, count) {
     lengths.push(span(a, b), span(b, c), span(c, a));
   }
   lengths.sort((x, y) => x - y);
-  return lengths[lengths.length >> 1] ?? 0;
+  const k = Math.min(lengths.length - 1, Math.max(0, Math.floor(lengths.length * at)));
+  return lengths[k] ?? 0;
 }

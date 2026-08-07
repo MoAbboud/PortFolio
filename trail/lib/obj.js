@@ -58,6 +58,30 @@ const NAMED = [
   ['water', '#4a86a8'], ['sand', '#d8c79a'], ['snow', '#eef2f6'],
   ['flesh', '#c98f74'], ['bone', '#ded6c0'], ['zombie', '#7f9463'],
 
+  // Growing things, which is what two whole packs are made of. Without these a
+  // birch came out with a blue trunk and a bush with blue leaves: "leaves" does
+  // not contain "leaf", and "bark" was not here at all, so both fell through to
+  // the hash. A species name is longer than the part name and therefore wins,
+  // which is what lets `MapleTree_Bark` be bark while `MapleTree_Leaves` stays
+  // a leaf.
+  ['leaves', '#4c7a3a'], ['foliage', '#4c7a3a'], ['bark', '#6b4a2f'],
+  ['trunk', '#6b4a2f'], ['branch', '#6b4a2f'], ['twig', '#7a5c3c'],
+  ['birch', '#d8d4c8'], ['maple', '#7a5230'], ['pine', '#3a5a34'],
+  ['willow', '#6b5a3a'], ['palm', '#7a6242'], ['deadtree', '#8a7a66'],
+  ['flower', '#d9738c'], ['petal', '#e08fa8'], ['blossom', '#e6b6c6'],
+  ['moss', '#5a7a3a'], ['fern', '#4a7a42'], ['hedge', '#3f6b34'],
+  ['ivy', '#4c7a3a'], ['vine', '#4c7a3a'], ['reed', '#8a9a5a'],
+  ['mushroom', '#c9a882'], ['stump', '#7a5c3c'], ['pebble', '#9a958c'],
+  ['rock', '#8d9095'], ['cliff', '#8d9095'], ['soil', '#5a4632'],
+
+  // The long tail: parts a pack names but the table did not know. Each is only
+  // a handful of models, and together they were most of what was left guessing.
+  ['bumper', '#4a4d52'], ['pole', '#8f979f'], ['border', '#c9c3b4'],
+  ['light', '#f2e6b8'], ['handle', '#8f979f'], ['frame', '#8f979f'],
+  ['seat', '#6b4630'], ['strap', '#6b4630'], ['sole', '#3a3a3e'],
+  ['shoe', '#4c3024'], ['sock', '#ded6c8'], ['shirt', '#657378'],
+  ['pant', '#3e3a3a'], ['dress', '#8a4a52'], ['coat', '#4a4a55'],
+
   // Things this library actually holds. These are reached through a model's own
   // filename when its materials say nothing, so they are named for the objects
   // rather than for materials.

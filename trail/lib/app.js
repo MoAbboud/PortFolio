@@ -23,7 +23,7 @@ import { lerpWeather, resolve as resolveWeather, stampsUpTo } from './weather.js
 import { scarMap } from './scars.js';
 import { multiply } from './mat4.js';
 import { serialise, parse, isRefusal } from './canvas.js';
-import { buildLookup, resolve, scriptOf, splitStep } from './script.js';
+import { scriptOf, splitStep } from './script.js';
 import * as pen from './pen.js';
 import { thumbnail, preview } from './thumb.js';
 import { readVox, toGrid, isBadVox } from './vox.js';
@@ -34,8 +34,8 @@ import { readGltf, readGlb, externalBuffers, clipNames } from './gltf.js';
 window.__trail.started = true;
 
 // --- the scene --------------------------------------------------------------
-// Three objects, three framings. Placement by hand for now; the plan view and
-// the object tray are the next stage.
+// The arrangement the app opens on. Placement is by hand and stays that way:
+// reading a script and offering what it names was built and then cancelled.
 
 // `from` is the step an object solidifies at. Before it, the object is a ghost,
 // which is how the canvas reveals itself rather than being handed over at once.
@@ -1408,89 +1408,25 @@ async function main() {
     say(`split into steps ${at + 1} and ${at + 2}`);
   });
 
-  // --- the script -----------------------------------------------------------
+  // --- the words of a step --------------------------------------------------
   //
-  // The concept, and the reason the rest exists. Paste the narration; Trail
-  // reads every word against the library and says which of them it can build.
-  // It never places anything: finding is automatic because it is tedious, and
-  // placing is manual because it is the part that makes the video yours.
+  // **Reading the script was cancelled.** Trail no longer takes a narration,
+  // finds the objects it names, or offers a tray of them; the script lives
+  // outside the app and the objects are placed by hand from the library.
+  //
+  // What survives is a box holding whatever a step is about, which is a note
+  // to the person building the canvas and nothing more. Nothing reads it, and
+  // splitting it in two is how one long note becomes stages.
 
-  let lookup = new Map();
-  let asked = { objects: [], cast: [], gaps: [], words: 0 };
-
-  /**
-   * The dictionary, rebuilt whenever the library changes.
-   *
-   * Straight from the model names, plus the synonyms file, because model names
-   * are literal and scripts are not - measured at 8 words of a paragraph on
-   * names alone and 13 with synonyms.
-   */
-  async function buildDictionary() {
-    let synonyms = {};
-    try {
-      synonyms = (await loadJson('synonyms.json')).words ?? {};
-    } catch {
-      // Optional. Without it the dictionary is model names only, which works
-      // and resolves rather less.
-    }
-    lookup = buildLookup(libraryNames(), synonyms);
-    paintScript();
-  }
-
-  /** What the script asks for, and what the library can answer with. */
   function paintScript() {
-    const text = el('script').value;
-    asked = resolve(text, lookup);
-
-    el('s-objects').textContent = asked.objects.length
-      ? `${asked.objects.length} of ${asked.words} words`
-      : '-';
-    el('s-cast').textContent = asked.cast.length || '-';
-    el('s-gaps').textContent = asked.gaps.length || '-';
-
-    // The tray, in the order the story introduces things rather than
-    // alphabetically: a script is read from the top and so is this.
-    const tray = el('tray');
-    tray.innerHTML = '';
-    thumbQueue = thumbQueue.filter((job) => job.canvas.isConnected !== false);
-    for (const found of asked.objects) {
-      const model = found.models[0];
-      const button = document.createElement('button');
-      button.title = `${found.word} - ${found.models.join(', ')}`;
-      const tile = document.createElement('canvas');
-      tile.width = THUMB;
-      tile.height = THUMB;
-      button.append(tile);
-      const label = document.createElement('span');
-      label.textContent = found.count > 1 ? `${found.word} x${found.count}` : found.word;
-      button.append(label);
-      button.addEventListener('click', () => { placeModel(model).then(paintScript); });
-      tray.append(button);
-      thumbQueue.push({ canvas: tile, id: model });
-    }
-    runThumbQueue();
-
-    // Offered, never assumed. The heuristic misses anyone who only ever opens
-    // a sentence, and reads a place as a person; both are visible right here.
-    el('castlist').textContent = asked.cast.length
-      ? asked.cast.map((c) => `${c.name} x${c.count}`).join(', ')
-      : '';
-
-    // Visible rather than silently dropped. A gap is a decision - draw it,
-    // reword the line, or let the camera look elsewhere - and a decision
-    // nobody is shown is a decision nobody makes.
-    el('gaplist').textContent = asked.gaps.length
-      ? asked.gaps.slice(0, 60).map((g) => g.word).join(', ')
-      : '';
+    const step = route[editing()];
+    const box = el('script');
+    if (step && document.activeElement !== box) box.value = step.text ?? '';
   }
 
   el('script').addEventListener('input', () => {
-    // Pasting makes one step holding everything; splitting it into stages is
-    // what creates the rest, so the script is exactly the steps joined up and
-    // can never drift out of step with the structure.
     const step = route[editing()];
     if (step) step.text = el('script').value;
-    paintScript();
     autosave();
   });
 
@@ -1850,9 +1786,6 @@ async function main() {
       rebuild();
     }
     if (restore()) say('picked up where you left off');
-    // Built once the library is complete, because the dictionary is the
-    // library's own names and a half-loaded library is a half-built dictionary.
-    await buildDictionary();
     paintPanel();
   });
 

@@ -8,15 +8,15 @@ whole thing. Cheap enough to redo, consistent enough to be a visual identity, re
 that a retake is free, and containing no artificial intelligence of any kind at runtime.
 
 **The app is built, running, and has a library of everything on disk.** The renderer, the
-camera, the route, the weather, the picking, the canvas file and the pen all exist, with 403
+camera, the route, the weather, the picking, the canvas file and the pen all exist, with 388
 tests behind them, and 220 models load when the page opens - four recipes and 216 meshes read
 as OBJ, glTF or `.glb`. Nothing is held back for licence, nothing in it is off-subject, and
 everything in it is a placeable object rather than a part of one.
 
-**The script panel exists.** Paste a narration and Trail says which of its words it can
-build, in the order the story introduces them, with the people it named offered as cast and
-every unresolved word visible as a gap. It places nothing: finding is automatic because it is
-tedious, placing is manual because it is what makes the video yours.
+**Reading the script was built and then cancelled**, on 2026-08-07. The script is a document
+beside the app now, not an input to it: objects are placed by hand from the library, and a step
+carries only a note saying what happens in it. The reasoning is in `06-context.md` under
+"Reading the script was cancelled" - **it should not be rebuilt without the user saying so.**
 
 **What is left before a first video is a canvas built from a real script, and watching it.**
 Nothing in that sentence is code any more.

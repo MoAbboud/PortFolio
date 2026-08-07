@@ -156,7 +156,7 @@ export function assembleMeshes(items) {
     const cos = Math.cos(rot), sin = Math.sin(rot);
     const to = item.at ?? [0, 0, 0];
     const palette = grid.palette.map((entry) => rgb(entry, item.tints));
-    const [smoothness, wobble] = finishFor(mesh.edge, scale);
+    const [smoothness, wobble] = finishFor(mesh.edge, mesh.fine, scale);
 
     for (let v = 0; v < mesh.count; v++) {
       const lx = mesh.positions[v * 3] * scale;
@@ -224,35 +224,52 @@ export function assembleMeshes(items) {
   };
 }
 
-// Where a triangle stops being big enough to be worth seeing as a facet, and
-// where it stops being big enough to survive being pushed around. Both are in
-// world units, and both were measured rather than guessed: the low-poly packs
-// sit around 0.05 to 0.09, and a rigged character around 0.006.
+// Where a triangle stops being big enough to be worth seeing as a facet. In
+// world units, and measured rather than guessed: the low-poly packs sit around
+// 0.05 to 0.09, and a rigged character around 0.006.
 const COARSE = 0.045;
 const FINE = 0.012;
 
+// How far the renderer moves a vertex at full shimmer, in world units. It is
+// `uShimmer * 3` with the default shimmer, and it is written here because the
+// only way to size a displacement against a model is to know how big it is.
+const FULL_SHIMMER = 0.012;
+
+// A vertex may be pushed this much of the way across the smallest triangle it
+// belongs to. Two vertices of one face move by different amounts - their seeds
+// differ - so the face deforms by up to twice this. A fifth is small enough
+// that nothing visibly bends and large enough to still be movement.
+const SAFE = 0.2;
+
 /**
- * How a model wants to be finished, from how fine its own triangles are.
+ * How a model wants to be finished, from the size of its own triangles.
  *
- * Two problems with one cause. A chunky model is *meant* to look faceted, and
- * the ambient shimmer moves it far less than one of its own triangles, so it
- * breathes. A model whose triangles are millimetres across is neither: flat
- * shading shatters it into something insect-like, and a shimmer sized for cubes
- * moves every vertex further than its triangles are wide, sliding neighbouring
- * faces through each other until the silhouette is not the model any more.
+ * Two problems, and they need **two different statistics**, which is what the
+ * first version of this got wrong.
  *
- * So both answers are the same question - how big is a triangle here - and
- * neither is a switch, because a model sitting between the two should sit
- * between the two answers.
+ * *Whether facets are worth seeing* is about the typical triangle. A chunky
+ * model is meant to look faceted; a model built from millimetre triangles is
+ * shattered by flat shading. That is the median.
+ *
+ * *How far a vertex may be pushed* is about the smallest triangle, because the
+ * smallest is what tears first. Judged by the median, a character - a broad
+ * torso and a face of tiny triangles - reads as coarse and gets a shimmer that
+ * moves its vertices further than its eyes are wide. Which is precisely what
+ * happened: the faces came apart while the cars looked fine, because a car has
+ * no eyes to ruin.
  */
-export function finishFor(edge, scale = 1) {
-  const size = (edge ?? 0) * (scale || 1);
-  if (!(size > 0)) return [0, 1];
-  const t = Math.min(1, Math.max(0, (size - FINE) / (COARSE - FINE)));
-  // Coarse: facets on, full shimmer. Fine: smoothed, and shimmer cut back to
-  // a fraction of a triangle so it can never open the surface.
-  return [1 - t, 0.15 + 0.85 * t];
+export function finishFor(edge, fine = edge, scale = 1) {
+  const typical = (edge ?? 0) * (scale || 1);
+  const smallest = (fine ?? edge ?? 0) * (scale || 1);
+  if (!(typical > 0)) return [0, 1];
+
+  const t = Math.min(1, Math.max(0, (typical - FINE) / (COARSE - FINE)));
+  const wobble = smallest > 0
+    ? Math.min(1, (SAFE * smallest) / FULL_SHIMMER)
+    : 1;
+  return [1 - t, wobble];
 }
+
 
 /**
  * A soft dark patch under each object, so things sit on the ground instead of

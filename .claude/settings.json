@@ -77,7 +77,11 @@
       "Bash(grep -vE \":  \\(const|let|var|function|async|return|\\\\}|//\\)\")",
       "Bash(awk '/^async function main\\\\\\(\\\\\\) \\\\{/{f=1} f' lib/app.js)",
       "Bash(grep -n \"\\\\$$\")",
-      "Bash(node --check test/startup.test.js)"
+      "Bash(node --check test/startup.test.js)",
+      "Bash(node --check lib/mesh.js)",
+      "Bash(node --check lib/scene.js)",
+      "Bash(rm -f models/synonyms.json)",
+      "Bash(node --check lib/script.js)"
     ],
     "additionalDirectories": [
       "\\tmp",

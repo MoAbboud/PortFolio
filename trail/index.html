@@ -85,8 +85,6 @@
     border: 1px solid rgba(255,255,255,.14); border-radius: 4px; padding: 6px 7px;
   }
   #script:focus { outline: 1px solid rgba(127,176,232,.55); }
-  #gaplist, #castlist { max-height: 84px; overflow-y: auto; font-size: 10.5px; }
-  #castlist b { color: #9ed5ff; font-weight: normal; }
   input[type=color] {
     width: 46px; height: 20px; padding: 0; background: none; cursor: pointer;
     border: 1px solid rgba(255,255,255,.2); border-radius: 3px;
@@ -313,18 +311,12 @@
   </details>
 
   <details open>
-    <summary>script</summary>
+    <summary>step notes</summary>
     <div class="body">
-      <!-- The app's concept. Paste the narration and Trail says which of its
-           words it can build; placing them is still entirely by hand. -->
-      <textarea id="script" rows="7" spellcheck="false"
-        placeholder="Paste your narration here."></textarea>
-      <div class="row"><span class="dim">can be built</span><b id="s-objects">-</b></div>
-      <div class="list" id="tray"></div>
-      <div class="row"><span class="dim">people named</span><b id="s-cast">-</b></div>
-      <div id="castlist" class="keys"></div>
-      <div class="row"><span class="dim">nothing to build</span><b id="s-gaps">-</b></div>
-      <div id="gaplist" class="keys"></div>
+      <!-- Whatever this step is about, for whoever is building the canvas.
+           Nothing reads it: the script lives outside the app now. -->
+      <textarea id="script" rows="5" spellcheck="false"
+        placeholder="What happens in this step."></textarea>
     </div>
   </details>
 

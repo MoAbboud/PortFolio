@@ -332,26 +332,17 @@ test('the page starts, loads its models, and draws', async () => {
   swatch.listeners.get('input')?.[0]?.();
   assert.deepEqual(stub.failures, [], 'changing a colour reported a failure');
 
-  // The app's concept, end to end: paste a narration and the panel says what
-  // of it can be built. Nothing here places anything - that stays manual.
+  // A step carries a note about what happens in it. Reading a script was
+  // cancelled, so nothing resolves it and nothing is offered from it.
   const box = stub.element('script');
   const placedBefore = stub.win.__trail.placed();
-  box.value = 'After midnight Marla arrived at the house. Her car was parked '
-    + 'on the road outside, and Devon waited on the couch with a guitar.';
+  box.value = 'Marla arrives at the house.';
   box.listeners.get('input')?.[0]?.();
-  for (let i = 0; i < 30; i++) await new Promise((r) => setTimeout(r, 0));
-
-  const staged = stub.element('tray').children.map((c) => c.title.split(' - ')[0]);
-  for (const word of ['house', 'car', 'road', 'couch', 'guitar']) {
-    assert.ok(staged.includes(word), `"${word}" was not offered from the script`);
-  }
-  assert.ok(stub.element('castlist').textContent.includes('Marla'),
-    'a named person was not offered as cast');
-  assert.ok(stub.element('s-gaps').textContent !== '-',
-    'words with nothing to build should be visible, not silently dropped');
-  // Placing is the user's act, so reading a script must place nothing.
+  for (let i = 0; i < 20; i++) await new Promise((r) => setTimeout(r, 0));
+  assert.equal(stub.win.__trail.route()[0].text, 'Marla arrives at the house.',
+    'a step did not keep its note');
   assert.equal(stub.win.__trail.placed(), placedBefore,
-    'reading a script put something on the canvas by itself');
+    'writing a note put something on the canvas by itself');
 
   // A step is a rectangle on the ground plus the words said while the camera
   // holds there. All of it existed already and could only be reached by editing

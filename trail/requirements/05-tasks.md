@@ -99,8 +99,19 @@ test worth trusting.
       will show
 - [x] The opening arrangement uses real pack models for the house and the car. It was four
       voxel recipes, so the app opened showing the look that had just been rejected
-- [ ] **There is no tree in any of the eleven packs.** The recipe tree is the only one, and
-      the only model whose canopy sways. A CC0 nature pack is the answer if trees matter
+- [x] **The tree gap is closed.** Two CC0 nature packs arrived 2026-08-07: birch, maple,
+      dead and twisted trees, bushes, flowers, grass, pebbles. 367 models across 15 packs
+- [x] The two character packs were normalised before export, like the animals. One real
+      height each: men 1.80, women 1.68
+- [x] **The shimmer was sized by the median and was destroying faces.** It moved a vertex
+      117 per cent of a character's smallest triangle. Smoothing still reads the typical
+      triangle; the shimmer now reads the smallest, capped at a fifth of it
+- [x] **The trees were blue.** "leaves" does not contain "leaf", and bark, flower, birch
+      and maple were not in the name table. 77 of 740 materials still guess, 30 of them
+      the Zombie kit's `Atlas`
+- [ ] **Texture sampling.** 128 models keep their colour only in a texture. The OBJ path
+      cannot reach it - the nature pack writes 88 absolute `C:/` paths - so it has to go
+      through glTF, which carries a relative filename and real UVs
 - [ ] The `house` and `car` recipes are no longer placed by default and are candidates for
       retirement. `person` stays: it is the only tintable model and the only one that moves
 - [x] `lib/thumb.js` draws a model as isometric pixels. Pure, so the same code makes contact
@@ -346,39 +357,16 @@ alone, and `npm run scan` reported nothing new, which looks exactly like working
 
 ## Stage 4 - Script, canvas and route
 
-### The script
+### The script - CANCELLED 2026-08-07
 
-- [x] Paste a script. It becomes one step holding all of it
-- [x] Split a step at the cursor, and merge two steps back together
-- [x] **The wiring moved out of the page into `lib/app.js`**, on the fourth startup bug,
-      which this project had already agreed was the signal. `index.html` is 493 lines of
-      markup; the startup test imports the module instead of scraping it out of the HTML
-- [x] **Nothing runs on the way down.** Everything above `begin()` is a declaration, so a
-      statement can no longer read a constant that is still in its dead zone. A test lists
-      any statement at `main`'s indent that is not a declaration or a callback registration
-- [ ] `lib/app.js` is still 1,980 lines in one scope. Splitting it further needs interfaces
-      for genuinely shared state, and is not what matters before a first video
-- [x] Tokenise: whitespace, punctuation, lowercase. No stemming, no stopwords, no grammar
-- [x] Resolve every token against the dictionary. **The dictionary is the noun detector**, and
-      it is built from the library's own model names rather than by a pipeline
-- [x] `models/synonyms.json`: 60 words, because model names are literal and scripts are not.
-      Every entry checked against the library as it is written, so nothing unplaceable is
-      offered. Measured: 8 words of a paragraph resolve on names alone, 13 with synonyms
-- [x] Object tray: one entry per model, with a preview, the word, and a mention count
-- [x] Order the tray by first appearance in the script
-- [x] Gap list: every word with no model, visible rather than silently dropped
-- [x] Name detection: capitalised, not sentence-initial, not in the dictionary, not a common
-      capitalised word. **Offered, never assumed**
-- [x] Reading a script places nothing. A test records the object count before and after
-- [x] **Keys stay out of anything being typed into.** Every letter is a shortcut, so the
-      script box was unusable and the library's filter had been eating keys since the day
-      it was added. Asked of the focused element rather than defended field by field
-- [x] The startup stub records key handlers and knows what tag each element is, so hotkeys
-      can be tested at all - both were invisible to it before
-- [ ] Confirm a name as a cast member, with a colour and a tag
-- [ ] Tray search
-- [ ] The gap list is dominated by "the", "a", "was". Ordering by count puts function words
-      first, which is backwards, and fixing it properly needs grammar the design rules out, so a thing the script never named can still be placed
+Built, used, and removed at the user's request: *"it adds complications for nothing."* The
+script is a document beside the app now. **Do not rebuild this without being asked** - the
+reasoning is in `06-context.md`.
+
+- [x] ~~Paste a script, tokenise it, resolve it against a dictionary~~ **cancelled**
+- [x] ~~Object tray, cast list, gap list, name detection, synonyms~~ **cancelled**
+- [x] A step keeps a note saying what happens in it. Nothing reads it
+- [x] Split a note at the cursor, and merge two back together
 
 ### The canvas
 

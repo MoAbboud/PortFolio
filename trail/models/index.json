@@ -2,6 +2,16 @@
   "note": "What the library holds when the page opens. Written by tools/scan.js; run it after adding models. The packs themselves are not in the repository: re-download them from `downloads` below and run the tool again.",
   "downloads": [
     {
+      "folder": "Animated Men Characters - Feb 2019-20260807T145240Z-1-001",
+      "from": "https://quaternius.com/packs/animatedmencharacters.html",
+      "licence": "CC0"
+    },
+    {
+      "folder": "Animated Women Characters - Feb 2019-20260807T145249Z-1-001",
+      "from": "https://quaternius.com/packs/animatedwomencharacters.html",
+      "licence": "CC0"
+    },
+    {
       "folder": "Buildings Pack - Jan 2019-20260803T200313Z-1-001",
       "from": "https://quaternius.com",
       "licence": "CC0"
@@ -55,8 +65,18 @@
       "licence": "CC0"
     },
     {
+      "folder": "Stylized Nature MegaKit[Standard]",
+      "from": "https://quaternius.com/packs/stylizednaturemegakit.html",
+      "licence": "CC0"
+    },
+    {
       "folder": "Ultimate Animated Animals - July 2021-20260803T200235Z-1-001",
       "from": "https://quaternius.com",
+      "licence": "CC0"
+    },
+    {
+      "folder": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001",
+      "from": "https://quaternius.com/packs/ultimatestylizednature.html",
       "licence": "CC0"
     },
     {
@@ -77,6 +97,102 @@
     "tree"
   ],
   "meshes": [
+    {
+      "file": "Animated Men Characters - Feb 2019-20260807T145240Z-1-001/Animated Men Characters - Feb 2019/OBJ/Male_Casual.obj",
+      "name": "male-casual",
+      "licence": "CC0",
+      "height": 1.8
+    },
+    {
+      "file": "Animated Men Characters - Feb 2019-20260807T145240Z-1-001/Animated Men Characters - Feb 2019/OBJ/Male_LongSleeve.obj",
+      "name": "male-long-sleeve",
+      "licence": "CC0",
+      "height": 1.8
+    },
+    {
+      "file": "Animated Men Characters - Feb 2019-20260807T145240Z-1-001/Animated Men Characters - Feb 2019/OBJ/Male_Shirt.obj",
+      "name": "male-shirt",
+      "licence": "CC0",
+      "height": 1.8
+    },
+    {
+      "file": "Animated Men Characters - Feb 2019-20260807T145240Z-1-001/Animated Men Characters - Feb 2019/OBJ/Male_Suit.obj",
+      "name": "male-suit",
+      "licence": "CC0",
+      "height": 1.8
+    },
+    {
+      "file": "Animated Men Characters - Feb 2019-20260807T145240Z-1-001/Animated Men Characters - Feb 2019/OBJ/Smooth_Male_Casual.obj",
+      "name": "smooth-male-casual",
+      "licence": "CC0",
+      "height": 1.8
+    },
+    {
+      "file": "Animated Men Characters - Feb 2019-20260807T145240Z-1-001/Animated Men Characters - Feb 2019/OBJ/Smooth_Male_LongSleeve.obj",
+      "name": "smooth-male-long-sleeve",
+      "licence": "CC0",
+      "height": 1.8
+    },
+    {
+      "file": "Animated Men Characters - Feb 2019-20260807T145240Z-1-001/Animated Men Characters - Feb 2019/OBJ/Smooth_Male_Shirt.obj",
+      "name": "smooth-male-shirt",
+      "licence": "CC0",
+      "height": 1.8
+    },
+    {
+      "file": "Animated Men Characters - Feb 2019-20260807T145240Z-1-001/Animated Men Characters - Feb 2019/OBJ/Smooth_Male_Suit.obj",
+      "name": "smooth-male-suit",
+      "licence": "CC0",
+      "height": 1.8
+    },
+    {
+      "file": "Animated Women Characters - Feb 2019-20260807T145249Z-1-001/Animated Women Characters - Feb 2019/OBJ/Female_Alternative.obj",
+      "name": "female-alternative",
+      "licence": "CC0",
+      "height": 1.68
+    },
+    {
+      "file": "Animated Women Characters - Feb 2019-20260807T145249Z-1-001/Animated Women Characters - Feb 2019/OBJ/Female_Casual.obj",
+      "name": "female-casual",
+      "licence": "CC0",
+      "height": 1.68
+    },
+    {
+      "file": "Animated Women Characters - Feb 2019-20260807T145249Z-1-001/Animated Women Characters - Feb 2019/OBJ/Female_Dress.obj",
+      "name": "female-dress",
+      "licence": "CC0",
+      "height": 1.68
+    },
+    {
+      "file": "Animated Women Characters - Feb 2019-20260807T145249Z-1-001/Animated Women Characters - Feb 2019/OBJ/Female_TankTop.obj",
+      "name": "female-tank-top",
+      "licence": "CC0",
+      "height": 1.68
+    },
+    {
+      "file": "Animated Women Characters - Feb 2019-20260807T145249Z-1-001/Animated Women Characters - Feb 2019/OBJ/Smooth_Female_Alternative.obj",
+      "name": "smooth-female-alternative",
+      "licence": "CC0",
+      "height": 1.68
+    },
+    {
+      "file": "Animated Women Characters - Feb 2019-20260807T145249Z-1-001/Animated Women Characters - Feb 2019/OBJ/Smooth_Female_Casual.obj",
+      "name": "smooth-female-casual",
+      "licence": "CC0",
+      "height": 1.68
+    },
+    {
+      "file": "Animated Women Characters - Feb 2019-20260807T145249Z-1-001/Animated Women Characters - Feb 2019/OBJ/Smooth_Female_Dress.obj",
+      "name": "smooth-female-dress",
+      "licence": "CC0",
+      "height": 1.68
+    },
+    {
+      "file": "Animated Women Characters - Feb 2019-20260807T145249Z-1-001/Animated Women Characters - Feb 2019/OBJ/Smooth_Female_TankTop.obj",
+      "name": "smooth-female-tank-top",
+      "licence": "CC0",
+      "height": 1.68
+    },
     {
       "file": "Buildings Pack - Jan 2019-20260803T200313Z-1-001/Buildings Pack - Jan 2019/OBJ/Building1_Large.obj",
       "name": "building1-large",
@@ -768,6 +884,346 @@
       "licence": "CC0"
     },
     {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Bush_Common.obj",
+      "name": "bush-common",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Bush_Common_Flowers.obj",
+      "name": "bush-common-flowers",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Clover_1.obj",
+      "name": "clover-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Clover_2.obj",
+      "name": "clover-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/CommonTree_1.obj",
+      "name": "common-tree-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/CommonTree_2.obj",
+      "name": "common-tree-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/CommonTree_3.obj",
+      "name": "common-tree-3",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/CommonTree_4.obj",
+      "name": "common-tree-4",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/CommonTree_5.obj",
+      "name": "common-tree-5",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/DeadTree_1.obj",
+      "name": "dead-tree-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/DeadTree_2.obj",
+      "name": "dead-tree-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/DeadTree_3.obj",
+      "name": "dead-tree-3",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/DeadTree_4.obj",
+      "name": "dead-tree-4",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/DeadTree_5.obj",
+      "name": "dead-tree-5",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Fern_1.obj",
+      "name": "fern-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Flower_3_Group.obj",
+      "name": "flower-3-group",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Flower_3_Single.obj",
+      "name": "flower-3-single",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Flower_4_Group.obj",
+      "name": "flower-4-group",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Flower_4_Single.obj",
+      "name": "flower-4-single",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Grass_Common_Short.obj",
+      "name": "grass-common-short",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Grass_Common_Tall.obj",
+      "name": "grass-common-tall",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Grass_Wispy_Short.obj",
+      "name": "grass-wispy-short",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Grass_Wispy_Tall.obj",
+      "name": "grass-wispy-tall",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Mushroom_Common.obj",
+      "name": "mushroom-common",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Mushroom_Laetiporus.obj",
+      "name": "mushroom-laetiporus",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Pebble_Round_1.obj",
+      "name": "pebble-round-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Pebble_Round_2.obj",
+      "name": "pebble-round-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Pebble_Round_3.obj",
+      "name": "pebble-round-3",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Pebble_Round_4.obj",
+      "name": "pebble-round-4",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Pebble_Round_5.obj",
+      "name": "pebble-round-5",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Pebble_Square_1.obj",
+      "name": "pebble-square-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Pebble_Square_2.obj",
+      "name": "pebble-square-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Pebble_Square_3.obj",
+      "name": "pebble-square-3",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Pebble_Square_4.obj",
+      "name": "pebble-square-4",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Pebble_Square_5.obj",
+      "name": "pebble-square-5",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Pebble_Square_6.obj",
+      "name": "pebble-square-6",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Petal_1.obj",
+      "name": "petal-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Petal_2.obj",
+      "name": "petal-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Petal_3.obj",
+      "name": "petal-3",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Petal_4.obj",
+      "name": "petal-4",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Petal_5.obj",
+      "name": "petal-5",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Pine_1.obj",
+      "name": "pine-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Pine_2.obj",
+      "name": "pine-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Pine_3.obj",
+      "name": "pine-3",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Pine_4.obj",
+      "name": "pine-4",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Pine_5.obj",
+      "name": "pine-5",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Plant_1.obj",
+      "name": "plant-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Plant_1_Big.obj",
+      "name": "plant-1-big",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Plant_7.obj",
+      "name": "plant-7",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Plant_7_Big.obj",
+      "name": "plant-7-big",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/RockPath_Round_Small_1.obj",
+      "name": "rock-path-round-small-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/RockPath_Round_Small_2.obj",
+      "name": "rock-path-round-small-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/RockPath_Round_Small_3.obj",
+      "name": "rock-path-round-small-3",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/RockPath_Round_Thin.obj",
+      "name": "rock-path-round-thin",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/RockPath_Round_Wide.obj",
+      "name": "rock-path-round-wide",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/RockPath_Square_Small_1.obj",
+      "name": "rock-path-square-small-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/RockPath_Square_Small_2.obj",
+      "name": "rock-path-square-small-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/RockPath_Square_Small_3.obj",
+      "name": "rock-path-square-small-3",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/RockPath_Square_Thin.obj",
+      "name": "rock-path-square-thin",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/RockPath_Square_Wide.obj",
+      "name": "rock-path-square-wide",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Rock_Medium_1.obj",
+      "name": "rock-medium-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Rock_Medium_2.obj",
+      "name": "rock-medium-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/Rock_Medium_3.obj",
+      "name": "rock-medium-3",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/TwistedTree_1.obj",
+      "name": "twisted-tree-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/TwistedTree_2.obj",
+      "name": "twisted-tree-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/TwistedTree_3.obj",
+      "name": "twisted-tree-3",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/TwistedTree_4.obj",
+      "name": "twisted-tree-4",
+      "licence": "CC0"
+    },
+    {
+      "file": "Stylized Nature MegaKit[Standard]/OBJ/TwistedTree_5.obj",
+      "name": "twisted-tree-5",
+      "licence": "CC0"
+    },
+    {
       "file": "Ultimate Animated Animals - July 2021-20260803T200235Z-1-001/Ultimate Animated Animals - July 2021/OBJ/Alpaca.obj",
       "name": "alpaca",
       "licence": "CC0",
@@ -838,6 +1294,321 @@
       "name": "wolf",
       "licence": "CC0",
       "height": 0.85
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/BirchTree_1.obj",
+      "name": "birch-tree-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/BirchTree_2.obj",
+      "name": "birch-tree-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/BirchTree_3.obj",
+      "name": "birch-tree-3",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/BirchTree_4.obj",
+      "name": "birch-tree-4",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/BirchTree_5.obj",
+      "name": "birch-tree-5",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/Bush.obj",
+      "name": "bush",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/Bush_Flowers.obj",
+      "name": "bush-flowers",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/Bush_Large.obj",
+      "name": "bush-large",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/Bush_Large_Flowers.obj",
+      "name": "bush-large-flowers",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/Bush_Small.obj",
+      "name": "bush-small",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/Bush_Small_Flowers.obj",
+      "name": "bush-small-flowers",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/DeadTree_1.obj",
+      "name": "dead-tree-1-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/DeadTree_10.obj",
+      "name": "dead-tree-10",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/DeadTree_2.obj",
+      "name": "dead-tree-2-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/DeadTree_3.obj",
+      "name": "dead-tree-3-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/DeadTree_4.obj",
+      "name": "dead-tree-4-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/DeadTree_5.obj",
+      "name": "dead-tree-5-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/DeadTree_6.obj",
+      "name": "dead-tree-6",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/DeadTree_7.obj",
+      "name": "dead-tree-7",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/DeadTree_8.obj",
+      "name": "dead-tree-8",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/DeadTree_9.obj",
+      "name": "dead-tree-9",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/Flower_1.obj",
+      "name": "flower-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/Flower_1_Clump.obj",
+      "name": "flower-1-clump",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/Flower_2.obj",
+      "name": "flower-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/Flower_2_Clump.obj",
+      "name": "flower-2-clump",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/Flower_3_Clump.obj",
+      "name": "flower-3-clump",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/Flower_4_Clump.obj",
+      "name": "flower-4-clump",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/Flower_5_Clump.obj",
+      "name": "flower-5-clump",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/Grass_Large.obj",
+      "name": "grass-large",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/Grass_Large_Extruded.obj",
+      "name": "grass-large-extruded",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/Grass_Small.obj",
+      "name": "grass-small",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/MapleTree_1.obj",
+      "name": "maple-tree-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/MapleTree_2.obj",
+      "name": "maple-tree-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/MapleTree_3.obj",
+      "name": "maple-tree-3",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/MapleTree_4.obj",
+      "name": "maple-tree-4",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/MapleTree_5.obj",
+      "name": "maple-tree-5",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/NormalTree_1.obj",
+      "name": "normal-tree-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/NormalTree_2.obj",
+      "name": "normal-tree-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/NormalTree_3.obj",
+      "name": "normal-tree-3",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/NormalTree_4.obj",
+      "name": "normal-tree-4",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/NormalTree_5.obj",
+      "name": "normal-tree-5",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/PalmTree_1.obj",
+      "name": "palm-tree-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/PalmTree_2.obj",
+      "name": "palm-tree-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/PalmTree_3.obj",
+      "name": "palm-tree-3",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/PalmTree_4.obj",
+      "name": "palm-tree-4",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/PalmTree_5.obj",
+      "name": "palm-tree-5",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/Petals_1.obj",
+      "name": "petals-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/Petals_2.obj",
+      "name": "petals-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/Petals_3.obj",
+      "name": "petals-3",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/Petals_4.obj",
+      "name": "petals-4",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/PineTree_1.obj",
+      "name": "pine-tree-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/PineTree_2.obj",
+      "name": "pine-tree-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/PineTree_3.obj",
+      "name": "pine-tree-3",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/PineTree_4.obj",
+      "name": "pine-tree-4",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/PineTree_5.obj",
+      "name": "pine-tree-5",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/Plant_1.obj",
+      "name": "plant-1-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/Plant_2.obj",
+      "name": "plant-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/Plant_Flowers.obj",
+      "name": "plant-flowers",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/Rock_1.obj",
+      "name": "rock-1",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/Rock_2.obj",
+      "name": "rock-2",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/Rock_3.obj",
+      "name": "rock-3",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/Rock_4.obj",
+      "name": "rock-4",
+      "licence": "CC0"
+    },
+    {
+      "file": "Ultimate Stylized Nature - May 2022-20260807T144932Z-1-001/Ultimate Stylized Nature - May 2022/OBJ/Rock_5.obj",
+      "name": "rock-5",
+      "licence": "CC0"
     },
     {
       "file": "Universal Animation Library[Standard]/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb",

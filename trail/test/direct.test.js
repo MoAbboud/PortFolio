@@ -302,47 +302,68 @@ test('a model reports how wide its triangles typically are', () => {
     `a chunky box (${coarse.edge}) should be far coarser than a fine strip (${fine.edge})`);
 });
 
-test('a chunky model keeps its facets and its shimmer', () => {
-  // The low-poly packs are meant to look faceted and the shimmer was sized for
-  // them, so nothing about them should change.
-  const [smoothness, wobble] = finishFor(0.09);
-  assert.equal(smoothness, 0, 'a car was smoothed, losing the look it is drawn for');
-  assert.equal(wobble, 1, 'a car lost its shimmer');
+test('a chunky model keeps its facets', () => {
+  // The low-poly packs are meant to look faceted, and nothing about that should
+  // change. A uniform model - a lattice of cubes - also keeps its full shimmer,
+  // because that is what the shimmer was sized for in the first place.
+  assert.equal(finishFor(0.09, 0.09)[0], 0, 'a car was smoothed, losing the look it is drawn for');
+  assert.equal(finishFor(0.12, 0.12)[1], 1, 'a cube lost its shimmer');
 });
 
-test('a fine model is smoothed, and barely shimmers at all', () => {
-  // A rigged character's triangles are about six millimetres. Flat shading
-  // shatters it and a shimmer sized for cubes moves each vertex twice the width
-  // of its own triangles, which slides neighbouring faces through each other.
-  const [smoothness, wobble] = finishFor(0.0056);
-  assert.equal(smoothness, 1, 'a character was left faceted');
-  assert.ok(wobble < 0.2, `a character still shimmers at ${wobble} of full`);
+test('a fine model is smoothed', () => {
+  // A rigged character's triangles are millimetres across, and flat shading
+  // shatters it into something insect-like.
+  assert.equal(finishFor(0.0056, 0.0056)[0], 1, 'a character was left faceted');
 });
 
 test('nothing jumps between the two: a model in between is in between', () => {
-  const [smoothness, wobble] = finishFor(0.028);
+  const [smoothness] = finishFor(0.028, 0.028);
   assert.ok(smoothness > 0.1 && smoothness < 0.9, `smoothing snapped to ${smoothness}`);
-  assert.ok(wobble > 0.2 && wobble < 0.9, `shimmer snapped to ${wobble}`);
+});
+
+test('the shimmer is sized by the smallest triangle, not the typical one', () => {
+  // The bug this exists to prevent. A character is a broad torso and a face of
+  // tiny triangles: judged by its median it reads as coarse and gets a shimmer
+  // that moves a vertex further than an eye is wide, and the face comes apart.
+  const typical = 0.039;
+  const smallest = 0.0087;
+  const byMedian = finishFor(typical, typical)[1];
+  const bySmallest = finishFor(typical, smallest)[1];
+  assert.ok(bySmallest < byMedian / 3,
+    `a model with fine detail should shimmer far less: ${bySmallest} against ${byMedian}`);
+
+  // Smoothing still reads the typical triangle, so a coarse body stays faceted
+  // even when it carries fine detail somewhere.
+  assert.equal(finishFor(typical, smallest)[0], finishFor(typical, typical)[0]);
 });
 
 test('a shrunk model is judged at the size it is actually drawn', () => {
-  // Scale is applied per placement, so a model dropped to a quarter size has
-  // quarter-size triangles on screen and should be treated as the finer thing
-  // it has become.
-  const full = finishFor(0.05, 1);
-  const small = finishFor(0.05, 0.2);
+  // Scale is applied per placement, so a model dropped to a fifth has
+  // fifth-size triangles on screen and should be treated as the finer thing it
+  // has become.
+  const full = finishFor(0.05, 0.05, 1);
+  const small = finishFor(0.05, 0.05, 0.2);
   assert.ok(small[0] > full[0], 'shrinking a model did not make it smoother');
   assert.ok(small[1] < full[1], 'shrinking a model did not calm its shimmer');
 });
 
-test('the shimmer can never push a vertex further than its own triangles', () => {
+test('the shimmer can never push a vertex across its smallest triangle', () => {
   // The actual failure, stated as a number. The renderer moves a vertex by
-  // uShimmer * 3 * wobble, and the default shimmer is 0.004.
+  // uShimmer * 3 * wobble, and the default shimmer is 0.004. Every pair here is
+  // a real model: the typical edge and the fine one, measured off the library.
   const DEFAULT_SHIMMER = 0.004;
-  for (const edge of [0.0056, 0.012, 0.03, 0.0539, 0.0927]) {
-    const [, wobble] = finishFor(edge);
+  const measured = [
+    [0.0392, 0.0087],   // a man in a shirt
+    [0.0441, 0.0088],   // a woman in a dress
+    [0.0181, 0.0072],   // the smooth variant of the same man
+    [0.0927, 0.0147],   // a car
+    [0.1317, 0.0130],   // a birch tree
+    [0.0539, 0.0158],   // a couch
+  ];
+  for (const [edge, fine] of measured) {
+    const [, wobble] = finishFor(edge, fine);
     const moved = DEFAULT_SHIMMER * 3 * wobble;
-    assert.ok(moved < edge,
-      `a model with ${edge} triangles is moved ${moved.toFixed(4)}, which opens it up`);
+    assert.ok(moved < fine / 2,
+      `a model whose smallest triangle is ${fine} is moved ${moved.toFixed(4)}`);
   }
 });

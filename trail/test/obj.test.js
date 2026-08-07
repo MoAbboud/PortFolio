@@ -280,3 +280,31 @@ test('a meaningful material name still beats the model name', () => {
   assert.equal(bed.get('Sheets'), fromName('Sheets'));
   assert.notEqual(bed.get('Sheets'), bed.get('DarkWood'));
 });
+
+// --- growing things ----------------------------------------------------------
+
+test('a tree is not blue', () => {
+  // Two whole packs are plants, and "leaves" does not contain "leaf". Every one
+  // of these fell through to the hash: a birch had a blue trunk and a bush had
+  // blue leaves.
+  const green = (hex) => parseInt(hex.slice(3, 5), 16) > parseInt(hex.slice(1, 3), 16)
+    && parseInt(hex.slice(3, 5), 16) > parseInt(hex.slice(5, 7), 16);
+  for (const name of ['BirchTree_Leaves', 'Bush_Leaves', 'MapleTree_Leaves', 'Foliage']) {
+    assert.ok(green(fromName(name)), `${name} came out ${fromName(name)}, which is not a leaf`);
+  }
+  // Bark is brown or pale, never blue.
+  for (const name of ['NormalTree_Bark', 'MapleTree_Bark', 'Trunk']) {
+    const hex = fromName(name);
+    assert.ok(parseInt(hex.slice(1, 3), 16) >= parseInt(hex.slice(5, 7), 16),
+      `${name} came out ${hex}, which is blue`);
+  }
+});
+
+test('a species name beats the part name, and the part name beats nothing', () => {
+  // `MapleTree_Bark` must be bark and `MapleTree_Leaves` must be a leaf, from
+  // the same species word. Longest match is what makes that work.
+  assert.notEqual(fromName('MapleTree_Bark'), fromName('MapleTree_Leaves'));
+  assert.equal(fromName('MapleTree_Leaves'), fromName('BirchTree_Leaves'));
+  // A birch is pale, unlike every other bark.
+  assert.notEqual(fromName('BirchTree_Bark'), fromName('NormalTree_Bark'));
+});
