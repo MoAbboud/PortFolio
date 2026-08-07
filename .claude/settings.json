@@ -64,7 +64,20 @@
       "Bash(node --input-type=module --expose-gc -e ' *)",
       "Bash(grep -n \"reposition\\(state.selected, { ...layout\\\\[state.selected\\\\], model: next }\\)\" index.html)",
       "Bash(node --test test/script.test.js)",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(python3 -)",
+      "Bash(:)",
+      "Bash(awk '/^<script type=\"module\">/{f=1;start=NR;next} /^<\\\\/script>/{if\\(f\\){print \"module block: lines \" start \"-\" NR \" \\(\" NR-start \" lines\\)\"; f=0}}' index.html)",
+      "Bash(awk 'NR>636 && NR<2415' index.html)",
+      "Bash(grep -nE \"^  [a-zA-Z_$]\")",
+      "Bash(grep -vE \"^\\\\s*[0-9]+:  \\(const|let|var|function|async function|//|/\\\\*|\\\\*\\)\")",
+      "Bash(grep -cE \"^  [a-zA-Z_$][^=]*\\\\\\(\")",
+      "Bash(node --check lib/app.js)",
+      "Bash(awk '/^async function main\\\\\\(\\\\\\) \\\\{/,/^\\\\}/' lib/app.js)",
+      "Bash(grep -vE \":  \\(const|let|var|function|async|return|\\\\}|//\\)\")",
+      "Bash(awk '/^async function main\\\\\\(\\\\\\) \\\\{/{f=1} f' lib/app.js)",
+      "Bash(grep -n \"\\\\$$\")",
+      "Bash(node --check test/startup.test.js)"
     ],
     "additionalDirectories": [
       "\\tmp",

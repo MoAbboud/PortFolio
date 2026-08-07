@@ -8,7 +8,7 @@ whole thing. Cheap enough to redo, consistent enough to be a visual identity, re
 that a retake is free, and containing no artificial intelligence of any kind at runtime.
 
 **The app is built, running, and has a library of everything on disk.** The renderer, the
-camera, the route, the weather, the picking, the canvas file and the pen all exist, with 402
+camera, the route, the weather, the picking, the canvas file and the pen all exist, with 403
 tests behind them, and 220 models load when the page opens - four recipes and 216 meshes read
 as OBJ, glTF or `.glb`. Nothing is held back for licence, nothing in it is off-subject, and
 everything in it is a placeable object rather than a part of one.
@@ -19,6 +19,7 @@ every unresolved word visible as a gap. It places nothing: finding is automatic 
 tedious, placing is manual because it is what makes the video yours.
 
 **What is left before a first video is a canvas built from a real script, and watching it.**
+Nothing in that sentence is code any more.
 
 The question this plan was framed around, whether a camera tour of a static voxel world holds
 attention, has had a soft yes on a first look and has not been tested properly on a real
@@ -43,7 +44,7 @@ flowchart LR
 | 1 | Concept | The workflow, the look and the boundary are settled, and the rejected designs are recorded | Done |
 | 2 | Voxel format and import | The recipe voxeliser, the `.vox` reader, and a library that loads on open | **Done, and past it.** 220 models load from a manifest: the figure, three recipes, and 216 meshes in three formats. Every mesh has been checked all the way to a grid. The medieval voxel pack was retired as off-subject, and 101 facade parts of the Downtown kit were excluded as parts rather than objects |
 | 3 | Field and camera | Sky, shiny floor, 16:9 frame, a rectangle plus a pitch producing a correct framing | **Done**, and past it: free roaming, picking, dragging, a smooth surface, occlusion and contact shadows. Frame rate at full budget is still untested |
-| 4 | Script, canvas and route | Paste a script, get a tray of what it mentions, drag objects onto a plan, split the script into stages, draw a frame per stage | **Half done.** Objects can be placed, turned, ranged and saved, and a canvas file exists. **The script half does not exist at all**, and it is the app's whole concept |
+| 4 | Script, canvas and route | Paste a script, get a tray of what it mentions, drag objects onto a plan, split the script into stages, draw a frame per stage | **Done, without the plan.** Paste a script and get a tray, cast and gaps; place, pose and tint objects; add a step, frame it from the view, split the words into stages, set hold and weather. **There is still no top-down plan** - placing is done in the 3D view and framing by roaming to it, which has turned out to be enough |
 | 5 | Play mode | Ghosting, flying, weather cross-fade, scars, motion, name tags, the sync flash, and no interface at all | **Done**, apart from snow and motion in the cube path |
 | 6 | Preparation pipeline | A Colab notebook that turns CC0 packs into `library.js` and `lookup.js`. **Not on the critical path** | Not started. Survey and licence rules done, in `07-pipeline.md` |
 | 7 | First real video | A narration of yours, built, recorded, cut against your voice, published | Not started. Blocked on content, not on code |
@@ -83,8 +84,9 @@ is encouraging and it is not the test. The test is a full run on a canvas built 
 script, and that is finally possible: there is a library of 220 named models and a figure.
 
 **What has never been tried is the thing the app is for** - taking a real script, cutting it
-into stages, building a canvas for it, and watching the result. **One piece stands in the way,
-and it is the script panel.**
+into stages, building a canvas for it, and watching the result. **Nothing stands in the way of
+it any longer.** The script panel reads a narration, steps can be added and framed and split
+from the panel, and the library holds 220 models. The next move is not a feature.
 
 ## Decisions already made
 

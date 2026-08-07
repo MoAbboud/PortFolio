@@ -4,9 +4,14 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
 
 The app runs. Items past stage 1 are marked honestly: `[x]` means built and tested.
 
-**The next work is the script panel, in stage 4.** Every other stage is either done or off the
-critical path. The library holds 220 placeable models and nothing is held back, so there is no longer a
-content reason to build anything else first.
+**The next work is not code.** Take one of your own narrations, cut it into stages, build the
+canvas for it, and watch it. Everything needed exists: paste a script and Trail says what it can
+build, place and pose and tint the objects, add a step, frame it from the view, split the words
+into stages, then play it. Nothing needs the page source any more.
+
+The question the whole project was framed around - **is a camera tour of a static diorama
+something a person would watch** - is still unanswered, and it cannot be answered by more
+features.
 
 ## Stage 1 - Concept
 
@@ -344,9 +349,15 @@ alone, and `npm run scan` reported nothing new, which looks exactly like working
 ### The script
 
 - [x] Paste a script. It becomes one step holding all of it
-- [~] Split a step at the cursor, and merge two steps back together. **`splitStep` and
-      `mergeStep` are written and tested; the control needs step selection, which does not
-      exist yet**
+- [x] Split a step at the cursor, and merge two steps back together
+- [x] **The wiring moved out of the page into `lib/app.js`**, on the fourth startup bug,
+      which this project had already agreed was the signal. `index.html` is 493 lines of
+      markup; the startup test imports the module instead of scraping it out of the HTML
+- [x] **Nothing runs on the way down.** Everything above `begin()` is a declaration, so a
+      statement can no longer read a constant that is still in its dead zone. A test lists
+      any statement at `main`'s indent that is not a declaration or a callback registration
+- [ ] `lib/app.js` is still 1,980 lines in one scope. Splitting it further needs interfaces
+      for genuinely shared state, and is not what matters before a first video
 - [x] Tokenise: whitespace, punctuation, lowercase. No stemming, no stopwords, no grammar
 - [x] Resolve every token against the dictionary. **The dictionary is the noun detector**, and
       it is built from the library's own model names rather than by a pipeline
@@ -359,6 +370,11 @@ alone, and `npm run scan` reported nothing new, which looks exactly like working
 - [x] Name detection: capitalised, not sentence-initial, not in the dictionary, not a common
       capitalised word. **Offered, never assumed**
 - [x] Reading a script places nothing. A test records the object count before and after
+- [x] **Keys stay out of anything being typed into.** Every letter is a shortcut, so the
+      script box was unusable and the library's filter had been eating keys since the day
+      it was added. Asked of the focused element rather than defended field by field
+- [x] The startup stub records key handlers and knows what tag each element is, so hotkeys
+      can be tested at all - both were invisible to it before
 - [ ] Confirm a name as a cast member, with a colour and a tag
 - [ ] Tray search
 - [ ] The gap list is dominated by "the", "a", "was". Ordering by count puts function words

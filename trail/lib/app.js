@@ -1,0 +1,2001 @@
+// The app itself: the wiring that turns modules into a page you can use.
+//
+// **This was 1,950 lines inside index.html.** It moved because the same bug
+// appeared four times - a function reading a constant declared later - and the
+// agreed signal for moving it was the fourth. A module can be imported,
+// inspected and started deliberately; a script tag can only be read as text and
+// evaluated, which is what the startup test had been doing.
+//
+// It is not pure and it does not pretend to be: it owns the canvas, the panel,
+// the caches and the loop. Everything it decides *about* a model, a framing or
+// a script is decided in a pure module beside it and tested there.
+
+import { voxelise, hollow, anchor as reanchor } from './voxel.js';
+import {
+  assemble, assembleMeshes, contactShadows, bounds, place, objectBoxes,
+} from './scene.js';
+import { surfaceNets, fromTriangles } from './mesh.js';
+import { toNdc, insideFrame, rayThrough, pick, groundPoint, dragTo, rotateBy } from './pick.js';
+import { viewProjection, drift, routeAt, routeDuration } from './camera.js';
+import { orbit, zoom, panScreen, walk, rise, fit, tidy, centreOf } from './orbit.js';
+import { createRenderer } from './render.js';
+import { lerpWeather, resolve as resolveWeather, stampsUpTo } from './weather.js';
+import { scarMap } from './scars.js';
+import { multiply } from './mat4.js';
+import { serialise, parse, isRefusal } from './canvas.js';
+import { buildLookup, resolve, scriptOf, splitStep } from './script.js';
+import * as pen from './pen.js';
+import { thumbnail, preview } from './thumb.js';
+import { readVox, toGrid, isBadVox } from './vox.js';
+import { readObj, readMtl, voxeliseMesh, atHeight } from './obj.js';
+import { readGltf, readGlb, externalBuffers, clipNames } from './gltf.js';
+
+// Reached only if every module above loaded. The classic script watches for it.
+window.__trail.started = true;
+
+// --- the scene --------------------------------------------------------------
+// Three objects, three framings. Placement by hand for now; the plan view and
+// the object tray are the next stage.
+
+// `from` is the step an object solidifies at. Before it, the object is a ghost,
+// which is how the canvas reveals itself rather than being handed over at once.
+const PLACEMENTS = [
+  // Real models from a CC0 pack, drawn as the art they are. The figures below
+  // are still the hand-authored recipe, because it is the only model that can
+  // be tinted per character and the only one that moves.
+  { model: 'house1', at: [-6, 0, -4], rot: 14, from: 0 },
+  { model: 'normal-car1', at: [2.4, 0, 3.2], rot: -24, from: 1 },
+  // One figure recipe serves every character: the tints are who they are, and
+  // the label is what the viewer reads.
+  { model: 'person', at: [0.6, 0, 1.4], rot: 200, from: 1, label: 'Marla',
+    tints: { primary: '#e08a3c', hair: '#2b2118', skin: '#d9a97e' } },
+  { model: 'person', at: [-0.7, 0, 2.1], rot: 20, from: 1, label: 'Devon',
+    tints: { primary: '#3c7ae0', hair: '#4a3327', skin: '#c68a5e' } },
+  { model: 'tree',  at: [7, 0, -5], from: 0 },
+  { model: 'tree',  at: [-13.5, 0, 3.5], scale: 1.25, from: 2 },
+  { model: 'tree',  at: [9.5, 0, 5.5], scale: 0.8, from: 2 },
+];
+
+const ROUTE = [
+  { framing: { x: -11, z: -8.5, w: 11, d: 8.5, pitch: 19, yaw: -6 },
+    hold: 5000, weather: 'clear' },
+  { framing: { x: -1.2, z: 0.6, w: 8, d: 6, pitch: 13, yaw: 16 },
+    hold: 5000, approachTime: 3200, weather: 'storm' },
+  { framing: { x: -18, z: -12, w: 34, d: 25, pitch: 42, yaw: 0 },
+    hold: 9000, approachTime: 4200, weather: 'dusk' },
+];
+
+const SCARS = { extent: 60, resolution: 256, feather: 7 };
+const SOLIDIFY = 900;   // milliseconds for a ghost to become real
+
+const canvas = document.getElementById('stage');
+const flash = document.getElementById('flash');
+const hud = document.getElementById('hud');
+const toast = document.getElementById('toast');
+/**
+ * An element, or a useful complaint.
+ *
+ * Reaching for a control that is not in the markup used to surface as "cannot
+ * read properties of null", several frames away from the line that caused it
+ * and naming nothing. Renaming and removing controls is ordinary work, so the
+ * failure has to say which id, and where to look.
+ */
+const el = (id) => {
+  const node = document.getElementById(id);
+  if (node) return node;
+  const error = new Error(
+    `The page has no element with id "${id}".\n\n`
+    + 'Something in the code is reaching for a control that is not in the\n'
+    + 'markup. It was probably renamed or removed and this reference was left\n'
+    + `behind. Either add an element with id "${id}", or delete whatever is\n`
+    + 'still asking for it.'
+  );
+  error.missingId = id;
+  throw error;
+};
+
+let toastTimer;
+function say(message) {
+  toast.textContent = message;
+  toast.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('on'), 1800);
+}
+
+async function loadJson(path) {
+  const url = new URL(`./models/${path}`, location.href).href;
+  let response;
+  try {
+    response = await fetch(url);
+  } catch (cause) {
+    throw new Error(`could not reach ${url}\n(${cause.message})`);
+  }
+  if (!response.ok) {
+    throw new Error(`${url}\nreturned ${response.status} ${response.statusText}.`
+      + `\n\nThe file exists on disk, so the server is almost certainly rooted in`
+      + `\nthe wrong folder. Serve the trail folder itself.`);
+  }
+  return response.json();
+}
+
+const loadRecipe = (name) => loadJson(`${name}.json`);
+
+/** Text, for a mesh and the file naming its colours. */
+async function loadText(path) {
+  const response = await fetch(new URL(`./models/${path}`, location.href).href);
+  return response.ok ? response.text() : null;
+}
+
+/** Bytes, for a pack rather than a description. */
+async function loadBytes(path) {
+  const url = new URL(`./models/${path}`, location.href).href;
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`${url} returned ${response.status}`);
+  return new Uint8Array(await response.arrayBuffer());
+}
+
+/**
+ * A glTF model, as triangles.
+ *
+ * A `.glb` carries its numbers inside it and is one request. A `.gltf` keeps
+ * them in a companion `.bin` named in the document, which has to be fetched
+ * separately and relative to the model rather than to the page, because a pack
+ * puts every model and every buffer in one folder together.
+ */
+async function loadMesh(source, pose = null) {
+  // A pose and a set of tint slots travel with the model, so a rigged
+  // character can be read once per pose and come out as an ordinary,
+  // recolourable, entirely static object.
+  const how = { name: source.file, pose: pose ?? null, slots: source.slots ?? null };
+  if (source.kind === 'glb') {
+    const { json, binary } = readGlb(await loadBytes(source.file));
+    return { mesh: readGltf(json, [binary], how), clips: clipNames(json) };
+  }
+  const json = await loadJson(source.file);
+  const folder = source.file.slice(0, source.file.lastIndexOf('/') + 1);
+  const buffers = await Promise.all(externalBuffers(json).map(
+    (uri) => (uri ? loadBytes(folder + uri) : null)
+  ));
+  return { mesh: readGltf(json, buffers, how), clips: clipNames(json) };
+}
+
+async function main() {
+  const renderer = createRenderer(canvas);
+
+  // What the library holds is a manifest, not a list in the code, so adding a
+  // model is a file and a line of data.
+  const manifest = await loadJson('index.json');
+  // Only recipes are fetched as recipes. The arrangement may also name models
+  // from a pack, and those are listed by `loadPacks` and read when they are
+  // first wanted - asking for one as a `.json` here would simply 404.
+  const wanted = [...new Set(manifest.recipes)];
+  const recipes = Object.fromEntries(
+    await Promise.all(wanted.map(async (n) => [n, await loadRecipe(n)]))
+  );
+
+  // Cube size is a property of each recipe. This multiplies all of them at once
+  // so the right chunkiness can be found by eye rather than by guessing, and
+  // then written back into the models.
+  let cubeScale = 1;
+  let extent;
+  let grids = {};
+  let scene;
+  let boxes = [];
+  // Models drawn in a voxel editor and dropped onto the page. They live beside
+  // the recipes and nothing downstream can tell the difference.
+  const imported = {};
+  // Models read from a .vox file but not yet converted. A pack is often one
+  // file with hundreds inside, and most of them will never be placed.
+  const sources = {};
+
+  // A working copy, because objects get moved around and the original list is
+  // only the starting arrangement.
+  // Only the parts of the arrangement that can be built right now. Models from
+  // a pack are listed after the first frame, and the rest of the arrangement
+  // arrives with them - see `loadPacks` below. Starting with the whole thing
+  // would send the first rebuild down its "this model is missing" path before
+  // the page has finished setting itself up.
+  let layout = PLACEMENTS
+    .filter((p) => manifest.recipes.includes(p.model))
+    .map((p) => ({ ...p, at: [...p.at] }));
+  let route = ROUTE.map((s) => ({ ...s, framing: { ...s.framing } }));
+
+  let surface = 'mesh';     // 'cubes' | 'mesh'
+  // No relaxation and no averaged normals. Together those two produce a crisp
+  // faceted solid; either one on its own is what made it look like putty.
+  let roundness = 0;
+  let smoothing = 0;
+
+  /**
+   * Turn the same voxel grids into a smooth surface.
+   *
+   * Nothing about authoring changes: recipes still describe solids and the
+   * voxeliser still produces a grid. Only what is drawn is different, and the
+   * cubes stay uploaded so the two can be compared with one key.
+   */
+  /**
+   * What a placement is actually made of.
+   *
+   * A rigged model in one pose is different geometry from the same model in
+   * another, so everything that caches by model has to cache by pose as well:
+   * the grid, the converted mesh, the preview. The library name stays what the
+   * object says it is, and this is only ever a key.
+   */
+  const keyOf = (model, pose) => (
+    pose?.clip ? `${model}@${pose.clip}@${pose.time ?? 0}` : model
+  );
+  const keyFor = (placement) => keyOf(placement.model, placement.pose);
+
+  /** The pose an object is in, or the one its model starts in. */
+  const poseOf = (placement) => placement.pose ?? sources[placement.model]?.pose ?? null;
+
+  const meshCache = new Map();
+  // A drawn preview, kept so reopening the library is instant. Declared here
+  // rather than beside the panel that fills it, so that the code which releases
+  // a model can reach every cache it remains in - a function reading a
+  // constant declared four hundred lines later is how this page has broken
+  // three times.
+  const thumbs = new Map();
+
+  function remesh() {
+    // Only what is on the canvas, and only once per model. Meshing every grid
+    // meant the whole library, which grows as previews are drawn, and meshing
+    // it again on every frame of a drag.
+    const meshes = {};
+    for (const p of layout) {
+      const key = keyFor(p);
+      if (meshes[key]) continue;
+      let built = meshCache.get(key);
+      if (!built) {
+        // A model that arrived as a mesh is drawn as the mesh it is. Only the
+        // hand-authored recipes, which are described as solids and carry tint
+        // slots and pivots, still go round by way of cubes.
+        built = imported[key]?.drawn ?? surfaceNets(grids[key], { roundness });
+        meshCache.set(key, built);
+      }
+      meshes[key] = built;
+    }
+    const merged = assembleMeshes(
+      // The palette travels with whichever geometry was used, so the two paths
+      // cannot disagree about which colour a face is.
+      layout.map((p) => ({
+        mesh: meshes[keyFor(p)],
+        grid: meshes[keyFor(p)]?.palette
+          ? { palette: meshes[keyFor(p)].palette }
+          : grids[keyFor(p)],
+        ...p,
+      }))
+    );
+    renderer.uploadMesh(merged);
+    el('s-tris').textContent = merged.triangles.toLocaleString();
+    return merged;
+  }
+
+  /**
+   * Where the objects sit on the ground.
+   *
+   * Shadows are placed from the objects' own boxes, so they have to follow
+   * anything that moves. This used to live inside the mesh rebuild, which meant
+   * a dragged object left its shadow behind whenever the cubes were showing.
+   */
+  function refreshShadows() {
+    renderer.uploadShadows(contactShadows(scene, layout));
+  }
+
+  function rebuild() {
+    grids = {};
+    for (const [name, recipe] of Object.entries(recipes)) {
+      grids[name] = hollow(voxelise({ ...recipe, unit: recipe.unit * cubeScale }));
+    }
+    // Drawn models come in already voxelised, so they only need re-scaling and
+    // hollowing. Re-anchoring is what makes the block size slider reach them.
+    for (const [name, grid] of Object.entries(imported)) {
+      const unit = grid.baseUnit * cubeScale;
+      grids[name] = hollow(reanchor({ ...grid, unit }, grid.anchor));
+    }
+    // An entry whose model is not loaded would leave layout, scene.ranges and
+    // boxes out of step, and a drag would then move the wrong object and write
+    // over its neighbour's cubes. Drop it rather than carry a hole.
+    const missing = layout.filter((p) => !grids[keyFor(p)]).map((p) => p.model);
+    if (missing.length) {
+      layout = layout.filter((p) => grids[keyFor(p)]);
+      state.selected = -1;
+      say(`left out ${[...new Set(missing)].join(', ')}: not in the library`);
+    }
+    scene = assemble(layout.map((p) => ({ grid: grids[keyFor(p)], ...p })));
+    renderer.upload(scene);
+    boxes = objectBoxes(scene);
+    extent = bounds(scene);
+    el('s-cubes').textContent = scene.count.toLocaleString();
+    meshCache.clear();
+    remesh();
+    refreshShadows();
+    return scene;
+  }
+
+  /**
+   * Move or turn one object, rewriting only its own cubes.
+   *
+   * The cube count cannot change - it is the same grid either way - so the
+   * object keeps its slice of the buffers and the rest of the field is left
+   * alone entirely.
+   */
+  function reposition(index, placement) {
+    const swapped = keyFor(layout[index]) !== keyFor(placement);
+    layout[index] = placement;
+    // A different model has a different number of cubes, so its slice of the
+    // buffers no longer fits and the whole field has to be built again.
+    if (swapped) { rebuild(); autosave(); return; }
+    const part = place(grids[keyFor(placement)], placement);
+    const range = scene.ranges[index];
+    // If the slice no longer fits, writing into it would overwrite the next
+    // object's cubes. That is what made a dragged figure turn into half a tree.
+    if (!range || part.count !== range.count) { rebuild(); autosave(); return; }
+    scene.positions.set(part.positions.subarray(0, range.count * 3), range.start * 3);
+    renderer.updatePositions(scene.positions, range.start, range.count);
+    boxes = objectBoxes(scene);
+    // The surface and the shadows are both built from placements, so both have
+    // to follow. Shadows regardless of which way the field is being drawn.
+    if (surface === 'mesh') remesh();
+    refreshShadows();
+    autosave();
+  }
+
+  // Recomputed when a canvas is opened, since a different route runs for a
+  // different length of time.
+  let duration = routeDuration(route) / 1000;
+
+  // --- state ----------------------------------------------------------------
+  // Roaming and the route produce the same kind of value, so switching between
+  // them is a matter of which framing is current, not two camera systems.
+  const state = {
+    mode: 'route',          // 'route' | 'roam'
+    playing: true,
+    clock: 0,
+    pinned: null,
+    // Filled in by `begin`, once there is a scene to fit the camera around.
+    // Reading `extent` here is what forced `rebuild()` to run a thousand lines
+    // above everything it touches, which is where the trouble started.
+    roaming: null,
+    selected: -1,
+    forcedWeather: null,
+  };
+
+  function currentRoute() {
+    return state.pinned === null
+      ? routeAt(route, state.clock)
+      : { framing: route[state.pinned].framing, step: state.pinned, phase: 'held' };
+  }
+
+  /** Take over the camera, starting exactly where the route had left it. */
+  function roam(seedFrom) {
+    if (state.mode !== 'roam') {
+      state.roaming = { ...(seedFrom ?? currentRoute().framing) };
+      state.mode = 'roam';
+      state.playing = false;
+    }
+  }
+
+  function toRoute() {
+    state.mode = 'route';
+    state.playing = true;
+  }
+
+  // --- pointer --------------------------------------------------------------
+
+  let drag = null;
+  canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  /** The ray under the pointer, or null if the pointer is in the letterbox. */
+  function rayAt(event) {
+    const rect = canvas.getBoundingClientRect();
+    const view = renderer.view.css;
+    const ndc = toNdc(
+      event.clientX - rect.left - view.x,
+      event.clientY - rect.top - view.y,
+      { x: 0, y: 0, w: view.w, h: view.h },
+    );
+    if (!insideFrame(ndc)) return null;
+    const framing = state.mode === 'roam' ? state.roaming : currentRoute().framing;
+    return rayThrough(framing, ndc);
+  }
+
+  canvas.addEventListener('pointerdown', (event) => {
+    canvas.setPointerCapture(event.pointerId);
+    const ray = rayAt(event);
+    const hit = ray ? pick(ray, boxes) : null;
+
+    // Dragging an object you have already selected moves it. Dragging anything
+    // else moves the camera. One click to choose, then drag to arrange, so
+    // orbiting never fights with rearranging.
+    if (ray && hit && hit.index === state.selected) {
+      const ground = groundPoint(ray, layout[hit.index].at[1]);
+      const at = layout[hit.index].at;
+      drag = {
+        x: event.clientX, y: event.clientY, moved: 0, object: hit.index,
+        grab: ground ? [at[0] - ground[0], 0, at[2] - ground[2]] : [0, 0, 0],
+      };
+      canvas.classList.add('moving');
+      return;
+    }
+
+    const panning = event.button === 1 || event.button === 2 || event.shiftKey;
+    drag = { x: event.clientX, y: event.clientY, moved: 0, panning, object: null };
+    canvas.classList.add(panning ? 'panning' : 'dragging');
+  });
+
+  canvas.addEventListener('pointermove', (event) => {
+    if (!drag) return;
+    const dx = event.clientX - drag.x;
+    const dy = event.clientY - drag.y;
+    drag.x = event.clientX;
+    drag.y = event.clientY;
+    drag.moved += Math.abs(dx) + Math.abs(dy);
+
+    if (drag.object !== null) {
+      const ray = rayAt(event);
+      if (!ray) return;
+      const ground = groundPoint(ray, layout[drag.object].at[1]);
+      reposition(drag.object, dragTo(layout[drag.object], drag.grab, ground));
+      return;
+    }
+
+    roam();
+    state.roaming = drag.panning
+      ? panScreen(state.roaming, dx, dy, canvas.clientWidth)
+      : orbit(state.roaming, -dx * 0.32, dy * 0.26);
+  });
+
+  const endDrag = (event) => {
+    if (!drag) return;
+    // A press that did not really move is a click, and a click chooses.
+    if (drag.moved < 5 && drag.object === null) {
+      const ray = rayAt(event);
+      const hit = ray ? pick(ray, boxes) : null;
+      select(hit ? hit.index : -1);
+    }
+    drag = null;
+    canvas.classList.remove('dragging', 'panning', 'moving');
+    if (event && canvas.hasPointerCapture?.(event.pointerId)) {
+      canvas.releasePointerCapture(event.pointerId);
+    }
+  };
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', endDrag);
+
+  /**
+   * The colours a model leaves for someone else to fill in.
+   *
+   * A slot is a palette entry an artist marked as "decide this per placement".
+   * The figure has three; the rigged character has two. Anything with none is
+   * simply the colour it was drawn, and gets no controls.
+   */
+  function slotsOf(model) {
+    const palette = imported[model]?.drawn?.palette ?? grids[model]?.palette ?? [];
+    const found = new Map();
+    for (const entry of palette) {
+      // The model's own colour is the default, so an untinted placement looks
+      // like the model rather than going grey.
+      if (entry.slot && !found.has(entry.slot)) found.set(entry.slot, entry.hex ?? '#c8c8c8');
+    }
+    return found;
+  }
+
+  /**
+   * Step the selected object through the poses its model holds.
+   *
+   * The poses are only known once the model has been read, which happens when
+   * it is first placed - so the list is whatever the file turned out to carry
+   * rather than anything written down here.
+   */
+  async function cyclePose(by) {
+    if (state.selected < 0) return;
+    const placement = layout[state.selected];
+    const clips = sources[placement.model]?.clips ?? [];
+    if (clips.length < 2) { say(`${placement.model} holds no other poses`); return; }
+
+    const now = poseOf(placement);
+    const at = clips.indexOf(now?.clip);
+    const next = clips[(((at < 0 ? 0 : at + by) % clips.length) + clips.length) % clips.length];
+    // Held a little way in, because the first frame of a clip is usually the
+    // rest pose it eases out of rather than the thing the clip is named for.
+    const pose = { clip: next, time: 0.5 };
+
+    if (!await materialise(placement.model, pose).catch((error) => {
+      say(`could not pose ${placement.model}: ${error.message}`);
+      return null;
+    })) return;
+
+    reposition(state.selected, { ...placement, pose });
+    paintPose();
+    say(`${placement.model}: ${next}`);
+  }
+
+  /** The pose row, when the selected model has poses to offer. */
+  function paintPose() {
+    const host = el('poses');
+    host.innerHTML = '';
+    if (state.selected < 0) return;
+    const placement = layout[state.selected];
+    const clips = sources[placement.model]?.clips ?? [];
+    if (clips.length < 2) return;
+
+    const row = document.createElement('div');
+    row.className = 'row';
+    const label = document.createElement('span');
+    label.className = 'dim';
+    label.textContent = 'pose';
+    const value = document.createElement('span');
+    value.className = 'val';
+    const now = poseOf(placement);
+    value.textContent = `${now?.clip ?? 'rest'} (${Math.max(1, clips.indexOf(now?.clip) + 1)}/${clips.length})`;
+    row.append(label, value);
+
+    const buttons = document.createElement('div');
+    buttons.className = 'row';
+    for (const [text, by] of [['previous pose', -1], ['next pose', 1]]) {
+      const button = document.createElement('button');
+      button.className = 'btn';
+      button.textContent = text;
+      button.addEventListener('click', () => { cyclePose(by); });
+      buttons.append(button);
+    }
+    host.append(row, buttons);
+  }
+
+  /** A colour picker per slot, rebuilt whenever the selection changes. */
+  function paintTints() {
+    const host = el('tints');
+    host.innerHTML = '';
+    if (state.selected < 0) return;
+    const placement = layout[state.selected];
+    const slots = slotsOf(placement.model);
+    if (!slots.size) return;
+
+    for (const [slot, fallback] of slots) {
+      const row = document.createElement('div');
+      row.className = 'row';
+      const label = document.createElement('span');
+      label.className = 'dim';
+      label.textContent = slot;
+      const picker = document.createElement('input');
+      picker.type = 'color';
+      picker.value = placement.tints?.[slot] ?? fallback;
+      picker.addEventListener('input', () => {
+        const object = layout[state.selected];
+        if (!object) return;
+        object.tints = { ...object.tints, [slot]: picker.value };
+        // Colour lives in the buffers the scene was assembled into, so the
+        // field has to be put together again. Which one depends on how it is
+        // being drawn, the same as moving an object does.
+        if (surface === 'mesh') remesh(); else rebuild();
+        autosave();
+      });
+      row.append(label, picker);
+      host.append(row);
+    }
+  }
+
+  function select(index) {
+    state.selected = index;
+    el('s-sel').textContent = index < 0 ? 'nothing' : layout[index].model;
+    paintObject();
+    paintPose();
+    paintTints();
+    if (index >= 0) say(`${layout[index].model} selected - drag to move it`);
+  }
+  // Nothing is selected to begin with, and the panel says so in its markup.
+  // Calling select() here would reach the object controls before they exist.
+
+  canvas.addEventListener('wheel', (event) => {
+    event.preventDefault();
+    roam();
+    state.roaming = zoom(state.roaming, event.deltaY > 0 ? 1.12 : 1 / 1.12);
+  }, { passive: false });
+
+  // --- keys -----------------------------------------------------------------
+
+  // Walking is held, not tapped. Keys set a direction; the frame loop moves the
+  // camera by however much time has passed, with the velocity easing in and out
+  // so starting and stopping is not a jolt.
+  const WALK = {
+    w: [1, 0], s: [-1, 0], a: [0, -1], d: [0, 1],
+    arrowup: [1, 0], arrowdown: [-1, 0], arrowleft: [0, -1], arrowright: [0, 1],
+  };
+  const RISE = { q: -1, e: 1 };
+  const WALK_SPEED = 0.85;   // frame widths per second
+  const RISE_SPEED = 0.55;
+  const WALK_EASE = 9;       // how quickly velocity catches up
+
+  const held = new Set();
+  const velocity = { forward: 0, right: 0, up: 0 };
+  addEventListener('blur', () => held.clear());
+
+  /**
+   * Whether the keyboard belongs to something being typed into.
+   *
+   * Every letter on this page does something - `a` walks left, `r` restarts the
+   * take - so a script box is unusable until the keys know to stay out of it.
+   * Asked of the element rather than listed per control, because the next text
+   * field to be added would otherwise have the same bug on its first day.
+   */
+  const typing = (event) => {
+    const into = event.target;
+    if (!into) return false;
+    const tag = String(into.tagName ?? '').toLowerCase();
+    return tag === 'input' || tag === 'textarea' || tag === 'select' || !!into.isContentEditable;
+  };
+
+  addEventListener('keyup', (event) => {
+    if (typing(event)) return;
+    held.delete(event.key.toLowerCase());
+  });
+
+  // Climbing is q and e. It used to have a pair of buttons in the panel too,
+  // and they went when the panel was cut back to camera keys only.
+
+  addEventListener('keydown', async (event) => {
+    const key = event.key.toLowerCase();
+
+    // Nothing on this page is a shortcut while something is being written.
+    // Escape is the way out, because a field with the keyboard and no way to
+    // give it back is its own trap.
+    if (typing(event)) {
+      if (key === 'escape') event.target.blur?.();
+      return;
+    }
+
+    if (WALK[key] || RISE[key]) {
+      event.preventDefault();
+      held.add(key);
+      roam();
+      return;
+    }
+
+    // Keys move the camera and drive the take. Everything that is a value -
+    // roundness, cube size, shading, weather - is a control in the panel, so
+    // there is one place to look for it rather than a legend to memorise.
+    if (key === 'escape') {
+      select(-1);
+      return;
+    }
+
+    if (key === '[' || key === ']') {
+      event.preventDefault();
+      cycleSelected(key === ']' ? 1 : -1);
+      return;
+    }
+
+    if ((key === 'delete' || key === 'backspace') && state.selected >= 0) {
+      event.preventDefault();
+      removeSelected();
+      return;
+    }
+
+    if (key === 's' && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      download();
+      return;
+    }
+
+    if (key === ' ') {
+      event.preventDefault();
+      if (state.mode === 'roam') { toRoute(); say('following the route'); }
+      else state.playing = !state.playing;
+    } else if (key === 'f') {
+      roam();
+      state.roaming = fit(extent, { pitch: 42, yaw: state.roaming.yaw });
+      say('framed everything');
+    } else if (key === 'r') {
+      state.clock = 0; state.pinned = null; toRoute(); sync();
+    } else if (key === 'enter') {
+      event.preventDefault();
+      toggleFullscreen();
+    } else if (key === 'd') {
+      penMode(!ink.on);
+    } else if (key === 'h') {
+      const hiding = !hud.classList.contains('hidden');
+      hud.classList.toggle('hidden', hiding);
+      el('penui').classList.toggle('hidden', hiding);
+    } else if (key >= '1' && key <= String(route.length)) {
+      state.mode = 'route';
+      state.pinned = Number(key) - 1;
+      state.playing = false;
+    }
+  });
+
+  // --- fullscreen -----------------------------------------------------------
+  // The frame is always 16:9. A browser viewport is not, because tabs and the
+  // address bar take a slice of the height, so the composition gets black bars
+  // either side. Fullscreen makes the viewport the shape of the screen, and on
+  // a 16:9 monitor the bars disappear entirely rather than being worked around.
+
+  async function toggleFullscreen() {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await document.documentElement.requestFullscreen();
+    } catch (error) {
+      say(`fullscreen refused: ${error.message}`);
+    }
+  }
+
+  document.addEventListener('fullscreenchange', () => {
+    // Going fullscreen is what you do to record, and a recording should have no
+    // interface in it. `h` brings the panel back if it is wanted.
+    hud.classList.toggle('hidden', Boolean(document.fullscreenElement));
+    if (!document.fullscreenElement) say('press enter for fullscreen');
+  });
+
+  // --- keeping the work -----------------------------------------------------
+  // The canvas file is the whole state of a video. Autosaved to the browser so
+  // a reload is never a loss, and saveable to disk so it can live next to the
+  // script it belongs to.
+
+  const STORE = 'trail.canvas';
+  let scarredUpTo = -2;
+
+  function current() {
+    return serialise({
+      layout,
+      route,
+      look: { surface, roundness, smoothing, cubeScale },
+      title: 'untitled',
+    });
+  }
+
+  let saveTimer;
+  function autosave() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      try {
+        localStorage.setItem(STORE, JSON.stringify(current()));
+      } catch {
+        // A browser refusing storage costs the convenience and nothing else.
+      }
+    }, 400);
+  }
+
+  function apply(canvas) {
+    layout = canvas.layout;
+    route = canvas.route;
+    surface = canvas.look.surface;
+    roundness = canvas.look.roundness;
+    smoothing = canvas.look.smoothing;
+    cubeScale = canvas.look.cubeScale;
+    // The script is only ever the steps read in order, so opening a canvas
+    // fills the box from them rather than from a field of its own.
+    el('script').value = scriptOf(canvas.route);
+    state.selected = -1;
+    state.pinned = null;
+    state.clock = 0;
+    scarredUpTo = -2;
+    duration = routeDuration(route) / 1000;
+    rebuild();
+    select(-1);
+    paintScript();
+    paintStep();
+    paintPanel();
+  }
+
+  function restore() {
+    let saved;
+    try {
+      saved = localStorage.getItem(STORE);
+    } catch { return false; }
+    if (!saved) return false;
+    try {
+      apply(parse(saved));
+      return true;
+    } catch (error) {
+      // A stored canvas that cannot be read is not worth keeping.
+      try { localStorage.removeItem(STORE); } catch { /* nothing to do */ }
+      console.warn('the saved canvas could not be read:', error.message);
+      return false;
+    }
+  }
+
+  function download() {
+    const text = JSON.stringify(current(), null, 2);
+    const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'canvas.json';
+    link.click();
+    URL.revokeObjectURL(url);
+    say('canvas.json saved');
+  }
+
+  /**
+   * Bring in models drawn in MagicaVoxel.
+   *
+   * A `.vox` file is already a voxel grid with an indexed palette, so this
+   * skips voxelising, normalising and colour quantisation entirely. A file can
+   * hold hundreds of models - a whole pack is often one file - so they are
+   * parsed once and kept, and each one is only converted when it is first
+   * placed. Converting all of them up front would cost seconds for models that
+   * may never be used.
+   */
+  /**
+   * Take in a file of models.
+   *
+   * A `.vox` file can hold hundreds, so they are parsed once and only converted
+   * when one is first placed. Names come from a file beside the pack if there
+   * is one, because a `.vox` carries none of its own.
+   */
+  function addPack(base, bytes, names = null) {
+    const vox = readVox(bytes);
+    const taken = new Set([...Object.keys(recipes), ...Object.keys(sources)]);
+    for (let i = 0; i < vox.models.length; i++) {
+      let id = names?.[i] ?? (vox.models.length === 1 ? base : `${base}-${i + 1}`);
+      // Two models may be given the same name, and two packs may share one.
+      // Numbering the later ones keeps every entry reachable.
+      if (taken.has(id)) {
+        let n = 2;
+        while (taken.has(`${id}-${n}`)) n++;
+        id = `${id}-${n}`;
+      }
+      taken.add(id);
+      sources[id] = { kind: 'vox', vox, model: i };
+    }
+    paintLibrary();
+    return vox;
+  }
+
+  /**
+   * Every mesh the manifest lists, by path only.
+   *
+   * A mesh pack ships one OBJ per model and they are large - a house is
+   * thirty thousand triangles - so nothing is read here. Listing them costs
+   * nothing and each is fetched and voxelised the first time it is wanted.
+   */
+  function listMeshes() {
+    let added = 0;
+    let held = 0;
+    for (const mesh of manifest.meshes ?? []) {
+      if (sources[mesh.name] || recipes[mesh.name]) continue;
+      // The rule is CC0 only and the output is monetised video, so anything
+      // whose licence has not been established is not offered at all. A model
+      // that cannot be seen cannot be placed in a video by accident.
+      if (mesh.licence !== 'CC0') { held++; continue; }
+      // The format is the extension. Nothing downstream cares which it was:
+      // all three arrive as triangles and leave as the same voxel grid.
+      const kind = mesh.file.toLowerCase().endsWith('.obj') ? 'obj'
+        : mesh.file.toLowerCase().endsWith('.glb') ? 'glb' : 'gltf';
+      sources[mesh.name] = { kind, file: mesh.file, height: mesh.height };
+      added++;
+    }
+    // A rigged model is **one** entry however many poses it holds. Which pose
+    // it stands in belongs to the object once it is placed, not to the library:
+    // there are 309 poses across the library and listing them would bury
+    // everything else.
+    for (const rig of manifest.rigs ?? []) {
+      // Said out loud. A rig quietly losing its name to a recipe is invisible,
+      // and the model simply never appears - which is how this was found.
+      if (sources[rig.name] || recipes[rig.name]) {
+        say(`"${rig.name}" is already in the library, so that rig was left out`);
+        continue;
+      }
+      if (rig.licence !== 'CC0') { held++; continue; }
+      sources[rig.name] = {
+        kind: rig.file.toLowerCase().endsWith('.glb') ? 'glb' : 'gltf',
+        file: rig.file,
+        height: rig.height,
+        slots: rig.slots,
+        rig: true,
+        // What it stands in until somebody says otherwise. Without one a rigged
+        // model arrives in its bind pose, which for a character is a T-pose.
+        pose: rig.pose ? { ...rig.pose } : null,
+        clips: [],
+      };
+      added++;
+    }
+
+    if (added) paintLibrary();
+    if (held) say(`${held} models held back: their licence is not recorded as CC0`);
+    return added;
+  }
+
+  /** Everything the manifest says the library holds. Runs after the first frame. */
+  async function loadPacks() {
+    const meshes = listMeshes();
+    if (meshes) say(`${meshes} mesh models listed`);
+    for (const pack of manifest.packs ?? []) {
+      try {
+        const base = pack.file.split('/').pop().replace(/\.vox$/i, '');
+        const [bytes, names] = await Promise.all([
+          loadBytes(pack.file),
+          pack.names ? loadJson(pack.names).then((d) => d.names).catch(() => null) : null,
+        ]);
+        const vox = addPack(base, bytes, names);
+        say(`${pack.title ?? base}: ${vox.models.length} models`);
+      } catch (error) {
+        // A missing pack costs its models and nothing else.
+        say(`could not load ${pack.file}`);
+        console.error(error);
+      }
+    }
+  }
+
+  /** A file dropped on the page, rather than one the manifest knew about. */
+  async function addVoxFile(name, bytes) {
+    const base = name.replace(/\.vox$/i, '').replace(/[^a-z0-9_-]+/gi, '-').toLowerCase();
+    const names = await packNames(base, readVox(bytes).models.length);
+    const vox = addPack(base, bytes, names);
+    if (vox.models.length === 1) placeModel(base);
+    else say(`${name}: ${vox.models.length} models added`);
+    if (vox.usedDefaultPalette) say(`${name} carried no palette, so it is grey`);
+  }
+
+  /**
+   * Names for a pack, if anyone has written them down.
+   *
+   * A `.vox` file carries no names, so a pack arrives as hundreds of numbers.
+   * A file beside it in `models/names/` can say what each one is, which turns
+   * an unusable list into something you can filter for "table".
+   */
+  async function packNames(base, count) {
+    try {
+      const response = await fetch(new URL(`./models/names/${base}.json`, location.href).href);
+      if (!response.ok) return null;
+      const data = await response.json();
+      if (!Array.isArray(data.names) || data.names.length !== count) {
+        say(`names for ${base} do not match this file, so they were ignored`);
+        return null;
+      }
+      return data.names;
+    } catch {
+      return null;   // No names is the ordinary case, not a failure.
+    }
+  }
+
+  /**
+   * Convert a model the first time it is wanted, then keep it.
+   *
+   * A voxel model is already a grid and comes back at once. A mesh has to be
+   * fetched and voxelised, which is why this is asynchronous: doing it for all
+   * of them at startup would read tens of megabytes for models never used.
+   */
+  /**
+   * How many converted models to hold on to.
+   *
+   * Browsing the library converts everything it draws a preview of, and a
+   * converted model is its geometry: measured at about half a megabyte each,
+   * so the whole library at once is a hundred megabytes that is never given
+   * back. Objects on the canvas are always kept - dropping one of those would
+   * empty the scene - so this only ever releases models nobody is using.
+   */
+  const KEEP_CONVERTED = 48;
+  const usedAt = new Map();
+  let useClock = 0;
+  const touch = (id) => usedAt.set(id, ++useClock);
+
+  function forget() {
+    const held = Object.keys(imported);
+    if (held.length <= KEEP_CONVERTED) return 0;
+    const onCanvas = new Set(layout.map((p) => p.model));
+    const spare = held
+      .filter((id) => !onCanvas.has(id))
+      .sort((a, b) => (usedAt.get(a) ?? 0) - (usedAt.get(b) ?? 0));
+
+    let over = held.length - KEEP_CONVERTED;
+    let gone = 0;
+    for (const id of spare) {
+      if (over <= 0) break;
+      delete imported[id];
+      usedAt.delete(id);
+      // Both caches are keyed by model, and a mesh built from a grid that is
+      // no longer held would be the largest thing left pointing at nothing.
+      meshCache.delete(id);
+      thumbs.delete(id);
+      over--;
+      gone++;
+    }
+    return gone;
+  }
+
+  // What is being held, for the readout and for a test. A cache that quietly
+  // stops releasing looks exactly like one that works.
+  // What the selected object is standing in, for a test. A pose that silently
+  // fails to change looks exactly like one that has no other poses to go to.
+  window.__trail.posed = () => (
+    state.selected < 0 ? null : keyFor(layout[state.selected])
+  );
+
+  // How many objects are on the canvas. Reading a script must never change it:
+  // Trail finds things, and putting them anywhere is the user's act.
+  window.__trail.placed = () => layout.length;
+
+  // The route, for a test. Until step editing existed this could only be
+  // changed by editing the page source, so nothing could check it.
+  window.__trail.route = () => route.map((s) => ({
+    text: s.text ?? '', hold: s.hold, weather: s.weather, framing: { ...s.framing },
+  }));
+
+  window.__trail.held = () => ({
+    converted: Object.keys(imported).length,
+    previews: thumbs.size,
+    meshes: meshCache.size,
+  });
+
+  const pendingWork = new Map();
+  async function materialise(id, pose = null) {
+    const key = keyOf(id, pose);
+    touch(key);
+    if (imported[key]) return imported[key];
+    if (pendingWork.has(key)) return pendingWork.get(key);
+    const source = sources[id];
+    if (!source) return null;
+
+    const work = (async () => {
+      let grid;
+      // The model as its artist drew it, kept for anything that came in as a
+      // mesh. This is what actually gets drawn; the grid beside it is only
+      // still built because the object's box, its shadow and the extent of the
+      // world are all measured from the cube field.
+      let drawn = null;
+      if (source.kind === 'obj') {
+        const objText = await loadText(source.file);
+        if (!objText) throw new Error(`could not read ${source.file}`);
+        const mtlText = await loadText(source.file.replace(/\.obj$/i, '.mtl'));
+        const raw = readObj(objText, readMtl(mtlText ?? '', { model: id }));
+        grid = voxeliseMesh(raw, { id, cells: 34 });
+        drawn = fromTriangles(raw, { height: source.height });
+      } else if (source.kind === 'gltf' || source.kind === 'glb') {
+        const wanted = pose ?? source.pose;
+        const { mesh: raw, clips } = await loadMesh(source, wanted);
+        // Discovered on the first read and kept, so the panel can offer the
+        // poses a model holds without opening the file again.
+        if (clips.length && !source.clips.length) source.clips = clips;
+        grid = voxeliseMesh(raw, { id, cells: 34 });
+        drawn = fromTriangles(raw, { height: source.height });
+      } else {
+        grid = toGrid(source.vox, { model: source.model, unit: 0.12, anchor: 'base', id });
+      }
+      // A pack that normalised its models before exporting has lost their real
+      // sizes, so the manifest carries the height back. `fromTriangles` was
+      // already given the same number.
+      if (source.height) grid = atHeight(grid, source.height);
+      imported[key] = { ...grid, baseUnit: grid.unit, drawn };
+      return imported[key];
+    })();
+
+    // Cleared however it ends. Deleting only on success left a failed model's
+    // rejected promise in the map forever: it could never be tried again, and
+    // it held on to everything the attempt had allocated.
+    work.finally(() => {
+      pendingWork.delete(key);
+      touch(key);
+      forget();
+    }).catch(() => {});
+
+    pendingWork.set(key, work);
+    return work;
+  }
+
+  /** Put a model on the canvas, in the middle of whatever is being looked at. */
+  async function placeModel(id) {
+    const pose = sources[id]?.pose ? { ...sources[id].pose } : null;
+    if (!recipes[id]) {
+      const grid = await materialise(id, pose).catch((error) => {
+        say(`could not read ${id}: ${error.message}`);
+        return null;
+      });
+      if (!grid) return;
+    }
+    const framing = state.mode === 'roam' ? state.roaming : currentRoute().framing;
+    const [cx, cz] = centreOf(framing);
+    layout.push({ model: id, at: [cx, 0, cz], rot: 0, from: 0, ...(pose ? { pose } : {}) });
+    rebuild();
+    select(layout.length - 1);
+    paintLibrary();
+    autosave();
+    say(`${id} placed, ${(scene.ranges.at(-1)?.count ?? 0).toLocaleString()} blocks`);
+  }
+
+  /** Take the selected object off the canvas. */
+  function removeSelected() {
+    if (state.selected < 0) { say('nothing selected'); return; }
+    const gone = layout[state.selected].model;
+    layout.splice(state.selected, 1);
+    rebuild();
+    select(-1);
+    paintLibrary();
+    autosave();
+    say(`${gone} removed`);
+  }
+
+  // Drop a canvas or a model anywhere on the page.
+  addEventListener('dragover', (event) => event.preventDefault());
+  addEventListener('drop', async (event) => {
+    event.preventDefault();
+    const file = event.dataTransfer?.files?.[0];
+    if (!file) return;
+    try {
+      if (/\.vox$/i.test(file.name)) {
+        await addVoxFile(file.name, new Uint8Array(await file.arrayBuffer()));
+      } else {
+        apply(parse(await file.text()));
+        say(`opened ${file.name}`);
+      }
+    } catch (error) {
+      const known = isRefusal(error) || isBadVox(error);
+      say(known ? error.message : `could not open ${file.name}`);
+      if (!known) console.error(error);
+    }
+  });
+
+  // --- what the weather leaves behind ---------------------------------------
+  // Derived from the steps rather than accumulated over time, so jumping
+  // straight to the last step looks exactly like playing the whole route.
+
+  function scarsFor(step) {
+    if (step === scarredUpTo) return;
+    scarredUpTo = step;
+    renderer.setScars(
+      scarMap(stampsUpTo(route, step), SCARS),
+      SCARS.resolution,
+      SCARS.extent,
+    );
+  }
+
+  // --- name tags ------------------------------------------------------------
+  // The one piece of text. Drawn on a 2D layer over the scene, positioned by
+  // pushing the object's own anchor through the same matrix the cubes used.
+
+  const tags = document.getElementById('tags');
+  const tagCtx = tags.getContext('2d');
+
+  function project(matrix, point) {
+    const [x, y, z] = point;
+    const clip = [
+      matrix[0] * x + matrix[4] * y + matrix[8] * z + matrix[12],
+      matrix[1] * x + matrix[5] * y + matrix[9] * z + matrix[13],
+      matrix[2] * x + matrix[6] * y + matrix[10] * z + matrix[14],
+      matrix[3] * x + matrix[7] * y + matrix[11] * z + matrix[15],
+    ];
+    if (clip[3] <= 0) return null;   // behind the camera
+    return { x: clip[0] / clip[3], y: clip[1] / clip[3], w: clip[3] };
+  }
+
+  function drawTags(matrix, step) {
+    const view = renderer.view.css;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (tags.width !== Math.round(view.w * dpr) || tags.height !== Math.round(view.h * dpr)) {
+      tags.width = Math.round(view.w * dpr);
+      tags.height = Math.round(view.h * dpr);
+    }
+    tags.style.left = `${view.x}px`;
+    tags.style.top = `${view.y}px`;
+    tags.style.width = `${view.w}px`;
+    tags.style.height = `${view.h}px`;
+
+    tagCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    tagCtx.clearRect(0, 0, view.w, view.h);
+
+    for (let i = 0; i < layout.length; i++) {
+      const p = layout[i];
+      if (!p.label) continue;
+      if (step < (p.from ?? 0) || step > (p.until ?? 9999)) continue;
+      const box = boxes[i];
+      const anchor = [(box.min[0] + box.max[0]) / 2, box.max[1] + 0.5, (box.min[2] + box.max[2]) / 2];
+      const at = project(matrix, anchor);
+      if (!at || Math.abs(at.x) > 1.1 || Math.abs(at.y) > 1.1) continue;
+
+      // Tags fade with distance and vanish entirely on a wide shot, so the
+      // final pull-back is a diorama and not a cloud of labels.
+      const fade = Math.max(0, Math.min(1, (90 - at.w) / 45));
+      if (fade <= 0.02) continue;
+
+      const sx = (at.x * 0.5 + 0.5) * view.w;
+      const sy = (1 - (at.y * 0.5 + 0.5)) * view.h;
+      tagCtx.font = '600 13px ui-monospace, Consolas, monospace';
+      const width = tagCtx.measureText(p.label).width + 14;
+      tagCtx.globalAlpha = fade * 0.85;
+      tagCtx.fillStyle = '#0d1420';
+      tagCtx.fillRect(sx - width / 2, sy - 20, width, 20);
+      tagCtx.globalAlpha = fade;
+      tagCtx.fillStyle = '#eaf1f8';
+      tagCtx.textAlign = 'center';
+      tagCtx.fillText(p.label, sx, sy - 6);
+      tagCtx.globalAlpha = 1;
+    }
+  }
+
+  // --- the take -------------------------------------------------------------
+
+  // The sync flash: one white frame at the start, so lining the picture up
+  // against a voice track is a one-second job in a video editor.
+  function sync() {
+    flash.style.transition = 'none';
+    flash.style.opacity = '1';
+    requestAnimationFrame(() => {
+      flash.style.transition = 'opacity 90ms linear';
+      flash.style.opacity = '0';
+    });
+  }
+  // --- the pen --------------------------------------------------------------
+  // Marks on the glass, not in the world. They do not turn with the camera and
+  // they are not part of the canvas: this is for pointing at a shot while
+  // talking over it.
+
+  const penCanvas = el('pen');
+  const penCtx = penCanvas.getContext('2d');
+  const strokes = [];
+  const ink = { on: false, colour: pen.COLOURS[0], width: pen.WIDTH.default };
+  let inkDirty = true;
+  let drawing = null;
+
+  function paintInk() {
+    const view = renderer.view.css;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.round(view.w * dpr);
+    const h = Math.round(view.h * dpr);
+    if (penCanvas.width !== w || penCanvas.height !== h) {
+      penCanvas.width = w;
+      penCanvas.height = h;
+      inkDirty = true;
+    }
+    penCanvas.style.left = `${view.x}px`;
+    penCanvas.style.top = `${view.y}px`;
+    penCanvas.style.width = `${view.w}px`;
+    penCanvas.style.height = `${view.h}px`;
+    if (!inkDirty) return;
+    inkDirty = false;
+    penCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    pen.draw(penCtx, strokes, view.w, view.h);
+  }
+
+  function penMode(on) {
+    ink.on = on;
+    penCanvas.classList.toggle('on', on);
+    el('b-draw').setAttribute('aria-pressed', String(on));
+  }
+
+  penCanvas.addEventListener('pointerdown', (event) => {
+    if (!ink.on) return;
+    event.preventDefault();
+    penCanvas.setPointerCapture(event.pointerId);
+    const rect = penCanvas.getBoundingClientRect();
+    drawing = pen.start(ink.colour, ink.width);
+    pen.extend(drawing, ...pen.toFrame(event.clientX, event.clientY,
+      { x: rect.left, y: rect.top, w: rect.width, h: rect.height }));
+    strokes.push(drawing);
+    inkDirty = true;
+  });
+
+  penCanvas.addEventListener('pointermove', (event) => {
+    if (!drawing) return;
+    const rect = penCanvas.getBoundingClientRect();
+    const at = pen.toFrame(event.clientX, event.clientY,
+      { x: rect.left, y: rect.top, w: rect.width, h: rect.height });
+    if (pen.extend(drawing, ...at)) inkDirty = true;
+  });
+
+  const endStroke = () => { drawing = null; };
+  penCanvas.addEventListener('pointerup', endStroke);
+  penCanvas.addEventListener('pointercancel', endStroke);
+
+  // Swatches are built from the palette, so adding a colour is a one-line edit.
+  const swatches = el('swatches');
+  function buildSwatches() {
+    pen.COLOURS.forEach((colour) => {
+      const button = document.createElement('button');
+      button.style.background = colour;
+      button.dataset.v = colour;
+      button.title = colour;
+      button.addEventListener('click', () => {
+        ink.colour = colour;
+        paintSwatches();
+        if (!ink.on) penMode(true);
+      });
+      swatches.append(button);
+    });
+    paintSwatches();
+  }
+
+  function paintSwatches() {
+    for (const b of swatches.children) {
+      b.setAttribute('aria-pressed', String(b.dataset.v === ink.colour));
+    }
+  }
+
+  el('b-draw').addEventListener('click', () => penMode(!ink.on));
+  el('b-undo').addEventListener('click', () => {
+    if (pen.undo(strokes)) inkDirty = true;
+    else say('nothing to undo');
+  });
+  el('b-clear').addEventListener('click', () => {
+    if (!strokes.length) return;
+    strokes.length = 0;
+    inkDirty = true;
+    say('marks cleared');
+  });
+  el('r-pen').addEventListener('input', (event) => {
+    ink.width = Number(event.target.value);
+    el('v-pen').textContent = String(ink.width);
+  });
+
+  // --- steps ----------------------------------------------------------------
+  //
+  // A step is a rectangle on the ground and a pitch, plus the words said while
+  // the camera holds there. Everything a step is made of already existed - the
+  // route, the canvas file, playback, the scars - and could only be reached by
+  // editing the page source. This is the panel that reaches it.
+
+  /** The step being worked on. Pinning one is how you say which. */
+  const editing = () => Math.min(Math.max(0, state.pinned ?? 0), route.length - 1);
+
+  /**
+   * Everything that has to follow a change to the route.
+   *
+   * Gathered in one place because a step carries more than it looks: the
+   * buttons, how long the whole thing runs, the ground marks it leaves, and
+   * the range an object can be placed in.
+   */
+  function stepsChanged() {
+    buildSteps();
+    duration = routeDuration(route) / 1000;
+    // The marks the weather leaves are derived from the steps, so a changed
+    // route means a different ground. Forcing a rebuild keeps a seek looking
+    // exactly like a playthrough, which is the whole point of deriving them.
+    scarredUpTo = -2;
+    paintStep();
+    paintScript();
+    autosave();
+  }
+
+  function paintStep() {
+    const at = editing();
+    const step = route[at];
+    el('s-editing').textContent = route.length ? `${at + 1} of ${route.length}` : '-';
+    if (!step) return;
+    holdSlider.set(step.hold ?? 5000);
+    approachSlider.set(step.approachTime ?? 2500);
+    stepWeatherSeg.paint();
+    // The box shows the words of the step being worked on. While there is only
+    // one step that is the whole script, which is what pasting should give.
+    const box = el('script');
+    if (document.activeElement !== box) box.value = step.text ?? '';
+  }
+
+  el('b-step-add').addEventListener('click', () => {
+    const at = editing();
+    // A copy of the step it follows, so it is a real step immediately and the
+    // next act is moving the camera - which is what you were going to do.
+    const step = route[at];
+    route.splice(at + 1, 0, {
+      ...step,
+      framing: { ...step.framing },
+      text: '',
+    });
+    state.pinned = at + 1;
+    state.mode = 'route';
+    stepsChanged();
+    say(`step ${at + 2} added`);
+  });
+
+  el('b-step-remove').addEventListener('click', () => {
+    if (route.length < 2) { say('a route needs at least one step'); return; }
+    const at = editing();
+    const [gone] = route.splice(at, 1);
+    state.pinned = Math.min(at, route.length - 1);
+    stepsChanged();
+    say(gone.text ? 'step removed, and its words with it' : 'step removed');
+  });
+
+  el('b-step-frame').addEventListener('click', () => {
+    const at = editing();
+    // Roaming already produces a framing rather than an eye position, which is
+    // exactly why every angle found by roaming is a step that can be saved.
+    route[at].framing = tidy(state.mode === 'roam' ? state.roaming : currentRoute().framing);
+    stepsChanged();
+    say(`step ${at + 1} framed from here`);
+  });
+
+  el('b-step-split').addEventListener('click', () => {
+    const at = editing();
+    const box = el('script');
+    const cut = box.selectionStart ?? 0;
+    const split = splitStep(route, at, cut);
+    if (split.length === route.length) {
+      say('put the cursor where the next stage should begin');
+      return;
+    }
+    route = split;
+    state.pinned = at + 1;
+    state.mode = 'route';
+    stepsChanged();
+    say(`split into steps ${at + 1} and ${at + 2}`);
+  });
+
+  // --- the script -----------------------------------------------------------
+  //
+  // The concept, and the reason the rest exists. Paste the narration; Trail
+  // reads every word against the library and says which of them it can build.
+  // It never places anything: finding is automatic because it is tedious, and
+  // placing is manual because it is the part that makes the video yours.
+
+  let lookup = new Map();
+  let asked = { objects: [], cast: [], gaps: [], words: 0 };
+
+  /**
+   * The dictionary, rebuilt whenever the library changes.
+   *
+   * Straight from the model names, plus the synonyms file, because model names
+   * are literal and scripts are not - measured at 8 words of a paragraph on
+   * names alone and 13 with synonyms.
+   */
+  async function buildDictionary() {
+    let synonyms = {};
+    try {
+      synonyms = (await loadJson('synonyms.json')).words ?? {};
+    } catch {
+      // Optional. Without it the dictionary is model names only, which works
+      // and resolves rather less.
+    }
+    lookup = buildLookup(libraryNames(), synonyms);
+    paintScript();
+  }
+
+  /** What the script asks for, and what the library can answer with. */
+  function paintScript() {
+    const text = el('script').value;
+    asked = resolve(text, lookup);
+
+    el('s-objects').textContent = asked.objects.length
+      ? `${asked.objects.length} of ${asked.words} words`
+      : '-';
+    el('s-cast').textContent = asked.cast.length || '-';
+    el('s-gaps').textContent = asked.gaps.length || '-';
+
+    // The tray, in the order the story introduces things rather than
+    // alphabetically: a script is read from the top and so is this.
+    const tray = el('tray');
+    tray.innerHTML = '';
+    thumbQueue = thumbQueue.filter((job) => job.canvas.isConnected !== false);
+    for (const found of asked.objects) {
+      const model = found.models[0];
+      const button = document.createElement('button');
+      button.title = `${found.word} - ${found.models.join(', ')}`;
+      const tile = document.createElement('canvas');
+      tile.width = THUMB;
+      tile.height = THUMB;
+      button.append(tile);
+      const label = document.createElement('span');
+      label.textContent = found.count > 1 ? `${found.word} x${found.count}` : found.word;
+      button.append(label);
+      button.addEventListener('click', () => { placeModel(model).then(paintScript); });
+      tray.append(button);
+      thumbQueue.push({ canvas: tile, id: model });
+    }
+    runThumbQueue();
+
+    // Offered, never assumed. The heuristic misses anyone who only ever opens
+    // a sentence, and reads a place as a person; both are visible right here.
+    el('castlist').textContent = asked.cast.length
+      ? asked.cast.map((c) => `${c.name} x${c.count}`).join(', ')
+      : '';
+
+    // Visible rather than silently dropped. A gap is a decision - draw it,
+    // reword the line, or let the camera look elsewhere - and a decision
+    // nobody is shown is a decision nobody makes.
+    el('gaplist').textContent = asked.gaps.length
+      ? asked.gaps.slice(0, 60).map((g) => g.word).join(', ')
+      : '';
+  }
+
+  el('script').addEventListener('input', () => {
+    // Pasting makes one step holding everything; splitting it into stages is
+    // what creates the rest, so the script is exactly the steps joined up and
+    // can never drift out of step with the structure.
+    const step = route[editing()];
+    if (step) step.text = el('script').value;
+    paintScript();
+    autosave();
+  });
+
+  // --- the library ----------------------------------------------------------
+  // Everything that can be placed: the built-in recipes, and every model read
+  // from a dropped file. A pack arrives as one file with hundreds inside, so
+  // this needs a filter rather than a list you scroll.
+
+  // A page of models. Everything is reachable by paging rather than by
+  // narrowing the search until the list happens to be short enough.
+  const PAGE = 60;
+  // Drawn larger than the tile it is shown in, because a preview costs the same
+  // whatever its size - the work is walking the voxels, not filling pixels -
+  // and scaling down looks clean where scaling up does not.
+  const THUMB = 128;
+  let page = 0;
+
+  // Drawing a preview means converting the model, which is the expensive part.
+  // Both are cached, and the tiles fill in a few at a time so opening the panel
+  // never stutters. `thumbs` itself is declared with the other caches, because
+  // releasing a model has to clear all of them together.
+  let thumbQueue = [];
+  let thumbRunning = false;
+
+  async function drawThumbInto(canvasEl, id) {
+    const cached = thumbs.get(id);
+    if (cached) {
+      canvasEl.getContext('2d').putImageData(cached, 0, 0);
+      return true;
+    }
+    const grid = recipes[id]
+      ? grids[id]
+      : await materialise(id, sources[id]?.pose ?? null).catch(() => null);
+    if (!grid) return false;
+    // A model that is drawn as a mesh is previewed as one, so the picture in
+    // the library is the geometry that will actually appear on the canvas
+    // rather than a blocky stand-in for it.
+    const pixels = grid.drawn ? preview(grid.drawn, THUMB) : thumbnail(grid, THUMB);
+    const image = new ImageData(pixels, THUMB, THUMB);
+    thumbs.set(id, image);
+    canvasEl.getContext('2d').putImageData(image, 0, 0);
+    return true;
+  }
+
+  function runThumbQueue() {
+    if (thumbRunning) return;
+    thumbRunning = true;
+    const step = () => {
+      const started = performance.now();
+      // A few milliseconds a frame: the panel fills in visibly rather than
+      // freezing while sixty models are converted.
+      while (thumbQueue.length && performance.now() - started < 6) {
+        const job = thumbQueue.shift();
+        // A mesh has to be fetched, so this may finish after the frame does.
+        // Nothing waits on it: the tile fills in whenever it is ready.
+        if (job.canvas.isConnected !== false) drawThumbInto(job.canvas, job.id);
+      }
+      if (thumbQueue.length) requestAnimationFrame(step);
+      else thumbRunning = false;
+    };
+    requestAnimationFrame(step);
+  }
+
+  function libraryNames() {
+    return [...new Set([...Object.keys(recipes), ...Object.keys(sources)])].sort();
+  }
+
+  /** The models currently listed, which is what the cycle keys step through. */
+  let listed = [];
+
+  function paintLibrary() {
+    const all = libraryNames();
+    const needle = el('filter').value.trim().toLowerCase();
+    listed = needle ? all.filter((n) => n.includes(needle)) : all;
+    const placed = new Set(layout.map((p) => p.model));
+
+    el('s-lib').textContent = String(all.length);
+    el('s-found').textContent = needle
+      ? `${listed.length} of ${all.length}`
+      : `${all.length} models`;
+
+    const pages = Math.max(1, Math.ceil(listed.length / PAGE));
+    page = Math.min(Math.max(0, page), pages - 1);
+    const from = page * PAGE;
+    const slice = listed.slice(from, from + PAGE);
+
+    el('b-prev').disabled = page === 0;
+    el('b-next').disabled = page >= pages - 1;
+    el('s-more').textContent = listed.length
+      ? `${from + 1} to ${from + slice.length} of ${listed.length}   -   page ${page + 1} of ${pages}`
+      : 'nothing matches';
+
+    // Drawing a preview converts the model, so none are drawn while the dialog
+    // is shut. Otherwise opening the page would convert the whole library.
+    const list = el('library');
+    list.innerHTML = '';
+    thumbQueue = [];
+    if (!el('browser').open) return;
+
+    for (const name of slice) {
+      const button = document.createElement('button');
+      button.title = name;
+      if (placed.has(name)) button.className = 'drawn';
+
+      const tile = document.createElement('canvas');
+      tile.width = THUMB;
+      tile.height = THUMB;
+      button.append(tile);
+
+      const label = document.createElement('span');
+      label.textContent = name;
+      button.append(label);
+
+      button.addEventListener('click', () => {
+        placeModel(name).then(paintLibrary);
+      });
+      list.append(button);
+      thumbQueue.push({ canvas: tile, id: name });
+    }
+    runThumbQueue();
+  }
+
+  /**
+   * Step the selected object through the models on show.
+   *
+   * Trying a shape in place beats placing and deleting: the object keeps its
+   * position, turn and step range while only the model underneath changes.
+   */
+  async function cycleSelected(by) {
+    if (state.selected < 0) { say('select an object first'); return; }
+    if (!listed.length) { say('no models listed'); return; }
+    const current = layout[state.selected].model;
+    const at = listed.indexOf(current);
+    const next = listed[((at < 0 ? 0 : at + by) % listed.length + listed.length) % listed.length];
+    if (!recipes[next] && !await materialise(next, sources[next]?.pose ?? null).catch(() => null)) return;
+    reposition(state.selected, { ...layout[state.selected], model: next });
+    select(state.selected);
+    paintLibrary();
+    say(next);
+  }
+
+  el('filter').addEventListener('input', () => { page = 0; paintLibrary(); });
+  el('b-prev').addEventListener('click', () => { page--; paintLibrary(); });
+  el('b-next').addEventListener('click', () => { page++; paintLibrary(); });
+  el('b-remove').addEventListener('click', removeSelected);
+
+  const browser = el('browser');
+  function openLibrary() {
+    // Open first, then paint: previews are only drawn while the dialog is up,
+    // so painting before opening fills nothing and the library appears empty.
+    if (!browser.open) browser.showModal();
+    paintLibrary();
+    el('filter').focus();
+  }
+  el('b-library').addEventListener('click', openLibrary);
+  el('b-close').addEventListener('click', () => browser.close());
+  // A dialog takes the keyboard, and the camera keys would otherwise reach the
+  // page through it.
+  browser.addEventListener('keydown', (event) => event.stopPropagation());
+
+  // --- the panel ------------------------------------------------------------
+  // Keys move the camera. Everything that is a value lives here, in one place,
+  // with its number showing, so nothing has to be remembered.
+
+  const slider = (id, read, write, { live = true, after } = {}) => {
+    const input = el(id);
+    const label = el(id.replace('r-', 'v-'));
+    const show = () => { label.textContent = read(Number(input.value)); };
+    let pending;
+    input.addEventListener('input', () => {
+      show();
+      if (live) write(Number(input.value));
+      // Rebuilding a model is tens of milliseconds, which is fine on release
+      // and terrible on every pixel of a drag.
+      clearTimeout(pending);
+      pending = setTimeout(() => { after?.(Number(input.value)); autosave(); }, 90);
+    });
+    return { input, show, set: (v) => { input.value = String(v); show(); } };
+  };
+
+  const segment = (id, get, set) => {
+    const box = el(id);
+    const paint = () => {
+      for (const b of box.querySelectorAll('button')) {
+        b.setAttribute('aria-pressed', String(b.dataset.v === String(get() ?? '')));
+      }
+    };
+    box.addEventListener('click', (event) => {
+      const button = event.target.closest('button');
+      if (!button) return;
+      set(button.dataset.v);
+      paint();
+      autosave();
+    });
+    paint();
+    return { paint };
+  };
+
+  const roundSlider = slider('r-round', (v) => `${v}%`,
+    () => {}, { live: false, after: (v) => { roundness = v / 100; meshCache.clear(); remesh(); } });
+  const shadeSlider = slider('r-shade',
+    (v) => (v === 0 ? 'flat' : v === 100 ? 'smooth' : `${v}%`),
+    (v) => { smoothing = v / 100; });
+  const cubeSlider = slider('r-cube', (v) => `${v}%`,
+    () => {}, { live: false, after: (v) => { cubeScale = v / 100; rebuild(); } });
+
+  // A step's own numbers. Declared here with the other controls rather than
+  // beside the code that uses them, because `slider` and `segment` are defined
+  // in this section and a control built above them is read before it exists -
+  // which is the fourth time that has taken this page down.
+  const holdSlider = slider('r-hold', (v) => `${(v / 1000).toFixed(2)}s`,
+    (v) => { route[editing()].hold = v; }, { after: stepsChanged });
+  const approachSlider = slider('r-approach', (v) => (v ? `${(v / 1000).toFixed(2)}s` : 'cut'),
+    (v) => { route[editing()].approachTime = v; }, { after: stepsChanged });
+
+  const stepWeatherSeg = segment('step-weather',
+    () => route[editing()]?.weather ?? 'clear',
+    (v) => { route[editing()].weather = v; stepsChanged(); });
+
+  const surfaceSeg = segment('surface', () => surface, (v) => {
+    surface = v === 'cubes' ? 'cubes' : 'mesh';
+  });
+  const weatherSeg = segment('weather', () => state.forcedWeather ?? '', (v) => {
+    state.forcedWeather = v || null;
+  });
+
+  // One button per step, built from the route rather than written out, so a
+  // longer route does not need the panel edited.
+  function buildSteps() {
+    const box = el('steps');
+    box.innerHTML = '';
+    route.forEach((_, i) => {
+      const button = document.createElement('button');
+      button.textContent = String(i + 1);
+      button.dataset.v = String(i);
+      button.addEventListener('click', () => {
+        state.mode = 'route';
+        state.pinned = i;
+        state.playing = false;
+        // Pinning a step is also choosing which one to work on, so the panel
+        // follows rather than making you say it twice.
+        paintStep();
+      });
+      box.append(button);
+    });
+    el('r-from').max = String(route.length);
+  }
+
+  el('b-play').addEventListener('click', () => {
+    if (state.mode === 'roam') toRoute();
+    else state.playing = !state.playing;
+  });
+  el('b-restart').addEventListener('click', () => {
+    state.clock = 0; state.pinned = null; toRoute(); sync();
+  });
+  el('b-save').addEventListener('click', download);
+  el('b-open').addEventListener('click', () => el('file').click());
+  el('file').addEventListener('change', async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      apply(parse(await file.text()));
+      say(`opened ${file.name}`);
+    } catch (error) {
+      say(isRefusal(error) ? error.message : `could not open ${file.name}`);
+    }
+    event.target.value = '';
+  });
+  el('b-frame').addEventListener('click', async () => {
+    const framing = tidy(state.mode === 'roam' ? state.roaming : currentRoute().framing);
+    const text = `{ framing: ${JSON.stringify(framing)}, hold: 5000, approachTime: 3000 },`;
+    try {
+      await navigator.clipboard.writeText(text);
+      say('framing copied');
+    } catch {
+      say('clipboard refused; the framing is in the console');
+    }
+    console.log(text);
+  });
+
+  // The object controls act on whatever is selected, and are dead when nothing is.
+  const objectSliders = [
+    ['r-rot', (p) => (p.rot ?? 0), (p, v) => rotateBy({ ...p, rot: 0 }, v), (v) => `${v} deg`],
+    ['r-scale', (p) => (p.scale ?? 1) * 100, (p, v) => ({ ...p, scale: v / 100 }), (v) => `${v}%`],
+    ['r-from', (p) => (p.from ?? 0) + 1, (p, v) => ({ ...p, from: v - 1 }), (v) => `${v}`],
+  ];
+  function buildObjectSliders() {
+    for (const [id, , change, format] of objectSliders) {
+      const input = el(id);
+      const label = el(id.replace('r-', 'v-'));
+      input.addEventListener('input', () => {
+        label.textContent = format(Number(input.value));
+        if (state.selected < 0) return;
+        reposition(state.selected, change(layout[state.selected], Number(input.value)));
+      });
+    }
+  }
+
+  function paintObject() {
+    const chosen = state.selected >= 0 ? layout[state.selected] : null;
+    for (const [id, read, , format] of objectSliders) {
+      const input = el(id);
+      input.disabled = !chosen;
+      const value = chosen ? Math.round(read(chosen)) : Number(input.min);
+      input.value = String(value);
+      el(id.replace('r-', 'v-')).textContent = chosen ? format(value) : '-';
+    }
+  }
+
+  function paintPanel() {
+    roundSlider.set(Math.round(roundness * 100));
+    shadeSlider.set(Math.round(smoothing * 100));
+    cubeSlider.set(Math.round(cubeScale * 100));
+    surfaceSeg.paint();
+    weatherSeg.paint();
+    buildSteps();
+    paintObject();
+    paintLibrary();
+  }
+
+  /**
+   * Everything that actually runs, gathered into one place at the end.
+   *
+   * **This is the fix for a bug that happened four times.** Everything above is
+   * a declaration; nothing above executes. A statement part way down the file
+   * runs while the declarations below it are still in their dead zone, which is
+   * how `rebuild()` - once a thousand lines above the state it touches - kept
+   * reaching things that did not exist yet: `state`, `keyFor`, `slider`.
+   *
+   * Add code anywhere above this and it cannot run too early, because nothing
+   * up there runs at all.
+   */
+  function begin() {
+    buildSwatches();
+    buildObjectSliders();
+    rebuild();
+    // The camera is fitted to the world once the world exists.
+    state.roaming = fit(extent);
+    // Whatever was being worked on last time, if anything.
+    paintPanel();
+    sync();
+
+  // After the first frame, so the scene is on screen before a few megabytes of
+  // models are fetched and parsed.
+  // Packs first, then whatever was being worked on. Restoring before the
+  // library exists means the canvas refers to models that are not there yet.
+  requestAnimationFrame(async () => {
+    await loadPacks();
+    // The starting arrangement may name models from a pack, which are only
+    // listed until something asks for them. Read them now and build again, or
+    // the opening scene would drop every one of them as "not in the library".
+    const fromPacks = [...new Set(PLACEMENTS.map((p) => p.model))]
+      .filter((name) => !recipes[name] && sources[name]);
+    if (fromPacks.length) {
+      await Promise.all(fromPacks.map((name) => materialise(name).catch(() => null)));
+      layout = PLACEMENTS.map((p) => ({ ...p, at: [...p.at] }));
+      rebuild();
+    }
+    if (restore()) say('picked up where you left off');
+    // Built once the library is complete, because the dictionary is the
+    // library's own names and a half-loaded library is a half-built dictionary.
+    await buildDictionary();
+    paintPanel();
+  });
+
+  let last = performance.now();
+  let frames = 0, fpsClock = 0;
+
+  function frame(now) {
+    const delta = Math.min((now - last) / 1000, 0.1);
+    last = now;
+
+    frames++; fpsClock += delta;
+    if (fpsClock > 0.5) {
+      el('s-fps').textContent = `${Math.round(frames / fpsClock)} fps`;
+      frames = 0; fpsClock = 0;
+    }
+
+    // Smooth walking: ease the velocity toward what the keys are asking for,
+    // then move by time rather than by keypress.
+    const wants = { forward: 0, right: 0, up: 0 };
+    for (const key of held) {
+      if (WALK[key]) {
+        wants.forward += WALK[key][0];
+        wants.right += WALK[key][1];
+      }
+      if (RISE[key]) wants.up += RISE[key];
+    }
+    const ease = 1 - Math.exp(-delta * WALK_EASE);
+    velocity.forward += (wants.forward - velocity.forward) * ease;
+    velocity.right += (wants.right - velocity.right) * ease;
+    velocity.up += (wants.up - velocity.up) * ease;
+
+    if (state.mode === 'roam') {
+      if (Math.abs(velocity.forward) > 0.001 || Math.abs(velocity.right) > 0.001) {
+        state.roaming = walk(state.roaming, velocity.forward, velocity.right,
+          WALK_SPEED * delta);
+      }
+      if (Math.abs(velocity.up) > 0.001) {
+        state.roaming = rise(state.roaming, velocity.up * RISE_SPEED * delta);
+      }
+    } else {
+      velocity.forward = velocity.right = velocity.up = 0;
+    }
+
+    let framing;
+    let step = state.pinned ?? 0;
+    let stepT = 1;
+    let weather = resolveWeather(route[step]?.weather);
+
+    if (state.mode === 'roam') {
+      // No drift while roaming: it would fight the hand on the mouse.
+      framing = state.roaming;
+      el('mode').textContent = 'roaming';
+      el('mode').className = '';
+      el('s-step').textContent = 'free';
+    } else {
+      if (state.playing) state.clock = (state.clock + delta) % duration;
+      const at = currentRoute();
+      framing = drift(at.framing, now / 1000);
+      step = at.step;
+      el('mode').textContent = state.playing ? at.phase : 'paused';
+      el('mode').className = 'route';
+      el('s-step').textContent = `${at.step + 1} / ${route.length}`;
+
+      if (at.phase === 'fly' && route[at.step + 1]) {
+        // A flight is where the weather turns and the next part of the canvas
+        // arrives. Both land together, which reads as one change rather than two.
+        const flight = (route[at.step + 1].approachTime ?? 2500) / 1000;
+        const into = Math.min(1, Math.max(0, at.into ?? 0));
+        weather = lerpWeather(route[at.step].weather, route[at.step + 1].weather, into);
+        step = at.step + 1;
+        stepT = Math.min(1, (into * flight * 1000) / SOLIDIFY);
+      }
+    }
+
+    if (state.forcedWeather) weather = resolveWeather(state.forcedWeather);
+    scarsFor(state.mode === 'roam' ? route.length - 1 : step);
+    el('s-rain').textContent = `${Math.round((weather.rain ?? 0) * 100)}%`;
+
+    const [cx, cz] = centreOf(framing);
+    el('s-height').textContent = (framing.y ?? 0).toFixed(1);
+    el('s-centre').textContent = `${cx.toFixed(1)}, ${cz.toFixed(1)}`;
+    el('s-width').textContent = framing.w.toFixed(1);
+    el('s-angles').textContent = `${(framing.pitch ?? 25).toFixed(0)} / ${(framing.yaw ?? 0).toFixed(0)}`;
+
+    const { matrix, eye } = viewProjection(framing);
+    renderer.draw({
+      matrix, eye, time: now / 1000, weather,
+      selected: state.selected,
+      surface,
+      smooth: smoothing,
+      // While roaming, show the canvas as the story left it rather than ghosting
+      // half of it: roaming is for looking at the world, not for playing it.
+      step: state.mode === 'roam' ? route.length - 1 : step,
+      stepT,
+    });
+    drawTags(matrix, state.mode === 'roam' ? route.length - 1 : step);
+    paintInk();
+
+    const fill = renderer.view.fill;
+    const percent = Math.round(fill * 100);
+    el('s-fill').textContent = percent >= 100
+      ? '100%'
+      : `${percent}%  (enter)`;
+    el('s-fill').style.color = percent >= 99 ? '#7fd4a0' : '#e8c07f';
+
+    requestAnimationFrame(frame);
+  }
+    requestAnimationFrame(frame);
+  }
+
+  begin();
+}
+
+/**
+ * Start the app.
+ *
+ * The one thing this module does when asked, and nothing it does when merely
+ * imported - which is what lets a test import it, look at it, and start it
+ * deliberately rather than extracting it out of a page as text.
+ */
+export function start() {
+  return main().catch((error) => {
+    window.__trail.fail('Something failed while starting up.', report(error));
+    console.error(error);
+  });
+}
+
+/** Everything worth knowing about a failure, in the order it is worth knowing it. */
+function report(error) {
+  const lines = [error?.message ?? String(error)];
+
+  // The first frame inside the page is the one that matters. The rest of the
+  // stack is usually the browser's own machinery.
+  const frames = String(error?.stack ?? '')
+    .split('\n')
+    .slice(1)
+    .map((line) => line.trim())
+    .filter((line) => line.includes(location.origin) || line.includes('at '));
+  if (frames.length) {
+    lines.push('', 'Where:', ...frames.slice(0, 4).map((f) => `  ${f}`));
+  }
+
+  lines.push('', `Served from: ${location.href}`);
+  lines.push('The full error and its stack are in the browser console.');
+  return lines.join('\n');
+}

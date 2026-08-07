@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, writeFileSync, rmSync, existsSync, readdirSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { readVox } from '../lib/vox.js';
@@ -252,15 +252,32 @@ function stubBrowser({ frames = 3, ids = new Set(), tags = new Map() } = {}) {
 
 const page = () => readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 
+// The app's own source. Assertions about the markup read `page`; assertions
+// about what the code does read this. They were one file until the wiring moved
+// out of the page, and keeping them apart is what stops a test about behaviour
+// quietly passing because a comment in the HTML happened to match.
+const app = () => readFileSync(new URL('../lib/app.js', import.meta.url), 'utf8');
+
 // The models the opening arrangement names, read out of the page itself so the
 // test cannot drift from what actually ships.
-const PLACED = [...page().matchAll(/\{ model: '([^']+)'/g)].map((m) => m[1]);
+const PLACED = [...app().matchAll(/\{ model: '([^']+)'/g)].map((m) => m[1]);
 
-/** Pull the page's module out of index.html so Node can evaluate it. */
-function extractModule() {
-  const match = /<script type="module">([\s\S]*?)<\/script>/.exec(page());
-  assert.ok(match, 'index.html has no module script');
-  return match[1];
+/**
+ * Load the app and run it.
+ *
+ * It used to be scraped out of index.html as text and written to a scratch
+ * file, because that was the only way to reach code living in a script tag.
+ * The app is a real module now, so this imports it - which means the thing
+ * under test is the thing that ships, rather than a copy of it.
+ *
+ * The query string is a fresh module for every call: several tests start the
+ * app, and each needs its own.
+ */
+async function runApp() {
+  const { start } = await import(`../lib/app.js?t=${Date.now()}${Math.random()}`);
+  await start();
+  // The app's own startup is asynchronous, so let its promises settle.
+  for (let i = 0; i < 80; i += 1) await new Promise((r) => setTimeout(r, 0));
 }
 
 /** Every id the markup actually declares. Nothing else will resolve. */
@@ -273,16 +290,7 @@ const declaredTags = () => new Map(
 
 test('the page starts, loads its models, and draws', async () => {
   const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 60 });
-  const scratch = new URL('../.startup-test.mjs', import.meta.url);
-  writeFileSync(scratch, extractModule());
-
-  try {
-    await import(`${scratch.href}?t=${Date.now()}`);
-    // The module's own startup is async, so let its promises settle.
-    for (let i = 0; i < 80; i++) await new Promise((r) => setTimeout(r, 0));
-  } finally {
-    rmSync(scratch, { force: true });
-  }
+  await runApp();
 
   assert.deepEqual(stub.failures, [], 'the page reported a startup failure');
   assert.equal(stub.win.__trail.started, true, 'the module never reached its first line');
@@ -344,6 +352,39 @@ test('the page starts, loads its models, and draws', async () => {
   // Placing is the user's act, so reading a script must place nothing.
   assert.equal(stub.win.__trail.placed(), placedBefore,
     'reading a script put something on the canvas by itself');
+
+  // A step is a rectangle on the ground plus the words said while the camera
+  // holds there. All of it existed already and could only be reached by editing
+  // the page source; this is the panel that reaches it.
+  {
+    const before = stub.win.__trail.route().length;
+    stub.element('b-step-add').listeners.get('click')?.[0]?.();
+    for (let i = 0; i < 20; i++) await new Promise((r) => setTimeout(r, 0));
+    assert.equal(stub.win.__trail.route().length, before + 1, 'adding a step did nothing');
+
+    // The script box now writes to the step being worked on, not to the first.
+    box.value = 'The dog waited by the car.';
+    box.listeners.get('input')?.[0]?.();
+    for (let i = 0; i < 20; i++) await new Promise((r) => setTimeout(r, 0));
+    const route = stub.win.__trail.route();
+    assert.equal(route[1].text, 'The dog waited by the car.',
+      'the words went to the wrong step');
+    assert.notEqual(route[0].text, route[1].text, 'both steps got the same words');
+
+    // Splitting is what turns one pasted script into stages.
+    box.selectionStart = 4;
+    stub.element('b-step-split').listeners.get('click')?.[0]?.();
+    for (let i = 0; i < 20; i++) await new Promise((r) => setTimeout(r, 0));
+    const split = stub.win.__trail.route();
+    assert.equal(split.length, before + 2, 'splitting did not make a step');
+    assert.equal(split[1].text + split[2].text, 'The dog waited by the car.',
+      'splitting lost or invented words');
+
+    stub.element('b-step-remove').listeners.get('click')?.[0]?.();
+    for (let i = 0; i < 20; i++) await new Promise((r) => setTimeout(r, 0));
+    assert.equal(stub.win.__trail.route().length, before + 1, 'removing a step did nothing');
+    assert.deepEqual(stub.failures, [], 'editing the route reported a failure');
+  }
 
   // Every letter on this page does something, so a script box is unusable
   // until the keys stay out of it. Delete removes the selected object; pressed
@@ -446,19 +487,42 @@ test('a control that is not in the markup is reported by name', async () => {
   ids.delete('b-play');
 
   const stub = stubBrowser({ ids });
-  const scratch = new URL('../.startup-missing.mjs', import.meta.url);
-  writeFileSync(scratch, extractModule());
-  try {
-    await import(`${scratch.href}?t=${Date.now()}`);
-    for (let i = 0; i < 80; i++) await new Promise((r) => setTimeout(r, 0));
-  } finally {
-    rmSync(scratch, { force: true });
-  }
+  await runApp();
 
   assert.equal(stub.failures.length, 1, 'a missing control should stop the page');
   const said = stub.failures[0];
   assert.match(said, /b-play/, 'the failure must name the id that is missing');
   assert.match(said, /markup/i, 'and say where to look for it');
+});
+
+test('nothing in the app runs on the way down; it all runs in begin()', () => {
+  // The structural fix for a bug that happened four times. A statement part way
+  // down a two thousand line function runs while the declarations below it are
+  // still in their dead zone, which is how `rebuild()` kept reaching `state`,
+  // `keyFor` and `slider` before any of them existed.
+  //
+  // So the rule is: everything above `begin` is a declaration, and `begin` is
+  // the only thing that runs. Code added anywhere above it cannot run early,
+  // because nothing up there runs at all.
+  const body = app();
+  const from = body.indexOf('async function main()');
+  const to = body.indexOf('\n  function begin()');
+  assert.ok(from >= 0 && to > from, 'main() and begin() are not where this expects them');
+
+  const offenders = [];
+  for (const [i, line] of body.slice(from, to).split('\n').entries()) {
+    // Statements at main()'s own indent, ignoring declarations and anything
+    // that only registers a callback to be run later.
+    if (!/^ {2}[a-zA-Z_$]/.test(line)) continue;
+    if (/^ {2}(const|let|var|function|async|return|import|export)\b/.test(line)) continue;
+    if (/addEventListener|__trail\./.test(line)) continue;
+    offenders.push(`${i}: ${line.trim()}`);
+  }
+  assert.deepEqual(offenders, [],
+    'these run on the way down and will read a declaration below them one day');
+
+  assert.ok(/\n {2}begin\(\);\n}/.test(body),
+    'begin() is not the last thing main does');
 });
 
 test('every element the page reaches for exists in its own markup', () => {
@@ -535,7 +599,7 @@ test('anything not established as CC0 is held back rather than offered', () => {
   }
 
   // And the page must gate on it, not merely record it.
-  assert.match(page(), /mesh\.licence !== 'CC0'/,
+  assert.match(app(), /mesh\.licence !== 'CC0'/,
     'the page lists meshes without checking their licence');
 });
 
@@ -609,7 +673,7 @@ test('every mesh listed is in a format the page can actually read', () => {
   }
   // And the page must handle each format the manifest actually uses.
   for (const kind of kinds) {
-    assert.match(page(), new RegExp(`'${kind}'`),
+    assert.match(app(), new RegExp(`'${kind}'`),
       `the manifest lists .${kind} models and the page never mentions that kind`);
   }
 });
