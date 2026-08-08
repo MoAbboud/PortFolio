@@ -30,7 +30,12 @@ class FakeElement {
     // looked broken.
     this.tagName = String(tagName).toUpperCase();
     this.textContent = '';
-    this.innerHTML = '';
+    // Setting innerHTML to '' empties an element in a browser, and anything
+    // that rebuilds a list does exactly that before refilling it. A stub that
+    // kept its children made every rebuilt list look as though it had appended
+    // instead of replaced, which is a working implementation looking broken -
+    // the same shape of stub gap this file has now hit four times.
+    this._html = '';
     // An empty text input reads as '', not '0'. Defaulting to '0' made the
     // library's filter box look as though it contained "0", which filtered out
     // every model and hid the fact that no previews were being drawn.
@@ -50,6 +55,13 @@ class FakeElement {
     this.classList = {
       add: () => {}, remove: () => {}, toggle: () => {}, contains: () => false,
     };
+  }
+
+  get innerHTML() { return this._html; }
+
+  set innerHTML(value) {
+    this._html = String(value);
+    if (this._html === '') this.children = [];
   }
 
   addEventListener(type, fn) {
@@ -344,16 +356,15 @@ test('the page starts, loads its models, and draws', async () => {
   assert.equal(stub.win.__trail.placed(), placedBefore,
     'writing a note put something on the canvas by itself');
 
-  // A step is a rectangle on the ground plus the words said while the camera
-  // holds there. All of it existed already and could only be reached by editing
-  // the page source; this is the panel that reaches it.
+  // A step is added and removed from the clock bar, where steps live now. The
+  // panel's step editor was taken out for being three editors in one tab.
   {
     const before = stub.win.__trail.route().length;
     stub.element('b-step-add').listeners.get('click')?.[0]?.();
     for (let i = 0; i < 20; i++) await new Promise((r) => setTimeout(r, 0));
     assert.equal(stub.win.__trail.route().length, before + 1, 'adding a step did nothing');
 
-    // The script box now writes to the step being worked on, not to the first.
+    // The note box writes to the step being worked on, not to the first.
     box.value = 'The dog waited by the car.';
     box.listeners.get('input')?.[0]?.();
     for (let i = 0; i < 20; i++) await new Promise((r) => setTimeout(r, 0));
@@ -362,18 +373,9 @@ test('the page starts, loads its models, and draws', async () => {
       'the words went to the wrong step');
     assert.notEqual(route[0].text, route[1].text, 'both steps got the same words');
 
-    // Splitting is what turns one pasted script into stages.
-    box.selectionStart = 4;
-    stub.element('b-step-split').listeners.get('click')?.[0]?.();
-    for (let i = 0; i < 20; i++) await new Promise((r) => setTimeout(r, 0));
-    const split = stub.win.__trail.route();
-    assert.equal(split.length, before + 2, 'splitting did not make a step');
-    assert.equal(split[1].text + split[2].text, 'The dog waited by the car.',
-      'splitting lost or invented words');
-
     stub.element('b-step-remove').listeners.get('click')?.[0]?.();
     for (let i = 0; i < 20; i++) await new Promise((r) => setTimeout(r, 0));
-    assert.equal(stub.win.__trail.route().length, before + 1, 'removing a step did nothing');
+    assert.equal(stub.win.__trail.route().length, before, 'removing a step did nothing');
     assert.deepEqual(stub.failures, [], 'editing the route reported a failure');
   }
 
@@ -837,22 +839,34 @@ test('the new controls reach the canvas: a name, an hour, a move and a place', a
   // hour now, so this checks the slider changes it rather than creates it.
   assert.equal(typeof stub.win.__trail.canvas().steps[0].hour, 'number',
     'the opening route should carry times, since a step is named by its hour');
-  const hour = stub.element('r-hour');
-  hour.value = '1110';                       // 18:30
-  hour.listeners.get('input')?.[0]?.();
+  // When a step happens is set by dragging its mark along the bar. The slider
+  // that used to do it went with the step tab: the bar is the route editor now.
+  const mark = stub.element('ticks').children[0];
+  const track = stub.element('track');
+  track.getBoundingClientRect = () => ({ left: 0, top: 0, width: 240, height: 26 });
+  mark.setPointerCapture = () => {};
+  mark.hasPointerCapture = () => false;
+  mark.listeners.get('pointerdown')?.[0]?.({ pointerId: 1, clientX: 90 });
+  // Three quarters along a 240-wide day is six in the evening.
+  mark.listeners.get('pointermove')?.[0]?.({ pointerId: 1, clientX: 180 });
+  mark.listeners.get('pointerup')?.[0]?.({ pointerId: 1, clientX: 180 });
   for (let i = 0; i < 30; i++) await new Promise((r) => setTimeout(r, 0));
-  assert.equal(stub.win.__trail.canvas().steps[0].hour, 18.5, 'the hour never reached the step');
+  const hours = stub.win.__trail.canvas().steps.map((s) => s.hour);
+  assert.ok(hours.includes(18), `dragging a mark did not move when a step happens: ${hours}`);
+  // And the route follows the clock. It is walked in array order and read in
+  // time order, so a step dragged earlier has to move in the route as well or
+  // it would show earlier on the bar and still play in its old place.
+  assert.deepEqual(hours, [...hours].sort((a, b) => a - b),
+    `the route is not in the order it happens: ${hours}`);
 
-  // And back off again, which is a different thing from midnight.
-  stub.element('b-hour-off').listeners.get('click')?.[0]?.();
-  assert.equal(stub.win.__trail.canvas().steps[0].hour, undefined,
-    'there is no way back to a step with no set time');
-
-  // A camera move, saved on the step so a take plays the same way twice.
+  // The two camera moves are switches on the camera, not something a step
+  // carries: nothing the clock does may take the view from whoever composes it.
   stub.element('b-orbit').listeners.get('click')?.[0]?.();
-  assert.equal(stub.win.__trail.canvas().steps[0].orbit, 1, 'orbiting never reached the step');
+  assert.equal(stub.win.__trail.at().orbit, 1, 'orbiting never reached the camera');
+  assert.equal(stub.win.__trail.canvas().steps[0].orbit, undefined,
+    'a camera move must not be saved on a step any more');
   stub.element('b-orbit').listeners.get('click')?.[0]?.();
-  assert.equal(stub.win.__trail.canvas().steps[0].orbit, undefined, 'it could not be turned off');
+  assert.equal(stub.win.__trail.at().orbit, 0, 'it could not be turned off');
 
   assert.deepEqual(stub.failures, [], 'one of the new controls reported a failure');
 });
@@ -880,26 +894,128 @@ test('a step is named by its hour, and moving one drags its references with it',
   const pointing = before.objects.filter((o) => startsAt(o) === before.steps.length - 1);
   assert.ok(pointing.length, 'nothing in the opening scene appears at the last step');
 
-  // Pin the last step and move it to the front.
-  const strip = stub.element('steps').children;
-  strip[strip.length - 1].listeners.get('click')?.[0]?.();
-  stub.element('b-step-up').listeners.get('click')?.[0]?.();
-  stub.element('b-step-up').listeners.get('click')?.[0]?.();
+  // Pin the last step, by clicking its mark on the bar.
+  const marks = stub.element('ticks').children;
+  marks[marks.length - 1].listeners.get('click')?.[0]?.();
+  assert.equal(stub.win.__trail.at().step, before.steps.length - 1,
+    'clicking the last mark did not select it');
+  assert.ok(typeof wasLast === 'number', 'the last step should happen at a time');
 
-  const after = stub.win.__trail.canvas();
-  assert.equal(after.steps[0].hour, wasLast, 'the step did not move');
-  assert.equal(after.steps.length, before.steps.length, 'a step was lost on the way');
-  const nowPointing = after.objects.filter((o) => startsAt(o) === 0);
-  assert.equal(nowPointing.length, pointing.length,
-    'the objects that appeared at that step did not follow it, so the video is re-timed');
-
-  // And removing one must not leave anything pointing past the end.
+  // Removing it must not leave anything pointing past the end of the route.
   stub.element('b-step-remove').listeners.get('click')?.[0]?.();
   const shorter = stub.win.__trail.canvas();
-  assert.equal(shorter.steps.length, before.steps.length - 1);
+  assert.equal(shorter.steps.length, before.steps.length - 1, 'the step was not removed');
   for (const object of shorter.objects) {
     assert.ok(startsAt(object) < shorter.steps.length,
       `${object.model} appears at a step that is no longer there`);
   }
   assert.deepEqual(stub.failures, [], 'rearranging the route reported a failure');
+});
+
+test('the clock bar moves through the day, and the panel gets out of the way', async () => {
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 60 });
+  await runApp();
+  stub.allowFrames(120);
+  assert.deepEqual(stub.failures, [], 'the page reported a startup failure');
+
+  // A mark on the bar for every step that has a time.
+  const marks = stub.element('ticks').children;
+  const timed = stub.win.__trail.route().filter((s) => typeof s.hour === 'number');
+  assert.equal(marks.length, timed.length,
+    'the bar should carry one mark per step that happens at a time');
+  assert.ok(marks.length >= 2, 'this test needs a day with something in it');
+
+  // Clicking a mark lands on that step exactly.
+  marks[marks.length - 1].listeners.get('click')?.[0]?.();
+  const last = stub.win.__trail.route().length - 1;
+  assert.equal(stub.win.__trail.at().step, last, 'clicking the last mark did not go there');
+
+  // Stepping back through the day, by time rather than by number.
+  stub.element('b-time-prev').listeners.get('click')?.[0]?.();
+  assert.ok(stub.win.__trail.at().step < last, 'the previous step was never reached');
+
+  // And the panel hides and comes back.
+  const hud = stub.element('hud');
+  const toggle = stub.element('b-panel').listeners.get('click')?.[0];
+  assert.ok(toggle, 'there is no way to hide the panel');
+  let hidden = false;
+  hud.classList.toggle = (name, on) => { if (name === 'hidden') hidden = on; };
+  hud.classList.contains = () => hidden;
+  toggle();
+  assert.equal(hidden, true, 'the panel did not hide');
+  toggle();
+  assert.equal(hidden, false, 'the panel did not come back');
+
+  assert.deepEqual(stub.failures, [], 'the clock reported a failure');
+});
+
+test('with every step removed it is still a place at a time of day', async () => {
+  // Reported: "i removed all the steps and now i cant cycle the time and the
+  // weather doesnt change". The clock had nothing to interpolate and the
+  // weather control had no step to write to, so both went quietly dead.
+  //
+  // Frames are generous here because this test reads back what was actually
+  // drawn. The loop only continues while frames are allowed, and once it stops
+  // nothing restarts it - so what would be read is the sky from before the
+  // clock was touched.
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 4000 });
+  await runApp();
+
+  // Take every step away.
+  const remove = stub.element('b-step-remove').listeners.get('click')?.[0];
+  for (let i = 0; i < 12 && stub.win.__trail.route().length; i++) {
+    remove();
+    for (let n = 0; n < 5; n++) await new Promise((r) => setTimeout(r, 0));
+  }
+  assert.equal(stub.win.__trail.route().length, 0, 'the last step could not be removed');
+  assert.deepEqual(stub.failures, [], 'emptying the route reported a failure');
+
+  // The clock still moves, and the sun with it.
+  const track = stub.element('track');
+  track.getBoundingClientRect = () => ({ left: 0, top: 0, width: 240, height: 26 });
+  track.setPointerCapture = () => {};
+  track.hasPointerCapture = () => false;
+  track.listeners.get('pointerdown')?.[0]?.({ pointerId: 1, clientX: 60 });
+  assert.equal(stub.win.__trail.at().hour, 6, 'a quarter along the day is six in the morning');
+  // Frames have to actually run after the clock moves, or what is read back is
+  // the sky from before it was dragged.
+  const settle = async () => {
+    for (let i = 0; i < 40; i++) await new Promise((r) => setTimeout(r, 0));
+  };
+  await settle();
+  const dawn = stub.win.__trail.at().sun;
+  assert.ok(dawn, 'nothing was drawn, so the sky cannot be judged');
+  assert.ok(Math.abs(dawn[1]) < 0.25, `at six the sun should be near the horizon, was ${dawn[1]}`);
+
+  track.listeners.get('pointermove')?.[0]?.({ pointerId: 1, clientX: 120 });
+  track.listeners.get('pointerup')?.[0]?.({ pointerId: 1, clientX: 120 });
+  await settle();
+  assert.equal(stub.win.__trail.at().hour, 12, 'the clock stopped moving without steps');
+  // The proof that the clock still lights the world with no steps in it: the
+  // sun has to have climbed, not just the number changed.
+  assert.ok(stub.win.__trail.at().sun[1] > 0.9,
+    'at noon the sun should be overhead, so the hour never reached the sky');
+
+  track.listeners.get('pointerdown')?.[0]?.({ pointerId: 1, clientX: 180 });
+  track.listeners.get('pointerup')?.[0]?.({ pointerId: 1, clientX: 180 });
+  await settle();
+
+  // And the weather still changes: with no step to write to, it is the
+  // playground's own.
+  const storm = stub.element('step-weather');
+  storm.listeners.get('click')?.[0]?.({
+    target: { closest: () => ({ dataset: { v: 'storm' } }) },
+  });
+  for (let i = 0; i < 20; i++) await new Promise((r) => setTimeout(r, 0));
+  assert.equal(stub.win.__trail.at().weather, 'storm',
+    'the weather control did nothing because there was no step to write to');
+
+  // Adding a step takes the day as it stands rather than replacing it.
+  stub.element('b-step-add').listeners.get('click')?.[0]?.();
+  for (let i = 0; i < 20; i++) await new Promise((r) => setTimeout(r, 0));
+  const route = stub.win.__trail.route();
+  assert.equal(route.length, 1, 'the first step was never added');
+  assert.equal(route[0].hour, 18, 'the step did not take the time on the clock');
+  assert.equal(route[0].weather, 'storm', 'nor the weather on screen');
+  assert.deepEqual(stub.failures, [], 'the empty day reported a failure');
 });

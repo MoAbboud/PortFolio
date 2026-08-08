@@ -225,6 +225,80 @@ export function routeAt(steps, seconds) {
   return { framing: last.framing, step: steps.length - 1, phase: 'end', into: 1 };
 }
 
+/**
+ * The route read as a day rather than as a list.
+ *
+ * A step is named by the hour it happens at, so the clock is a way of moving
+ * through the route: drag to nine in the morning and you are looking at the
+ * step that happens then, drag between two and you are part way through the
+ * move between them.
+ *
+ * **This is the same shape as a flight, deliberately.** `step` is the step being
+ * arrived at and `into` is how far through arriving; the caller can hand both
+ * to the renderer exactly as it does during playback, so ghosting, solidifying,
+ * the weather cross-fade and an object walking its line all behave identically
+ * whether the route is playing or being scrubbed. There is no second code path.
+ *
+ * Steps are taken in **time order**, which is not always route order - a story
+ * may double back to an earlier hour - and steps with no hour are not on the
+ * clock at all, so they are left out rather than guessed at.
+ */
+export function routeAtHour(steps, hour) {
+  const timed = steps
+    .map((step, index) => ({ step, index }))
+    .filter(({ step }) => typeof step.hour === 'number' && Number.isFinite(step.hour))
+    .sort((a, b) => a.step.hour - b.step.hour || a.index - b.index);
+
+  if (!timed.length) return null;
+
+  const h = ((Number(hour) || 0) % 24 + 24) % 24;
+  const first = timed[0];
+  const last = timed[timed.length - 1];
+  // Before the day's first step and after its last, the world simply rests
+  // there. Wrapping round midnight would run the whole route backwards.
+  if (h <= first.step.hour) return { framing: first.step.framing, step: first.index, into: 1, at: h };
+  if (h >= last.step.hour) return { framing: last.step.framing, step: last.index, into: 1, at: h };
+
+  let i = 0;
+  while (i < timed.length - 2 && h > timed[i + 1].step.hour) i++;
+  const a = timed[i];
+  const b = timed[i + 1];
+  const span = b.step.hour - a.step.hour;
+  const t = span > 0 ? (h - a.step.hour) / span : 1;
+
+  return {
+    // No arc. A flight lifts in the middle to show the ground in between, which
+    // is a flourish for a move the viewer watches; scrubbing is somebody
+    // looking for a moment, and a camera that rises whenever you drag is
+    // fighting the hand on the mouse.
+    framing: lerpFraming(a.step.framing, b.step.framing, t, 0),
+    step: b.index,
+    into: t,
+    at: h,
+    fromStep: a.index,
+  };
+}
+
+/** The step before or after a moment, in time order. Null at either end. */
+export function stepAround(steps, hour, direction) {
+  const timed = steps
+    .map((step, index) => ({ step, index }))
+    .filter(({ step }) => typeof step.hour === 'number' && Number.isFinite(step.hour))
+    .sort((a, b) => a.step.hour - b.step.hour || a.index - b.index);
+  if (!timed.length) return null;
+
+  const h = ((Number(hour) || 0) % 24 + 24) % 24;
+  // A hair either side, so sitting exactly on a mark still moves off it rather
+  // than finding itself.
+  const edge = 1e-6;
+  if (direction < 0) {
+    for (let i = timed.length - 1; i >= 0; i--) if (timed[i].step.hour < h - edge) return timed[i];
+    return null;
+  }
+  for (let i = 0; i < timed.length; i++) if (timed[i].step.hour > h + edge) return timed[i];
+  return null;
+}
+
 export function routeDuration(steps) {
   return steps.reduce((total, step, i) => {
     const fly = i < steps.length - 1 ? (steps[i + 1].approachTime ?? 2500) : 0;

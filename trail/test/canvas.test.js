@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { serialise, parse, isRefusal, VERSION, reorder, moved, dropped } from '../lib/canvas.js';
+import { serialise, parse, isRefusal, VERSION, reorder, moved, dropped, byTime } from '../lib/canvas.js';
 
 const LAYOUT = [
   { model: 'house', at: [-6, 0, -4], rot: 14, from: 0 },
@@ -120,8 +120,23 @@ test('a step with a broken framing is refused, and says which', () => {
   );
 });
 
-test('a canvas with no steps is refused', () => {
-  refuses({ trail: VERSION, objects: [], steps: [] }, /at least one step/);
+test('a canvas with no steps is a canvas, not a broken one', () => {
+  // It used to be refused. A canvas with no steps is a place at a time of day
+  // with nothing laid over it yet, which is where every canvas starts and what
+  // is left when the last step is removed - and refusing it made removing that
+  // step impossible for no reason anybody could name.
+  const read = parse({ trail: VERSION, objects: [], steps: [] });
+  assert.deepEqual(read.route, []);
+  assert.deepEqual(read.layout, []);
+  // And it survives a round trip, so an empty day can be saved and reopened.
+  assert.deepEqual(parse(serialise(read)).route, []);
+});
+
+test('a canvas that is not one is still refused', () => {
+  // Relaxing the step rule must not relax the rest: the point of refusing is
+  // that a half-loaded canvas is worse than one that did not load.
+  refuses({ trail: VERSION, objects: [] }, /no steps list/);
+  refuses({ trail: VERSION, steps: [] }, /no objects list/);
 });
 
 // --- migration --------------------------------------------------------------
@@ -369,4 +384,44 @@ test('an order is a list of old positions, and a bad move is refused quietly', (
   assert.deepEqual(moved(3, 0, 5), [0, 1, 2], 'past the end is left alone');
   assert.deepEqual(moved(3, -1, 0), [0, 1, 2]);
   assert.deepEqual(dropped(3, 1), [0, 2]);
+});
+
+test('the route can be put in the order it happens', () => {
+  // The route is walked in array order and read in time order, so the two have
+  // to agree: a step dragged earlier on the clock has to move in the route as
+  // well, or it shows earlier on the bar and still plays in its old place.
+  const route = [
+    { framing: { x: 0, z: 0, w: 1, d: 1 }, hold: 0, hour: 18 },
+    { framing: { x: 0, z: 0, w: 1, d: 1 }, hold: 0, hour: 9 },
+    { framing: { x: 0, z: 0, w: 1, d: 1 }, hold: 0, hour: 13 },
+  ];
+  assert.deepEqual(byTime(route), [1, 2, 0]);
+  const out = reorder({ route, layout: [], areas: [] }, byTime(route));
+  assert.deepEqual(out.route.map((s) => s.hour), [9, 13, 18]);
+});
+
+test('a step with no hour is not on the clock, so it keeps its place at the end', () => {
+  const route = [
+    { framing: { x: 0, z: 0, w: 1, d: 1 }, hold: 0 },
+    { framing: { x: 0, z: 0, w: 1, d: 1 }, hold: 0, hour: 9 },
+    { framing: { x: 0, z: 0, w: 1, d: 1 }, hold: 0 },
+  ];
+  assert.deepEqual(byTime(route), [1, 0, 2], 'the untimed ones keep their own order');
+});
+
+test('a camera move is no longer something a step carries', () => {
+  // They became switches on the camera: anything a step does to the camera
+  // takes the view away from whoever is composing the shot.
+  const written = serialise({
+    layout: [],
+    route: [{ framing: { x: 0, z: 0, w: 10, d: 6 }, hold: 1000, orbit: 1, push: 1 }],
+  });
+  assert.ok(!('orbit' in written.steps[0]), 'a step should not save a camera move');
+  assert.ok(!('push' in written.steps[0]));
+  const read = parse({
+    trail: 4,
+    objects: [],
+    steps: [{ framing: { x: 0, z: 0, w: 10, d: 6 }, hold: 1000, orbit: 1 }],
+  });
+  assert.equal(read.route[0].orbit, undefined, 'an older file with one is read without it');
 });

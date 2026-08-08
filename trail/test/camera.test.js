@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   framingToView, viewProjection, lerpFraming, drift,
-  routeAt, routeDuration, easeInOut, ASPECT, autoMove, axesOf,
+  routeAt, routeAtHour, stepAround, routeDuration, easeInOut, ASPECT, autoMove, axesOf,
 } from '../lib/camera.js';
 
 const near = (a, b, tolerance = 1e-6) =>
@@ -277,4 +277,95 @@ test('the axes point where the camera actually looks', () => {
   for (let i = 0; i < 3; i++) {
     assert.ok(Math.abs(forward[i] - straight[i] / length) < 1e-9);
   }
+});
+
+// --- the route read as a day -------------------------------------------------
+
+const DAY_ROUTE = [
+  { framing: { x: 0, z: 0, w: 10, d: 6, pitch: 20, yaw: 0 }, hold: 1000, hour: 9 },
+  { framing: { x: 20, z: 20, w: 10, d: 6, pitch: 20, yaw: 0 }, hold: 1000, hour: 13 },
+  { framing: { x: 40, z: 40, w: 10, d: 6, pitch: 20, yaw: 0 }, hold: 1000, hour: 18 },
+];
+
+test('a route with no times is not a day, and says so rather than guessing', () => {
+  assert.equal(routeAtHour([{ framing: { x: 0, z: 0, w: 1, d: 1 }, hold: 0 }], 12), null);
+  assert.equal(routeAtHour([], 12), null);
+});
+
+test('scrubbing to a step lands exactly on it', () => {
+  const at = routeAtHour(DAY_ROUTE, 13);
+  assert.equal(at.step, 1);
+  assert.equal(at.into, 1, 'sitting on a step is having arrived at it');
+  assert.deepEqual(at.framing.x, 20);
+});
+
+test('between two steps it is part way through the move between them', () => {
+  const at = routeAtHour(DAY_ROUTE, 11);
+  assert.equal(at.step, 1, 'the step being arrived at');
+  assert.equal(at.fromStep, 0, 'the step being left');
+  assert.ok(Math.abs(at.into - 0.5) < 1e-9, 'eleven is halfway from nine to one');
+  // The framing is between the two, which is what makes scrubbing continuous.
+  assert.ok(at.framing.x > 0 && at.framing.x < 20, `framing was at ${at.framing.x}`);
+});
+
+test('what it hands back is the same shape a flight does', () => {
+  // This is the whole reason there is no second code path: the caller passes
+  // `step` and `into` to the renderer exactly as it does during playback, so
+  // ghosting, solidifying and an object walking its line behave identically.
+  const flying = routeAt(DAY_ROUTE, DAY_ROUTE[0].hold / 1000 + 0.5);
+  const scrubbed = routeAtHour(DAY_ROUTE, 11);
+  for (const key of ['framing', 'step', 'into']) {
+    assert.ok(key in flying, `a flight has no ${key}`);
+    assert.ok(key in scrubbed, `a scrubbed moment has no ${key}`);
+  }
+});
+
+test('scrubbing does not arc, because a camera that rises when you drag fights you', () => {
+  // A flight lifts in the middle to show the ground in between. Scrubbing is
+  // somebody looking for a moment, and the lift would be in the way.
+  const middle = routeAtHour(DAY_ROUTE, 11);
+  const flown = lerpFraming(DAY_ROUTE[0].framing, DAY_ROUTE[1].framing, 0.5);
+  assert.ok(middle.framing.w < flown.w, 'the scrubbed framing should not have widened');
+  assert.equal(middle.framing.w, 10, 'two steps of one width stay that width');
+});
+
+test('before the first step and after the last, the world rests there', () => {
+  // Rather than wrapping round midnight, which would run the whole route
+  // backwards the moment somebody dragged past the end.
+  const early = routeAtHour(DAY_ROUTE, 3);
+  assert.equal(early.step, 0);
+  assert.equal(early.into, 1);
+  const late = routeAtHour(DAY_ROUTE, 23);
+  assert.equal(late.step, 2);
+  assert.equal(late.into, 1);
+});
+
+test('steps are read in time order, not route order', () => {
+  // A story may double back, so the order they are written in is not the order
+  // they happen in, and the clock has to follow the clock.
+  const backwards = [DAY_ROUTE[2], DAY_ROUTE[0], DAY_ROUTE[1]];
+  const at = routeAtHour(backwards, 11);
+  assert.equal(at.fromStep, 1, 'nine in the morning is the second in this list');
+  assert.equal(at.step, 2, 'one in the afternoon is the third');
+});
+
+test('a step with no hour is left off the clock rather than guessed at', () => {
+  const mixed = [DAY_ROUTE[0], { framing: { x: 99, z: 0, w: 4, d: 4 }, hold: 0 }, DAY_ROUTE[2]];
+  const at = routeAtHour(mixed, 12);
+  assert.equal(at.fromStep, 0);
+  assert.equal(at.step, 2, 'the step with no time is skipped over');
+});
+
+test('the step before and after a moment are found by time', () => {
+  assert.equal(stepAround(DAY_ROUTE, 11, -1).index, 0);
+  assert.equal(stepAround(DAY_ROUTE, 11, 1).index, 1);
+  assert.equal(stepAround(DAY_ROUTE, 9, -1), null, 'nothing before the first');
+  assert.equal(stepAround(DAY_ROUTE, 18, 1), null, 'nothing after the last');
+});
+
+test('sitting exactly on a step still steps off it', () => {
+  // Otherwise the next button finds the step you are already on and nothing
+  // appears to happen.
+  assert.equal(stepAround(DAY_ROUTE, 13, 1).index, 2);
+  assert.equal(stepAround(DAY_ROUTE, 13, -1).index, 0);
 });

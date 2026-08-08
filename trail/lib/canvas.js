@@ -14,6 +14,14 @@ const isPair = (v) => Array.isArray(v) && v.length === 2 && v.every(isNumber);
 class Refused extends Error {}
 
 /** Everything currently on the canvas, ready to be written to disk. */
+/**
+ * Everything currently on the canvas, ready to be written to disk.
+ *
+ * **A canvas with no steps is a canvas.** It is a place at a time of day with
+ * nothing laid over it yet, which is where every canvas starts and what an
+ * empty route means. Refusing one used to be a rule here, and it made removing
+ * the last step impossible for no reason anybody could name.
+ */
 export function serialise({ layout, route, areas = [], look = {}, title = 'untitled' }) {
   return {
     trail: VERSION,
@@ -66,11 +74,6 @@ export function serialise({ layout, route, areas = [], look = {}, title = 'untit
       // the step takes whatever light its weather preset carries, which is what
       // every canvas did before there was a clock.
       ...(isNumber(s.hour) ? { hour: round(s.hour) } : {}),
-      // A move the camera makes by itself while it holds here. Saved on the
-      // step rather than being a live switch, so a take plays the same way
-      // twice - which is the whole reason play mode carries no interface.
-      ...(s.orbit ? { orbit: 1 } : {}),
-      ...(s.push ? { push: 1 } : {}),
       ...(s.text ? { text: s.text } : {}),
     })),
   };
@@ -121,8 +124,6 @@ export function parse(input) {
     if (!isNumber(s.hold) || s.hold < 0) throw new Refused(`step ${i + 1} has no hold`);
   });
 
-  if (migrated.steps.length === 0) throw new Refused('a canvas needs at least one step');
-
   return {
     title: migrated.title ?? 'untitled',
     look: {
@@ -164,8 +165,6 @@ export function parse(input) {
       // Wrapped rather than refused, because an hour outside the clock is a
       // typo in a hand-edited file and 25:00 plainly means one in the morning.
       ...(isNumber(s.hour) ? { hour: ((s.hour % 24) + 24) % 24 } : {}),
-      ...(s.orbit ? { orbit: 1 } : {}),
-      ...(s.push ? { push: 1 } : {}),
       ...(s.text ? { text: s.text } : {}),
     })),
   };
@@ -268,6 +267,25 @@ export function moved(length, from, to) {
   const [taken] = order.splice(from, 1);
   order.splice(to, 0, taken);
   return order;
+}
+
+/**
+ * The order that puts the route in the order it happens.
+ *
+ * A step is named by its hour and the route is walked in array order, so the
+ * two have to agree: dragging a step earlier on the clock would otherwise leave
+ * it playing in its old place. Steps with no hour are not on the clock at all,
+ * so they keep their positions relative to each other and sit at the end.
+ */
+export function byTime(route) {
+  return route
+    .map((step, index) => ({ step, index }))
+    .sort((a, b) => {
+      const at = typeof a.step.hour === 'number' ? a.step.hour : Infinity;
+      const bt = typeof b.step.hour === 'number' ? b.step.hour : Infinity;
+      return at - bt || a.index - b.index;
+    })
+    .map(({ index }) => index);
 }
 
 /** The order that drops one step. */

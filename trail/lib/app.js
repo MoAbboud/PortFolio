@@ -16,15 +16,18 @@ import {
 } from './scene.js';
 import { surfaceNets, fromTriangles } from './mesh.js';
 import { toNdc, insideFrame, rayThrough, pick, groundPoint, dragTo, rotateBy } from './pick.js';
-import { viewProjection, drift, autoMove, routeAt, routeDuration, easeInOut } from './camera.js';
+import {
+  viewProjection, drift, autoMove, routeAt, routeAtHour, stepAround,
+  routeDuration, easeInOut,
+} from './camera.js';
 import { orbit, zoom, panScreen, walk, rise, fit, tidy, centreOf } from './orbit.js';
 import { createRenderer } from './render.js';
 import { lerpWeather, resolve as resolveWeather, stampsUpTo } from './weather.js';
 import { clockOf } from './daylight.js';
 import { scarMap } from './scars.js';
 import { multiply } from './mat4.js';
-import { serialise, parse, isRefusal, reorder, moved, dropped } from './canvas.js';
-import { scriptOf, splitStep } from './script.js';
+import { serialise, parse, isRefusal, reorder, dropped, byTime } from './canvas.js';
+import { scriptOf } from './script.js';
 import * as pen from './pen.js';
 import { thumbnail, preview } from './thumb.js';
 import { readVox, toGrid, isBadVox } from './vox.js';
@@ -475,9 +478,30 @@ async function main() {
     // When the shot being watched began, so a camera move that was asked for
     // is measured from the start of its own shot rather than from wall time.
     shotAt: null,
+    // **The hour is a property of the world, not of the route.** It is always a
+    // number, so an empty canvas is a place at a time of day that can be looked
+    // at, lit and walked around before a single step exists. Steps are added to
+    // a playground rather than being the thing that makes one.
+    hour: 12,
+    // Whether the clock is being driven by hand rather than by playback.
+    scrubbing: false,
+    // The weather of the playground: what the world looks like where no step
+    // says otherwise. A step's own weather wins wherever one applies.
+    weather: 'clear',
+    // The two moves the camera can make on its own. On the camera rather than
+    // on a step, because nothing the clock does may take the view away from
+    // whoever is composing it.
+    orbit: 0,
+    push: 0,
   };
 
   function currentRoute() {
+    // An empty day has nothing to walk. The camera is wherever it was left,
+    // which is the whole point of a playground: a place exists before a story
+    // has been laid over it.
+    if (!route.length) {
+      return { framing: state.roaming ?? fit(extent), step: 0, phase: 'held', into: 1 };
+    }
     return state.pinned === null
       ? routeAt(route, state.clock)
       : { framing: route[state.pinned].framing, step: state.pinned, phase: 'held' };
@@ -1373,8 +1397,25 @@ async function main() {
   // control actually reached the file rather than only that it did not throw.
   window.__trail.canvas = () => current();
 
+  // Where in the day the clock is, and which step that is. For a test: the
+  // bar is the main control now, so what it is pointing at is worth asking.
+  window.__trail.at = () => ({
+    hour: state.hour,
+    weather: route.length ? route[editing()].weather : state.weather,
+    // Where the sun is at the moment on the clock. Asking for the hour only
+    // proves the number was stored; this is the expression the frame draws
+    // with, so it proves the hour reaches the sky.
+    sun: skyNow(routeAtHour(route, state.hour)).sun,
+    orbit: state.orbit,
+    push: state.push,
+    step: routeAtHour(route, state.hour)?.fromStep ?? editing(),
+  });
+
   window.__trail.route = () => route.map((s) => ({
     text: s.text ?? '', hold: s.hold, weather: s.weather, framing: { ...s.framing },
+    // The hour is what a step is called now, so a test asking about the route
+    // has to be able to see it.
+    ...(typeof s.hour === 'number' ? { hour: s.hour } : {}),
   }));
 
   window.__trail.held = () => ({
@@ -1729,7 +1770,7 @@ async function main() {
   // editing the page source. This is the panel that reaches it.
 
   /** The step being worked on. Pinning one is how you say which. */
-  const editing = () => Math.min(Math.max(0, state.pinned ?? 0), route.length - 1);
+  const editing = () => Math.max(0, Math.min(state.pinned ?? 0, route.length - 1));
 
   /**
    * A step's sky: the weather it names, at the hour it is set to.
@@ -1745,6 +1786,30 @@ async function main() {
     : (step?.weather ?? 'clear'));
 
   /**
+   * What the sky looks like at the moment the clock is showing.
+   *
+   * A route that says something about this hour is used; otherwise this is an
+   * empty day and the playground's own weather lights it. **Either way the hour
+   * applies**, which is what makes a canvas with no steps a place at a time
+   * rather than a dead bar - and it is the whole of the bug where removing every
+   * step stopped the clock and the weather both.
+   */
+  function skyNow(moment) {
+    const base = moment
+      ? (route[moment.fromStep ?? moment.step]
+        ? lerpWeather(
+          skyOf(route[moment.fromStep ?? moment.step]),
+          skyOf(route[moment.step]),
+          moment.into,
+        )
+        : resolveWeather(skyOf(route[moment.step])))
+      : resolveWeather(route[editing()]?.weather ?? state.weather);
+    // The hour under the hand wins over whatever any step says, so the sun
+    // follows the bar rather than snapping between steps.
+    return resolveWeather({ ...base, hour: state.hour });
+  }
+
+  /**
    * Everything that has to follow a change to the route.
    *
    * Gathered in one place because a step carries more than it looks: the
@@ -1753,6 +1818,7 @@ async function main() {
    */
   function stepsChanged() {
     buildSteps();
+    paintClock();
     duration = routeDuration(route) / 1000;
     // The marks the weather leaves are derived from the steps, so a changed
     // route means a different ground. Forcing a rebuild keeps a seek looking
@@ -1773,9 +1839,7 @@ async function main() {
     if (!step) return;
     holdSlider.set(step.hold ?? 5000);
     approachSlider.set(step.approachTime ?? 2500);
-    hourSlider.set(Math.round((step.hour ?? 12) * 60));
     paintMove();
-    el('v-hour').textContent = typeof step.hour === 'number' ? clockOf(step.hour) : 'not set';
     stepWeatherSeg.paint();
     // The box shows the words of the step being worked on. While there is only
     // one step that is the whole script, which is what pasting should give.
@@ -1785,14 +1849,34 @@ async function main() {
 
   el('b-step-add').addEventListener('click', () => {
     const at = editing();
+
+    // The first step of an empty day is made from where the camera is and what
+    // the playground already looks like, so adding one keeps what is on screen
+    // rather than replacing it with a default nobody chose.
+    if (!route.length) {
+      route.push({
+        framing: { ...(state.mode === 'roam' ? state.roaming : fit(extent)) },
+        hold: 5000,
+        approachTime: 2500,
+        weather: state.weather,
+        hour: state.hour,
+        text: '',
+      });
+      state.pinned = 0;
+      rebuild();
+      uploadAreas();
+      stepsChanged();
+      say(`the day starts at ${clockOf(state.hour)}`);
+      return;
+    }
+
     // A copy of the step it follows, so it is a real step immediately and the
     // next act is moving the camera - which is what you were going to do.
     const step = route[at];
-    // Half an hour later than the step it follows, so a route reads as a
-    // sequence of times straight away rather than as a stack of noon. Half an
-    // hour because that is the granularity a story actually moves in - the
-    // slider is there for anything else.
-    const next = typeof step.hour === 'number' ? (step.hour + 0.5) % 24 : undefined;
+    // At the time the clock is showing, because that is where you are looking
+    // and it is the only moment you can have meant. Failing that, half an hour
+    // after the step it follows.
+    const next = state.hour;
     route.splice(at + 1, 0, {
       ...step,
       framing: { ...step.framing },
@@ -1836,51 +1920,20 @@ async function main() {
   }
 
   el('b-step-remove').addEventListener('click', () => {
-    if (route.length < 2) { say('a route needs at least one step'); return; }
+    // The last step can go. An empty day is a place at a time of day, which is
+    // a perfectly good thing to be looking at and is where a canvas starts.
+    if (!route.length) { say('there are no steps to remove'); return; }
     const at = editing();
     const gone = route[at];
     rearrange(dropped(route.length, at), at);
-    say(gone.text ? 'step removed, and its words with it' : 'step removed');
+    say(route.length
+      ? (gone.text ? 'step removed, and its words with it' : 'step removed')
+      : 'every step removed - an empty day, drag the clock through it');
   });
 
-  el('b-step-up').addEventListener('click', () => {
-    const at = editing();
-    if (at === 0) { say('that is already the first step'); return; }
-    rearrange(moved(route.length, at, at - 1), at - 1);
-    say(`moved to ${at} of ${route.length}`);
-  });
 
-  el('b-step-down').addEventListener('click', () => {
-    const at = editing();
-    if (at >= route.length - 1) { say('that is already the last step'); return; }
-    rearrange(moved(route.length, at, at + 1), at + 1);
-    say(`moved to ${at + 2} of ${route.length}`);
-  });
 
-  el('b-step-frame').addEventListener('click', () => {
-    const at = editing();
-    // Roaming already produces a framing rather than an eye position, which is
-    // exactly why every angle found by roaming is a step that can be saved.
-    route[at].framing = tidy(state.mode === 'roam' ? state.roaming : currentRoute().framing);
-    stepsChanged();
-    say(`step ${at + 1} framed from here`);
-  });
 
-  el('b-step-split').addEventListener('click', () => {
-    const at = editing();
-    const box = el('script');
-    const cut = box.selectionStart ?? 0;
-    const split = splitStep(route, at, cut);
-    if (split.length === route.length) {
-      say('put the cursor where the next stage should begin');
-      return;
-    }
-    route = split;
-    state.pinned = at + 1;
-    state.mode = 'route';
-    stepsChanged();
-    say(`split into steps ${at + 1} and ${at + 2}`);
-  });
 
   // --- the words of a step --------------------------------------------------
   //
@@ -2117,51 +2170,44 @@ async function main() {
     (v) => { route[editing()].approachTime = v; }, { after: stepsChanged });
 
   const stepWeatherSeg = segment('step-weather',
-    () => route[editing()]?.weather ?? 'clear',
-    (v) => { route[editing()].weather = v; stepsChanged(); });
+    () => route[editing()]?.weather ?? state.weather,
+    (v) => {
+      // With no steps this is the weather of the playground itself. A control
+      // that quietly does nothing because there is no step to write to is worse
+      // than not having it, and that is what an empty canvas used to give.
+      if (route.length) route[editing()].weather = v; else state.weather = v;
+      stepsChanged();
+    });
 
   // The clock is kept in minutes rather than hours so the slider can be moved a
   // few minutes at a time near sunrise, which is where the sky actually changes.
-  const hourSlider = slider('r-hour', (v) => clockOf(v / 60),
-    (v) => { route[editing()].hour = v / 60; }, { after: autosave });
-
   /**
-   * A move the camera makes by itself while it holds on this step.
+   * A move the camera makes by itself.
    *
-   * Saved on the step rather than being a live switch, so a take plays the same
-   * way twice - which is the whole reason play mode has no interface. Toggling
-   * one while roaming shows it immediately, because the same value drives both.
+   * **These are switches on the camera, not something a step carries.** They
+   * were per-step to begin with, so that a take would repeat. The trouble is
+   * that anything a step does to the camera takes the view away from whoever is
+   * composing it, and the camera is moved by hand. These two survive because
+   * they are additions to where the camera already is rather than replacements
+   * for it: an orbit sways around the point being looked at, and a push closes
+   * in on it. Neither sends the camera anywhere it was not already.
    */
   function paintMove() {
-    const step = route[editing()];
-    const moves = [step?.orbit ? 'orbiting' : null, step?.push ? 'pushing in' : null]
+    const moves = [state.orbit ? 'orbiting' : null, state.push ? 'pushing in' : null]
       .filter(Boolean);
     el('s-move').textContent = moves.length ? moves.join(' and ') : 'still';
-    el('b-orbit').setAttribute('aria-pressed', String(!!step?.orbit));
-    el('b-push').setAttribute('aria-pressed', String(!!step?.push));
+    el('b-orbit').setAttribute('aria-pressed', String(!!state.orbit));
+    el('b-push').setAttribute('aria-pressed', String(!!state.push));
   }
 
   // Registered from `begin`, not here. Everything above `begin` is a
   // declaration and nothing above it runs, which is the rule that closed a bug
   // that had taken this page down four times.
   const toggleMove = (key, id) => el(id).addEventListener('click', () => {
-    const step = route[editing()];
-    if (!step) return;
-    if (step[key]) delete step[key]; else step[key] = 1;
-    // The shot restarts, so the move is watched from its beginning rather than
-    // joining it part way through.
+    state[key] = state[key] ? 0 : 1;
+    // The move is watched from its beginning rather than joined part way.
     state.shotAt = null;
     paintMove();
-    autosave();
-  });
-  el('b-hour-off').addEventListener('click', () => {
-    // Not the same as midnight. A step with no hour takes the light its weather
-    // preset carries, which is what every canvas did before there was a clock,
-    // and there has to be a way back to it.
-    delete route[editing()].hour;
-    paintStep();
-    autosave();
-    say('this step follows its weather rather than a time');
   });
 
   const surfaceSeg = segment('surface', () => surface, (v) => {
@@ -2169,6 +2215,166 @@ async function main() {
   });
   const weatherSeg = segment('weather', () => state.forcedWeather ?? '', (v) => {
     state.forcedWeather = v || null;
+  });
+
+  // --- moving through the day -----------------------------------------------
+  //
+  // The route is a clock. Each step is a mark on the bar at the hour it happens,
+  // dragging moves through time, and the camera goes wherever the story is at
+  // that moment - interpolating between the two steps either side of it.
+  //
+  // **It hands the renderer exactly what playback hands it**: a step being
+  // arrived at and how far through arriving. So ghosting, solidifying, the
+  // weather cross-fade and an object walking its line all behave the same way
+  // whether the route is playing or being scrubbed, and there is no second code
+  // path to keep in step. See `routeAtHour` in `camera.js`.
+
+  const DAY = 24;
+
+  /** Where on the bar an hour sits, and the reverse. */
+  const acrossDay = (hour) => Math.max(0, Math.min(1, hour / DAY));
+  const hourAcross = (fraction) => Math.max(0, Math.min(DAY, fraction * DAY));
+
+  /** Where on the day a pointer is, in hours. */
+  function hourAt(event) {
+    const box = el('track').getBoundingClientRect();
+    return hourAcross(box.width ? (event.clientX - box.left) / box.width : 0);
+  }
+
+  function paintClock() {
+    const ticks = el('ticks');
+    ticks.innerHTML = '';
+    const timed = route
+      .map((step, index) => ({ step, index }))
+      .filter(({ step }) => typeof step.hour === 'number');
+
+    for (const { step, index } of timed) {
+      const mark = document.createElement('button');
+      mark.style.left = `${acrossDay(step.hour) * 100}%`;
+      mark.title = `${clockOf(step.hour)} - step ${index + 1}`;
+      mark.dataset.v = String(index);
+      mark.setAttribute('aria-pressed', String(index === editing()));
+
+      // **Dragging a mark is how a step is moved in time.** It replaced both
+      // the hour slider and the move-earlier and move-later buttons, and it is
+      // the same gesture as reading the bar, which is what makes the bar the
+      // whole route editor rather than a readout with an editor elsewhere.
+      let dragging = false;
+      mark.addEventListener('pointerdown', (event) => {
+        dragging = true;
+        mark.setPointerCapture?.(event.pointerId);
+        state.pinned = index;
+        state.playing = false;
+        paintStep();
+        // Stop the track underneath from reading this as a scrub.
+        event.stopPropagation?.();
+      });
+      mark.addEventListener('pointermove', (event) => {
+        if (!dragging) return;
+        step.hour = hourAt(event);
+        // The needle follows the mark, so the sky shows the hour being chosen.
+        state.hour = step.hour;
+        paintStep();
+        paintClock();
+        event.stopPropagation?.();
+      });
+      const settle = (event) => {
+        if (!dragging) return;
+        dragging = false;
+        if (event && mark.hasPointerCapture?.(event.pointerId)) {
+          mark.releasePointerCapture(event.pointerId);
+        }
+        // The route is walked in array order and read in time order, so moving
+        // a step on the clock has to move it in the route as well - otherwise
+        // it shows earlier on the bar and still plays in its old place.
+        // `reorder` drags every reference to a step along with it.
+        const order = byTime(route);
+        const landed = order.indexOf(index);
+        rearrange(order, landed);
+        say(`step ${landed + 1} happens at ${clockOf(step.hour)}`);
+      };
+      mark.addEventListener('pointerup', settle);
+      mark.addEventListener('pointercancel', settle);
+
+      mark.addEventListener('click', () => {
+        // Landing exactly on a step rather than near it, which is the whole
+        // point of having marks as well as a bar.
+        state.playing = false;
+        state.hour = step.hour;
+        state.pinned = index;
+        paintStep();
+        paintClock();
+      });
+      ticks.append(mark);
+    }
+
+    // The needle is always somewhere, because the hour always means something.
+    const at = state.hour;
+    el('needle').style.left = `${acrossDay(at) * 100}%`;
+    el('now-time').textContent = clockOf(at);
+    el('now-what').textContent = !route.length
+      ? 'an empty day - drag to move through it, + to add a step'
+      : !timed.length
+        ? 'no steps on the clock yet'
+        : `${timed.length} of ${route.length} steps on the clock`;
+    el('b-time-prev').disabled = !stepAround(route, at, -1);
+    el('b-time-next').disabled = !stepAround(route, at, 1);
+    el('b-step-remove').disabled = !route.length;
+  }
+
+  /** Move to a moment in the day, and let the panel follow. */
+  function scrubTo(hour) {
+    // Deliberately does not touch `state.mode`. The camera stays exactly as it
+    // was - roaming, or resting on the route - and the clock only says when.
+    state.playing = false;
+    state.scrubbing = true;
+    state.hour = hour;
+    const found = routeAtHour(route, hour);
+    // The step being worked on follows the clock, so opening the panel edits
+    // what is on screen rather than whatever was pinned last. With no steps
+    // there is nothing to follow, and that is a perfectly good state to be in.
+    if (found) state.pinned = found.fromStep ?? found.step;
+    paintStep();
+    paintClock();
+  }
+
+  {
+    const track = el('track');
+    let scrubbing = false;
+    track.addEventListener('pointerdown', (event) => {
+      scrubbing = true;
+      track.setPointerCapture?.(event.pointerId);
+      scrubTo(hourAt(event));
+    });
+    track.addEventListener('pointermove', (event) => {
+      if (scrubbing) scrubTo(hourAt(event));
+    });
+    const stop = (event) => {
+      scrubbing = false;
+      if (event && track.hasPointerCapture?.(event.pointerId)) {
+        track.releasePointerCapture(event.pointerId);
+      }
+    };
+    track.addEventListener('pointerup', stop);
+    track.addEventListener('pointercancel', stop);
+  }
+
+  const jump = (direction) => {
+    const found = stepAround(route, state.hour, direction);
+    if (!found) { say(direction < 0 ? 'that is the first step of the day' : 'that is the last'); return; }
+    state.pinned = found.index;
+    scrubTo(found.step.hour);
+    say(clockOf(found.step.hour));
+  };
+  el('b-time-prev').addEventListener('click', () => jump(-1));
+  el('b-time-next').addEventListener('click', () => jump(1));
+
+  // The panel is where everything that is not the clock lives, and it is out of
+  // the way until it is wanted.
+  el('b-panel').addEventListener('click', () => {
+    const shown = el('hud').classList.contains('hidden');
+    el('hud').classList.toggle('hidden', !shown);
+    el('b-panel').setAttribute('aria-pressed', String(shown));
   });
 
   // One button per step, built from the route rather than written out, so a
@@ -2199,8 +2405,11 @@ async function main() {
   }
 
   el('b-play').addEventListener('click', () => {
+    // Playing is watching the route, not scrubbing it, so the bar lets go.
+    state.scrubbing = false;
     if (state.mode === 'roam') toRoute();
     else state.playing = !state.playing;
+    paintClock();
   });
   el('b-restart').addEventListener('click', () => {
     state.clock = 0; state.pinned = null; toRoute(); sync();
@@ -2266,6 +2475,7 @@ async function main() {
     surfaceSeg.paint();
     weatherSeg.paint();
     buildSteps();
+    paintClock();
     paintObject();
     paintAreas();
     paintLibrary();
@@ -2376,18 +2586,19 @@ async function main() {
     if (state.mode === 'roam') {
       // No drift while roaming: it would fight the hand on the mouse. A move
       // that was asked for is different, and it is shown so it can be judged.
-      framing = autoMove(state.roaming, shotHeld, route[editing()] ?? {});
+      framing = autoMove(state.roaming, shotHeld, state);
       el('mode').textContent = 'roaming';
       el('mode').className = '';
       el('s-step').textContent = 'free';
     } else {
-      if (state.playing) state.clock = (state.clock + delta) % duration;
+      if (state.playing) { state.clock = (state.clock + delta) % duration; state.scrubbing = false; }
+
       const at = currentRoute();
       // Time into this hold, so a move restarts with every shot rather than
       // carrying on from the last one.
       if (at.phase === 'hold') shotHeld = (at.into ?? 0) * ((route[at.step]?.hold ?? 0) / 1000);
       framing = drift(
-        at.phase === 'fly' ? at.framing : autoMove(at.framing, shotHeld, route[at.step] ?? {}),
+        at.phase === 'fly' ? at.framing : autoMove(at.framing, shotHeld, state),
         now / 1000,
       );
       step = at.step;
@@ -2407,6 +2618,38 @@ async function main() {
         // and stops rather than sliding at one speed, which reads as a prop
         // being pushed.
         arrive = easeInOut(into);
+      }
+    }
+
+    // --- the clock ------------------------------------------------------------
+    //
+    // **Moving through the day never touches the camera.** It decides the hour,
+    // the weather and what has arrived on the canvas; where the camera is
+    // looking from belongs to whoever is composing the shot. Having the bar snap
+    // the view back to a step's framing made it useless for the thing it is
+    // for, which is watching one place change through a day.
+    //
+    // It sits outside the roam-or-route branch for the same reason: the camera
+    // can be roaming or on the route, and dragging the bar works the same way
+    // either way rather than taking the camera's mode away.
+    if (!state.playing) {
+      // A route that says something about this hour is used; otherwise this is
+      // an empty day, and the playground's own weather lights it. **Either way
+      // the hour applies**, which is what makes an empty canvas a place at a
+      // time rather than a dead bar.
+      const moment = routeAtHour(route, state.hour);
+      if (moment) {
+        step = moment.step;
+        stepT = moment.into;
+        arrive = easeInOut(moment.into);
+        el('s-step').textContent = `${step + 1} / ${route.length}`;
+      } else {
+        el('s-step').textContent = route.length ? `${editing() + 1} / ${route.length}` : 'none';
+      }
+      weather = skyNow(moment);
+      if (state.scrubbing || !route.length) {
+        el('mode').textContent = clockOf(state.hour);
+        el('mode').className = 'route';
       }
     }
 

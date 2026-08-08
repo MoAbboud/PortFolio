@@ -114,7 +114,8 @@ service.
 | UC-5 | Builder | See what is missing | Read the gap list after pasting | Every word with no shape, so nothing is discovered late |
 | UC-6 | Builder | Add a thing the script never named | Search the tray for it | The library match, placeable like anything else. The script is a starting point, not a cage |
 | UC-7 | Builder | Push into a face | Draw a small frame at a low pitch | A close shot. Faces are steps like any other, not a special mechanism |
-| UC-8 | Builder | Set how the story moves | Reorder the numbered frames | The route changes. The plan is the flowchart |
+| UC-8 | Builder | Set how the story moves | Reorder the steps, or move one earlier or later | The route changes, and everything that pointed at a step follows it |
+| UC-18 | Builder | Find a moment | Drag the clock bar along the day | The camera goes where the story is at that hour, moving continuously between the steps either side of it |
 | UC-9 | Builder | Give a stage its weather | Set the weather on that step | The sky, light and rain cross-fade into it on arrival, and the ground keeps the mark |
 | UC-10 | Builder | Check a shot | Select a step | The live preview shows exactly what the camera will see |
 | UC-11 | Builder | Time the story | Set a hold per step | Total running time is shown, so it can be matched against how long the script takes to read |

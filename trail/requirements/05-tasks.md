@@ -490,6 +490,80 @@ like it revived a cancelled one and does not. Reasoning in `06-context.md`.
       as weather. Kept because canvases refer to them, and candidates for
       retirement once the clock has been used in anger
 
+### An empty canvas is a playground - 2026-08-08
+
+Reported: *"i removed all the steps and now i cant cycle the time and the
+weather doesnt change... it should be an open play ground then i add steps."*
+
+- [x] **The hour belongs to the world, not to the route.** `state.hour` is
+      always a number, so the clock lights an empty canvas
+- [x] **The weather belongs to the world too.** With no step to write to, the
+      control sets the playground's own weather rather than doing nothing
+- [x] The last step can be removed. A canvas with no steps is a place at a time
+      of day, and `parse` was refusing one for no reason anybody could name
+- [x] Adding the first step takes the day as it stands - the camera where it is,
+      the hour on the clock, the weather on screen - rather than replacing what
+      is on screen with a default
+- [x] Playback and the panel cope with an empty route rather than assuming one
+- [x] `skyNow` is one expression, used by the frame and readable by a test, so
+      the test asks the thing that actually runs
+
+### The bar is the route editor, and the camera is nobody's but yours - 2026-08-08
+
+- [x] **Moving through the day never touches the camera.** The first version
+      scrubbed the framing too, which made the bar useless for the thing it is
+      for: watching one place change through a day
+- [x] The clock works the same whether the camera is roaming or on the route,
+      rather than taking the camera's mode away as a side effect of dragging
+- [x] **A step's hour is set by dragging its mark along the bar**, which
+      replaced both the time-of-day slider and the move-earlier/later buttons
+- [x] Dragging a mark re-sorts the route by time, so the order it plays in and
+      the order it reads in agree. `byTime`, through `reorder`, so every
+      reference to a step follows it
+- [x] Add and remove a step, on the bar, at the time the clock is showing
+- [x] **Orbit and push are switches on the camera**, not something a step
+      carries, and are gone from the canvas file. They survive the rule because
+      they add to where the camera is rather than replacing it
+- [x] **The step tab is gone.** It was a route editor, a script editor and a
+      camera editor in one place. What is left is "this moment" - weather, hold,
+      flight - and "camera moves"
+- [x] "Frame this step from the view" removed: a step no longer drives the
+      camera, so a framing saved on it had nothing to do
+- [x] "Split the script at the cursor" removed. Reading the script was cancelled
+      a session ago and this was its last piece still on screen
+- [ ] **`splitStep` is now unused by the page.** It is the last of the cancelled
+      script feature, and removing `lib/script.js` outright is a decision to
+      take deliberately rather than while tidying a panel
+- [ ] `moved` in `canvas.js` is unused by the page now that order follows the
+      clock. Kept as a tested pure helper in case reordering by hand comes back
+- [ ] A step still carries a `framing`, and nothing reads it except playback.
+      If the camera is to be manual during a take as well, that field and the
+      flight between steps are the next things to look at
+
+### Moving through the day - added 2026-08-08
+
+The interface turned round: the clock is the main control and the panel is the
+in-depth settings. *"i want to move through time."*
+
+- [x] **A bar across the bottom centre**, the whole day end to end, tinted night
+      to day to night so it reads as a day at a glance
+- [x] Each step is a **mark at its hour**. Clicking one lands on it exactly
+- [x] Dragging the bar moves through time, and the camera follows: between two
+      steps it is part way through the move between them
+- [x] The hour under the hand drives the sun, so dragging reads as a day passing
+- [x] Arrows either side jump to the step before or after, **by time**
+- [x] **It is not a second way of driving the camera.** `routeAtHour` hands back
+      the same framing, step and progress a flight does, so ghosting, weather
+      and a walked line all behave the same played or scrubbed
+- [x] Scrubbing does not arc. A flight lifts to show the ground in between; a
+      camera that rises whenever you drag is fighting the hand on the mouse
+- [x] **The panel starts closed**, behind a button in the bottom left corner
+- [ ] The step strip in the panel is now the fallback for steps with no hour.
+      Worth removing once every route is on the clock
+- [ ] The bar shows the whole 24 hours whatever the story uses, so a route that
+      happens between five and seven in the evening sits in a tenth of it.
+      Zooming to the range in use is the obvious next move if it grates
+
 ### The route is a clock, and it can be rearranged - added 2026-08-08
 
 - [x] **A step is named by the hour it happens at**, not by 1, 2, 3. The strip

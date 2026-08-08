@@ -25,7 +25,7 @@
 
   /* The pen's own floating panel, opposite the main one. */
   #penui {
-    position: fixed; right: 16px; bottom: 16px; z-index: 4;
+    position: fixed; right: 16px; bottom: 18px; z-index: 4;
     background: rgba(8, 14, 22, .84); border: 1px solid rgba(255,255,255,.14);
     border-radius: 7px; padding: 9px 10px; backdrop-filter: blur(7px);
     display: flex; flex-direction: column; gap: 8px; width: 152px;
@@ -181,7 +181,7 @@
   .warn { color: #e8c07f; }
 
   #toast {
-    position: fixed; left: 50%; bottom: 42px; transform: translateX(-50%);
+    position: fixed; left: 50%; bottom: 108px; transform: translateX(-50%);
     z-index: 6; background: rgba(12,20,30,.92); border: 1px solid rgba(255,255,255,.18);
     border-radius: 5px; padding: 8px 14px; opacity: 0; transition: opacity .25s;
     pointer-events: none; white-space: pre;
@@ -196,6 +196,82 @@
     font-size: 13px; align-content: center;
   }
   .hidden { display: none !important; }
+
+  /* --- moving through the day ---------------------------------------------
+     The route is a clock, so the clock is the main control and the panel is
+     where you go for everything else. This sits in the bottom centre because
+     that is where a scrubber belongs and because the corners are already spoken
+     for: the panel opens from the left, the pen from the right. */
+  #clock {
+    position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+    z-index: 5; width: min(620px, 74vw);
+    background: rgba(8, 14, 22, .82); border: 1px solid rgba(255,255,255,.14);
+    border-radius: 9px; padding: 8px 12px 11px; backdrop-filter: blur(7px);
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  #clock.hidden { display: none !important; }
+  .clock-head { display: flex; align-items: center; gap: 10px; }
+  #now {
+    flex: 1; text-align: center; font-size: 21px; font-weight: 600;
+    color: #fff; letter-spacing: .06em; font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
+  #now small { display: block; font-size: 10px; font-weight: 400; letter-spacing: .12em;
+    text-transform: uppercase; color: #7f8fa2; }
+  .tbtn {
+    flex: 0 0 auto; width: 30px; height: 30px; padding: 0; cursor: pointer;
+    font: inherit; font-size: 13px; color: #cfd9e4;
+    background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.16);
+    border-radius: 5px;
+  }
+  .tbtn:hover { background: rgba(255,255,255,.18); color: #fff; }
+  .tbtn:disabled { opacity: .3; cursor: default; }
+
+  /* The day, end to end. Dragging anywhere on it moves through time. */
+  #track {
+    position: relative; height: 26px; cursor: ew-resize; touch-action: none;
+    user-select: none;
+  }
+  #track::before {
+    content: ''; position: absolute; left: 0; right: 0; top: 13px; height: 3px;
+    border-radius: 2px;
+    /* Night at both ends, day in the middle, so the bar reads as a day at a
+       glance rather than as an empty line with numbers under it. */
+    background: linear-gradient(90deg,
+      #16203a 0%, #2a3358 18%, #d98a4a 25%, #8fc0ee 46%,
+      #8fc0ee 54%, #d9743c 75%, #2a3358 82%, #16203a 100%);
+  }
+  #ticks { position: absolute; inset: 0; }
+  #ticks button {
+    position: absolute; top: 4px; width: 11px; height: 21px; padding: 0;
+    transform: translateX(-50%); cursor: pointer;
+    background: none; border: none;
+  }
+  #ticks button::after {
+    content: ''; display: block; width: 3px; height: 15px; margin: 0 auto;
+    border-radius: 2px; background: #cfd9e4;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.55);
+  }
+  #ticks button:hover::after { background: #fff; height: 19px; margin-top: -2px; }
+  #ticks button[aria-pressed=true]::after { background: #7fb0e8; height: 21px; margin-top: -3px; }
+  #needle {
+    position: absolute; top: 0; width: 2px; height: 26px; margin-left: -1px;
+    background: #fff; border-radius: 1px; pointer-events: none;
+    box-shadow: 0 0 6px rgba(255,255,255,.6);
+  }
+
+  /* The way back to everything else. Bottom left, opposite the pen. */
+  #b-panel {
+    position: fixed; left: 16px; bottom: 18px; z-index: 5;
+    padding: 7px 12px; cursor: pointer; font: inherit; font-size: 11px;
+    letter-spacing: .1em; text-transform: uppercase; color: #cfd9e4;
+    background: rgba(8, 14, 22, .82); border: 1px solid rgba(255,255,255,.14);
+    border-radius: 7px; backdrop-filter: blur(7px);
+  }
+  #b-panel:hover { background: rgba(255,255,255,.18); color: #fff; }
+  #b-panel[aria-pressed=true] { background: #7fb0e8; border-color: #7fb0e8; color: #0a1018; }
+  /* Room for the button, so the panel never sits on top of it. */
+  #hud { bottom: 58px; }
 </style>
 </head>
 <body>
@@ -216,7 +292,27 @@
 </div>
 <div id="flash"></div>
 <div id="toast"></div>
-<div id="hud">
+
+<!-- Moving through the day. The route is a clock: each step is a mark at the
+     hour it happens, dragging the bar moves through time, and the camera goes
+     where the story is at that moment. Everything else lives in the panel. -->
+<div id="clock">
+  <div class="clock-head">
+    <button class="tbtn" id="b-time-prev" title="the step before this one">&#9664;</button>
+    <div id="now"><span id="now-time">--:--</span><small id="now-what">no times set</small></div>
+    <button class="tbtn" id="b-time-next" title="the step after this one">&#9654;</button>
+    <button class="tbtn" id="b-step-add" title="a step at this time">+</button>
+    <button class="tbtn" id="b-step-remove" title="remove the step nearest this time">&minus;</button>
+  </div>
+  <div id="track">
+    <div id="ticks"></div>
+    <div id="needle"></div>
+  </div>
+</div>
+
+<button id="b-panel" aria-pressed="false">settings</button>
+
+<div id="hud" class="hidden">
   <div class="head"><b>trail</b><span id="s-fps">-</span></div>
 
   <details open>
@@ -278,34 +374,15 @@
     </div>
   </details>
 
-  <details>
-    <summary>step</summary>
+  <details open>
+    <summary>this moment</summary>
     <div class="body">
-      <!-- A step is a rectangle on the ground and a pitch, plus the words that
-           are said while the camera holds there. Until this existed a route
-           could only be built by editing the page source. -->
-      <div class="row"><span class="dim">editing</span><b id="s-editing">-</b></div>
-      <div class="buttons">
-        <button class="btn" id="b-step-add">add after</button>
-        <button class="btn" id="b-step-remove">remove</button>
-      </div>
-      <!-- The route is an order, and the clock is what each step is called. The
-           two are separate on purpose: a story can double back to an earlier
-           hour, so sorting by time would be deciding for the person writing. -->
-      <div class="buttons">
-        <button class="btn" id="b-step-up">move earlier</button>
-        <button class="btn" id="b-step-down">move later</button>
-      </div>
-      <button class="btn" id="b-step-frame">frame this step from the view</button>
-      <button class="btn" id="b-step-split">split the script at the cursor</button>
-      <div class="ctl">
-        <div class="row"><span class="dim">hold</span><span class="val" id="v-hold">-</span></div>
-        <input type="range" id="r-hold" min="500" max="20000" step="250" value="5000">
-      </div>
-      <div class="ctl">
-        <div class="row"><span class="dim">flight in</span><span class="val" id="v-approach">-</span></div>
-        <input type="range" id="r-approach" min="0" max="9000" step="100" value="2500">
-      </div>
+      <!-- What the step under the clock's needle carries. The old "step" tab
+           tried to be a route editor, a script editor and a camera editor at
+           once, and was confusing for exactly that reason. The clock moves
+           through the day, the camera is moved by hand, and what is left here
+           is what a moment in the story is actually made of. -->
+      <div class="row"><span class="dim">at</span><b id="s-editing">-</b></div>
       <div class="seg" id="step-weather">
         <button data-v="clear">clear</button>
         <button data-v="overcast">overcast</button>
@@ -314,23 +391,29 @@
         <button data-v="dusk">dusk</button>
         <button data-v="night">night</button>
       </div>
-      <!-- The time of day, which is a different thing from the weather: the
-           hour says where the light comes from, the weather says how much of it
-           gets through. 6 is sunrise and 18 is sunset, the sun travels between
-           them, and the moon takes over either side. -->
       <div class="ctl">
-        <div class="row"><span class="dim">time of day</span><span class="val" id="v-hour">-</span></div>
-        <input type="range" id="r-hour" min="0" max="1440" step="5" value="720">
+        <div class="row"><span class="dim">hold</span><span class="val" id="v-hold">-</span></div>
+        <input type="range" id="r-hold" min="500" max="20000" step="250" value="5000">
       </div>
-      <button class="btn" id="b-hour-off">no set time (use the weather's own light)</button>
-      <!-- A move the camera makes on its own while it holds here. Drift already
-           runs under every shot at an amplitude meant to be felt rather than
-           seen; these are large enough to read as moves. -->
+      <div class="ctl">
+        <div class="row"><span class="dim">flight in</span><span class="val" id="v-approach">-</span></div>
+        <input type="range" id="r-approach" min="0" max="9000" step="100" value="2500">
+      </div>
+    </div>
+  </details>
+
+  <details open>
+    <summary>camera moves</summary>
+    <div class="body">
+      <!-- The camera is moved by hand. These two are the only things that move
+           it on their own, and they are switches on the camera rather than
+           something a step carries: nothing the clock does should ever take the
+           view away from whoever is composing it. -->
       <div class="buttons">
         <button class="btn" id="b-orbit">orbit on the spot</button>
         <button class="btn" id="b-push">push in slowly</button>
       </div>
-      <div class="row"><span class="dim">camera move</span><b id="s-move">still</b></div>
+      <div class="row"><span class="dim">moving</span><b id="s-move">still</b></div>
     </div>
   </details>
 

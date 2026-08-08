@@ -370,6 +370,26 @@ renderer is built on. A range costs one instance attribute and one comparison.
 | `hour` | The time of day, 0 to 24. **Absent is not midnight**: it means the step takes whatever light its weather carries, which is what every canvas did before the clock existed |
 | `orbit`, `push` | A move the camera makes by itself while it holds here. See below |
 
+### A canvas with no steps
+
+**A canvas starts as a place at a time of day with nothing laid over it.** The
+hour and the weather belong to the world rather than to the route, so an empty
+canvas can be lit, walked around, filled with objects and moved through the day
+before a single step exists. Steps are added to a playground; they are not what
+makes one.
+
+| Where it lives | When it applies |
+| --- | --- |
+| The world's hour | Always. It is what the clock bar sets, and what lights the sky |
+| The world's weather | Wherever no step says otherwise |
+| A step's weather | Wherever that step applies |
+
+Adding the first step takes the day as it stands - the camera where it is, the
+hour on the clock, the weather on screen - rather than replacing what is being
+looked at with a default nobody chose. An empty `steps` list is a valid canvas
+file; refusing one used to be a rule here and it made removing the last step
+impossible.
+
 ### The time of day
 
 **The hour and the weather are separate, and they answer different questions.**
@@ -411,10 +431,16 @@ A step's place in the route is what orders it, and what everything else refers
 to. Its `hour` is what it is **called**: the strip reads 09:00, 13:30, 18:15
 rather than 1, 2, 3, and a step with no hour falls back to its number.
 
-**The two are deliberately not the same thing.** Sorting the route by time would
-decide something that belongs to whoever is writing the story: a narration can
-double back to an earlier hour, or hold two shots at the same one. So the order
-is moved by hand, and adding a step lands half an hour after the one it follows.
+**The route is kept in the order it happens.** A step is dragged along the clock
+bar to say when it happens, and the route re-sorts to match - because it is
+walked in array order and read in time order, and a step showing earlier on the
+bar while still playing in its old place is the kind of disagreement nobody
+finds until they play it back. Steps with no hour are not on the clock at all
+and keep their positions relative to each other, at the end.
+
+*An earlier draft of this document argued the opposite*, on the grounds that a
+story might double back to an earlier hour. It might; what it cannot do is have
+one order on screen and another in playback.
 
 **A step is referred to by its position in four places** - an object's `from`,
 its `until`, the step it walks its line on, and a place's range - so rearranging
@@ -430,20 +456,26 @@ references behind does not fail or warn, it silently re-times the video.
 
 ### Camera moves
 
-A move the camera makes by itself while it holds on a step. Drift already runs
-under every shot at an amplitude meant to be felt rather than noticed; these are
-the same idea at a size that reads as a move.
+A move the camera makes by itself. Drift already runs under every shot at an
+amplitude meant to be felt rather than noticed; these are the same idea at a
+size that reads as a move.
 
-| Field | Effect |
+| Switch | Effect |
 | --- | --- |
 | `orbit` | Swings the framing's yaw slowly either side of where it started. A sway, not a circuit: a camera that orbits all the way round shows the back of everything |
 | `push` | Closes the rectangle in steadily, with a floor, so a long take cannot end up inside an object |
 
 Both are expressed in the camera language - a rectangle and a pitch - rather
 than as eye positions, so every intermediate state is a framing somebody could
-have drawn and the camera can never end up underground. They live on the step
-rather than being a switch somebody holds down, because play mode carries no
-interface and a take has to play the same way twice.
+have drawn and the camera can never end up underground.
+
+**They are switches on the camera, not fields on a step, and they are not in the
+canvas file.** They were per-step to begin with, so a take would repeat; the
+rule that replaced that is stronger and simpler: **nothing a step does may move
+the camera.** The camera is composed by hand. These two survive it because they
+add to where the camera already is rather than replacing it - an orbit sways
+around the point being looked at, a push closes in on it - so neither sends the
+camera anywhere it was not already.
 
 ## Places
 
