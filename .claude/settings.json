@@ -105,7 +105,10 @@
       "Bash(cp /tmp/app.bak lib/app.js)",
       "Bash(sed -i \"s/if \\(download.images\\) textureIndex.set\\(download.folder, download.images\\);/if \\(false\\) textureIndex.set\\(download.folder, download.images\\);/\" lib/app.js)",
       "Bash(SHEET_OUT=\"C:/Users/Absol/AppData/Local/Temp/claude/c--Users-Absol-OneDrive-Documents-GitHub-PortFol/b93ddd32-2411-4bb3-9515-f043bb27798a/scratchpad/painted.png\" node \"C:/Users/Absol/AppData/Local/Temp/claude/c--Users-Absol-OneDrive-Documents-GitHub-PortFol/b93ddd32-2411-4bb3-9515-f043bb27798a/scratchpad/compare-sheet.mjs\" characters-matt characters-lis characters-shepherd vehicle-sports building-small-1 common-tree-1)",
-      "Bash(node tools/scan.js --check)"
+      "Bash(node tools/scan.js --check)",
+      "Bash(node --test test/weather.test.js)",
+      "Bash(node --test test/daylight.test.js)",
+      "Bash(node -)"
     ],
     "additionalDirectories": [
       "\\tmp",

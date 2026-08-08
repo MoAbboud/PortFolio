@@ -45,6 +45,40 @@ export function framingToView(framing) {
   return { eye, target, distance };
 }
 
+/**
+ * The camera's own three axes: where it looks, and what right and up mean to it.
+ *
+ * The sky needs these. A shader given only a screen position can draw a
+ * gradient and a glow at a fixed place on the screen, which is what the sky was
+ * before the sun could move; with the axes it can turn a pixel into a direction
+ * in the world and ask where the sun is from there.
+ *
+ * Up is rebuilt from the other two rather than taken as vertical, so it stays
+ * perpendicular to the view at any pitch, including straight down - where
+ * world-up and the view direction are the same line and there is no answer
+ * unless you construct one.
+ */
+export function axesOf(eye, target) {
+  const forward = normalise([target[0] - eye[0], target[1] - eye[1], target[2] - eye[2]]);
+  // Looking exactly along the world's up axis leaves no side to cross with, so
+  // the world's north is used instead. It only happens at a pitch of exactly 90.
+  const reference = Math.abs(forward[1]) > 0.9999 ? [0, 0, 1] : [0, 1, 0];
+  const right = normalise(cross(forward, reference));
+  const up = normalise(cross(right, forward));
+  return [forward, right, up];
+}
+
+const cross = (a, b) => [
+  a[1] * b[2] - a[2] * b[1],
+  a[2] * b[0] - a[0] * b[2],
+  a[0] * b[1] - a[1] * b[0],
+];
+
+function normalise(v) {
+  const length = Math.hypot(v[0], v[1], v[2]) || 1;
+  return [v[0] / length, v[1] / length, v[2] / length];
+}
+
 /** The matrix a renderer actually wants. */
 export function viewProjection(framing, near = 0.1, far = 800) {
   const { eye, target } = framingToView(framing);
@@ -108,6 +142,55 @@ export function drift(framing, seconds, amount = 1) {
     yaw: (framing.yaw ?? 0) + swing * Math.sin(seconds * 0.19),
     pitch: (framing.pitch ?? 25) + 0.5 * amount * Math.sin(seconds * 0.23 + 1.7),
   };
+}
+
+/**
+ * A camera move that runs on its own: orbiting the spot, or pushing in.
+ *
+ * The difference between this and `drift` is intent. Drift is involuntary - it
+ * runs under every shot at an amplitude meant to be felt rather than noticed,
+ * so a held frame is not a photograph. This is a move somebody asked for, and
+ * it is large enough to read as one.
+ *
+ * Both are expressed in the camera language rather than in eye positions, which
+ * is what keeps them safe: orbiting turns the yaw of the rectangle, so it can
+ * never end up underground, and pushing in shrinks the rectangle, so what fills
+ * the frame is still a rectangle somebody could have drawn.
+ *
+ * `seconds` is time since the shot began, not wall time. A take has to play the
+ * same way twice, and a move measured from the clock on the wall would start
+ * from wherever it happened to be when recording started.
+ */
+export function autoMove(framing, seconds, { orbit = 0, push = 0 } = {}) {
+  if (!orbit && !push) return framing;
+  let out = framing;
+
+  if (orbit) {
+    // A sway rather than a full circle. A camera that orbits all the way round
+    // a diorama shows the back of everything, and the back of a low-poly model
+    // is not what it was made for; a slow swing across the front reads as a
+    // move without ever leaving the composition somebody chose.
+    const swing = 14 * orbit;
+    out = { ...out, yaw: (out.yaw ?? 0) + swing * Math.sin(seconds * 0.14) };
+  }
+
+  if (push) {
+    // A steady closing-in. Held to a floor so a long take cannot end up inside
+    // an object: at full push a shot is about half as wide after a minute and
+    // never gets past a third.
+    const closing = Math.max(0.34, 1 / (1 + push * seconds * 0.02));
+    const w = framing.w * closing;
+    const d = framing.d * closing;
+    out = {
+      ...out,
+      x: framing.x + (framing.w - w) / 2,
+      z: framing.z + (framing.d - d) / 2,
+      w,
+      d,
+    };
+  }
+
+  return out;
 }
 
 /**

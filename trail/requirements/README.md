@@ -20,7 +20,7 @@ earlier ones, and the context file is the only place that says what they replace
 
     Set-Location "C:\Users\Absol\OneDrive\Documents\GitHub\PortFol\trail"
     npx --yes serve .      # then open the address it prints
-    npm test               # 429 tests, about thirty seconds
+    npm test               # 477 tests, about twenty-five seconds
     npm run clips          # the poses every rigged model can be put into
 
 Four things worth knowing before editing:

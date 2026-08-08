@@ -50,6 +50,11 @@ a payoff that lands once and recontextualises everything the viewer just watched
 | Fly or cut | Moves between framings travel across the world by default, or jump when a beat needs it |
 | Reveal as it goes | Unvisited parts of the canvas are ghosted, and solidify as the camera arrives |
 | Change the weather | Each step carries its own sky, light and rain, cross-fading as the story moves |
+| Set the time of day | A dial from midnight to midnight. The sun rises at six and sets at eighteen, the moon and stars take over, and the light follows |
+| Name the people | Type a name and it floats over that figure, fading with distance and gone by the wide shot |
+| Name the places | Draw a rectangle on the ground and call it the bar, the car park, the golf course |
+| Let the camera move itself | A shot can orbit slowly on the spot, or push in, without anyone touching the controls |
+| Walk somebody across the scene | Trace a line and the object walks it as the story reaches that step |
 | Leave marks | Rain leaves the ground wet, fog leaves it pale. The canvas remembers what happened on it |
 | Stay alive | Ambient cube shimmer, drifting weather, small looped motion and a constant camera drift |
 | End on the whole thing | A final framing that takes in the entire canvas at once |

@@ -442,6 +442,79 @@ reasoning is in `06-context.md`.
 - [x] The tree's canopy sways, in three parts on different phases, while its trunk stays still
 - [ ] Motion in the cube path. Only the surface reads pivots so far
 
+### The clock, places, moves and a walked line - added 2026-08-07
+
+Five things asked for in one message. Four fitted the design; the fifth looked
+like it revived a cancelled one and does not. Reasoning in `06-context.md`.
+
+- [x] **A time of day per step.** 6 is sunrise, 12 is noon, 18 is sunset, and
+      the sun travels between them. `lib/daylight.js`, pure and tested
+- [x] **A moon opposite the sun**, fading up across the horizon rather than
+      switching on, with stars that arrive after it because a sky with the sun
+      just under it is still bright
+- [x] The ambience follows the hour: sky, horizon, floor, sun colour and light
+- [x] **The hour and the weather are separate.** The hour says where the light
+      comes from, the weather says how much gets through. A preset carries
+      `dull`, saying how far it pulls the sky back to its own colours
+- [x] A step with no hour resolves to exactly the preset it always did, so every
+      canvas built before the clock looks identical. **Absent is not midnight**
+- [x] A flight interpolates the **hour**, round the clock, and asks the sky
+      again. Mixing two sun directions sends the sun through the middle of the
+      world, and at six against eighteen there is no midpoint direction at all
+- [x] **The sky shader takes the camera's axes** and turns each pixel into a
+      direction, so the sun is where it is rather than painted at a fixed place
+      on the screen. It could not have moved otherwise
+- [x] **A name tag per object**, typed in the panel. The layer that draws these
+      has existed since the first build with no way to set one, so every figure
+      was anonymous unless the page source was edited
+- [x] **Places: a named rectangle of ground**, drawn into the floor rather than
+      standing on it. Not an object - no model, no cubes, no height - so it is
+      its own list and never goes near the voxeliser or the picker
+- [x] A place carries a step range, so it arrives with the part of the story
+      that happens in it, and its name is drawn by the layer that names people
+- [x] **An automatic camera: orbit on the spot, or push in slowly.** Expressed
+      as a framing, so it can never end up underground. A sway rather than a
+      circuit, and the push has a floor
+- [x] Camera moves live on the step, not on a switch somebody holds, because
+      play mode carries no interface and a take must play the same way twice
+- [x] **Trace a line and an object walks it.** The field is still built once and
+      uploaded once: the offset is added in the vertex shader from three numbers
+      per vertex. Its shadow and its name tag travel with it
+- [x] Canvas file version 4, carrying all of it, migrating forward from 3
+- [ ] **Picking a travelling object mid-flight picks where it started**, because
+      a box is measured from the buffers. Harmless while the route is not
+      playing, which is when picking happens
+- [ ] A place cannot be selected or resized after it is drawn, only renamed or
+      removed. Redrawing one is cheap, so this is only worth fixing if it bites
+- [ ] `dusk` and `night` now overlap the clock: they are times of day expressed
+      as weather. Kept because canvases refer to them, and candidates for
+      retirement once the clock has been used in anger
+
+### The route is a clock, and it can be rearranged - added 2026-08-08
+
+- [x] **A step is named by the hour it happens at**, not by 1, 2, 3. The strip
+      reads 09:00, 13:30, 18:15. A step with no hour keeps its number
+- [x] Order and time stay **separate**: a story can double back to an earlier
+      hour, so sorting the route by time would decide something that belongs to
+      whoever is writing it
+- [x] Move a step earlier or later, as well as adding and removing one
+- [x] Adding a step lands **half an hour after the one it follows**, so a route
+      is a sequence of times immediately rather than a stack of noon
+- [x] **`reorder` drags every reference with the step it points at**: an
+      object's range, the step it walks its line on, and a place's range. Moving
+      a step without it does not fail or warn - it silently re-times the video
+- [x] A reference to a dropped step falls back to the nearest surviving step
+      **before** it, which keeps an object on screen
+- [x] An open-ended range stays open. 9999 is "to the end of the route", not a
+      step number
+- [x] **Everything stopped being drawn**, because `aTravel` was bound in three
+      vertex arrays and created in none. An enabled attribute array with no
+      buffer makes every draw call invalid. `attribute` now refuses by name,
+      and the startup test catches it
+- [ ] The stubbed WebGL context says yes to anything, so it can never catch a
+      draw call a real driver refuses. Everything it cannot refuse has to be
+      refused by the code itself
+
 ### Drawing on the frame
 
 - [x] A pen layer over the composed frame, with its own floating panel at the bottom right,

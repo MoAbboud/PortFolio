@@ -314,6 +314,28 @@ be found, and so the video's structure is legible six months later.
 | `at`, `rot`, `scale` | Where it stands, which way it faces, how big |
 | `from` | The step at which it stops being a ghost. Defaults to **the first step whose text mentions it**, falling back to the first step whose frame contains it. Can be overridden |
 | `until` | The last step at which it is solid. Absent means it stays solid to the end of the route |
+| `label` | A name that floats over it. This is how a figure becomes a person |
+| `path` | `{ to: [x, z], step }` - where it walks to, and the step it arrives at. See below |
+
+### An object that walks somewhere
+
+**Objects still never move, and this does not change that.** What is stored is a
+line: the object stands at its `at` and walks to `path.to` across the flight into
+`path.step`. The buffers hold one fixed position per vertex exactly as before;
+the vertex shader adds an offset from three numbers that were uploaded with
+everything else. So the field is still built once and uploaded once, nothing runs
+per frame on the processor, and the whole thing costs one instance attribute -
+the same trick the looped motion already uses, pointed at a longer distance.
+
+This is **not** the design that was cancelled. That one gave every object a
+position per step and interpolated them on the processor, which would have
+destroyed the static field. A line is one journey, authored once.
+
+Its contact shadow and its name tag are offset by the same amount, or they stand
+still while the object walks out from under them. Its picking box is not: a box
+is measured from the buffers, so clicking a travelling object mid-flight picks
+where it started. Picking is an edit-mode act and the object is at the start of
+its line whenever the route is not playing.
 
 ### The same person in two places
 
@@ -345,6 +367,98 @@ renderer is built on. A range costs one instance attribute and one comparison.
 | `approach` | `fly` or `cut` |
 | `approachTime` | Milliseconds of flight. Ignored on a cut |
 | `weather` | A preset name, or the numbers directly |
+| `hour` | The time of day, 0 to 24. **Absent is not midnight**: it means the step takes whatever light its weather carries, which is what every canvas did before the clock existed |
+| `orbit`, `push` | A move the camera makes by itself while it holds here. See below |
+
+### The time of day
+
+**The hour and the weather are separate, and they answer different questions.**
+The hour says where the light comes from and what colour it is; the weather says
+how much of it gets through, how far you can see, whether it is raining and what
+that leaves on the ground. A storm at nine in the morning and a storm at nine at
+night are the same weather at two different hours, and before the clock existed
+there was no way to say so - `dusk` and `night` were presets, so the time of day
+was a fixed choice from a list of six.
+
+| Hour | Where the sun is |
+| --- | --- |
+| 6 | Rising, on the horizon |
+| 12 | Overhead |
+| 18 | Setting, on the horizon opposite |
+| 0 | Well under the world, with the moon up and the stars out |
+
+A day at an equinox rather than at a latitude: the point is a sun that moves and
+an hour that means something, not a model of the Earth. The moon is exactly
+opposite the sun, so it is a full moon every night; a phase would be one more
+number for a shape a viewer sees for two seconds at a time. Both fade across the
+horizon rather than switching, which is what makes dusk a shot rather than an
+instant, and the stars arrive after the moon does, because a sky with the sun
+just under it is still bright.
+
+Each weather preset carries `dull`, saying how far it pulls the sky back toward
+its own colours. Clear lets the hour through untouched; a storm is a storm at any
+hour. **Ambient light multiplies rather than mixing**, because the two are saying
+different things: overcast at midnight is darker than either on its own.
+
+Across a flight the **hour** is interpolated round the clock and the sky is then
+asked again, rather than the sun's direction being interpolated. Two hours are
+two directions, and at six against eighteen they are exactly opposite, so the
+midpoint of the vectors has no direction at all.
+
+### Steps are ordered by position and named by the clock
+
+A step's place in the route is what orders it, and what everything else refers
+to. Its `hour` is what it is **called**: the strip reads 09:00, 13:30, 18:15
+rather than 1, 2, 3, and a step with no hour falls back to its number.
+
+**The two are deliberately not the same thing.** Sorting the route by time would
+decide something that belongs to whoever is writing the story: a narration can
+double back to an earlier hour, or hold two shots at the same one. So the order
+is moved by hand, and adding a step lands half an hour after the one it follows.
+
+**A step is referred to by its position in four places** - an object's `from`,
+its `until`, the step it walks its line on, and a place's range - so rearranging
+the route has to carry all four with it. That is what `reorder` is for, and
+nothing should splice the route without it: moving a step and leaving the
+references behind does not fail or warn, it silently re-times the video.
+
+| Case | What happens |
+| --- | --- |
+| The step moved | The reference follows it |
+| The step was dropped | Falls back to the nearest surviving step **before** it, which keeps an object on screen rather than making it vanish or arrive early |
+| `until` is open-ended | Left alone. 9999 means "to the end of the route" rather than naming a step |
+
+### Camera moves
+
+A move the camera makes by itself while it holds on a step. Drift already runs
+under every shot at an amplitude meant to be felt rather than noticed; these are
+the same idea at a size that reads as a move.
+
+| Field | Effect |
+| --- | --- |
+| `orbit` | Swings the framing's yaw slowly either side of where it started. A sway, not a circuit: a camera that orbits all the way round shows the back of everything |
+| `push` | Closes the rectangle in steadily, with a floor, so a long take cannot end up inside an object |
+
+Both are expressed in the camera language - a rectangle and a pitch - rather
+than as eye positions, so every intermediate state is a framing somebody could
+have drawn and the camera can never end up underground. They live on the step
+rather than being a switch somebody holds down, because play mode carries no
+interface and a take has to play the same way twice.
+
+## Places
+
+A named rectangle of ground: the bar, the car park, the golf course.
+
+```json
+{ "at": [12, -8], "size": [20, 14], "label": "the bar", "from": 2 }
+```
+
+**A place is not an object.** It has no model, no cubes and no height, and it is
+drawn into the ground rather than standing on it - so it is its own list rather
+than a placement with a flag on it, and it never goes near the voxeliser, the
+mesher, the box builder or the picker. It carries a step range like everything
+else, so a place arrives with the part of the story that happens in it, and its
+name is drawn by the same layer that names people.
 
 **Why a rectangle rather than a camera position.** A rectangle is composed on the plan, is
 readable at a glance, cannot end up underground, and makes a close-up and the final reveal the

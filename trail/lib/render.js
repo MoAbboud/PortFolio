@@ -15,6 +15,7 @@ in float aSize;
 in float aObject;
 in float aFrom;           // the step this object solidifies at
 in float aUntil;          // the last step it is solid for
+in vec3 aTravel;          // where this object goes: dx, dz, and the step it arrives at
 
 uniform mat4 uViewProj;
 uniform float uTime;
@@ -23,6 +24,7 @@ uniform float uShimmer;
 uniform float uSelected;  // -1 for nothing selected
 uniform float uStep;      // the step being shown
 uniform float uStepT;     // how far into arriving at it, 0 to 1
+uniform float uArrive;    // how far through the flight into it, 0 to 1
 
 out vec3 vColour;
 out vec3 vNormal;
@@ -33,6 +35,20 @@ out float vSolid;
 out float vAo;
 out vec3 vWorld;
 out vec2 vFinish;
+
+
+// How far along its line this object is.
+//
+// An object never moves in the buffers: it is uploaded once, at the start of
+// its line, and this offset is added here. Before the step it arrives at, it is
+// at the beginning; after, at the end; across the flight into it, part way. So
+// the field stays static, the processor does nothing per frame, and an object
+// can still cross the canvas.
+vec3 travelled(vec3 t, float step, float arrive) {
+  if (t.z < -0.5) return vec3(0.0);
+  float f = step > t.z + 0.5 ? 1.0 : (step > t.z - 0.5 ? arrive : 0.0);
+  return vec3(t.x, 0.0, t.y) * f;
+}
 
 // How present this cube is. Unvisited parts of the canvas are ghosts, they
 // solidify as the camera reaches them, and they fade back out once the story
@@ -51,7 +67,7 @@ void main() {
   // reading as a photograph.
   float s = aSeed * 6.2831853;
   vec3 wobble = vec3(sin(uTime * 1.1 + s), sin(uTime * 0.9 + s * 1.7), cos(uTime * 1.3 + s));
-  vec3 world = aOffset + wobble * uShimmer;
+  vec3 world = aOffset + wobble * uShimmer + travelled(aTravel, uStep, uArrive);
 
   // A ghost is smaller as well as fainter, so an unvisited part of the canvas
   // reads as not-yet-arrived rather than as badly lit.
@@ -152,6 +168,7 @@ in float aObject;
 in float aFrom;
 in float aUntil;
 in float aAo;
+in vec3 aTravel;
 in vec3 aPivot;
 in vec4 aMotion;   // kind, amplitude in radians, phase, axis
 // How this model wants to be finished, decided from how fine its own triangles
@@ -166,6 +183,7 @@ uniform float uShimmer;
 uniform float uSelected;
 uniform float uStep;
 uniform float uStepT;
+uniform float uArrive;
 
 // Small looped movement about a point. Enough for an arm swaying, a wheel
 // turning, a canopy in the wind and water on a pool; deliberately not enough
@@ -208,6 +226,13 @@ float solidity(float step, float t, float from, float until) {
   return 0.0;
 }
 
+// See the cube shader: an object never moves in the buffers, it is offset here.
+vec3 travelled(vec3 t, float step, float arrive) {
+  if (t.z < -0.5) return vec3(0.0);
+  float f = step > t.z + 0.5 ? 1.0 : (step > t.z - 0.5 ? arrive : 0.0);
+  return vec3(t.x, 0.0, t.y) * f;
+}
+
 void main() {
   vSolid = solidity(uStep, uStepT, aFrom, aUntil);
 
@@ -219,7 +244,8 @@ void main() {
   // apart into something that is not the shape any more.
   float breathe = sin(uTime * 1.1 + aSeed * 6.2831853) * uShimmer * 3.0 * aFinish.y;
   float shrink = mix(-0.06, 0.0, vSolid);
-  vec3 p = turned(aPos, aPivot, aMotion, uTime) + aNormal * (breathe + shrink);
+  vec3 p = turned(aPos, aPivot, aMotion, uTime) + aNormal * (breathe + shrink)
+    + travelled(aTravel, uStep, uArrive);
 
   vY = p.y;
   p.y *= uFlip;
@@ -243,10 +269,12 @@ in vec3 aCentre;
 in float aRadius;
 in float aFrom;
 in float aUntil;
+in vec3 aTravel;
 
 uniform mat4 uViewProj;
 uniform float uStep;
 uniform float uStepT;
+uniform float uArrive;
 
 out vec2 vLocal;
 out float vSolid;
@@ -259,11 +287,22 @@ float solidity(float step, float t, float from, float until) {
   return 0.0;
 }
 
+
+// See the cube shader: an object never moves in the buffers, it is offset here.
+vec3 travelled(vec3 t, float step, float arrive) {
+  if (t.z < -0.5) return vec3(0.0);
+  float f = step > t.z + 0.5 ? 1.0 : (step > t.z - 0.5 ? arrive : 0.0);
+  return vec3(t.x, 0.0, t.y) * f;
+}
+
 void main() {
   vLocal = aCorner;
   vSolid = solidity(uStep, uStepT, aFrom, aUntil);
-  // Just above the ground, so it never fights the floor for depth.
-  vec3 p = aCentre + vec3(aCorner.x * aRadius, 0.01, aCorner.y * aRadius);
+  // Just above the ground, so it never fights the floor for depth. A shadow
+  // travels with the object casting it, or it is left standing where the
+  // object used to be.
+  vec3 p = aCentre + vec3(aCorner.x * aRadius, 0.01, aCorner.y * aRadius)
+    + travelled(aTravel, uStep, uArrive);
   gl_Position = uViewProj * vec4(p, 1.0);
 }`;
 
@@ -279,6 +318,65 @@ void main() {
   // Multiplied onto the ground rather than drawn over it, so a shadow darkens
   // whatever is beneath it instead of painting a grey disc on top.
   frag = vec4(vec3(1.0 - mask), 1.0);
+}`;
+
+// A labelled patch of ground: a bar, a car park, a golf course.
+//
+// It is a place rather than a thing, so it is drawn as part of the ground
+// rather than as an object: a flat rectangle laid just above the floor, tinted
+// and soft at its edges, with its name drawn over it by the tag layer. It has a
+// step range like everything else, so an area arrives with the part of the
+// story that happens in it.
+const AREA_VS = `#version 300 es
+in vec2 aCorner;
+in vec3 aCentre;
+in vec2 aHalf;
+in vec3 aTint;
+in float aFrom;
+in float aUntil;
+
+uniform mat4 uViewProj;
+uniform float uStep;
+uniform float uStepT;
+
+out vec2 vLocal;
+out vec3 vTint;
+out float vSolid;
+
+float solidity(float step, float t, float from, float until) {
+  if (step < from - 0.5) return 0.0;
+  if (step < from + 0.5) return t;
+  if (step < until + 0.5) return 1.0;
+  if (step < until + 1.5) return 1.0 - t;
+  return 0.0;
+}
+
+void main() {
+  vLocal = aCorner;
+  vTint = aTint;
+  vSolid = solidity(uStep, uStepT, aFrom, aUntil);
+  // Above the floor but under the contact shadows, so a figure standing in a
+  // bar still sits on the ground rather than hovering over a coloured card.
+  vec3 p = aCentre + vec3(aCorner.x * aHalf.x, 0.006, aCorner.y * aHalf.y);
+  gl_Position = uViewProj * vec4(p, 1.0);
+}`;
+
+const AREA_FS = `#version 300 es
+precision highp float;
+in vec2 vLocal;
+in vec3 vTint;
+in float vSolid;
+out vec4 frag;
+void main() {
+  // Soft at the edges and stronger at the rim than in the middle, so an area
+  // reads as a region of ground rather than as a painted rectangle - and so
+  // that anything standing on it is still standing on ground.
+  vec2 d = abs(vLocal);
+  float inside = (1.0 - smoothstep(0.86, 1.0, max(d.x, d.y)));
+  float rim = smoothstep(0.62, 0.99, max(d.x, d.y));
+  float alpha = inside * vSolid * (0.16 + 0.30 * rim);
+  if (alpha < 0.004) discard;
+  frag = vec4(vTint, alpha);
 }`;
 
 // Rain. One fixed cloud of drops that follows the camera and wraps around it,
@@ -349,13 +447,79 @@ in vec2 vNdc;
 uniform vec3 uSky;
 uniform vec3 uHorizon;
 uniform vec3 uSunColour;
+// The camera's own axes, so a screen position becomes a direction in the world.
+// Without these the sky can only be a gradient with a glow painted at a fixed
+// place on the screen, which is what it was: the sun could not move, because
+// there was nothing for it to move relative to.
+uniform vec3 uRight;
+uniform vec3 uUp;
+uniform vec3 uForward;
+uniform vec2 uTan;
+uniform vec3 uSun;
+uniform vec3 uMoon;
+uniform float uSunUp;
+uniform float uMoonUp;
+uniform float uNight;
 out vec4 frag;
+
+// A stable value per direction, for stars. Nothing is stored and nothing is
+// uploaded: the same direction always hashes to the same number, so the sky
+// holds still while the camera turns through it.
+float hash(vec3 p) {
+  return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453);
+}
+
 void main() {
-  float h = clamp(vNdc.y * 0.5 + 0.5, 0.0, 1.0);
+  vec3 dir = normalize(uForward + uRight * vNdc.x * uTan.x + uUp * vNdc.y * uTan.y);
+
+  // The gradient follows the horizon in the world rather than the middle of the
+  // screen, so tilting the camera tilts the sky with it.
+  float h = clamp(dir.y * 0.5 + 0.5, 0.0, 1.0);
   vec3 colour = mix(uHorizon, uSky, pow(h, 0.75));
-  // A soft glow up and to the left, so the sky is not a flat gradient.
-  float glow = exp(-8.0 * distance(vNdc, vec2(-0.45, 0.55)));
-  colour += uSunColour * glow * 0.35;
+
+  vec3 sun = normalize(uSun);
+  vec3 moon = normalize(uMoon);
+  float toSun = max(dot(dir, sun), 0.0);
+  float toMoon = max(dot(dir, moon), 0.0);
+
+  // **Whether a body can be seen is not how much light it is giving.**
+  // uSunUp and uMoonUp ramp across most of an hour, because that is how long
+  // the light takes to change; a disc, though, is either over the horizon or
+  // behind it. Using the light ramp for both made the sun faintest exactly at
+  // sunrise and sunset, which are the only times the camera can see it at all:
+  // it orbits a point on the ground and cannot look up, so a midday sun is
+  // always above the frame.
+  float sunShow = smoothstep(-0.035, 0.02, sun.y);
+  float moonShow = smoothstep(-0.035, 0.02, moon.y);
+
+  // Stars, before either body, so both are drawn over them. They fade in with
+  // the dark and never appear in daylight.
+  if (uNight > 0.01) {
+    vec3 cell = floor(dir * 220.0);
+    float star = hash(cell);
+    float bright = smoothstep(0.9975, 1.0, star) * max(dir.y, 0.0);
+    colour += vec3(0.85, 0.88, 1.0) * bright * uNight;
+  }
+
+  // The glow around the sun, wide and soft, and much wider near the horizon -
+  // which is most of what makes a sunrise read as one.
+  float low = 1.0 - clamp(sun.y * 3.0, 0.0, 1.0);
+  float spread = mix(220.0, 14.0, low);
+  colour += uSunColour * pow(toSun, spread) * 0.9 * sunShow;
+  colour += uSunColour * pow(toSun, 3.0) * 0.16 * sunShow * low;
+
+  // The sun itself. A disc rather than a point, softened at its edge so it does
+  // not crawl with the pixel grid as the camera turns.
+  float disc = smoothstep(0.99955, 0.99980, toSun);
+  colour = mix(colour, uSunColour * 2.4, disc * sunShow);
+
+  // The moon: smaller, cooler, and with a much tighter glow, because a wide one
+  // reads as fog rather than as moonlight.
+  float moonGlow = pow(toMoon, 900.0) * 0.5 + pow(toMoon, 60.0) * 0.05;
+  colour += vec3(0.78, 0.83, 1.0) * moonGlow * moonShow;
+  float face = smoothstep(0.99968, 0.99988, toMoon);
+  colour = mix(colour, vec3(0.93, 0.95, 1.0), face * moonShow);
+
   frag = vec4(colour, 1.0);
 }`;
 
@@ -452,6 +616,8 @@ export const SHADERS = {
   'mesh fragment': CUBE_FS,
   'shadow vertex': SHADOW_VS,
   'shadow fragment': SHADOW_FS,
+  'area vertex': AREA_VS,
+  'area fragment': AREA_FS,
   'rain vertex': RAIN_VS,
   'rain fragment': RAIN_FS,
   'sky vertex': SKY_VS,
@@ -505,6 +671,7 @@ function program(gl, vs, fs, label = 'shader') {
 // graphics. Re-exported so a caller need only import the renderer.
 export { PRESETS as WEATHER, resolve as resolveWeather, lerpWeather } from './weather.js';
 import { PRESETS as WEATHER } from './weather.js';
+import { axesOf, FOV_Y, ASPECT } from './camera.js';
 
 export function createRenderer(canvas) {
   const gl = canvas.getContext('webgl2', { antialias: true, alpha: false });
@@ -513,6 +680,7 @@ export function createRenderer(canvas) {
   const cube = program(gl, CUBE_VS, CUBE_FS, 'cube');
   const mesh = program(gl, MESH_VS, CUBE_FS, 'mesh');
   const shadow = program(gl, SHADOW_VS, SHADOW_FS, 'shadow');
+  const area = program(gl, AREA_VS, AREA_FS, 'area');
   const rain = program(gl, RAIN_VS, RAIN_FS, 'rain');
   const sky = program(gl, SKY_VS, SKY_FS, 'sky');
   const floor = program(gl, FLOOR_VS, FLOOR_FS, 'floor');
@@ -555,7 +723,7 @@ export function createRenderer(canvas) {
   function uploadMesh(surface) {
     meshIndexCount = surface.indices.length;
     for (const key of ['positions', 'normals', 'colours', 'seeds', 'objects',
-      'fromStep', 'untilStep', 'ao', 'pivots', 'motion', 'finish']) {
+      'fromStep', 'untilStep', 'ao', 'pivots', 'motion', 'finish', 'travel']) {
       if (meshBuffers[key]) gl.deleteBuffer(meshBuffers[key]);
       meshBuffers[key] = buffer(surface[key]);
     }
@@ -572,6 +740,7 @@ export function createRenderer(canvas) {
     attribute(mesh.handle, 'aObject', meshBuffers.objects, 1);
     attribute(mesh.handle, 'aFrom', meshBuffers.fromStep, 1);
     attribute(mesh.handle, 'aUntil', meshBuffers.untilStep, 1);
+    attribute(mesh.handle, 'aTravel', meshBuffers.travel, 3);
     attribute(mesh.handle, 'aAo', meshBuffers.ao, 1);
     attribute(mesh.handle, 'aPivot', meshBuffers.pivots, 3);
     attribute(mesh.handle, 'aMotion', meshBuffers.motion, 4);
@@ -611,7 +780,7 @@ export function createRenderer(canvas) {
     shadowCount = patches.count;
     for (const [key, data] of Object.entries({
       centres: patches.centres, radii: patches.radii,
-      fromStep: patches.fromStep, untilStep: patches.untilStep,
+      fromStep: patches.fromStep, untilStep: patches.untilStep, travel: patches.travel,
     })) {
       if (shadowBuffers[key]) gl.deleteBuffer(shadowBuffers[key]);
       shadowBuffers[key] = buffer(data);
@@ -624,6 +793,33 @@ export function createRenderer(canvas) {
     attribute(shadow.handle, 'aRadius', shadowBuffers.radii, 1, 1);
     attribute(shadow.handle, 'aFrom', shadowBuffers.fromStep, 1, 1);
     attribute(shadow.handle, 'aUntil', shadowBuffers.untilStep, 1, 1);
+    attribute(shadow.handle, 'aTravel', shadowBuffers.travel, 3, 1);
+    gl.bindVertexArray(null);
+  }
+
+  let areaVao = null;
+  let areaCount = 0;
+  const areaBuffers = {};
+
+  /** Hand the ground its labelled places. Called whenever they change. */
+  function uploadAreas(patches) {
+    areaCount = patches.count;
+    for (const [key, data] of Object.entries({
+      centres: patches.centres, halves: patches.halves, tints: patches.tints,
+      fromStep: patches.fromStep, untilStep: patches.untilStep,
+    })) {
+      if (areaBuffers[key]) gl.deleteBuffer(areaBuffers[key]);
+      areaBuffers[key] = buffer(data);
+    }
+    if (areaVao) gl.deleteVertexArray(areaVao);
+    areaVao = gl.createVertexArray();
+    gl.bindVertexArray(areaVao);
+    attribute(area.handle, 'aCorner', quadBuf, 2);
+    attribute(area.handle, 'aCentre', areaBuffers.centres, 3, 1);
+    attribute(area.handle, 'aHalf', areaBuffers.halves, 2, 1);
+    attribute(area.handle, 'aTint', areaBuffers.tints, 3, 1);
+    attribute(area.handle, 'aFrom', areaBuffers.fromStep, 1, 1);
+    attribute(area.handle, 'aUntil', areaBuffers.untilStep, 1, 1);
     gl.bindVertexArray(null);
   }
 
@@ -644,6 +840,17 @@ export function createRenderer(canvas) {
   function attribute(prog, name, buf, size, divisor = 0) {
     const location = gl.getAttribLocation(prog, name);
     if (location < 0) return;
+    // **Refused by name rather than bound to nothing.** Enabling an attribute
+    // array with no buffer behind it makes every draw call that uses it
+    // invalid, so the whole field silently stops appearing - and the shader,
+    // the geometry and the uniforms all still look perfectly correct. That is
+    // exactly what happened when `aTravel` was added to three shaders and left
+    // out of the three lists of buffers to create.
+    if (!buf) {
+      throw new Error(`"${name}" has no buffer: whatever builds this program's`
+        + ' data is not producing it, and binding nothing here would stop the'
+        + ' whole draw call without saying why.');
+    }
     gl.bindBuffer(gl.ARRAY_BUFFER, buf);
     gl.enableVertexAttribArray(location);
     gl.vertexAttribPointer(location, size, gl.FLOAT, false, 0, 0);
@@ -653,7 +860,8 @@ export function createRenderer(canvas) {
   /** Upload the field. Called once when the canvas loads, and after an edit. */
   function upload(scene) {
     instanceCount = scene.count;
-    for (const key of ['positions', 'colours', 'seeds', 'sizes', 'objects', 'fromStep', 'untilStep']) {
+    for (const key of ['positions', 'colours', 'seeds', 'sizes', 'objects',
+      'fromStep', 'untilStep', 'travel']) {
       if (instanceBuffers[key]) gl.deleteBuffer(instanceBuffers[key]);
       // Positions are rewritten while dragging, so they are not static data.
       instanceBuffers[key] = buffer(scene[key],
@@ -671,6 +879,7 @@ export function createRenderer(canvas) {
     attribute(cube.handle, 'aObject', instanceBuffers.objects, 1, 1);
     attribute(cube.handle, 'aFrom', instanceBuffers.fromStep, 1, 1);
     attribute(cube.handle, 'aUntil', instanceBuffers.untilStep, 1, 1);
+    attribute(cube.handle, 'aTravel', instanceBuffers.travel, 3, 1);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idxBuf);
     gl.bindVertexArray(null);
   }
@@ -732,7 +941,7 @@ export function createRenderer(canvas) {
   /** What the last frame was drawn into, for reporting rather than for drawing. */
   let lastView = { x: 0, y: 0, w: 0, h: 0, fill: 1 };
 
-  function drawCubes(matrix, flip, weather, time, shimmer, selected, step, stepT) {
+  function drawCubes(matrix, flip, weather, time, shimmer, selected, step, stepT, arrive) {
     gl.useProgram(cube.handle);
     gl.bindVertexArray(vao);
     gl.uniformMatrix4fv(cube.u.uViewProj, false, matrix);
@@ -741,6 +950,7 @@ export function createRenderer(canvas) {
     gl.uniform1f(cube.u.uShimmer, shimmer);
     gl.uniform1f(cube.u.uStep, step);
     gl.uniform1f(cube.u.uStepT, stepT);
+    gl.uniform1f(cube.u.uArrive, arrive);
     // The reflection is not highlighted; only the object itself.
     gl.uniform1f(cube.u.uSelected, flip < 0 ? -1 : selected);
     gl.uniform1f(cube.u.uTint, flip < 0 ? 0.72 : 1.0);
@@ -754,7 +964,7 @@ export function createRenderer(canvas) {
     gl.bindVertexArray(null);
   }
 
-  function drawMesh(matrix, flip, weather, time, shimmer, selected, step, stepT) {
+  function drawMesh(matrix, flip, weather, time, shimmer, selected, step, stepT, arrive) {
     gl.useProgram(mesh.handle);
     gl.bindVertexArray(meshVao);
     gl.uniformMatrix4fv(mesh.u.uViewProj, false, matrix);
@@ -763,6 +973,7 @@ export function createRenderer(canvas) {
     gl.uniform1f(mesh.u.uShimmer, shimmer);
     gl.uniform1f(mesh.u.uStep, step);
     gl.uniform1f(mesh.u.uStepT, stepT);
+    gl.uniform1f(mesh.u.uArrive, arrive);
     gl.uniform1f(mesh.u.uSelected, flip < 0 ? -1 : selected);
     gl.uniform1f(mesh.u.uTint, flip < 0 ? 0.72 : 1.0);
     gl.uniform1f(mesh.u.uAmbient, weather.ambient ?? 1);
@@ -785,8 +996,12 @@ export function createRenderer(canvas) {
   }
 
   function draw({
-    matrix, eye, time, weather = WEATHER.clear, shimmer = 0.004,
+    matrix, eye, target = [0, 0, 0], time, weather = WEATHER.clear, shimmer = 0.004,
     selected = -1, step = 0, stepT = 1, surface = 'cubes', smooth = 0,
+    // How far through the flight into the current step the route is. An object
+    // that travels is part way along its line by exactly this much. Settled on
+    // a step means 1: the move is over and the object is where it ended up.
+    arrive = 1,
   }) {
     smoothing = smooth;
     const view = resize();
@@ -809,13 +1024,28 @@ export function createRenderer(canvas) {
     gl.uniform3fv(sky.u.uSky, weather.sky);
     gl.uniform3fv(sky.u.uHorizon, weather.horizon);
     gl.uniform3fv(sky.u.uSunColour, weather.sunColour);
+    // The camera's axes, so the shader can turn a pixel into a direction and
+    // put the sun where it actually is rather than where the screen is.
+    {
+      const [f, r, u] = axesOf(eye, target);
+      gl.uniform3fv(sky.u.uForward, f);
+      gl.uniform3fv(sky.u.uRight, r);
+      gl.uniform3fv(sky.u.uUp, u);
+      const tanY = Math.tan(FOV_Y / 2);
+      gl.uniform2f(sky.u.uTan, tanY * ASPECT, tanY);
+    }
+    gl.uniform3fv(sky.u.uSun, weather.sun);
+    gl.uniform3fv(sky.u.uMoon, weather.moon ?? [0, -1, 0]);
+    gl.uniform1f(sky.u.uSunUp, weather.sunUp ?? 1);
+    gl.uniform1f(sky.u.uMoonUp, weather.moonUp ?? 0);
+    gl.uniform1f(sky.u.uNight, weather.night ?? 0);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
     // 2. The field, mirrored under the floor.
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
     gl.disable(gl.BLEND);
-    drawField(surface, matrix, -1, weather, time, shimmer, selected, step, stepT);
+    drawField(surface, matrix, -1, weather, time, shimmer, selected, step, stepT, arrive);
 
     // 3. The floor, blended over its own reflection, carrying the weather's marks.
     gl.enable(gl.BLEND);
@@ -836,7 +1066,20 @@ export function createRenderer(canvas) {
     gl.uniform1i(floor.u.uScars, 0);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-    // 4. Contact shadows, multiplied onto the ground so things sit on it.
+    // 4. Labelled places, laid on the ground under everything that stands on it.
+    if (areaCount) {
+      gl.depthMask(false);
+      gl.useProgram(area.handle);
+      gl.bindVertexArray(areaVao);
+      gl.uniformMatrix4fv(area.u.uViewProj, false, matrix);
+      gl.uniform1f(area.u.uStep, step);
+      gl.uniform1f(area.u.uStepT, stepT);
+      gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, areaCount);
+      gl.bindVertexArray(null);
+      gl.depthMask(true);
+    }
+
+    // 5. Contact shadows, multiplied onto the ground so things sit on it.
     if (shadowCount) {
       gl.blendFunc(gl.DST_COLOR, gl.ZERO);
       gl.depthMask(false);
@@ -845,6 +1088,7 @@ export function createRenderer(canvas) {
       gl.uniformMatrix4fv(shadow.u.uViewProj, false, matrix);
       gl.uniform1f(shadow.u.uStep, step);
       gl.uniform1f(shadow.u.uStepT, stepT);
+      gl.uniform1f(shadow.u.uArrive, arrive);
       gl.uniform1f(shadow.u.uStrength, 0.55);
       gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, shadowCount);
       gl.bindVertexArray(null);
@@ -854,7 +1098,7 @@ export function createRenderer(canvas) {
 
     // 5. The field itself.
     gl.disable(gl.BLEND);
-    drawField(surface, matrix, 1, weather, time, shimmer, selected, step, stepT);
+    drawField(surface, matrix, 1, weather, time, shimmer, selected, step, stepT, arrive);
 
     // 6. Rain, in front of the world but hidden behind anything solid.
     const falling = weather.rain ?? 0;
@@ -885,6 +1129,7 @@ export function createRenderer(canvas) {
     upload,
     uploadMesh,
     uploadShadows,
+    uploadAreas,
     updatePositions,
     setScars,
     draw,

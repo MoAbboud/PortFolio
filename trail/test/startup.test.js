@@ -802,3 +802,104 @@ test('placing a textured model makes the app read its texture', async () => {
     `placing ${model.name} decoded no texture, so it was painted from its material name`);
   assert.ok(held.textureBytes > 0, 'a texture was counted but weighs nothing');
 });
+
+test('the new controls reach the canvas: a name, an hour, a move and a place', async () => {
+  // Five features landed at once and every one of them is a control writing to
+  // the canvas file. The modules under them are pure and tested on their own;
+  // what this checks is that the panel is actually wired to them, which is the
+  // half that has broken before.
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 60 });
+  await runApp();
+  stub.allowFrames(120);
+  assert.deepEqual(stub.failures, [], 'the page reported a startup failure');
+
+  // A name tag. The layer that draws these has existed since the first build
+  // and there was never a way to set one.
+  const library = stub.element('b-library').listeners.get('click')?.[0];
+  library();
+  const filter = stub.element('filter');
+  filter.value = 'person';
+  filter.listeners.get('input')?.[0]?.();
+  for (let i = 0; i < 30; i++) await new Promise((r) => setTimeout(r, 0));
+  const tile = stub.element('library').children.find((c) => c.title === 'person');
+  assert.ok(tile, 'the figure was not in the library');
+  tile.listeners.get('click')?.[0]?.();
+  for (let i = 0; i < 40; i++) await new Promise((r) => setTimeout(r, 0));
+
+  const label = stub.element('o-label');
+  assert.equal(label.disabled, false, 'the name field should be live once something is selected');
+  label.value = 'Marla';
+  label.listeners.get('input')?.[0]?.();
+  assert.equal(stub.win.__trail.canvas().objects.at(-1).label, 'Marla',
+    'the name never reached the canvas');
+
+  // The hour. The opening route carries times, because a step is named by its
+  // hour now, so this checks the slider changes it rather than creates it.
+  assert.equal(typeof stub.win.__trail.canvas().steps[0].hour, 'number',
+    'the opening route should carry times, since a step is named by its hour');
+  const hour = stub.element('r-hour');
+  hour.value = '1110';                       // 18:30
+  hour.listeners.get('input')?.[0]?.();
+  for (let i = 0; i < 30; i++) await new Promise((r) => setTimeout(r, 0));
+  assert.equal(stub.win.__trail.canvas().steps[0].hour, 18.5, 'the hour never reached the step');
+
+  // And back off again, which is a different thing from midnight.
+  stub.element('b-hour-off').listeners.get('click')?.[0]?.();
+  assert.equal(stub.win.__trail.canvas().steps[0].hour, undefined,
+    'there is no way back to a step with no set time');
+
+  // A camera move, saved on the step so a take plays the same way twice.
+  stub.element('b-orbit').listeners.get('click')?.[0]?.();
+  assert.equal(stub.win.__trail.canvas().steps[0].orbit, 1, 'orbiting never reached the step');
+  stub.element('b-orbit').listeners.get('click')?.[0]?.();
+  assert.equal(stub.win.__trail.canvas().steps[0].orbit, undefined, 'it could not be turned off');
+
+  assert.deepEqual(stub.failures, [], 'one of the new controls reported a failure');
+});
+
+test('a step is named by its hour, and moving one drags its references with it', async () => {
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 60 });
+  await runApp();
+  stub.allowFrames(120);
+  assert.deepEqual(stub.failures, [], 'the page reported a startup failure');
+
+  // The strip is named by the clock rather than by 1, 2, 3.
+  const labels = stub.element('steps').children.map((b) => b.textContent);
+  assert.ok(labels.every((l) => /^\d{2}:\d{2}$/.test(l)),
+    `the step strip should read as times, and reads ${labels.join(', ')}`);
+
+  const before = stub.win.__trail.canvas();
+  assert.ok(before.steps.length >= 3, 'this test needs a route to rearrange');
+  const wasLast = before.steps.at(-1).hour;
+  // Something in the opening arrangement points at the last step, which is what
+  // makes this worth checking at all.
+  // A saved canvas leaves out defaults, so "appears at the first step" is an
+  // absent `from` rather than a zero. Reading it as a zero finds nothing and
+  // makes a working rearrangement look broken.
+  const startsAt = (o) => o.from ?? 0;
+  const pointing = before.objects.filter((o) => startsAt(o) === before.steps.length - 1);
+  assert.ok(pointing.length, 'nothing in the opening scene appears at the last step');
+
+  // Pin the last step and move it to the front.
+  const strip = stub.element('steps').children;
+  strip[strip.length - 1].listeners.get('click')?.[0]?.();
+  stub.element('b-step-up').listeners.get('click')?.[0]?.();
+  stub.element('b-step-up').listeners.get('click')?.[0]?.();
+
+  const after = stub.win.__trail.canvas();
+  assert.equal(after.steps[0].hour, wasLast, 'the step did not move');
+  assert.equal(after.steps.length, before.steps.length, 'a step was lost on the way');
+  const nowPointing = after.objects.filter((o) => startsAt(o) === 0);
+  assert.equal(nowPointing.length, pointing.length,
+    'the objects that appeared at that step did not follow it, so the video is re-timed');
+
+  // And removing one must not leave anything pointing past the end.
+  stub.element('b-step-remove').listeners.get('click')?.[0]?.();
+  const shorter = stub.win.__trail.canvas();
+  assert.equal(shorter.steps.length, before.steps.length - 1);
+  for (const object of shorter.objects) {
+    assert.ok(startsAt(object) < shorter.steps.length,
+      `${object.model} appears at a step that is no longer there`);
+  }
+  assert.deepEqual(stub.failures, [], 'rearranging the route reported a failure');
+});

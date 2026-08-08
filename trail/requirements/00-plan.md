@@ -8,7 +8,7 @@ whole thing. Cheap enough to redo, consistent enough to be a visual identity, re
 that a retake is free, and containing no artificial intelligence of any kind at runtime.
 
 **The app is built, running, and has a library of everything on disk.** The renderer, the
-camera, the route, the weather, the picking, the canvas file and the pen all exist, with 429
+camera, the route, the weather, the picking, the canvas file and the pen all exist, with 477
 tests behind them, and 367 models load when the page opens - four recipes and 363 meshes read
 as OBJ, glTF or `.glb`. Nothing is held back for licence, nothing in it is off-subject, and
 everything in it is a placeable object rather than a part of one.
@@ -149,6 +149,18 @@ value.
 | **Material names are matched longest-first** | Names used to be tried in written order, so a general word shadowed a specific one and every chair in the furniture pack came out the colour of hair. It also lets the table grow without the author having to reason about position |
 | **A model is painted from its texture, and where that texture lives is manifest data** | 184 models keep their colour only in an image. The plan of record said the OBJ path could not reach them - 88 of the references are absolute paths from an artist's own machine - and that texture support would therefore have to flip the OBJ-over-glTF preference. Measured: taking the filename off the end of the path resolves all 184, so the preference was left alone and the rigged-model question stays separate. A browser cannot search a folder, so `npm run scan` resolves each reference once and writes it down, which keeps judgement in a tool and data in the page |
 | **Measure the library rather than reasoning about it** | Both of this session's surprises were things these documents asserted confidently: that the library lacked modern subjects, while a pack of characters, cars and streets sat in it unread; and that mesh normalisation would be the hard part, when ten packs of eleven already agreed to within a few per cent. One script answered each |
+
+### From the fourth conversation, which added the clock and the moves
+
+| Decision | Reason |
+| --- | --- |
+| **The time of day is a number, and it is not the weather** | The hour says where the light comes from and what colour it is; the weather says how much of it gets through, how far you can see and what is left on the ground. Before this, `dusk` and `night` were presets, so the time of day was a fixed choice from a list of six. A preset now carries `dull`, saying how far it pulls the sky back toward its own colours: clear lets the hour through untouched, a storm is a storm at any hour. Ambient light multiplies rather than mixing, so overcast at midnight is darker than either alone |
+| **A step with no hour behaves exactly as it always did** | Absent is not midnight. It is the line that keeps every canvas built before the clock existed looking identical, and it is why the migration to version 4 rewrites nothing |
+| **A flight interpolates the hour, not the sun** | Two hours are two directions, and at six against eighteen they are exactly opposite - the midpoint of the vectors has no direction at all. Interpolating the hour round the clock and asking the sky again is the only thing that produces a sun that travels |
+| **The sky is given the camera's axes** | It was a gradient with a glow painted at a fixed place on the screen, so the sun could not move: there was nothing for it to move relative to. Turning each pixel into a direction in the world is what makes a sun, a moon and stars possible at all |
+| **A place is not an object** | A labelled rectangle of ground - the bar, the golf course - has no model, no cubes and no height. Making it a placement with a flag would have pushed it through the voxeliser, the mesher, the box builder and the picker for something that is a wash of colour on the floor. It is its own list, one instanced quad each, with a step range like everything else |
+| **A camera move is a framing, like every other camera decision** | Orbiting turns the yaw and pushing in shrinks the rectangle, so every intermediate state is a framing somebody could have drawn and the camera can never end up underground. A sway rather than a circuit, because the back of a low-poly model is not what it was made for. Saved on the step, because play mode carries no interface and a take has to play the same way twice |
+| **An object can walk a line, and the field is still static** | This looks like the design that was cancelled and is not it. The cancelled one gave every object a position per step and interpolated on the processor. This is one line per object, three numbers per vertex uploaded with everything else, and an offset added in the vertex shader - so the field is still built once and uploaded once, and nothing runs per frame over the cubes. Its shadow and its name tag are offset by the same amount; its picking box is not, which only shows while the route is playing |
 
 ### Carried forward from the first conversation
 

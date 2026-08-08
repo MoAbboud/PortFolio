@@ -289,6 +289,13 @@
         <button class="btn" id="b-step-add">add after</button>
         <button class="btn" id="b-step-remove">remove</button>
       </div>
+      <!-- The route is an order, and the clock is what each step is called. The
+           two are separate on purpose: a story can double back to an earlier
+           hour, so sorting by time would be deciding for the person writing. -->
+      <div class="buttons">
+        <button class="btn" id="b-step-up">move earlier</button>
+        <button class="btn" id="b-step-down">move later</button>
+      </div>
       <button class="btn" id="b-step-frame">frame this step from the view</button>
       <button class="btn" id="b-step-split">split the script at the cursor</button>
       <div class="ctl">
@@ -307,6 +314,23 @@
         <button data-v="dusk">dusk</button>
         <button data-v="night">night</button>
       </div>
+      <!-- The time of day, which is a different thing from the weather: the
+           hour says where the light comes from, the weather says how much of it
+           gets through. 6 is sunrise and 18 is sunset, the sun travels between
+           them, and the moon takes over either side. -->
+      <div class="ctl">
+        <div class="row"><span class="dim">time of day</span><span class="val" id="v-hour">-</span></div>
+        <input type="range" id="r-hour" min="0" max="1440" step="5" value="720">
+      </div>
+      <button class="btn" id="b-hour-off">no set time (use the weather's own light)</button>
+      <!-- A move the camera makes on its own while it holds here. Drift already
+           runs under every shot at an amplitude meant to be felt rather than
+           seen; these are large enough to read as moves. -->
+      <div class="buttons">
+        <button class="btn" id="b-orbit">orbit on the spot</button>
+        <button class="btn" id="b-push">push in slowly</button>
+      </div>
+      <div class="row"><span class="dim">camera move</span><b id="s-move">still</b></div>
     </div>
   </details>
 
@@ -339,10 +363,36 @@
       <!-- The pose a rigged model is standing in. One model in the library
            holds dozens, and which one an object is in belongs to the object. -->
       <div id="poses"></div>
+      <!-- The name that floats over this object. The layer that draws it has
+           existed since the first build and there was no way to set one, so
+           every figure was anonymous unless the page source was edited. -->
+      <div class="ctl">
+        <div class="row"><span class="dim">name tag</span><span class="val" id="v-label">-</span></div>
+        <input type="text" id="o-label" placeholder="nobody" maxlength="24" disabled>
+      </div>
       <!-- One row per tint slot the selected model offers, built when it is
            selected: a model decides how many colours it has, not the markup. -->
       <div id="tints"></div>
+      <!-- Where this object travels to, if it travels. Traced on the ground
+           rather than typed: click the button, then drag a line from the object
+           to where it ends up. -->
+      <div class="buttons">
+        <button class="btn" id="b-path">trace where it goes</button>
+        <button class="btn" id="b-path-clear">stay put</button>
+      </div>
+      <div class="row"><span class="dim">travels</span><b id="s-path">nowhere</b></div>
       <button class="btn" id="b-remove">remove from canvas</button>
+    </div>
+  </details>
+
+  <details>
+    <summary>places</summary>
+    <div class="body">
+      <!-- A rectangle of ground with a name on it: the bar, the car park, the
+           golf course. It is a place rather than an object, so it is drawn into
+           the ground and named by the same layer that names people. -->
+      <button class="btn" id="b-area">draw a place on the ground</button>
+      <div id="areas"></div>
     </div>
   </details>
 

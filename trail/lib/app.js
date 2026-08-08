@@ -12,17 +12,18 @@
 
 import { voxelise, hollow, anchor as reanchor } from './voxel.js';
 import {
-  assemble, assembleMeshes, contactShadows, bounds, place, objectBoxes,
+  assemble, assembleMeshes, contactShadows, bounds, place, objectBoxes, travelOf,
 } from './scene.js';
 import { surfaceNets, fromTriangles } from './mesh.js';
 import { toNdc, insideFrame, rayThrough, pick, groundPoint, dragTo, rotateBy } from './pick.js';
-import { viewProjection, drift, routeAt, routeDuration } from './camera.js';
+import { viewProjection, drift, autoMove, routeAt, routeDuration, easeInOut } from './camera.js';
 import { orbit, zoom, panScreen, walk, rise, fit, tidy, centreOf } from './orbit.js';
 import { createRenderer } from './render.js';
 import { lerpWeather, resolve as resolveWeather, stampsUpTo } from './weather.js';
+import { clockOf } from './daylight.js';
 import { scarMap } from './scars.js';
 import { multiply } from './mat4.js';
-import { serialise, parse, isRefusal } from './canvas.js';
+import { serialise, parse, isRefusal, reorder, moved, dropped } from './canvas.js';
 import { scriptOf, splitStep } from './script.js';
 import * as pen from './pen.js';
 import { thumbnail, preview } from './thumb.js';
@@ -58,13 +59,15 @@ const PLACEMENTS = [
   { model: 'tree',  at: [9.5, 0, 5.5], scale: 0.8, from: 2 },
 ];
 
+// A step is ordered by its position and called by its hour. The opening route
+// carries times so the clock is doing something the moment the page opens.
 const ROUTE = [
   { framing: { x: -11, z: -8.5, w: 11, d: 8.5, pitch: 19, yaw: -6 },
-    hold: 5000, weather: 'clear' },
+    hold: 5000, weather: 'clear', hour: 9 },
   { framing: { x: -1.2, z: 0.6, w: 8, d: 6, pitch: 13, yaw: 16 },
-    hold: 5000, approachTime: 3200, weather: 'storm' },
+    hold: 5000, approachTime: 3200, weather: 'storm', hour: 13.5 },
   { framing: { x: -18, z: -12, w: 34, d: 25, pitch: 42, yaw: 0 },
-    hold: 9000, approachTime: 4200, weather: 'dusk' },
+    hold: 9000, approachTime: 4200, weather: 'clear', hour: 18.25 },
 ];
 
 const SCARS = { extent: 60, resolution: 256, feather: 7 };
@@ -302,6 +305,9 @@ async function main() {
     .filter((p) => manifest.recipes.includes(p.model))
     .map((p) => ({ ...p, at: [...p.at] }));
   let route = ROUTE.map((s) => ({ ...s, framing: { ...s.framing } }));
+  // Named rectangles of ground. Not objects: they have no model and no height,
+  // and they are drawn into the floor rather than standing on it.
+  let areas = [];
 
   let surface = 'mesh';     // 'cubes' | 'mesh'
   // No relaxation and no averaged normals. Together those two produce a crisp
@@ -462,6 +468,13 @@ async function main() {
     roaming: null,
     selected: -1,
     forcedWeather: null,
+    // True while a line is being traced for the selected object to walk.
+    tracing: false,
+    // True while a rectangle is being dragged out for a named place.
+    drawingArea: false,
+    // When the shot being watched began, so a camera move that was asked for
+    // is measured from the start of its own shot rather than from wall time.
+    shotAt: null,
   };
 
   function currentRoute() {
@@ -503,10 +516,154 @@ async function main() {
     return rayThrough(framing, ndc);
   }
 
+  // --- places -----------------------------------------------------------------
+  //
+  // A rectangle of ground with a name on it: the bar, the car park, the golf
+  // course. It is a **place**, not an object, and that distinction is the whole
+  // design: it has no model, no cubes and no height, it is drawn into the
+  // ground rather than standing on it, and it is named by the same layer that
+  // names people. It costs one instanced quad each and nothing per frame.
+  //
+  // It carries a step range like everything else, so a place arrives with the
+  // part of the story that happens in it.
+
+  // Enough different colours that neighbouring places are told apart at a
+  // glance, and all of them muted, because a place is a wash on the ground
+  // rather than a thing to look at.
+  const PLACE_TINTS = [
+    [0.86, 0.62, 0.34], [0.42, 0.68, 0.86], [0.52, 0.78, 0.48],
+    [0.84, 0.48, 0.56], [0.72, 0.60, 0.86], [0.90, 0.82, 0.42],
+  ];
+
+  function uploadAreas() {
+    const count = areas.length;
+    const centres = new Float32Array(count * 3);
+    const halves = new Float32Array(count * 2);
+    const tints = new Float32Array(count * 3);
+    const fromStep = new Float32Array(count);
+    const untilStep = new Float32Array(count);
+    areas.forEach((place, i) => {
+      centres[i * 3] = place.at[0];
+      centres[i * 3 + 2] = place.at[1];
+      halves[i * 2] = Math.abs(place.size[0]) / 2;
+      halves[i * 2 + 1] = Math.abs(place.size[1]) / 2;
+      const tint = PLACE_TINTS[i % PLACE_TINTS.length];
+      tints[i * 3] = tint[0]; tints[i * 3 + 1] = tint[1]; tints[i * 3 + 2] = tint[2];
+      fromStep[i] = place.from ?? 0;
+      untilStep[i] = place.until ?? 9999;
+    });
+    renderer.uploadAreas({ centres, halves, tints, fromStep, untilStep, count });
+  }
+
+  /** One row per place, built from the data rather than written into the markup. */
+  function paintAreas() {
+    const host = el('areas');
+    host.innerHTML = '';
+    if (!areas.length) {
+      const empty = document.createElement('div');
+      empty.className = 'row';
+      empty.innerHTML = '<span class="dim">none yet</span>';
+      host.appendChild(empty);
+      return;
+    }
+    areas.forEach((place, i) => {
+      const row = document.createElement('div');
+      row.className = 'row';
+
+      const name = document.createElement('input');
+      name.type = 'text';
+      name.value = place.label ?? '';
+      name.placeholder = 'the bar';
+      name.maxLength = 24;
+      name.addEventListener('input', () => {
+        const label = name.value.trim();
+        if (label) place.label = label; else delete place.label;
+        autosave();
+      });
+
+      const gone = document.createElement('button');
+      gone.className = 'btn';
+      gone.textContent = 'remove';
+      gone.addEventListener('click', () => {
+        areas.splice(i, 1);
+        uploadAreas();
+        paintAreas();
+        autosave();
+      });
+
+      row.appendChild(name);
+      row.appendChild(gone);
+      host.appendChild(row);
+    });
+  }
+
+  el('b-area').addEventListener('click', () => {
+    state.drawingArea = true;
+    canvas.classList.add('tracing');
+    say('drag a rectangle on the ground, then name it');
+  });
+
+  // --- tracing where an object goes -----------------------------------------
+  //
+  // Drag a line on the ground and the selected object walks it: it starts where
+  // the line starts and ends where it ends, travelling across the flight into
+  // whichever step is pinned.
+  //
+  // **Nothing about the field stops being static.** The object is uploaded once,
+  // at the start of its line, and the vertex shader adds an offset from two
+  // numbers that travelled with it. No processor work per frame, no work per
+  // cube, one draw call as before. See `travelOf` in `scene.js`.
+
+  function paintPath() {
+    const chosen = state.selected >= 0 ? layout[state.selected] : null;
+    const path = chosen?.path;
+    el('s-path').textContent = !chosen ? 'nowhere'
+      : path ? `to ${path.to[0].toFixed(1)}, ${path.to[1].toFixed(1)} on step ${(path.step ?? 0) + 1}`
+        : 'nowhere';
+    el('b-path').disabled = !chosen;
+    el('b-path-clear').disabled = !chosen?.path;
+  }
+
+  el('b-path').addEventListener('click', () => {
+    if (state.selected < 0) { say('select an object first'); return; }
+    state.tracing = true;
+    canvas.classList.add('tracing');
+    say(`drag a line on the ground: ${layout[state.selected].model} walks it on step ${editing() + 1}`);
+  });
+
+  el('b-path-clear').addEventListener('click', () => {
+    if (state.selected < 0) return;
+    delete layout[state.selected].path;
+    rebuild();
+    paintPath();
+    autosave();
+    say('it stays where it is');
+  });
+
   canvas.addEventListener('pointerdown', (event) => {
     canvas.setPointerCapture(event.pointerId);
     const ray = rayAt(event);
     const hit = ray ? pick(ray, boxes) : null;
+
+    // Drawing a place beats everything else: the button was pressed to draw
+    // one, and picking an object instead would be ignoring what was asked.
+    if (state.drawingArea && ray) {
+      const ground = groundPoint(ray, 0);
+      if (ground) {
+        drag = { x: event.clientX, y: event.clientY, moved: 0, object: null, place: [ground[0], ground[2]] };
+        return;
+      }
+    }
+
+    // A traced line beats everything else, including picking a different
+    // object: the button was pressed to draw one and nothing else is wanted.
+    if (state.tracing && state.selected >= 0 && ray) {
+      const ground = groundPoint(ray, 0);
+      if (ground) {
+        drag = { x: event.clientX, y: event.clientY, moved: 0, object: null, trace: [ground[0], ground[2]] };
+        return;
+      }
+    }
 
     // Dragging an object you have already selected moves it. Dragging anything
     // else moves the camera. One click to choose, then drag to arrange, so
@@ -535,6 +692,46 @@ async function main() {
     drag.y = event.clientY;
     drag.moved += Math.abs(dx) + Math.abs(dy);
 
+    if (drag.place) {
+      const ray = rayAt(event);
+      const ground = ray ? groundPoint(ray, 0) : null;
+      if (ground) drag.placeTo = [ground[0], ground[2]];
+      return;
+    }
+
+    // While a line is being traced, the object stands at its start so the
+    // length and direction can be judged against the world rather than guessed.
+    if (drag.place) {
+      const from = drag.place;
+      const to = drag.placeTo;
+      state.drawingArea = false;
+      canvas.classList.remove('tracing');
+      drag = null;
+      const w = to ? Math.abs(to[0] - from[0]) : 0;
+      const d = to ? Math.abs(to[1] - from[1]) : 0;
+      // A rectangle with no area is a click, and a click is how you change your
+      // mind about having pressed the button.
+      if (w < 0.5 || d < 0.5) { say('nothing drawn - drag a rectangle rather than clicking'); return; }
+      areas.push({
+        at: [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2],
+        size: [w, d],
+        label: '',
+        from: editing(),
+      });
+      uploadAreas();
+      paintAreas();
+      autosave();
+      say(`a place ${w.toFixed(1)} by ${d.toFixed(1)} - give it a name in the panel`);
+      return;
+    }
+
+    if (drag.trace) {
+      const ray = rayAt(event);
+      const ground = ray ? groundPoint(ray, 0) : null;
+      if (ground) drag.traceTo = [ground[0], ground[2]];
+      return;
+    }
+
     if (drag.object !== null) {
       const ray = rayAt(event);
       if (!ray) return;
@@ -551,6 +748,35 @@ async function main() {
 
   const endDrag = (event) => {
     if (!drag) return;
+
+    if (drag.trace) {
+      const from = drag.trace;
+      const to = drag.traceTo;
+      const chosen = state.selected >= 0 ? layout[state.selected] : null;
+      state.tracing = false;
+      canvas.classList.remove('tracing');
+      drag = null;
+
+      // A line with no length is a click, and a click is how you change your
+      // mind about having pressed the button.
+      const length = to ? Math.hypot(to[0] - from[0], to[1] - from[1]) : 0;
+      if (!chosen || length < 0.25) {
+        say('nothing traced - drag a line rather than clicking');
+        paintPath();
+        return;
+      }
+
+      // The object stands at the start of its line and walks to the end. Both
+      // ends come from one gesture, which is what "trace where it goes" means.
+      chosen.at = [from[0], chosen.at[1] ?? 0, from[1]];
+      chosen.path = { to: [to[0], to[1]], step: editing() };
+      rebuild();
+      paintPath();
+      autosave();
+      say(`${chosen.model} walks ${length.toFixed(1)} units on step ${editing() + 1}`);
+      return;
+    }
+
     // A press that did not really move is a click, and a click chooses.
     if (drag.moved < 5 && drag.object === null) {
       const ray = rayAt(event);
@@ -679,12 +905,42 @@ async function main() {
     }
   }
 
+  /**
+   * The name that floats over an object.
+   *
+   * The layer that draws these has existed since the first build - it reads
+   * `label` off a placement, fades it with distance and drops it entirely on a
+   * wide shot - and there has never been a way to set one, so every figure in
+   * every scene was anonymous unless the page source was edited. This is the
+   * control it was missing, and nothing else had to change.
+   */
+  function paintLabel() {
+    const chosen = state.selected >= 0 ? layout[state.selected] : null;
+    const input = el('o-label');
+    input.disabled = !chosen;
+    if (document.activeElement !== input) input.value = chosen?.label ?? '';
+    el('v-label').textContent = chosen ? (chosen.label || 'none') : '-';
+  }
+
+  el('o-label').addEventListener('input', () => {
+    const chosen = state.selected >= 0 ? layout[state.selected] : null;
+    if (!chosen) return;
+    const name = el('o-label').value.trim();
+    // Removed rather than left empty, so a canvas file says what is true: an
+    // object either has a name or does not carry the field at all.
+    if (name) chosen.label = name; else delete chosen.label;
+    el('v-label').textContent = name || 'none';
+    autosave();
+  });
+
   function select(index) {
     state.selected = index;
     el('s-sel').textContent = index < 0 ? 'nothing' : layout[index].model;
     paintObject();
     paintPose();
     paintTints();
+    paintLabel();
+    paintPath();
     if (index >= 0) say(`${layout[index].model} selected - drag to move it`);
   }
   // Nothing is selected to begin with, and the panel says so in its markup.
@@ -841,6 +1097,7 @@ async function main() {
     return serialise({
       layout,
       route,
+      areas,
       look: { surface, roundness, smoothing, cubeScale },
       title: 'untitled',
     });
@@ -861,6 +1118,7 @@ async function main() {
   function apply(canvas) {
     layout = canvas.layout;
     route = canvas.route;
+    areas = canvas.areas ?? [];
     surface = canvas.look.surface;
     roundness = canvas.look.roundness;
     smoothing = canvas.look.smoothing;
@@ -874,6 +1132,7 @@ async function main() {
     scarredUpTo = -2;
     duration = routeDuration(route) / 1000;
     rebuild();
+    uploadAreas();
     select(-1);
     paintScript();
     paintStep();
@@ -1110,6 +1369,10 @@ async function main() {
 
   // The route, for a test. Until step editing existed this could only be
   // changed by editing the page source, so nothing could check it.
+  // The whole canvas as it would be saved. A test can then check that a
+  // control actually reached the file rather than only that it did not throw.
+  window.__trail.canvas = () => current();
+
   window.__trail.route = () => route.map((s) => ({
     text: s.text ?? '', hold: s.hold, weather: s.weather, framing: { ...s.framing },
   }));
@@ -1267,7 +1530,7 @@ async function main() {
     return { x: clip[0] / clip[3], y: clip[1] / clip[3], w: clip[3] };
   }
 
-  function drawTags(matrix, step) {
+  function drawTags(matrix, step, arrive = 1) {
     const view = renderer.view.css;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     if (tags.width !== Math.round(view.w * dpr) || tags.height !== Math.round(view.h * dpr)) {
@@ -1282,12 +1545,36 @@ async function main() {
     tagCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
     tagCtx.clearRect(0, 0, view.w, view.h);
 
+    // Places first, so a person standing in the bar is labelled over it.
+    for (const place of areas) {
+      if (!place.label) continue;
+      if (step < (place.from ?? 0) || step > (place.until ?? 9999)) continue;
+      const at = project(matrix, [place.at[0], 0.05, place.at[1]]);
+      if (!at || Math.abs(at.x) > 1.1 || Math.abs(at.y) > 1.1) continue;
+      // A place is read at a wider shot than a person is: it is the ground you
+      // are looking across, so it survives the pull-back that drops the names.
+      const fade = Math.max(0, Math.min(1, (200 - at.w) / 90));
+      if (fade <= 0.02) continue;
+      writeTag(place.label, (at.x * 0.5 + 0.5) * view.w, (1 - (at.y * 0.5 + 0.5)) * view.h,
+        fade * 0.85);
+    }
+
     for (let i = 0; i < layout.length; i++) {
       const p = layout[i];
       if (!p.label) continue;
       if (step < (p.from ?? 0) || step > (p.until ?? 9999)) continue;
       const box = boxes[i];
-      const anchor = [(box.min[0] + box.max[0]) / 2, box.max[1] + 0.5, (box.min[2] + box.max[2]) / 2];
+      // A box is measured from the buffers, which hold an object at the start
+      // of its line - the travelling itself happens in the shader. So the tag
+      // has to be offset by the same amount, or a name stands still while the
+      // person it belongs to walks out from under it.
+      const [dx, dz, when] = travelOf(p);
+      const gone = when < 0 ? 0 : step > when ? 1 : step === when ? arrive : 0;
+      const anchor = [
+        (box.min[0] + box.max[0]) / 2 + dx * gone,
+        box.max[1] + 0.5,
+        (box.min[2] + box.max[2]) / 2 + dz * gone,
+      ];
       const at = project(matrix, anchor);
       if (!at || Math.abs(at.x) > 1.1 || Math.abs(at.y) > 1.1) continue;
 
@@ -1296,19 +1583,28 @@ async function main() {
       const fade = Math.max(0, Math.min(1, (90 - at.w) / 45));
       if (fade <= 0.02) continue;
 
-      const sx = (at.x * 0.5 + 0.5) * view.w;
-      const sy = (1 - (at.y * 0.5 + 0.5)) * view.h;
-      tagCtx.font = '600 13px ui-monospace, Consolas, monospace';
-      const width = tagCtx.measureText(p.label).width + 14;
-      tagCtx.globalAlpha = fade * 0.85;
-      tagCtx.fillStyle = '#0d1420';
-      tagCtx.fillRect(sx - width / 2, sy - 20, width, 20);
-      tagCtx.globalAlpha = fade;
-      tagCtx.fillStyle = '#eaf1f8';
-      tagCtx.textAlign = 'center';
-      tagCtx.fillText(p.label, sx, sy - 6);
-      tagCtx.globalAlpha = 1;
+      writeTag(p.label, (at.x * 0.5 + 0.5) * view.w, (1 - (at.y * 0.5 + 0.5)) * view.h, fade);
     }
+  }
+
+  /**
+   * One name, drawn on the glass.
+   *
+   * Shared by people and by places so the two cannot end up looking like
+   * different kinds of writing, which is the only thing that would make a
+   * viewer think they mean different kinds of thing.
+   */
+  function writeTag(text, sx, sy, fade) {
+    tagCtx.font = '600 13px ui-monospace, Consolas, monospace';
+    const width = tagCtx.measureText(text).width + 14;
+    tagCtx.globalAlpha = fade * 0.85;
+    tagCtx.fillStyle = '#0d1420';
+    tagCtx.fillRect(sx - width / 2, sy - 20, width, 20);
+    tagCtx.globalAlpha = fade;
+    tagCtx.fillStyle = '#eaf1f8';
+    tagCtx.textAlign = 'center';
+    tagCtx.fillText(text, sx, sy - 6);
+    tagCtx.globalAlpha = 1;
   }
 
   // --- the take -------------------------------------------------------------
@@ -1436,6 +1732,19 @@ async function main() {
   const editing = () => Math.min(Math.max(0, state.pinned ?? 0), route.length - 1);
 
   /**
+   * A step's sky: the weather it names, at the hour it is set to.
+   *
+   * The two are separate on purpose. The weather says how much light gets
+   * through, how far you can see and what is left on the ground; the hour says
+   * where the light comes from and what colour it is. A step with no hour
+   * resolves to exactly the preset it always did, which is what keeps every
+   * canvas built before the clock existed looking the same.
+   */
+  const skyOf = (step) => (typeof step?.hour === 'number'
+    ? { ...resolveWeather(step.weather ?? 'clear'), hour: step.hour }
+    : (step?.weather ?? 'clear'));
+
+  /**
    * Everything that has to follow a change to the route.
    *
    * Gathered in one place because a step carries more than it looks: the
@@ -1457,10 +1766,16 @@ async function main() {
   function paintStep() {
     const at = editing();
     const step = route[at];
-    el('s-editing').textContent = route.length ? `${at + 1} of ${route.length}` : '-';
+    el('s-editing').textContent = !route.length ? '-'
+      : typeof route[at]?.hour === 'number'
+        ? `${clockOf(route[at].hour)} (${at + 1} of ${route.length})`
+        : `${at + 1} of ${route.length}`;
     if (!step) return;
     holdSlider.set(step.hold ?? 5000);
     approachSlider.set(step.approachTime ?? 2500);
+    hourSlider.set(Math.round((step.hour ?? 12) * 60));
+    paintMove();
+    el('v-hour').textContent = typeof step.hour === 'number' ? clockOf(step.hour) : 'not set';
     stepWeatherSeg.paint();
     // The box shows the words of the step being worked on. While there is only
     // one step that is the whole script, which is what pasting should give.
@@ -1473,24 +1788,73 @@ async function main() {
     // A copy of the step it follows, so it is a real step immediately and the
     // next act is moving the camera - which is what you were going to do.
     const step = route[at];
+    // Half an hour later than the step it follows, so a route reads as a
+    // sequence of times straight away rather than as a stack of noon. Half an
+    // hour because that is the granularity a story actually moves in - the
+    // slider is there for anything else.
+    const next = typeof step.hour === 'number' ? (step.hour + 0.5) % 24 : undefined;
     route.splice(at + 1, 0, {
       ...step,
       framing: { ...step.framing },
+      ...(next === undefined ? {} : { hour: next }),
       text: '',
     });
+    // Everything after the new step moved down one, so what points at those
+    // steps has to move with them.
+    const order = Array.from({ length: route.length }, (_, i) => (i <= at ? i : i - 1));
+    const out = reorder({ route, layout, areas }, order);
+    layout = out.layout;
+    areas = out.areas;
     state.pinned = at + 1;
     state.mode = 'route';
+    rebuild();
+    uploadAreas();
     stepsChanged();
-    say(`step ${at + 2} added`);
+    say(next === undefined ? `step ${at + 2} added` : `${clockOf(next)} added`);
   });
+
+  /**
+   * Rearrange the route, dragging everything that points at a step with it.
+   *
+   * Never splice `route` directly. A step is referred to by its position - an
+   * object's range, the step it walks its line on, a place's range - and moving
+   * one without remapping those does not fail or warn. It quietly re-times the
+   * video, and the only way to notice is to play it and find somebody arriving
+   * in the wrong shot.
+   */
+  function rearrange(order, pinTo) {
+    const out = reorder({ route, layout, areas }, order);
+    route = out.route;
+    layout = out.layout;
+    areas = out.areas;
+    state.pinned = Math.max(0, Math.min(pinTo, route.length - 1));
+    rebuild();
+    uploadAreas();
+    stepsChanged();
+    paintObject();
+    paintPath();
+  }
 
   el('b-step-remove').addEventListener('click', () => {
     if (route.length < 2) { say('a route needs at least one step'); return; }
     const at = editing();
-    const [gone] = route.splice(at, 1);
-    state.pinned = Math.min(at, route.length - 1);
-    stepsChanged();
+    const gone = route[at];
+    rearrange(dropped(route.length, at), at);
     say(gone.text ? 'step removed, and its words with it' : 'step removed');
+  });
+
+  el('b-step-up').addEventListener('click', () => {
+    const at = editing();
+    if (at === 0) { say('that is already the first step'); return; }
+    rearrange(moved(route.length, at, at - 1), at - 1);
+    say(`moved to ${at} of ${route.length}`);
+  });
+
+  el('b-step-down').addEventListener('click', () => {
+    const at = editing();
+    if (at >= route.length - 1) { say('that is already the last step'); return; }
+    rearrange(moved(route.length, at, at + 1), at + 1);
+    say(`moved to ${at + 2} of ${route.length}`);
   });
 
   el('b-step-frame').addEventListener('click', () => {
@@ -1756,6 +2120,50 @@ async function main() {
     () => route[editing()]?.weather ?? 'clear',
     (v) => { route[editing()].weather = v; stepsChanged(); });
 
+  // The clock is kept in minutes rather than hours so the slider can be moved a
+  // few minutes at a time near sunrise, which is where the sky actually changes.
+  const hourSlider = slider('r-hour', (v) => clockOf(v / 60),
+    (v) => { route[editing()].hour = v / 60; }, { after: autosave });
+
+  /**
+   * A move the camera makes by itself while it holds on this step.
+   *
+   * Saved on the step rather than being a live switch, so a take plays the same
+   * way twice - which is the whole reason play mode has no interface. Toggling
+   * one while roaming shows it immediately, because the same value drives both.
+   */
+  function paintMove() {
+    const step = route[editing()];
+    const moves = [step?.orbit ? 'orbiting' : null, step?.push ? 'pushing in' : null]
+      .filter(Boolean);
+    el('s-move').textContent = moves.length ? moves.join(' and ') : 'still';
+    el('b-orbit').setAttribute('aria-pressed', String(!!step?.orbit));
+    el('b-push').setAttribute('aria-pressed', String(!!step?.push));
+  }
+
+  // Registered from `begin`, not here. Everything above `begin` is a
+  // declaration and nothing above it runs, which is the rule that closed a bug
+  // that had taken this page down four times.
+  const toggleMove = (key, id) => el(id).addEventListener('click', () => {
+    const step = route[editing()];
+    if (!step) return;
+    if (step[key]) delete step[key]; else step[key] = 1;
+    // The shot restarts, so the move is watched from its beginning rather than
+    // joining it part way through.
+    state.shotAt = null;
+    paintMove();
+    autosave();
+  });
+  el('b-hour-off').addEventListener('click', () => {
+    // Not the same as midnight. A step with no hour takes the light its weather
+    // preset carries, which is what every canvas did before there was a clock,
+    // and there has to be a way back to it.
+    delete route[editing()].hour;
+    paintStep();
+    autosave();
+    say('this step follows its weather rather than a time');
+  });
+
   const surfaceSeg = segment('surface', () => surface, (v) => {
     surface = v === 'cubes' ? 'cubes' : 'mesh';
   });
@@ -1768,9 +2176,14 @@ async function main() {
   function buildSteps() {
     const box = el('steps');
     box.innerHTML = '';
-    route.forEach((_, i) => {
+    route.forEach((step, i) => {
       const button = document.createElement('button');
-      button.textContent = String(i + 1);
+      // A step is called by the hour it happens at. Its number is still what
+      // orders it, and is still what everything else refers to; the clock is
+      // what a person reading the strip actually wants to see. A step with no
+      // hour keeps its number, because the clock is optional and always was.
+      button.textContent = typeof step.hour === 'number' ? clockOf(step.hour) : String(i + 1);
+      button.title = `step ${i + 1}`;
       button.dataset.v = String(i);
       button.addEventListener('click', () => {
         state.mode = 'route';
@@ -1854,6 +2267,7 @@ async function main() {
     weatherSeg.paint();
     buildSteps();
     paintObject();
+    paintAreas();
     paintLibrary();
   }
 
@@ -1871,6 +2285,9 @@ async function main() {
    */
   function begin() {
     indexTextures();
+    uploadAreas();
+    toggleMove('orbit', 'b-orbit');
+    toggleMove('push', 'b-push');
     buildSwatches();
     buildObjectSliders();
     rebuild();
@@ -1943,18 +2360,36 @@ async function main() {
     let framing;
     let step = state.pinned ?? 0;
     let stepT = 1;
-    let weather = resolveWeather(route[step]?.weather);
+    // How far through the flight into this step the route is. An object that
+    // travels is exactly this far along its line; settled on a step means the
+    // move is over. Roaming shows the world as the story left it, so it is 1.
+    let arrive = 1;
+    let weather = resolveWeather(skyOf(route[step]));
+
+    // How long this shot has been held. A camera move is measured from the
+    // start of its own shot rather than from the clock on the wall, so a take
+    // plays the same way twice - which is the whole reason play mode carries no
+    // interface.
+    if (state.shotAt === null || state.shotAt === undefined) state.shotAt = now;
+    let shotHeld = (now - state.shotAt) / 1000;
 
     if (state.mode === 'roam') {
-      // No drift while roaming: it would fight the hand on the mouse.
-      framing = state.roaming;
+      // No drift while roaming: it would fight the hand on the mouse. A move
+      // that was asked for is different, and it is shown so it can be judged.
+      framing = autoMove(state.roaming, shotHeld, route[editing()] ?? {});
       el('mode').textContent = 'roaming';
       el('mode').className = '';
       el('s-step').textContent = 'free';
     } else {
       if (state.playing) state.clock = (state.clock + delta) % duration;
       const at = currentRoute();
-      framing = drift(at.framing, now / 1000);
+      // Time into this hold, so a move restarts with every shot rather than
+      // carrying on from the last one.
+      if (at.phase === 'hold') shotHeld = (at.into ?? 0) * ((route[at.step]?.hold ?? 0) / 1000);
+      framing = drift(
+        at.phase === 'fly' ? at.framing : autoMove(at.framing, shotHeld, route[at.step] ?? {}),
+        now / 1000,
+      );
       step = at.step;
       el('mode').textContent = state.playing ? at.phase : 'paused';
       el('mode').className = 'route';
@@ -1965,13 +2400,21 @@ async function main() {
         // arrives. Both land together, which reads as one change rather than two.
         const flight = (route[at.step + 1].approachTime ?? 2500) / 1000;
         const into = Math.min(1, Math.max(0, at.into ?? 0));
-        weather = lerpWeather(route[at.step].weather, route[at.step + 1].weather, into);
+        weather = lerpWeather(skyOf(route[at.step]), skyOf(route[at.step + 1]), into);
         step = at.step + 1;
         stepT = Math.min(1, (into * flight * 1000) / SOLIDIFY);
+        // Eased rather than linear, so an object that walks somewhere starts
+        // and stops rather than sliding at one speed, which reads as a prop
+        // being pushed.
+        arrive = easeInOut(into);
       }
     }
 
-    if (state.forcedWeather) weather = resolveWeather(state.forcedWeather);
+    // Forcing a weather while roaming keeps the hour of the step being worked
+    // on, so looking at a scene in a different weather does not also move the sun.
+    if (state.forcedWeather) {
+      weather = resolveWeather(skyOf({ weather: state.forcedWeather, hour: route[editing()]?.hour }));
+    }
     scarsFor(state.mode === 'roam' ? route.length - 1 : step);
     el('s-rain').textContent = `${Math.round((weather.rain ?? 0) * 100)}%`;
 
@@ -1981,9 +2424,12 @@ async function main() {
     el('s-width').textContent = framing.w.toFixed(1);
     el('s-angles').textContent = `${(framing.pitch ?? 25).toFixed(0)} / ${(framing.yaw ?? 0).toFixed(0)}`;
 
-    const { matrix, eye } = viewProjection(framing);
+    const { matrix, eye, target } = viewProjection(framing);
     renderer.draw({
-      matrix, eye, time: now / 1000, weather,
+      // The sky needs where the camera looks as well as where it is, so it can
+      // turn a pixel into a direction and put the sun where it actually is.
+      matrix, eye, target, time: now / 1000, weather,
+      arrive,
       selected: state.selected,
       surface,
       smooth: smoothing,
@@ -1992,7 +2438,7 @@ async function main() {
       step: state.mode === 'roam' ? route.length - 1 : step,
       stepT,
     });
-    drawTags(matrix, state.mode === 'roam' ? route.length - 1 : step);
+    drawTags(matrix, state.mode === 'roam' ? route.length - 1 : step, arrive);
     paintInk();
 
     const fill = renderer.view.fill;
