@@ -233,7 +233,76 @@ shape" under a hard no-AI-at-runtime rule.
 A word with no entry produces a visible placeholder and a warning in edit mode. It never fails
 silently and it never guesses.
 
-## The canvas file
+## The strip, and the canvas file at version 5
+
+**Decided 2026-08-08, not yet built.** Everything from here to the end of "Camera moves"
+describes version 4, which is what the code writes today. This section is what replaces it.
+
+**Distance along the canvas is time.** One pure module, `lib/timeline.js`, holds the whole
+mapping:
+
+    x = (hour - origin) * spacing
+
+`spacing` is units per hour and is a control, because a scene is 20 to 40 units across and how
+far apart two moments have to sit before they stop overlapping cannot be worked out from a
+desk. `origin` is the hour that sits at x = 0. There is nothing else in the module, and both
+directions of the mapping plus the bounds of the whole strip come out of those two numbers.
+
+**An object's position is when it happens**, so an object carries no time at all:
+
+```json
+{
+  "trail": 5,
+  "title": "the fallout, part one",
+  "world": { "spacing": 40, "origin": 12, "weather": "clear", "hour": 12 },
+  "camera": { "yaw": -14, "pitch": 22, "width": 26, "height": 0 },
+  "objects": [
+    { "model": "house1",      "at": [-38, 0, -6], "rot": 14 },
+    { "model": "Matt",        "at": [-4, 0, 2],   "rot": 200, "pose": { "clip": "Idle", "time": 0 } },
+    { "model": "Lis",         "at": [-1.4, 0, 2.6], "rot": 20, "label": "Lis" },
+    { "model": "normal-car1", "at": [2.4, 0, 3.2], "rot": -24 },
+
+    { "model": "Matt",        "at": [18, 0, 2],   "rot": 200 },
+    { "model": "normal-car1", "at": [24, 0, 3.2], "rot": -24 },
+
+    { "model": "Matt",        "at": [38, 0, 2],   "rot": 180 }
+  ],
+  "moments": [
+    { "hour": 12.0, "weather": "clear",    "hold": 6000, "label": "the argument" },
+    { "hour": 12.5, "weather": "overcast", "hold": 5000, "label": "Lis leaves" },
+    { "hour": 13.0, "weather": "storm",    "hold": 9000, "label": "alone" }
+  ]
+}
+```
+
+Read that objects list as the strip it is: three groups at x = -4, x = 18 and x = 38, which at
+40 units to the hour are noon, half past and one o'clock. Matt appears three times because he
+is there three times. The car appears twice and then does not, which is how it drives away.
+**Nothing in the file says when an object is visible, because nothing needs to.**
+
+### What changed from version 4, and what it costs to migrate
+
+| Version 4 | Version 5 | Why |
+| --- | --- | --- |
+| `steps`, each with a `framing` | `moments`, with no framing | The camera is not routed. A moment is a time, a weather and a pause |
+| `hold`, `approachTime` | `hold` only | How long the clock rests at a moment paces a shot. How long a flight takes is meaningless when travel is a distance at a speed |
+| `from`, `until` on every object | Nothing | Position is time |
+| `path: { to, step }` | Nothing | An object that moves is two placements further along the strip |
+| `areas` with `from` and `until` | `areas` with neither | Same reason |
+| `look: { surface, roundness, cubeScale }` | Nothing | There is one renderer |
+| No camera in the file | `camera: { yaw, pitch, width, height }` | It is the composition now, so it has to survive a reload |
+| No world block | `world: { spacing, origin, weather, hour }` | The mapping is per canvas, and the playground's own weather and hour already were |
+
+**The migration is the interesting one.** A version 4 canvas has objects piled around one
+origin with a `from` step, so opening it in version 5 without doing anything would stack the
+whole story on top of itself. Instead, `from` is read one last time and turned into a position:
+an object that solidified at the step happening at 13:00 is moved to the x that 13:00 maps to,
+keeping its z and its offset within the group. **This is the only place `from` survives**, and
+it exists so that the canvases already built still open as something recognisable.
+
+## The canvas file, at version 4
+
+**Superseded by the section above.** This is what the code writes today.
 
 The only thing authored per video, the only thing saved, and the whole state of a project.
 

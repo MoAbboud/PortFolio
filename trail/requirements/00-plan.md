@@ -2,13 +2,23 @@
 
 ## Objective
 
-Give a written, spoken narration a place to happen: one diorama built from small cubes, on one
-canvas, with a camera that walks a route through it and pulls back at the end to reveal the
-whole thing. Cheap enough to redo, consistent enough to be a visual identity, repeatable enough
-that a retake is free, and containing no artificial intelligence of any kind at runtime.
+**Recreate an event on a strip of ground where distance is time.** You lay out what happened
+along a long canvas - two people and a car at noon, one person and the car at half past, one
+person on their own at one o'clock - and a fixed camera watches it slide past as the clock is
+dragged. At the end it pulls back and the whole event is readable in a line.
+
+Cheap enough to redo, consistent enough to be a visual identity, repeatable enough that a
+retake is free, and containing no artificial intelligence of any kind at runtime.
+
+**This replaced an earlier objective on 2026-08-08**, which was to give a spoken narration a
+place to happen: one diorama built from small cubes, toured by a camera walking a numbered route
+of framings. Cubes were abandoned because drawing with them was too hard and a library of 367
+real models arrived instead; the route was abandoned because the clock turned out to be a better
+control than a list of shots. The full reasoning is in `06-context.md` under "Trail is an event
+recreator". **The redesign is decided and not yet built.**
 
 **The app is built, running, and has a library of everything on disk.** The renderer, the
-camera, the route, the weather, the picking, the canvas file and the pen all exist, with 477
+camera, the weather, the clock, the picking, the canvas file and the pen all exist, with 503
 tests behind them, and 367 models load when the page opens - four recipes and 363 meshes read
 as OBJ, glTF or `.glb`. Nothing is held back for licence, nothing in it is off-subject, and
 everything in it is a placeable object rather than a part of one.
@@ -22,10 +32,12 @@ beside the app now, not an input to it: objects are placed by hand from the libr
 carries only a note saying what happens in it. The reasoning is in `06-context.md` under
 "Reading the script was cancelled" - **it should not be rebuilt without the user saying so.**
 
-**What is left before a first video is a canvas built from a real script, and watching it.**
-Nothing in that sentence is code any more.
+**What is left is stage 8: turning the app into the strip.** It is mostly deletion - the cube
+renderer, step ranges, ghosting, flights and free roaming all go - and the additions are one
+pure module mapping an hour to a distance, a camera rig locked to the clock, and a fog and
+floor that work at the length of a whole day.
 
-The question this plan was framed around, whether a camera tour of a static voxel world holds
+The question this plan was framed around, whether a camera tour of a static world holds
 attention, has had a soft yes on a first look and has not been tested properly on a real
 canvas. It cannot be, until there is one.
 
@@ -37,7 +49,8 @@ flowchart LR
     S3 --> S2[3. Field and camera]
     S2 --> S4[4. Canvas and route]
     S4 --> S5[5. Play mode]
-    S5 --> S8[7. First real video]
+    S5 --> S9[8. The strip<br/>time is a direction]
+    S9 --> S8[7. First real video]
     S4 -.-> S6[6. Preparation pipeline<br/>not on the critical path]
     S6 -.-> S7[Library coverage]
     S7 -.-> S8
@@ -51,7 +64,8 @@ flowchart LR
 | 4 | Canvas and route | Place objects, cut the notes into stages, draw a frame per stage | **Done, without the plan, and without the script.** Place, pose and tint objects; add a step, frame it from the view, split its note into stages, set hold and weather. **There is still no top-down plan** - placing is done in the 3D view and framing by roaming to it, which has turned out to be enough. Reading a script was built and cancelled |
 | 5 | Play mode | Ghosting, flying, weather cross-fade, scars, motion, name tags, the sync flash, and no interface at all | **Done**, apart from snow and motion in the cube path |
 | 6 | Preparation pipeline | A Colab notebook that turns CC0 packs into `library.js` and `lookup.js`. **Not on the critical path** | Not started. Survey and licence rules done, in `07-pipeline.md` |
-| 7 | First real video | A narration of yours, built, recorded, cut against your voice, published | Not started. Blocked on content, not on code |
+| 7 | First real video | A narration of yours, built, recorded, cut against your voice, published | Not started. Waits for stage 8 now, rather than being blocked on content |
+| 8 | **The strip** | Time is a distance along a long canvas, the camera is fixed and orbits the hour the clock is showing, and pulling back reads the whole event at once | **Decided 2026-08-08, not started.** Mostly deletion. Supersedes the route half of stage 4 and the ghosting half of stage 5 |
 
 ### Why shapes come first, and in what order
 
@@ -78,19 +92,22 @@ This also de-risks the pipeline: by the time the notebook is written it will be 
 good Trail model looks like, which is not obvious now and cannot be worked out from a
 specification.
 
-### The test that matters, and it has only half happened
+### The test that matters, and it has changed
 
-The question was: **is a camera flying between three objects on a voxel diorama something a
-person would watch?**
+The question used to be: **is a camera flying between three objects on a voxel diorama
+something a person would watch?** It was built and looked at, and the verdict was *"it looks
+pretty good for a first run"*, which is encouraging and is not a test.
 
-It was built and looked at, and the verdict was *"it looks pretty good for a first run"*. That
-is encouraging and it is not the test. The test is a full run on a canvas built for a real
-script, and that is finally possible: there is a library of 220 named models and a figure.
+**The question is now a different one**, and it is sharper: **does dragging a clock and
+watching a scene rearrange itself along a strip read as an event being recreated?** Two things
+have to land for the answer to be yes, and they can be judged separately:
 
-**What has never been tried is the thing the app is for** - taking a real script, cutting it
-into stages, building a canvas for it, and watching the result. **Nothing stands in the way of
-it any longer.** The script panel reads a narration, steps can be added and framed and split
-from the panel, and the library holds 220 models. The next move is not a feature.
+| Does it hold up? | How it would be judged |
+| --- | --- |
+| Scrubbing between three moments of one event | Build the twelve o'clock, half past and one o'clock arrangement the user described, and drag between them. If the change reads as time passing rather than as objects being deleted, the core idea works |
+| The pull-back at the end | Zoom out on that same strip. If the three moments read left to right as a sequence, the ending works and is worth composing for |
+
+Neither needs a narration, a library gap filled, or a feature added. Both need the strip.
 
 ## Decisions already made
 
@@ -162,6 +179,19 @@ value.
 | **A camera move is a framing, like every other camera decision** | Orbiting turns the yaw and pushing in shrinks the rectangle, so every intermediate state is a framing somebody could have drawn and the camera can never end up underground. A sway rather than a circuit, because the back of a low-poly model is not what it was made for. Saved on the step, because play mode carries no interface and a take has to play the same way twice |
 | **An object can walk a line, and the field is still static** | This looks like the design that was cancelled and is not it. The cancelled one gave every object a position per step and interpolated on the processor. This is one line per object, three numbers per vertex uploaded with everything else, and an offset added in the vertex shader - so the field is still built once and uploaded once, and nothing runs per frame over the cubes. Its shadow and its name tag are offset by the same amount; its picking box is not, which only shows while the route is playing |
 
+### From the fifth conversation, which turned the canvas into a timeline
+
+| Decision | Reason |
+| --- | --- |
+| **An object's position is when it happens** | The strip runs in time, so a thing that has not happened yet is further along it rather than hidden. This is the decision the rest follow from, and it deletes `from`, `until`, `aFrom`, `aUntil`, `solidity()`, the solidify-on-arrival timing and `reorder`'s four reference remappings in one move. Chosen over keeping step ranges and driving them from the hour, which would have kept every one of those mechanisms alive to express something the geometry already says |
+| **One continuous ground, not a strip of panels** | Panels were the obvious reading of "a canvas covering the timeline" and were rejected by the user: a moment is not a container, so nothing has to know what is in one. Showing the same house at two times is placing two houses, which is a decision the person composing the shot makes rather than a rule the app applies |
+| **Objects are placed per moment, by hand** | The alternative was a time range that repeats an object into every moment it spans, which is less work per event and brings a copy-and-override model with it. Rejected for the same reason placement was always manual: *"that way its not too automated"*, and because an object then has to be two things at once - a thing on the ground and a rule about time |
+| **Distance is proportional to time, and the units per hour are a control** | Even spacing per moment was the alternative and makes a four-hour gap the same distance as a ten-minute one, which discards the only thing the strip is for. A long empty stretch of ground *is* time passing. A control keeps a nine-hour story small enough to fit in a room |
+| **The camera is fixed and the clock decides where it is fixed** | It orbits, zooms and climbs, and never travels. This looks like a reversal of "moving through the day never touches the camera", made earlier the same day, and it is not: that rule existed because scrubbing **snapped the framing back to a step's composition**. The clock now moves where the camera is and never touches how it is looking |
+| **Built as a camera that slides, not a world that does** | A fixed camera with a moving canvas is the same picture as a camera moving along a fixed canvas. Building it the second way means no shader learns a new uniform, no buffer is rewritten, and the field is still built once and uploaded once |
+| **The cube renderer goes, and the recipes stay behind unused** | Drawing with cubes was abandoned because it was too hard, and 367 real models replaced it. The four recipes are left in the tree rather than deleted, because `person` is the only tintable and only moving model and it is not yet known whether that is missed. The decision moves to after a real event is built, which is the only place the evidence exists |
+| **`hold` survives and `approachTime` does not** | How long the clock rests at a moment is how a shot is paced against a narration. How long the camera takes to fly between two compositions is meaningless once the travel is a distance at a speed |
+
 ### Carried forward from the first conversation
 
 | Decision | Reason |
@@ -189,6 +219,10 @@ value.
 | How is attribution handled? | Stage 6 | Much of what makes free models free is a credit requirement. The library carries a licence and author per entry; what is not decided is where that credit appears in a finished video |
 | Should Trail be linked from the portfolio front door? | Delivery | It is a production tool with no interface, which makes it a strange thing to link to. A short recorded clip of the output is probably the better artefact |
 | Does edit mode need undo? | Stage 4 | The canvas file is plain text under git, which may be enough |
+| How many units to an hour? | Stage 8 | A scene is roughly 20 to 40 units across, so moments half an hour apart want something like 30 to 80 units an hour before they stop overlapping. It is a control rather than a constant precisely because this cannot be answered from a desk, and the first real strip will settle it |
+| Does an empty stretch read as time passing, or as a mistake? | Stage 8 | The whole case for proportional spacing rests on this. If four empty hours read as the app being broken rather than as a long afternoon, the fallback is marking the ground - a scar, a shadow, a change of colour - rather than compressing the gap |
+| Does the strip need its own ground, or does the world floor do? | Stage 8 | One infinite floor is what exists and is the cheapest answer. A raised strip with edges would read more as a diorama and more as a timeline, and it is a real modelling decision rather than a rendering one |
+| What replaces tinting if the recipes go? | Stage 8 | The four named characters are painted from a texture and cannot be tinted, so a cast of six people in six colours is currently only possible with the voxel figure. Left open deliberately until a real event says whether it was wanted |
 
 ## Risks
 
@@ -200,6 +234,9 @@ value.
 | The word lookup is confidently wrong | A script names something and gets a plausible but wrong object, silently | Edit mode shows what a word resolved to before it is placed. A wrong match is a visible wrong object, never a silent substitution |
 | The reveal is mush | The payoff shot, which the whole format is built around, does not land | Compose for it from the first object. Cube edge, spacing and canvas size all answer to the reveal rather than to the close-ups |
 | The cube budget is exceeded | Dropped frames, permanently, in the recording | A hard cap of 400,000 with a running total while building, and a warning before a take rather than after |
+| The strip outgrows the fog, the floor and the scar map | The pull-back that the whole ending rests on shows a timeline fading into the sky, on a floor that runs out | Known before building rather than after: fog scales with how far out the camera is, the floor follows the camera, and the scar map becomes a band along the strip rather than a square over a room. All three are listed in stage 8 |
+| Placing every moment by hand becomes the chore the plan was built to avoid | Recreating one event takes longer than it is worth, and the app stops being used | This is the risk the user accepted deliberately in choosing manual placement over automatic repetition. The response is a duplicate-along-the-strip gesture rather than a repeat rule: still placed by hand, just not from scratch each time |
+| A long strip is a lot of objects in one draw | Frame rate falls exactly when the ending needs it, because the pull-back is the shot that draws everything at once | Measure at the pull-back rather than close in, which is the opposite of how it has been measured so far. Nothing is culled today and that has never mattered; a strip is what would make it matter |
 | The mode toggle is hit during a take | An editor appears in the video | A two-key gesture, refused while the route is running |
 | Ghosted objects spoil what is coming | A flight over the canvas gives away the pool before the story reaches it | Ghosts are faint, desaturated and smaller. If it still spoils, the fallback is building on arrival, which was the runner-up option |
 | Timings drift against the voice | The picture lands late and the video looks broken | The sync flash, and holds stated per step so a fix is local rather than a renumbering |

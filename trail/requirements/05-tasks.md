@@ -4,19 +4,113 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
 
 The app runs. Items past stage 1 are marked honestly: `[x]` means built and tested.
 
-**The next work is not code.** Take one of your own narrations, cut it into stages, build the
-canvas for it, and watch it. Everything needed exists: place, pose and tint the objects from a
-library of 367, add a step, frame it from the view, cut its note into stages, then play it.
-Nothing needs the page source any more.
+**The next work is stage 8, and it is mostly deletion.** Trail was redesigned on 2026-08-08
+into an event recreator: the canvas is a long strip, distance along it is time, the camera is
+fixed and orbits whatever hour the clock is showing, and pulling back reads the whole event in
+a line. The reasoning is in `06-context.md` under "Trail is an event recreator", and the
+decisions are in `00-plan.md`.
 
-**Reading the script is not part of that** - it was built and cancelled on 2026-08-07, and the
-script is a document beside the app now. An earlier version of this paragraph said Trail would
-tell you what it can build from a pasted narration. It will not, and it should not be made to
-again without being asked.
+**Everything in stages 1 to 7 below describes the app as it is today.** Where a task there
+contradicts stage 8, stage 8 is right and the older item is left in place as history rather
+than deleted, because knowing what was tried is most of the value of this file.
 
-The question the whole project was framed around - **is a camera tour of a static diorama
-something a person would watch** - is still unanswered, and it cannot be answered by more
-features.
+**Reading the script is not part of any of it** - it was built and cancelled on 2026-08-07, and
+the script is a document beside the app now. An earlier version of this paragraph said Trail
+would tell you what it can build from a pasted narration. It will not, and it should not be
+made to again without being asked.
+
+The question the whole project was framed around has been replaced by a sharper one: **does
+dragging a clock and watching a scene rearrange itself along a strip read as an event being
+recreated?** It cannot be answered by more features either.
+
+## Stage 8 - The strip, where distance is time
+
+**Decided 2026-08-08, nothing started.** Ordered so the app runs at every point: the pure
+modules first, then the file, then the renderer, then what is torn out.
+
+### 8a - The mapping, which is one pure module
+
+- [x] `lib/timeline.js`: an hour to a distance along the strip, and back again. `spacing` in
+      units per hour, an origin hour, and nothing else
+- [x] The camera's centre from the hour, so scrubbing slides the world past a camera that
+      keeps its own yaw, pitch, zoom and height. A test asserts that yaw, pitch, width, depth
+      and height are **identical** either side of an eight-hour scrub, because that is the one
+      rule the redesign was not allowed to break
+- [x] The rectangle's depth is **derived from its width and the pitch** rather than stored, so
+      the rig is four numbers and a tilt never leaves part of the frame empty. Confirmed by
+      asserting that growing either axis pushes the camera back, which is only true when
+      neither is slack
+- [x] The bounds of the whole strip, from the moments **and** the objects, since either can be
+      the wider of the two. `revealFraming` fits to it and lifts the pitch, because a timeline
+      read end to end is read from above
+- [x] `fogFor`: fog scales with how far out the shot is. **This is the one that would have
+      ruined the ending** - the test fails with "fog reaches 180 and the strip is 360 long"
+      when the old fixed-unit fog is put back
+- [x] `clockAt` and `takeDuration`: playback is the clock running from the first moment to the
+      last, resting `hold` at each. Replaces `routeAt` and its flights
+- [x] 27 tests in Node, against the module rather than through the page. The two doing real
+      work were each confirmed by reintroducing the bug they exist to catch
+
+### 8b - The canvas file, version 5
+
+- [ ] `spacing` and the origin hour are world settings, saved with the canvas
+- [ ] A moment is `{ hour, weather, hold, label }`. **No framing, no approachTime**
+- [ ] An object is `{ model, at, rot, scale, pose, tints, label }`. **No from, no until, no path**
+- [ ] The camera rig - yaw, pitch, zoom, height - is saved, because it is the composition now
+- [ ] Migration from 4: a step's framing, hold ordering and approach time are dropped; an
+      object's `from` becomes its position on the strip, so an old canvas opens as a strip
+      rather than as a pile at the origin
+- [ ] The round trip stays stable, and a version 4 file still opens
+
+### 8c - The camera stops travelling
+
+- [ ] Remove `walk` and `panScreen` from `orbit.js`, and the keys that drove them
+- [ ] The camera's centre follows the clock, and only the clock
+- [ ] `orbit`, `zoom`, `rise` and `fit` are the whole camera
+- [ ] **Zoom out far enough to see the whole strip**, which is `fit` against the timeline bounds
+      rather than against what happens to be placed
+- [ ] Remove `routeAt`, flights, `approachTime` and the per-step `framing`
+- [ ] Playback is the clock running from the first moment to the last, resting `hold` at each
+
+### 8d - The renderer stops drawing cubes
+
+- [ ] Measure object boxes, contact shadows and world extent from the **mesh**, not the cube field
+- [ ] Stop calling `voxeliseMesh` on imported models, which removes work at import
+- [ ] Remove `CUBE_VS`, `CUBE_FS`, the instanced field, `assemble`, `place` and `updatePositions`
+- [ ] Remove `look.surface`, `cubeScale`, the roundness dial and `m` to compare
+- [ ] Remove `aFrom`, `aUntil`, `solidity()`, `SOLIDIFY`, `stepT` and the ghosting fade
+- [ ] Remove `travelOf`, `aTravel` and `arrive`
+- [ ] Remove `reorder` and its four reference remappings, which nothing points at any more
+- [ ] Remove `lib/script.js`, which has been unused since the step tab went
+- [ ] `voxel.js`, `surfaceNets` and the four recipes are **left in the tree, unused**, until a
+      real event says whether tinting and sway were missed
+
+### 8e - Three things that are work rather than deletion
+
+- [ ] **Fog has to scale with how far out the camera is.** It runs 26 to 180 units today, and a
+      day-long strip is longer than that, so the pull-back would show the timeline fading into
+      the sky. This is the one that would ruin the ending
+- [ ] **The floor has to follow the camera.** One quad of extent 400 centred on the origin runs
+      out along a strip
+- [ ] **The scar map becomes a band.** 256 texels over 60 units is a map of a room. Weather is a
+      function of time and time is one direction, so a scar is a stripe across the strip - which
+      is cheaper than what exists rather than dearer
+- [ ] Measure the frame rate **at the pull-back**, which is the shot that draws everything at
+      once. It has only ever been measured close in
+
+### 8f - Composing a strip, once it runs
+
+- [ ] Duplicate a selected object further along the strip, so placing the same person at four
+      moments is not four trips to the library. Still placed by hand, just not from scratch
+- [ ] The clock bar zooms to the range the story actually uses, rather than showing 24 hours
+      whatever happens. Already on the list from 2026-08-08 and now cheap, because the strip and
+      the bar share one mapping
+- [ ] A mark on the ground at each moment, so an empty stretch reads as time passing rather than
+      as nothing being there
+- [ ] Update `01-overview.md`, `02-interaction.md` and `03-architecture.md`, which all still
+      describe a cube diorama toured by a routed camera
+
+
 
 ## Stage 1 - Concept
 
