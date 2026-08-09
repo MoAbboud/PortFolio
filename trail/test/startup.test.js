@@ -949,6 +949,209 @@ test('the clock bar moves through the day, and the panel gets out of the way', a
   assert.deepEqual(stub.failures, [], 'the clock reported a failure');
 });
 
+test('adding a step leaves the objects already on the canvas alone', async () => {
+  // **Reported by the user:** "i add a step one at 8 am, i add an object, works
+  // fine, then i fast forward to 11 am ... then i add a step, the object now is
+  // assigned to step 2 ... if i go back to step one, the object turns blue".
+  //
+  // Blue is the ghost: the object's `from` had been moved forward to the step
+  // that was just added, so at the step it was placed on it was not there yet.
+  // The cause was in `reorder`, and this is the same failure driven through the
+  // page rather than through the module.
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 2000 });
+  await runApp();
+  const settle = async () => {
+    for (let i = 0; i < 20; i++) await new Promise((r) => setTimeout(r, 0));
+  };
+
+  const add = stub.element('b-step-add').listeners.get('click')?.[0];
+  const remove = stub.element('b-step-remove').listeners.get('click')?.[0];
+  const rangeOf = () => stub.win.__trail.canvas().objects.map((o) => o.from ?? 0);
+
+  // Clear every step, which is where the user's sequence starts.
+  for (let i = 0; i < 12 && stub.win.__trail.route().length; i++) {
+    remove();
+    await settle();
+  }
+  assert.equal(stub.win.__trail.route().length, 0, 'the steps could not be cleared');
+
+  // One step, and everything on the canvas belongs to it.
+  add();
+  await settle();
+  assert.equal(stub.win.__trail.route().length, 1);
+  const before = rangeOf();
+  assert.ok(before.length, 'there is nothing placed, so there is nothing to check');
+  assert.ok(before.every((from) => from === 0),
+    `everything should belong to the only step there is, was ${before.join()}`);
+
+  // A second step. Nothing was pointing past the first, so nothing may move.
+  add();
+  await settle();
+  assert.equal(stub.win.__trail.route().length, 2, 'the second step was never added');
+
+  assert.deepEqual(rangeOf(), before,
+    'adding a step reassigned the objects already placed to it, so they ghost on step one');
+});
+
+test('inserting a step does move what was pointing at a later one', async () => {
+  // The other half of the rule, and the reason the fix is "the first copy of a
+  // duplicated step wins" rather than "nothing ever moves". An object that
+  // arrived at step 2 has to arrive at step 3 once a step is put in front of it,
+  // or the video is silently re-timed - which is what `reorder` exists for.
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 2000 });
+  await runApp();
+  const settle = async () => {
+    for (let i = 0; i < 20; i++) await new Promise((r) => setTimeout(r, 0));
+  };
+
+  const rangeOf = () => stub.win.__trail.canvas().objects.map((o) => o.from ?? 0);
+  const before = rangeOf();
+  assert.ok(before.some((from) => from > 0), 'nothing points past the first step');
+
+  // The opening route is three steps and the panel is on the first, so the new
+  // step lands second and everything after it moves down one.
+  stub.element('b-step-add').listeners.get('click')?.[0]?.();
+  await settle();
+
+  assert.deepEqual(rangeOf(), before.map((from) => (from > 0 ? from + 1 : 0)),
+    'a step was inserted and what came after it did not follow');
+});
+
+test('going from one step to the next moves the world, not just the weather', async () => {
+  // **Reported by the user:** "when i go from step 1 to step 2, its the same
+  // step just a different weather. The whole point of the film strip is that
+  // the world moves."
+  //
+  // It did not, because every step framed the same patch of ground: a step
+  // carried a framing and nothing put it anywhere. A step is a piece of the
+  // film now, and piece k stands at its own place along the strip.
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
+  await runApp();
+  const settle = async () => {
+    for (let i = 0; i < 40; i++) await new Promise((r) => setTimeout(r, 0));
+  };
+  // Asked of this page rather than read off the panel: an app instance from an
+  // earlier test goes on drawing into the same elements, so a readout says
+  // whichever instance drew last.
+  const centre = () => stub.win.__trail.shot().x;
+
+  const marks = stub.element('ticks').children;
+  assert.ok(marks.length >= 2, 'there are not enough steps to move between');
+
+  marks[0].listeners.get('click')?.[0]?.();
+  await settle();
+  const first = centre();
+
+  marks[1].listeners.get('click')?.[0]?.();
+  await settle();
+  const second = centre();
+
+  assert.ok(Number.isFinite(first) && Number.isFinite(second),
+    `the camera has no position: ${first} / ${second}`);
+  // A whole piece apart, along the strip. Anything less and the two steps are
+  // looking at the same ground, which is what was reported.
+  const travelled = Math.abs(second - first);
+  assert.ok(travelled > 20,
+    `step 2 is ${travelled.toFixed(1)} units from step 1, so the world did not move`);
+
+  assert.deepEqual(stub.failures, [], 'moving along the strip reported a failure');
+});
+
+test('arrowing along the route can reach every step, including the middle ones', async () => {
+  // **Reported by the user:** "when cycling through the stages with the arrow
+  // keys and looking at the settings, the THIS MOMENT tab doesnt show step 2
+  // but only shows step 1 and 3."
+  //
+  // `routeAtHour` reports the step being arrived at and the one being left, and
+  // standing exactly on a mark counts as both. The panel took the one being
+  // left, so a middle step was always reported as its predecessor and could
+  // never be edited at all. The first and last steps worked because there is
+  // nothing on one side of them.
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
+  await runApp();
+  const settle = async () => {
+    for (let i = 0; i < 20; i++) await new Promise((r) => setTimeout(r, 0));
+  };
+
+  const steps = stub.win.__trail.route().length;
+  assert.ok(steps >= 3, 'a middle step is needed for this to mean anything');
+
+  // Back to the start of the day, then forward through every step in turn.
+  const back = stub.element('b-time-prev').listeners.get('click')?.[0];
+  const forward = stub.element('b-time-next').listeners.get('click')?.[0];
+  for (let i = 0; i < steps + 2; i++) { back(); await settle(); }
+
+  const reached = new Set([stub.win.__trail.at().step]);
+  for (let i = 0; i < steps + 1; i++) {
+    forward();
+    await settle();
+    reached.add(stub.win.__trail.at().step);
+  }
+
+  for (let i = 0; i < steps; i++) {
+    assert.ok(reached.has(i),
+      `step ${i + 1} was never reached: got ${[...reached].map((s) => s + 1).join(', ')}`);
+  }
+});
+
+test('the overview pulls back far enough to hold the whole film', async () => {
+  // The ending: "at the waaaay end we add a button called overview that shows
+  // the whole film from a far away view showing how the transition went".
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
+  await runApp();
+  const settle = async () => {
+    for (let i = 0; i < 40; i++) await new Promise((r) => setTimeout(r, 0));
+  };
+  const width = () => stub.win.__trail.shot().w;
+
+  await settle();
+  const close = width();
+  assert.ok(close > 0, 'nothing was drawn, so there is no shot to widen');
+
+  stub.element('b-overview').listeners.get('click')?.[0]?.();
+  await settle();
+  const wide = width();
+
+  const steps = stub.win.__trail.route().length;
+  assert.ok(wide > close, `the overview did not pull back: ${close} then ${wide}`);
+  // Wide enough to hold every piece, or it is not an overview of anything.
+  assert.ok(wide > steps * 30,
+    `${steps} pieces need more than ${(steps * 30)} units and the shot was ${wide}`);
+
+  // And it lets go again, putting the camera back on the strip.
+  stub.element('b-overview').listeners.get('click')?.[0]?.();
+  await settle();
+  assert.ok(width() < wide, 'the overview would not turn off');
+
+  assert.deepEqual(stub.failures, [], 'the overview reported a failure');
+});
+
+test('the clock says where you are, not how many steps have a time', async () => {
+  // Reported: "in the bar, when i cycle through the steps, it always says 2 of
+  // 2 steps on the clock". It was a count of how many steps carry an hour, so
+  // it never changed while reading exactly like a position.
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 2000 });
+  await runApp();
+  const settle = async () => {
+    for (let i = 0; i < 20; i++) await new Promise((r) => setTimeout(r, 0));
+  };
+
+  const marks = stub.element('ticks').children;
+  assert.ok(marks.length >= 2, 'the bar has no marks to cycle through');
+
+  const said = [];
+  for (const mark of marks) {
+    mark.listeners.get('click')?.[0]?.();
+    await settle();
+    said.push(stub.element('now-what').textContent);
+  }
+
+  assert.equal(new Set(said).size, said.length,
+    `the bar said the same thing on every step: ${said.join(' | ')}`);
+  assert.ok(said.every((text) => /step \d+ of \d+/.test(text)),
+    `the bar never said which step it was on: ${said.join(' | ')}`);
+});
+
 test('with every step removed it is still a place at a time of day', async () => {
   // Reported: "i removed all the steps and now i cant cycle the time and the
   // weather doesnt change". The clock had nothing to interpolate and the

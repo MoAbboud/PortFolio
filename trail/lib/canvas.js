@@ -4,7 +4,9 @@
 // There is nothing else to back up and nothing else to lose: if this file is
 // safe, the video is safe.
 
-export const VERSION = 4;
+import { pieceX, DEFAULT_PIECE } from './timeline.js';
+
+export const VERSION = 5;
 
 const isNumber = (v) => typeof v === 'number' && Number.isFinite(v);
 const isTriple = (v) => Array.isArray(v) && v.length === 3 && v.every(isNumber);
@@ -194,6 +196,35 @@ function migrate(data) {
     // rewrite, and saying so is the migration.
     out = { ...out, trail: 4 };
   }
+  if (out.trail < 5) {
+    // **Version 4 was one place; version 5 is a strip.** A step used to be a
+    // camera angle on the same patch of ground, so every object in a four-step
+    // story sat in one heap and `from` decided when it faded in. A step is a
+    // piece of film now and stands in its own place, so opening an old canvas
+    // untouched would leave the whole story piled onto the first piece with
+    // empty pieces after it - which is exactly what the user saw.
+    //
+    // `from` already says which piece an object belongs to, so it is read one
+    // last time and turned into a position. Guarded by the version, so a canvas
+    // is never pushed along the strip twice.
+    const along = (from) => pieceX(Math.max(0, Math.floor(Number(from) || 0)), DEFAULT_PIECE);
+    out = {
+      ...out,
+      trail: 5,
+      objects: (out.objects ?? []).map((o) => (
+        Array.isArray(o?.at) && o.at.length === 3
+          ? { ...o, at: [o.at[0] + along(o.from), o.at[1], o.at[2]] }
+          : o
+      )),
+      ...(Array.isArray(out.areas) ? {
+        areas: out.areas.map((a) => (
+          Array.isArray(a?.at) && a.at.length === 2
+            ? { ...a, at: [a.at[0] + along(a.from), a.at[1]] }
+            : a
+        )),
+      } : {}),
+    };
+  }
   return out;
 }
 
@@ -214,7 +245,19 @@ function migrate(data) {
  */
 export function reorder({ route, layout = [], areas = [] }, order) {
   const where = new Map();
-  order.forEach((old, at) => where.set(old, at));
+  // **A step may appear twice, and the first copy wins.** Adding a step splices
+  // a copy of the one it follows in after it, so the order names that step at
+  // both positions - and a reference means "from this moment on", which is
+  // where the original still is.
+  //
+  // Letting the later copy win is what made adding a step silently reassign
+  // every object already placed to the new one: with one step and one object,
+  // the order is [0, 0], the second entry overwrote the first, and every
+  // `from: 0` became `from: 1`. The object then ghosted blue on the step it had
+  // been put on, which is what the failure looked like from the outside.
+  order.forEach((old, at) => {
+    if (!where.has(old)) where.set(old, at);
+  });
 
   const remap = (index) => {
     if (!isNumber(index)) return index;

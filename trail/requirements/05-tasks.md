@@ -23,6 +23,28 @@ The question the whole project was framed around has been replaced by a sharper 
 dragging a clock and watching a scene rearrange itself along a strip read as an event being
 recreated?** It cannot be answered by more features either.
 
+### Bugs found in use, 2026-08-08
+
+- [x] **Adding a step reassigned every object already placed to the new step**, so an object
+      placed on step one ghosted blue the moment a second step was added. Adding a step splices
+      a *copy* of the step it follows, so the order names one old step twice and the second
+      entry was overwriting the first in `reorder`'s lookup. **The first copy of a duplicated
+      step wins.** Tested at the module and through the page, and both were confirmed by
+      putting the bug back
+- [x] Inserting a step still moves what pointed at a **later** step, which is the other half of
+      the rule and has its own test. Without it, a step inserted in front of an object silently
+      re-times the video
+- [x] **The clock bar said "2 of 2 steps on the clock" wherever you were.** It was a count of
+      how many steps carry an hour, and it read like a position. It names where you are now:
+      `step 2 of 3`, or `between steps 1 and 2`
+- [x] The panel's own step readout had the same symptom from a different cause: it showed the
+      step being *arrived at*, which is a step ahead of where you are. It shows the step being
+      worked on
+- [ ] **A newly placed object gets `from: 0`**, so it is present from the first step rather
+      than from the step being looked at. Correct for the reported sequence and worth deciding
+      deliberately: the film strip makes it moot, because an object will belong to the piece it
+      was placed on
+
 ## Stage 8 - The film strip
 
 **Decided 2026-08-08, one module in.** A canvas is an ordered list of pieces, each one a minute
@@ -68,7 +90,58 @@ torn out.
 - [ ] **Written once against a continuous-ground design and rewritten against the film strip.**
       The first version is in the history if a continuous world is ever wanted back
 
-### 8b - The canvas file, version 5
+### 8b - The strip moves, which is the first thing you can see
+
+**Built 2026-08-08**, after the user reported that nothing had changed: *"the film strip isnt
+moving. When i go from step 1 to step 2, its the same step just a different weather."* It had
+not, because `timeline.js` was written and nothing imported it.
+
+- [x] **A step stands at its own place on the strip.** `restage` turns each step's framing into
+      `framingOf(rig, index, PIECE)`, so a step says *how* it is looked at and its position in
+      the film says *where*. Going from step 1 to step 2 now travels a whole piece
+- [x] Scrubbing the clock travels along the strip, so the world slides past. The rule it looks
+      like it breaks - "moving through the day never touches the camera" - is intact: what
+      travels is the camera's position, and the yaw, pitch and width are untouched
+- [x] **Ghosting is gone.** Being somewhere else on the strip is what hiding means now, and a
+      ghost would have made the overview a smear: two thirds of the film washed into the sky
+- [x] Name tags and ground places no longer disappear by step range, for the same reason
+- [x] **An overview button**, which is the ending: far enough back to hold every piece at once,
+      in the order it happened. A way of looking rather than a place, so turning it off puts
+      the camera back where it was
+- [x] The opening canvas is a three-piece strip of the user's own example - two people and a
+      car at nine, one person and the car at half one, one person at quarter past six - so the
+      app demonstrates the idea the moment it opens
+- [x] `onStrip()` rebuilds the staged route if it has fallen out of step with the real one. A
+      derived array refreshed by hand is the exact shape of bug this project has been caught by
+      four times
+- [x] Two tests, both confirmed by reintroducing the bug. Staging every piece at the same place
+      fails with `step 2 is 0.0 units from step 1, so the world did not move`, which is the
+      report, in the words it was made in
+- [ ] Positions are still **absolute**, not piece-relative. Placing works because the camera is
+      already at the piece, and cutting a section will need the relative form - which is 8c
+
+### Reported in use, 2026-08-09, and all three had one cause each
+
+- [x] **There were two cameras.** `state.roaming` was a second position the camera fell back to
+      the moment anything was dragged, and from then on the clock could not move it. Cycling
+      changed nothing and clicking snapped back to the opening `fit`. **One camera now**:
+      `state.rig` is how it looks, the strip is where it stands, and `adjustCamera` feeds the
+      same tested `orbit`, `zoom` and `rise`
+- [x] `state.mode`, `state.roaming`, `walk` and `panScreen` removed. Free roaming was a second
+      answer to a question with one answer
+- [x] **A middle step could not be reached.** `routeAtHour` reports the step being arrived at
+      *and* the one being left, and standing on a mark counts as both; the panel took the one
+      being left, so step 2 always reported as step 1. Landing exactly on a step pins it
+- [x] `window.__trail.at().step` carried the same fault, so a test could not have caught it.
+      **A hook that mirrors the implementation tests nothing**
+- [x] **Canvas file version 5**: an old canvas is spread along the strip instead of piled on
+      the first piece, by reading `from` one last time as a position. Guarded by the version,
+      with a test that saving and opening twice does not walk the story down the strip
+- [x] Objects are placed on the piece being looked at, and `from` records which piece that is
+- [ ] `f` now toggles the overview rather than fitting everything, which is the same idea on a
+      strip. Worth a look by eye before it is called settled
+
+### 8c - The canvas file, version 5
 
 - [ ] A piece is `{ hour, weather, hold, label, objects, areas }`. **No framing, no approachTime**
 - [ ] An object is `{ model, at, rot, scale, pose, tints, label }`, positioned **from the middle
@@ -126,8 +199,11 @@ torn out.
 
 ### 8f - Composing a strip, once it runs
 
-- [ ] **Copy a piece to the next minute**, which is how a strip is actually built: the second
-      piece is the first with one person taken out. Placing every piece from scratch is the
+- [ ] **Copy a piece and paste it**, which the user confirmed 2026-08-08: *"thats fine if there
+      is a copy this strip option to store a strip in the clip board and then paste it."* A
+      clipboard rather than a repeat rule - the pasted piece is an independent copy you then
+      edit, so placement stays manual. This is how a strip is actually built: the second piece
+      is the first with one person taken out, and building every piece from scratch is the
       chore this whole stage is at risk of becoming
 - [ ] Duplicate a selected object into the next piece, at the same spot, so a thing that stays
       put across four minutes is not four trips to the library

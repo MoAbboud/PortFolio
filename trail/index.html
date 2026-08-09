@@ -226,6 +226,9 @@
   }
   .tbtn:hover { background: rgba(255,255,255,.18); color: #fff; }
   .tbtn:disabled { opacity: .3; cursor: default; }
+  /* A word rather than a symbol, so it needs room. */
+  .tbtn.wide { width: auto; padding: 0 10px; font-size: 12px; }
+  .tbtn[aria-pressed="true"] { background: #3d7ad6; border-color: #5b95e8; color: #fff; }
 
   /* The day, end to end. Dragging anywhere on it moves through time. */
   #track {
@@ -303,6 +306,10 @@
     <button class="tbtn" id="b-time-next" title="the step after this one">&#9654;</button>
     <button class="tbtn" id="b-step-add" title="a step at this time">+</button>
     <button class="tbtn" id="b-step-remove" title="remove the step nearest this time">&minus;</button>
+    <!-- The ending: far enough back to read the whole film at once, every
+         piece in the order it happened. -->
+    <button class="tbtn wide" id="b-overview" aria-pressed="false"
+            title="the whole film from far away">overview</button>
   </div>
   <div id="track">
     <div id="ticks"></div>

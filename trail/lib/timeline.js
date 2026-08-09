@@ -33,7 +33,7 @@ import { FOV_Y, ASPECT } from './camera.js';
  * floor. `depth` is across the strip, and is the same for every piece for the
  * same reason every frame of film is the same size.
  */
-export const DEFAULT_PIECE = { width: 30, depth: 20, gap: 2.5 };
+export const DEFAULT_PIECE = { width: 34, depth: 22, gap: 3 };
 
 const isNumber = (v) => typeof v === 'number' && Number.isFinite(v);
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));

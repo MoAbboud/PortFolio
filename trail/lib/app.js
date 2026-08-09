@@ -20,7 +20,11 @@ import {
   viewProjection, drift, autoMove, routeAt, routeAtHour, stepAround,
   routeDuration, easeInOut,
 } from './camera.js';
-import { orbit, zoom, panScreen, walk, rise, fit, tidy, centreOf } from './orbit.js';
+// `walk`, `panScreen` and `fit` are gone from here: the camera does not travel
+// any more, so there is nowhere to walk, nothing to pan across, and fitting
+// everything is what the overview does.
+import { orbit, zoom, rise, tidy, centreOf } from './orbit.js';
+import { framingOf, revealFraming, DEFAULT_PIECE } from './timeline.js';
 import { createRenderer } from './render.js';
 import { lerpWeather, resolve as resolveWeather, stampsUpTo } from './weather.js';
 import { clockOf } from './daylight.js';
@@ -43,33 +47,57 @@ window.__trail.started = true;
 // The arrangement the app opens on. Placement is by hand and stays that way:
 // reading a script and offering what it names was built and then cancelled.
 
-// `from` is the step an object solidifies at. Before it, the object is a ghost,
-// which is how the canvas reveals itself rather than being handed over at once.
+/**
+ * The film strip.
+ *
+ * **A step is a piece of film and it stands at its own place on the strip**, so
+ * moving from one step to the next moves the world past the camera rather than
+ * changing the weather where you already are. Piece `k` is centred at
+ * `pieceX(k)`, which is what `restage` below turns a step's framing into.
+ *
+ * `width` has to hold a scene; `gap` is the join, and it is what stops two
+ * pieces reading as one long floor.
+ */
+const PIECE = DEFAULT_PIECE;
+
+// `from` says which piece an object belongs to. Nothing hides an object any
+// more - a thing that is not happening here is somewhere else on the strip, so
+// being elsewhere is what hiding means.
 const PLACEMENTS = [
-  // Real models from a CC0 pack, drawn as the art they are. The figures below
-  // are still the hand-authored recipe, because it is the only model that can
-  // be tinted per character and the only one that moves.
+  // Piece 1, nine in the morning: a house, two people and a car.
   { model: 'house1', at: [-6, 0, -4], rot: 14, from: 0 },
-  { model: 'normal-car1', at: [2.4, 0, 3.2], rot: -24, from: 1 },
+  { model: 'tree',  at: [7, 0, -5], from: 0 },
+  { model: 'normal-car1', at: [2.4, 0, 3.2], rot: -24, from: 0 },
   // One figure recipe serves every character: the tints are who they are, and
   // the label is what the viewer reads.
-  { model: 'person', at: [0.6, 0, 1.4], rot: 200, from: 1, label: 'Marla',
+  { model: 'person', at: [0.6, 0, 1.4], rot: 200, from: 0, label: 'Marla',
     tints: { primary: '#e08a3c', hair: '#2b2118', skin: '#d9a97e' } },
-  { model: 'person', at: [-0.7, 0, 2.1], rot: 20, from: 1, label: 'Devon',
+  { model: 'person', at: [-0.7, 0, 2.1], rot: 20, from: 0, label: 'Devon',
     tints: { primary: '#3c7ae0', hair: '#4a3327', skin: '#c68a5e' } },
-  { model: 'tree',  at: [7, 0, -5], from: 0 },
-  { model: 'tree',  at: [-13.5, 0, 3.5], scale: 1.25, from: 2 },
-  { model: 'tree',  at: [9.5, 0, 5.5], scale: 0.8, from: 2 },
+
+  // Piece 2, half past one: Devon has gone. The car is still there.
+  { model: 'house1', at: [31, 0, -4], rot: 14, from: 1 },
+  { model: 'tree',  at: [44, 0, -5], from: 1 },
+  { model: 'normal-car1', at: [39.4, 0, 3.2], rot: -24, from: 1 },
+  { model: 'person', at: [37.6, 0, 1.4], rot: 200, from: 1, label: 'Marla',
+    tints: { primary: '#e08a3c', hair: '#2b2118', skin: '#d9a97e' } },
+
+  // Piece 3, quarter past six: the car has gone too.
+  { model: 'house1', at: [68, 0, -4], rot: 14, from: 2 },
+  { model: 'tree',  at: [81, 0, -5], from: 2 },
+  { model: 'person', at: [74.6, 0, 1.4], rot: 180, from: 2, label: 'Marla',
+    tints: { primary: '#e08a3c', hair: '#2b2118', skin: '#d9a97e' } },
 ];
 
-// A step is ordered by its position and called by its hour. The opening route
-// carries times so the clock is doing something the moment the page opens.
+// A step is a piece of the film, called by the hour it happens at. Only the
+// shape of the framing matters now - how wide, how high, which way round -
+// because where it stands comes from its place on the strip.
 const ROUTE = [
-  { framing: { x: -11, z: -8.5, w: 11, d: 8.5, pitch: 19, yaw: -6 },
+  { framing: { x: 0, z: 0, w: 26, d: 20, pitch: 20, yaw: -8 },
     hold: 5000, weather: 'clear', hour: 9 },
-  { framing: { x: -1.2, z: 0.6, w: 8, d: 6, pitch: 13, yaw: 16 },
+  { framing: { x: 0, z: 0, w: 26, d: 20, pitch: 20, yaw: -8 },
     hold: 5000, approachTime: 3200, weather: 'storm', hour: 13.5 },
-  { framing: { x: -18, z: -12, w: 34, d: 25, pitch: 42, yaw: 0 },
+  { framing: { x: 0, z: 0, w: 26, d: 20, pitch: 20, yaw: -8 },
     hold: 9000, approachTime: 4200, weather: 'clear', hour: 18.25 },
 ];
 
@@ -349,6 +377,22 @@ async function main() {
   // three times.
   const thumbs = new Map();
 
+  /**
+   * Everything on the strip is solid, all of the time.
+   *
+   * **Being somewhere else is what hiding means now.** An object belongs to a
+   * piece of the film and that piece stands in its own place, so a thing that is
+   * not happening here is not faded out - it is further along the strip, behind
+   * the camera or out of the shot.
+   *
+   * The ghost has to go rather than merely being unused, because it fights the
+   * ending: the overview draws every piece at once, and a ghost is an object
+   * washed most of the way into the sky. Two thirds of the film would be a
+   * smear. `from` is kept on a placement and now says **which piece it belongs
+   * to**, which is what version 5 makes explicit.
+   */
+  const solid = (placement) => ({ ...placement, from: 0, until: 9999 });
+
   function remesh() {
     // Only what is on the canvas, and only once per model. Meshing every grid
     // meant the whole library, which grows as previews are drawn, and meshing
@@ -375,7 +419,7 @@ async function main() {
         grid: meshes[keyFor(p)]?.palette
           ? { palette: meshes[keyFor(p)].palette }
           : grids[keyFor(p)],
-        ...p,
+        ...solid(p),
       }))
     );
     renderer.uploadMesh(merged);
@@ -391,7 +435,7 @@ async function main() {
    * a dragged object left its shadow behind whenever the cubes were showing.
    */
   function refreshShadows() {
-    renderer.uploadShadows(contactShadows(scene, layout));
+    renderer.uploadShadows(contactShadows(scene, layout.map(solid)));
   }
 
   function rebuild() {
@@ -414,7 +458,7 @@ async function main() {
       state.selected = -1;
       say(`left out ${[...new Set(missing)].join(', ')}: not in the library`);
     }
-    scene = assemble(layout.map((p) => ({ grid: grids[keyFor(p)], ...p })));
+    scene = assemble(layout.map((p) => ({ grid: grids[keyFor(p)], ...solid(p) })));
     renderer.upload(scene);
     boxes = objectBoxes(scene);
     extent = bounds(scene);
@@ -461,14 +505,22 @@ async function main() {
   // Roaming and the route produce the same kind of value, so switching between
   // them is a matter of which framing is current, not two camera systems.
   const state = {
-    mode: 'route',          // 'route' | 'roam'
     playing: true,
     clock: 0,
     pinned: null,
-    // Filled in by `begin`, once there is a scene to fit the camera around.
-    // Reading `extent` here is what forced `rebuild()` to run a thousand lines
-    // above everything it touches, which is where the trouble started.
-    roaming: null,
+    /**
+     * **How the camera is looking, and nothing about where it is.**
+     *
+     * Where it is comes from the strip, always. Before this there was a second
+     * answer - a free framing the camera fell back to the moment you dragged -
+     * and the two fought: cycling through the steps stopped moving the world,
+     * and clicking snapped the view back to wherever the free camera had been
+     * left. Reported as "the cycling through steps is busted".
+     *
+     * One place for the composition, one for the position, and they never
+     * disagree because only one of them exists.
+     */
+    rig: { yaw: -8, pitch: 20, width: 26, height: 0 },
     selected: -1,
     forcedWeather: null,
     // True while a line is being traced for the selected object to walk.
@@ -493,31 +545,114 @@ async function main() {
     // whoever is composing it.
     orbit: 0,
     push: 0,
+    // **The whole film at once.** Not a place on the strip but a way of looking
+    // at it, so turning it off puts the camera back exactly where it was.
+    overview: false,
   };
 
-  function currentRoute() {
-    // An empty day has nothing to walk. The camera is wherever it was left,
-    // which is the whole point of a playground: a place exists before a story
-    // has been laid over it.
-    if (!route.length) {
-      return { framing: state.roaming ?? fit(extent), step: 0, phase: 'held', into: 1 };
-    }
-    return state.pinned === null
-      ? routeAt(route, state.clock)
-      : { framing: route[state.pinned].framing, step: state.pinned, phase: 'held' };
+  /**
+   * The route as it stands on the strip.
+   *
+   * **This is what makes the film move.** A step's framing says how it is
+   * looked at - how wide, how high, which way round - and its place in the film
+   * says where. So going from step 1 to step 2 travels the width of a piece,
+   * and the world slides past a camera that is only ever turning.
+   *
+   * Before this, every step framed the same patch of ground and the only thing
+   * that changed between them was the weather, which is what the user reported:
+   * *"when i go from step 1 to step 2, its the same step just a different
+   * weather."*
+   *
+   * Kept as a second array rather than rewritten into `route`, because where a
+   * piece stands is derived from its position in the film. Recomputing it is
+   * always right; storing it would let the two disagree the moment a step is
+   * added, removed or dragged to another time.
+   */
+  let staged = [];
+
+  /**
+   * The staged route, rebuilt if anything has changed the real one without
+   * saying so.
+   *
+   * A derived array that has to be refreshed by hand is exactly the shape of
+   * bug this project has now been caught by four times: code left pointing at
+   * something that had moved. The guard costs one comparison a frame and makes
+   * forgetting `restage()` impossible rather than merely unlikely.
+   */
+  function onStrip() {
+    if (staged.length !== route.length) restage();
+    return staged;
   }
 
-  /** Take over the camera, starting exactly where the route had left it. */
-  function roam(seedFrom) {
-    if (state.mode !== 'roam') {
-      state.roaming = { ...(seedFrom ?? currentRoute().framing) };
-      state.mode = 'roam';
-      state.playing = false;
+  function restage() {
+    // **One composition for the whole film.** Every piece is looked at the same
+    // way and stands in its own place, so moving between them is travel rather
+    // than a cut to a different shot. A framing per step was the old camera
+    // language, and it is what made a step a shot instead of a moment.
+    staged = route.map((step, index) => ({
+      ...step,
+      framing: framingOf(state.rig, index, PIECE),
+    }));
+  }
+
+  /** Where the camera is when there is no film yet: the first piece. */
+  const emptyFraming = () => framingOf(state.rig, 0, PIECE);
+
+  /**
+   * Change how the camera is looking, keeping where it is.
+   *
+   * The orbit functions all take a framing and return one, so they are handed
+   * the shot as it stands and the rig is read back out of the result. That
+   * keeps the tested pure code in use and means a drag can never move the
+   * camera off its piece - which is the whole of "fixed camera, moving canvas".
+   */
+  function adjustCamera(change) {
+    const framing = change(currentRoute().framing);
+    state.rig = {
+      yaw: framing.yaw ?? state.rig.yaw,
+      pitch: framing.pitch ?? state.rig.pitch,
+      width: framing.w ?? state.rig.width,
+      height: framing.y ?? state.rig.height,
+    };
+    restage();
+  }
+
+  /** The whole film at once, which is what the overview button asks for. */
+  function overviewFraming() {
+    return revealFraming(state.rig, Math.max(1, route.length), PIECE);
+  }
+
+  function currentRoute() {
+    // The whole film, from far enough back to read it as one. Deliberately
+    // outranks the step being shown: it is a way of looking at the strip, not a
+    // place on it, so leaving it puts you back exactly where you were.
+    if (state.overview) {
+      return { framing: overviewFraming(), step: editing(), phase: 'held', into: 1 };
     }
+    // An empty day is the first piece of a film with nothing on it yet, which
+    // is where every canvas starts.
+    if (!route.length) {
+      return { framing: emptyFraming(), step: 0, phase: 'held', into: 1 };
+    }
+    return state.pinned === null
+      ? routeAt(onStrip(), state.clock)
+      : { framing: onStrip()[state.pinned].framing, step: state.pinned, phase: 'held' };
+  }
+
+  /**
+   * Take the camera by hand.
+   *
+   * **It no longer takes the camera anywhere.** Free roaming was a second
+   * position for the camera to be in, and having two was the bug: a drag moved
+   * the camera off the strip, and from then on cycling through the steps
+   * changed nothing on screen. All this does now is stop playback, because a
+   * take that carries on while you are composing is fighting you.
+   */
+  function roam() {
+    state.playing = false;
   }
 
   function toRoute() {
-    state.mode = 'route';
     state.playing = true;
   }
 
@@ -536,7 +671,7 @@ async function main() {
       { x: 0, y: 0, w: view.w, h: view.h },
     );
     if (!insideFrame(ndc)) return null;
-    const framing = state.mode === 'roam' ? state.roaming : currentRoute().framing;
+    const framing = currentRoute().framing;
     return rayThrough(framing, ndc);
   }
 
@@ -573,8 +708,10 @@ async function main() {
       halves[i * 2 + 1] = Math.abs(place.size[1]) / 2;
       const tint = PLACE_TINTS[i % PLACE_TINTS.length];
       tints[i * 3] = tint[0]; tints[i * 3 + 1] = tint[1]; tints[i * 3 + 2] = tint[2];
-      fromStep[i] = place.from ?? 0;
-      untilStep[i] = place.until ?? 9999;
+      // Always on, like everything else on the strip. A named patch of ground
+      // belongs to the piece it was drawn on, and that piece stands somewhere.
+      fromStep[i] = 0;
+      untilStep[i] = 9999;
     });
     renderer.uploadAreas({ centres, halves, tints, fromStep, untilStep, count });
   }
@@ -764,10 +901,11 @@ async function main() {
       return;
     }
 
+    // **Turn on the spot, never travel.** Panning used to drag the camera
+    // across the ground with the right button; there is nowhere to pan to now,
+    // because where the camera stands is the piece of film in front of it.
     roam();
-    state.roaming = drag.panning
-      ? panScreen(state.roaming, dx, dy, canvas.clientWidth)
-      : orbit(state.roaming, -dx * 0.32, dy * 0.26);
+    adjustCamera((f) => orbit(f, -dx * 0.32, dy * 0.26));
   });
 
   const endDrag = (event) => {
@@ -973,7 +1111,7 @@ async function main() {
   canvas.addEventListener('wheel', (event) => {
     event.preventDefault();
     roam();
-    state.roaming = zoom(state.roaming, event.deltaY > 0 ? 1.12 : 1 / 1.12);
+    adjustCamera((f) => zoom(f, event.deltaY > 0 ? 1.12 : 1 / 1.12));
   }, { passive: false });
 
   // --- keys -----------------------------------------------------------------
@@ -1063,12 +1201,13 @@ async function main() {
 
     if (key === ' ') {
       event.preventDefault();
-      if (state.mode === 'roam') { toRoute(); say('following the route'); }
-      else state.playing = !state.playing;
+      state.playing = !state.playing;
     } else if (key === 'f') {
+      // The whole film, which is what "frame everything" means on a strip.
       roam();
-      state.roaming = fit(extent, { pitch: 42, yaw: state.roaming.yaw });
-      say('framed everything');
+      state.overview = !state.overview;
+      el('b-overview').setAttribute('aria-pressed', String(state.overview));
+      say(state.overview ? 'the whole film' : 'back to the strip');
     } else if (key === 'r') {
       state.clock = 0; state.pinned = null; toRoute(); sync();
     } else if (key === 'enter') {
@@ -1081,7 +1220,6 @@ async function main() {
       hud.classList.toggle('hidden', hiding);
       el('penui').classList.toggle('hidden', hiding);
     } else if (key >= '1' && key <= String(route.length)) {
-      state.mode = 'route';
       state.pinned = Number(key) - 1;
       state.playing = false;
     }
@@ -1408,8 +1546,32 @@ async function main() {
     sun: skyNow(routeAtHour(route, state.hour)).sun,
     orbit: state.orbit,
     push: state.push,
-    step: routeAtHour(route, state.hour)?.fromStep ?? editing(),
+    // The step being **worked on**, which is what the panel edits and what the
+    // bar highlights. This used to report `routeAtHour(...).fromStep`, which is
+    // the step being *left* - so it agreed with the bug where standing exactly
+    // on a middle step reported its predecessor, and a test could not have seen
+    // the difference.
+    step: editing(),
   });
+
+  /**
+   * The shot as it stands, evaluated on demand.
+   *
+   * **Not read back from the panel.** An app instance from an earlier test goes
+   * on drawing into the current stub's elements, so `s-centre` and `s-width`
+   * report whichever instance drew last - which is how a working implementation
+   * gets reported as broken. This calls the same expression the frame calls, so
+   * it is this page's answer or nothing.
+   *
+   * Drift is deliberately not applied: it breathes the framing a per cent or so
+   * every frame, and a test asking where the camera is does not want to know
+   * about the breathing.
+   */
+  window.__trail.shot = () => {
+    const framing = currentRoute().framing;
+    const [cx, cz] = centreOf(framing);
+    return { x: cx, z: cz, w: framing.w, overview: state.overview };
+  };
 
   window.__trail.route = () => route.map((s) => ({
     text: s.text ?? '', hold: s.hold, weather: s.weather, framing: { ...s.framing },
@@ -1496,9 +1658,10 @@ async function main() {
       });
       if (!grid) return;
     }
-    const framing = state.mode === 'roam' ? state.roaming : currentRoute().framing;
-    const [cx, cz] = centreOf(framing);
-    layout.push({ model: id, at: [cx, 0, cz], rot: 0, from: 0, ...(pose ? { pose } : {}) });
+    // The middle of the piece being looked at, so a model lands on the part of
+    // the film you are composing. `from` records which piece that is.
+    const [cx, cz] = centreOf(currentRoute().framing);
+    layout.push({ model: id, at: [cx, 0, cz], rot: 0, from: editing(), ...(pose ? { pose } : {}) });
     rebuild();
     select(layout.length - 1);
     paintLibrary();
@@ -1589,7 +1752,6 @@ async function main() {
     // Places first, so a person standing in the bar is labelled over it.
     for (const place of areas) {
       if (!place.label) continue;
-      if (step < (place.from ?? 0) || step > (place.until ?? 9999)) continue;
       const at = project(matrix, [place.at[0], 0.05, place.at[1]]);
       if (!at || Math.abs(at.x) > 1.1 || Math.abs(at.y) > 1.1) continue;
       // A place is read at a wider shot than a person is: it is the ground you
@@ -1603,7 +1765,8 @@ async function main() {
     for (let i = 0; i < layout.length; i++) {
       const p = layout[i];
       if (!p.label) continue;
-      if (step < (p.from ?? 0) || step > (p.until ?? 9999)) continue;
+      // No step range: a name belongs to the figure, and the figure belongs to
+      // a piece of the film that is either in shot or is not.
       const box = boxes[i];
       // A box is measured from the buffers, which hold an object at the start
       // of its line - the travelling itself happens in the shader. So the tag
@@ -1817,6 +1980,10 @@ async function main() {
    * the range an object can be placed in.
    */
   function stepsChanged() {
+    // **First, because everything below reads where the pieces stand.** A step's
+    // place on the strip comes from its position in the film, so adding,
+    // removing or re-timing one moves every piece after it.
+    restage();
     buildSteps();
     paintClock();
     duration = routeDuration(route) / 1000;
@@ -1855,7 +2022,7 @@ async function main() {
     // rather than replacing it with a default nobody chose.
     if (!route.length) {
       route.push({
-        framing: { ...(state.mode === 'roam' ? state.roaming : fit(extent)) },
+        framing: { ...currentRoute().framing },
         hold: 5000,
         approachTime: 2500,
         weather: state.weather,
@@ -1890,7 +2057,6 @@ async function main() {
     layout = out.layout;
     areas = out.areas;
     state.pinned = at + 1;
-    state.mode = 'route';
     rebuild();
     uploadAreas();
     stepsChanged();
@@ -2312,11 +2478,29 @@ async function main() {
     const at = state.hour;
     el('needle').style.left = `${acrossDay(at) * 100}%`;
     el('now-time').textContent = clockOf(at);
+    // **Where you are, not how many there are.** This used to read
+    // "2 of 2 steps on the clock", which is a count of how many steps have a
+    // time - so it never changed as you moved, while reading exactly like a
+    // position. Reported as "it always says 2 of 2 steps".
+    const untimed = route.length - timed.length;
+    const note = untimed ? ` (${untimed} with no time)` : '';
+    // Near enough to count as being on it: a mark is a click target a few
+    // pixels wide, so landing on one lands within a rounding error of its hour.
+    const on = timed.find(({ step }) => Math.abs(step.hour - at) < 1e-3);
+    const before = stepAround(route, at, -1);
+    const after = stepAround(route, at, 1);
+
     el('now-what').textContent = !route.length
       ? 'an empty day - drag to move through it, + to add a step'
       : !timed.length
-        ? 'no steps on the clock yet'
-        : `${timed.length} of ${route.length} steps on the clock`;
+        ? `no steps on the clock yet - ${route.length} waiting for a time`
+        : on
+          ? `step ${on.index + 1} of ${route.length}${note}`
+          : before && after
+            ? `between steps ${before.index + 1} and ${after.index + 1}${note}`
+            : after
+              ? `before step ${after.index + 1}${note}`
+              : `after step ${before.index + 1}${note}`;
     el('b-time-prev').disabled = !stepAround(route, at, -1);
     el('b-time-next').disabled = !stepAround(route, at, 1);
     el('b-step-remove').disabled = !route.length;
@@ -2324,8 +2508,8 @@ async function main() {
 
   /** Move to a moment in the day, and let the panel follow. */
   function scrubTo(hour) {
-    // Deliberately does not touch `state.mode`. The camera stays exactly as it
-    // was - roaming, or resting on the route - and the clock only says when.
+    // The camera keeps its composition. What moves is where along the film it
+    // is standing, which is the whole of what the clock decides.
     state.playing = false;
     state.scrubbing = true;
     state.hour = hour;
@@ -2333,7 +2517,18 @@ async function main() {
     // The step being worked on follows the clock, so opening the panel edits
     // what is on screen rather than whatever was pinned last. With no steps
     // there is nothing to follow, and that is a perfectly good state to be in.
-    if (found) state.pinned = found.fromStep ?? found.step;
+    //
+    // **Landing exactly on a step pins that step**, and it has to be asked
+    // first. `routeAtHour` reports the step being *arrived at* and the one
+    // being left, and standing precisely on a mark counts as both - so taking
+    // the one being left meant every middle step was skipped. Arrowing along
+    // the route showed step 1, then step 1 again, then step 3, and the panel
+    // could never be pointed at step 2 at all.
+    const exact = route.findIndex(
+      (step) => typeof step.hour === 'number' && Math.abs(step.hour - hour) < 1e-6
+    );
+    if (exact >= 0) state.pinned = exact;
+    else if (found) state.pinned = found.fromStep ?? found.step;
     paintStep();
     paintClock();
   }
@@ -2369,6 +2564,29 @@ async function main() {
   el('b-time-prev').addEventListener('click', () => jump(-1));
   el('b-time-next').addEventListener('click', () => jump(1));
 
+  /**
+   * The whole film, from far enough back to read it in one.
+   *
+   * The ending the format is built around: every piece in the order it
+   * happened, so a viewer sees how the event went rather than being told. It is
+   * a **way of looking**, not a place - the clock keeps running underneath it
+   * and turning it off puts the camera back exactly where it was.
+   *
+   * It also takes the camera out of roaming, because a free camera and a fitted
+   * one are two answers to the same question and the fitted one has to win while
+   * it is on.
+   */
+  el('b-overview').addEventListener('click', () => {
+    state.overview = !state.overview;
+    if (state.overview) {
+      state.playing = false;
+    }
+    el('b-overview').setAttribute('aria-pressed', String(state.overview));
+    say(state.overview
+      ? `the whole film: ${route.length} ${route.length === 1 ? 'piece' : 'pieces'}`
+      : 'back to the strip');
+  });
+
   // The panel is where everything that is not the clock lives, and it is out of
   // the way until it is wanted.
   el('b-panel').addEventListener('click', () => {
@@ -2392,7 +2610,6 @@ async function main() {
       button.title = `step ${i + 1}`;
       button.dataset.v = String(i);
       button.addEventListener('click', () => {
-        state.mode = 'route';
         state.pinned = i;
         state.playing = false;
         // Pinning a step is also choosing which one to work on, so the panel
@@ -2407,8 +2624,7 @@ async function main() {
   el('b-play').addEventListener('click', () => {
     // Playing is watching the route, not scrubbing it, so the bar lets go.
     state.scrubbing = false;
-    if (state.mode === 'roam') toRoute();
-    else state.playing = !state.playing;
+    state.playing = !state.playing;
     paintClock();
   });
   el('b-restart').addEventListener('click', () => {
@@ -2428,7 +2644,7 @@ async function main() {
     event.target.value = '';
   });
   el('b-frame').addEventListener('click', async () => {
-    const framing = tidy(state.mode === 'roam' ? state.roaming : currentRoute().framing);
+    const framing = tidy(currentRoute().framing);
     const text = `{ framing: ${JSON.stringify(framing)}, hold: 5000, approachTime: 3000 },`;
     try {
       await navigator.clipboard.writeText(text);
@@ -2501,8 +2717,8 @@ async function main() {
     buildSwatches();
     buildObjectSliders();
     rebuild();
-    // The camera is fitted to the world once the world exists.
-    state.roaming = fit(extent);
+    // The pieces have to be standing before anything asks where the camera is.
+    restage();
     // Whatever was being worked on last time, if anything.
     paintPanel();
     sync();
@@ -2555,17 +2771,14 @@ async function main() {
     velocity.right += (wants.right - velocity.right) * ease;
     velocity.up += (wants.up - velocity.up) * ease;
 
-    if (state.mode === 'roam') {
-      if (Math.abs(velocity.forward) > 0.001 || Math.abs(velocity.right) > 0.001) {
-        state.roaming = walk(state.roaming, velocity.forward, velocity.right,
-          WALK_SPEED * delta);
-      }
-      if (Math.abs(velocity.up) > 0.001) {
-        state.roaming = rise(state.roaming, velocity.up * RISE_SPEED * delta);
-      }
-    } else {
-      velocity.forward = velocity.right = velocity.up = 0;
+    // **Climbing is all that is left of walking.** The camera does not travel
+    // any more - the film does - so forward and sideways have nowhere to go.
+    // Height stays, because looking down on a piece from higher up is a
+    // composition rather than a journey.
+    if (Math.abs(velocity.up) > 0.001) {
+      adjustCamera((f) => rise(f, velocity.up * RISE_SPEED * delta));
     }
+    velocity.forward = velocity.right = 0;
 
     let framing;
     let step = state.pinned ?? 0;
@@ -2583,14 +2796,11 @@ async function main() {
     if (state.shotAt === null || state.shotAt === undefined) state.shotAt = now;
     let shotHeld = (now - state.shotAt) / 1000;
 
-    if (state.mode === 'roam') {
-      // No drift while roaming: it would fight the hand on the mouse. A move
-      // that was asked for is different, and it is shown so it can be judged.
-      framing = autoMove(state.roaming, shotHeld, state);
-      el('mode').textContent = 'roaming';
-      el('mode').className = '';
-      el('s-step').textContent = 'free';
-    } else {
+    // **There is one camera and it is on the strip.** The roaming branch that
+    // used to sit here was a second answer to "where is the camera", and having
+    // two was the bug: one drag moved the camera off the film, and cycling
+    // through the steps changed nothing on screen from then on.
+    {
       if (state.playing) { state.clock = (state.clock + delta) % duration; state.scrubbing = false; }
 
       const at = currentRoute();
@@ -2623,26 +2833,44 @@ async function main() {
 
     // --- the clock ------------------------------------------------------------
     //
-    // **Moving through the day never touches the camera.** It decides the hour,
-    // the weather and what has arrived on the canvas; where the camera is
-    // looking from belongs to whoever is composing the shot. Having the bar snap
-    // the view back to a step's framing made it useless for the thing it is
-    // for, which is watching one place change through a day.
+    // **Moving through the day moves you along the film.** The strip runs in
+    // time, so dragging the bar travels from one piece to the next and the world
+    // slides past a camera that is only ever turning.
     //
-    // It sits outside the roam-or-route branch for the same reason: the camera
-    // can be roaming or on the route, and dragging the bar works the same way
-    // either way rather than taking the camera's mode away.
+    // This reads like a reversal of the rule written a day earlier - "moving
+    // through the day never touches the camera" - and it is not. That rule
+    // existed because scrubbing **snapped the framing back to a step's own
+    // composition**, so the view you had chosen was taken away every time the
+    // bar moved. What travels now is the camera's *position along the strip*;
+    // how it is looking - the yaw, the pitch, how wide - is untouched.
+    //
+    // It sits outside the roam-or-route branch because the clock works the same
+    // way whichever the camera is in, rather than taking its mode away.
     if (!state.playing) {
       // A route that says something about this hour is used; otherwise this is
       // an empty day, and the playground's own weather lights it. **Either way
       // the hour applies**, which is what makes an empty canvas a place at a
       // time rather than a dead bar.
-      const moment = routeAtHour(route, state.hour);
+      // The staged route, so scrubbing the clock travels along the strip and the
+      // world slides past. Reading the unstaged one is what made every step
+      // frame the same patch of ground.
+      const moment = routeAtHour(onStrip(), state.hour);
       if (moment) {
         step = moment.step;
         stepT = moment.into;
         arrive = easeInOut(moment.into);
-        el('s-step').textContent = `${step + 1} / ${route.length}`;
+        // **Travel along the strip**, so a step is somewhere rather than a
+        // different weather where you already are. Left alone while roaming,
+        // because the camera has been taken by hand, and while the overview is
+        // on, because that is the whole film rather than a place on it.
+        if (!state.overview) {
+          framing = drift(moment.framing, now / 1000);
+        }
+        // The step being **worked on**, which is the one the bar and the panel
+        // both name. `moment.step` is the step being arrived at, which is what
+        // the ghosting needs and is a step ahead of where you think you are:
+        // it read "2 / 2" everywhere above the first step's hour.
+        el('s-step').textContent = `${editing() + 1} / ${route.length}`;
       } else {
         el('s-step').textContent = route.length ? `${editing() + 1} / ${route.length}` : 'none';
       }
@@ -2658,7 +2886,7 @@ async function main() {
     if (state.forcedWeather) {
       weather = resolveWeather(skyOf({ weather: state.forcedWeather, hour: route[editing()]?.hour }));
     }
-    scarsFor(state.mode === 'roam' ? route.length - 1 : step);
+    scarsFor(step);
     el('s-rain').textContent = `${Math.round((weather.rain ?? 0) * 100)}%`;
 
     const [cx, cz] = centreOf(framing);
@@ -2678,10 +2906,10 @@ async function main() {
       smooth: smoothing,
       // While roaming, show the canvas as the story left it rather than ghosting
       // half of it: roaming is for looking at the world, not for playing it.
-      step: state.mode === 'roam' ? route.length - 1 : step,
+      step,
       stepT,
     });
-    drawTags(matrix, state.mode === 'roam' ? route.length - 1 : step, arrive);
+    drawTags(matrix, step, arrive);
     paintInk();
 
     const fill = renderer.view.fill;

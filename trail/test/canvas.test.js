@@ -296,6 +296,56 @@ test('everything new survives being saved twice', () => {
   assert.deepEqual(build(), build());
 });
 
+// --- opening an older canvas onto the strip ----------------------------------
+
+test('a version 4 canvas is spread along the strip rather than piled on one piece', () => {
+  // **Reported by the user:** after the strip landed, cycling to a later step
+  // "shows an empty canvas". Their saved canvas was version 4, where every step
+  // framed the same ground and the whole story sat in one heap around the
+  // origin - so pieces two and three were bare.
+  //
+  // `from` already says which piece an object belongs to, so it is read one
+  // last time and turned into a position.
+  const old = {
+    trail: 4,
+    objects: [
+      { model: 'house', at: [-6, 0, -4], from: 0 },
+      { model: 'car', at: [2, 0, 3], from: 1 },
+      { model: 'tree', at: [1, 0, 1], from: 2 },
+    ],
+    areas: [{ at: [0, 0], size: [4, 4], label: 'the bar', from: 1 }],
+    steps: [
+      { framing: { x: 0, z: 0, w: 10, d: 6 }, hold: 1000, hour: 9 },
+      { framing: { x: 0, z: 0, w: 10, d: 6 }, hold: 1000, hour: 12 },
+      { framing: { x: 0, z: 0, w: 10, d: 6 }, hold: 1000, hour: 15 },
+    ],
+  };
+
+  const out = parse(old);
+  const [house, car, tree] = out.layout;
+
+  assert.equal(house.at[0], -6, 'the first piece stays where it was');
+  assert.ok(car.at[0] > 20, `the second piece was left at ${car.at[0]}`);
+  assert.ok(tree.at[0] > car.at[0], 'the third piece is further along than the second');
+  assert.ok(out.areas[0].at[0] > 20, 'a named place belongs to a piece too');
+
+  // Across and up are untouched: a piece only moves things along the film.
+  assert.equal(car.at[2], 3);
+  assert.equal(tree.at[1], 0);
+});
+
+test('a canvas already on the strip is never pushed along it twice', () => {
+  // Saving and opening repeatedly must not walk the story off down the strip.
+  const once = parse({
+    trail: 4,
+    objects: [{ model: 'car', at: [2, 0, 3], from: 2 }],
+    steps: [{ framing: { x: 0, z: 0, w: 10, d: 6 }, hold: 1000 }],
+  });
+  const twice = parse(serialise(once));
+  assert.equal(twice.layout[0].at[0], once.layout[0].at[0]);
+  assert.equal(serialise(once).trail, VERSION);
+});
+
 // --- rearranging the route ---------------------------------------------------
 
 const THREE = () => ({
@@ -368,6 +418,41 @@ test('a reference is never left pointing past the end of a shorter route', () =>
       assert.ok(object.path.step < out.route.length, `${object.model} walks on a step that is gone`);
     }
   }
+});
+
+test('adding a step leaves the objects already placed where they were', () => {
+  // **Reported by the user, and it made the app unusable:** clear every step,
+  // add one at eight in the morning, place an object, then add a second step -
+  // and the object was silently reassigned to the new step, ghosted blue at the
+  // step it had been placed on.
+  //
+  // Adding a step splices a **copy** of the step it follows in after it, so the
+  // order handed to `reorder` names the same old step twice. A duplicate has to
+  // resolve to the *earliest* copy: a reference means "from this moment on", and
+  // the moment is where the original still is.
+  const state = {
+    route: [{ framing: { x: 0, z: 0, w: 10, d: 6 }, hold: 5000, hour: 8 }],
+    layout: [{ model: 'tree', at: [0, 0, 0], from: 0 }],
+    areas: [],
+  };
+  // What the add-step handler has by the time it calls `reorder`: the route has
+  // already been spliced, so step 0 appears at both positions.
+  const spliced = { ...state, route: [state.route[0], { ...state.route[0], hour: 11 }] };
+  const out = reorder(spliced, [0, 0]);
+
+  assert.equal(out.layout[0].from, 0,
+    'the object was reassigned to the step that was just added');
+});
+
+test('a duplicated step keeps its references on the original, at any position', () => {
+  // The same rule further along a route, so it is the rule being tested rather
+  // than the one-step case.
+  const out = reorder(THREE(), [0, 1, 1, 2]);
+  assert.equal(out.layout[0].from, 0, 'an object before the insertion is untouched');
+  assert.equal(out.layout[2].from, 1, 'an object on the duplicated step stays on the original');
+  assert.equal(out.layout[1].from, 3, 'an object after it moves down one');
+  assert.equal(out.layout[1].path.step, 3, 'and so does the step it walks its line on');
+  assert.equal(out.areas[0].from, 3, 'a place is a step reference too');
 });
 
 test('rearranging nothing changes nothing', () => {
