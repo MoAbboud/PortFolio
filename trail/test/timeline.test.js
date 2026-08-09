@@ -2,91 +2,194 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  worldOf, xOf, hourOf, spanOf, extentOf, depthFor, rigOf, framingOf,
-  revealFraming, fogFor, clockAt, takeDuration, DEFAULT_SPACING, DEFAULT_ORIGIN,
+  geometryOf, pitchOf, pieceX, placeInPiece, stripExtent,
+  xAt, atOfX, clampAt, pieceAt, hourAt, toMinute, fromMinute, clockOfPiece,
+  spliceOut, insertPiece,
+  depthFor, rigOf, framingOf, revealFraming, fogFor,
+  runAt, runDuration, DEFAULT_PIECE,
 } from '../lib/timeline.js';
 import { framingToView } from '../lib/camera.js';
 
 const near = (a, b, tolerance = 1e-6) =>
   assert.ok(Math.abs(a - b) < tolerance, `${a} is not near ${b}`);
 
-const WORLD = { spacing: 40, origin: 12 };
+const GEO = { width: 30, depth: 20, gap: 2 };
 
-// --- the mapping ------------------------------------------------------------
+// A three-piece strip: noon, half past, one o'clock. The example the whole
+// redesign was described with.
+const STRIP = [
+  { hour: 12, weather: 'clear', hold: 4000 },
+  { hour: 12.5, weather: 'overcast', hold: 3000 },
+  { hour: 13, weather: 'storm', hold: 5000 },
+];
 
-test('the origin hour sits at the middle of the canvas', () => {
-  near(xOf(12, WORLD), 0);
-  near(hourOf(0, WORLD), 12);
+// --- the strip is made of pieces --------------------------------------------
+
+test('pieces butt together at a fixed distance, whatever times they carry', () => {
+  // The point of the film strip: only the minutes you author take up room, so
+  // two pieces half an hour apart and two a minute apart are the same distance.
+  near(pitchOf(GEO), 32);
+  near(pieceX(0, GEO), 0);
+  near(pieceX(1, GEO), 32);
+  near(pieceX(2, GEO), 64);
 });
 
-test('an hour is a fixed distance, and a wider spacing spreads the story out', () => {
-  near(xOf(13, WORLD), 40);
-  near(xOf(11, WORLD), -40);
-  near(xOf(12.5, WORLD), 20);
-  // The same story at half the spacing occupies half the ground. This is the
-  // whole point of the control: a nine-hour afternoon has to be able to fit in
-  // a room without the times themselves changing.
-  near(xOf(13, { spacing: 20, origin: 12 }), 20);
+test('the distance between pieces does not depend on the gap in time', () => {
+  const tight = [{ hour: 12 }, { hour: 12.0167 }];
+  const wide = [{ hour: 12 }, { hour: 19 }];
+  // Both are one join apart, because a piece of film is a piece of film.
+  near(xAt(1, GEO) - xAt(0, GEO), xAt(1, GEO) - xAt(0, GEO));
+  near(pieceAt(tight, 1).index, pieceAt(wide, 1).index);
 });
 
-test('reading a place back gives the time that put it there', () => {
-  for (let hour = 0; hour < 24; hour += 0.25) {
-    near(hourOf(xOf(hour, WORLD), WORLD), hour, 1e-9);
-  }
+test('an object is stored against its own piece and placed against the strip', () => {
+  // Storing positions absolutely is what would make cutting a piece out into a
+  // rewrite of everything after it.
+  const local = [-4, 0, 2];
+  assert.deepEqual(placeInPiece(local, 0, GEO), [-4, 0, 2]);
+  assert.deepEqual(placeInPiece(local, 2, GEO), [60, 0, 2]);
+  // The across-strip and vertical axes are untouched: a piece only moves things
+  // along the film.
+  assert.equal(placeInPiece(local, 5, GEO)[1], 0);
+  assert.equal(placeInPiece(local, 5, GEO)[2], 2);
 });
 
-test('a spacing of zero is refused rather than collapsing the strip', () => {
-  // Nought units to the hour maps every moment to the same place, which is a
-  // pile rather than a timeline, and makes `hourOf` a division by zero.
-  assert.ok(worldOf({ spacing: 0 }).spacing > 0);
-  assert.ok(worldOf({ spacing: -5 }).spacing > 0);
-  assert.ok(Number.isFinite(hourOf(10, { spacing: 0, origin: 12 })));
+test('an object with no position still lands somewhere real', () => {
+  assert.deepEqual(placeInPiece(undefined, 1, GEO), [32, 0, 0]);
+  assert.deepEqual(placeInPiece([], 0, GEO), [0, 0, 0]);
 });
 
-test('a canvas with nothing set falls back to defaults rather than to NaN', () => {
-  const world = worldOf();
-  assert.equal(world.spacing, DEFAULT_SPACING);
-  assert.equal(world.origin, DEFAULT_ORIGIN);
-  near(xOf(undefined, world), 0);
-  assert.ok(Number.isFinite(xOf(null, world)));
+test('an empty strip has no extent, rather than an extent of nothing', () => {
+  // An empty canvas is a valid canvas, and the reveal has to be able to say
+  // "there is no film yet" rather than fitting the camera to a point.
+  assert.equal(stripExtent(0, GEO), null);
+  assert.equal(stripExtent(undefined, GEO), null);
 });
 
-// --- what the story occupies ------------------------------------------------
-
-test('an empty canvas has no span, rather than a span of the whole day', () => {
-  // An empty canvas is a valid canvas, so this has to be answerable with "there
-  // is no story yet" instead of midnight to midnight.
-  assert.equal(spanOf([]), null);
-  assert.equal(spanOf([{ weather: 'clear' }]), null);
-});
-
-test('the span runs from the earliest moment to the latest, whatever order they are in', () => {
-  const span = spanOf([{ hour: 13.5 }, { hour: 9 }, { hour: 18.25 }]);
-  assert.deepEqual(span, { from: 9, to: 18.25 });
-});
-
-test('the extent takes in the objects as well as the moments', () => {
-  // The two disagree in both directions - a thing can be dropped past the last
-  // moment, and a moment can be marked before anything is placed at it - and the
-  // pull-back has to take in whichever is wider or it cuts off what it is for.
-  const moments = [{ hour: 12 }, { hour: 13 }];
-  const objects = [{ at: [-90, 0, 2] }, { at: [10, 0, 0] }];
-  const extent = extentOf({ moments, objects }, WORLD);
-  near(extent.min, -90);
-  near(extent.max, 40);
-});
-
-test('an area counts to its edges, not to its middle', () => {
-  const extent = extentOf({ areas: [{ at: [0, 0], size: [30, 10] }] }, WORLD);
+test('the extent runs from the outer edge of the first piece to the last', () => {
+  const extent = stripExtent(3, GEO);
   near(extent.min, -15);
-  near(extent.max, 15);
+  near(extent.max, 79);
 });
 
-test('an extent with nothing to measure is null rather than zero', () => {
-  // Zero would read as a strip of no length centred on the origin, and the
-  // reveal would dutifully fit the camera to it.
-  assert.equal(extentOf({}, WORLD), null);
-  assert.equal(extentOf({ objects: [{ at: null }] }, WORLD), null);
+test('a place on the ground reads back as a place on the film', () => {
+  for (let at = 0; at < 4; at += 0.125) near(atOfX(xAt(at, GEO), GEO), at, 1e-9);
+});
+
+test('geometry with nothing set falls back to a usable piece', () => {
+  const geometry = geometryOf();
+  assert.equal(geometry.width, DEFAULT_PIECE.width);
+  assert.ok(geometry.width > 0 && geometry.depth > 0 && geometry.gap >= 0);
+  // A piece of no width would put every piece in the same place.
+  assert.ok(geometryOf({ width: 0 }).width > 0);
+  assert.ok(geometryOf({ gap: -10 }).gap >= 0);
+});
+
+// --- moving along it --------------------------------------------------------
+
+test('the strip says which piece is in front of the camera and how far between', () => {
+  assert.deepEqual(pieceAt(STRIP, 0), { index: 0, next: 1, into: 0 });
+  const between = pieceAt(STRIP, 1.25);
+  assert.equal(between.index, 1);
+  assert.equal(between.next, 2);
+  near(between.into, 0.25);
+});
+
+test('you cannot run off either end of the film', () => {
+  assert.equal(pieceAt(STRIP, -5).index, 0);
+  assert.equal(pieceAt(STRIP, 99).index, 2);
+  assert.equal(clampAt(99, 3), 2);
+  assert.equal(clampAt(-1, 3), 0);
+});
+
+test('the last piece has nothing to cross into', () => {
+  // Its `next` is itself, so a caller cross-fading the weather holds on the
+  // last one rather than blending it with a piece that is not there.
+  const end = pieceAt(STRIP, 2);
+  assert.equal(end.index, 2);
+  assert.equal(end.next, 2);
+  assert.equal(end.into, 0);
+});
+
+test('an empty strip is nothing to stand on, rather than a crash', () => {
+  assert.equal(pieceAt([], 0), null);
+  assert.equal(hourAt([], 0), null);
+  assert.equal(runAt([], 0), null);
+});
+
+test('crossing a join moves the time from one piece to the next', () => {
+  // Where the compression of time actually shows: one step across a join can be
+  // a step across half an hour, and the sun has to follow.
+  near(hourAt(STRIP, 0), 12);
+  near(hourAt(STRIP, 0.5), 12.25);
+  near(hourAt(STRIP, 1), 12.5);
+  near(hourAt(STRIP, 2), 13);
+});
+
+test('a piece with no time takes the time of the piece beside it', () => {
+  // Rather than reading as midnight, which is the mistake the clock already
+  // made once: absent is not midnight.
+  near(hourAt([{ }, { hour: 9 }], 0), 9);
+  near(hourAt([{ hour: 9 }, { }], 1), 9);
+});
+
+test('a piece is timed to the minute, and reads as a clock', () => {
+  assert.equal(toMinute(12.5), 750);
+  assert.equal(clockOfPiece({ hour: 12.5 }), '12:30');
+  assert.equal(clockOfPiece({ hour: 9 }), '09:00');
+  // 12:07 has to survive the round trip, because minutes are the resolution.
+  const minute = toMinute(12 + 7 / 60);
+  assert.equal(minute, 727);
+  assert.equal(clockOfPiece({ hour: fromMinute(minute) }), '12:07');
+});
+
+test('a time outside the day wraps rather than being refused', () => {
+  // A hand-edited file saying 25:00 plainly means one in the morning.
+  assert.equal(clockOfPiece({ hour: 25 }), '01:00');
+  assert.equal(clockOfPiece({ hour: -1 }), '23:00');
+});
+
+// --- cutting the film -------------------------------------------------------
+
+test('cutting a piece out lets the strip close up', () => {
+  const cut = spliceOut(STRIP, 1, 1);
+  assert.equal(cut.length, 2);
+  assert.deepEqual(cut.map((p) => p.hour), [12, 13]);
+  // And the piece that was third is now second, so it is drawn one place
+  // nearer. Nothing had to be rewritten to make that true.
+  near(pieceX(1, GEO), 32);
+});
+
+test('a whole section can be cut, not only one piece', () => {
+  const strip = [0, 1, 2, 3, 4, 5].map((hour) => ({ hour }));
+  assert.deepEqual(spliceOut(strip, 1, 3).map((p) => p.hour), [0, 4, 5]);
+});
+
+test('a cut that runs off the end takes what is there and no more', () => {
+  assert.deepEqual(spliceOut(STRIP, 2, 99).map((p) => p.hour), [12, 12.5]);
+  assert.deepEqual(spliceOut(STRIP, 99, 1).map((p) => p.hour), [12, 12.5, 13]);
+  assert.equal(spliceOut(STRIP, 0, 0).length, 3);
+});
+
+test('cutting never changes the pieces it keeps', () => {
+  // The whole argument for piece-relative positions: a splice must not be able
+  // to re-time or move anything that survived it.
+  const cut = spliceOut(STRIP, 0, 1);
+  assert.equal(cut[0], STRIP[1]);
+  assert.equal(cut[1], STRIP[2]);
+  assert.equal(STRIP.length, 3, 'the original strip was modified');
+});
+
+test('a new piece lands in the order its time runs', () => {
+  const grown = insertPiece(STRIP, { hour: 12.75, weather: 'clear' });
+  assert.deepEqual(grown.map((p) => p.hour), [12, 12.5, 12.75, 13]);
+  assert.deepEqual(insertPiece(STRIP, { hour: 6 }).map((p) => p.hour), [6, 12, 12.5, 13]);
+});
+
+test('a piece with no time goes on the end rather than at midnight', () => {
+  const grown = insertPiece(STRIP, { weather: 'clear' });
+  assert.equal(grown.length, 4);
+  assert.equal(grown[3].hour, undefined);
 });
 
 // --- the camera -------------------------------------------------------------
@@ -94,60 +197,50 @@ test('an extent with nothing to measure is null rather than zero', () => {
 test('the rectangle exactly fills the frame at any pitch', () => {
   // `framingToView` fits the width and the depth separately and takes whichever
   // needs more distance. If the depth is derived correctly the two agree, which
-  // is what stops a tilt leaving part of the frame empty.
+  // is what stops a tilt leaving a band of the frame doing nothing.
   for (const pitch of [1.5, 5, 12, 25, 45, 60, 89]) {
-    const width = 26;
+    const width = 30;
     const framing = { x: 0, z: 0, w: width, d: depthFor(width, pitch), pitch, yaw: 0 };
     const { distance } = framingToView(framing);
     const wider = framingToView({ ...framing, w: width * 1.02 });
     const deeper = framingToView({ ...framing, d: framing.d * 1.02 });
-    // Growing either axis has to push the camera back, which is only true when
-    // neither is already slack.
     assert.ok(wider.distance > distance, `width is slack at pitch ${pitch}`);
     assert.ok(deeper.distance > distance, `depth is slack at pitch ${pitch}`);
   }
 });
 
-test('the camera sits on the hour the clock is showing', () => {
-  const rig = { yaw: -14, pitch: 22, width: 26, height: 0 };
-  const noon = framingOf(rig, 12, WORLD);
-  near(noon.x + noon.w / 2, 0);
-  const half = framingOf(rig, 12.5, WORLD);
-  near(half.x + half.w / 2, 20);
+test('the camera sits on the piece the strip is showing', () => {
+  const rig = { yaw: -14, pitch: 22, width: 34, height: 0 };
+  near(framingOf(rig, 0, GEO).x + 17, 0);
+  near(framingOf(rig, 2, GEO).x + 17, 64);
 });
 
-test('the strip is centred across its own direction, so an orbit can see all of it', () => {
-  const framing = framingOf({ yaw: 0, pitch: 22, width: 26 }, 12, WORLD);
+test('the strip is centred across its own direction, so an orbit sees all of it', () => {
+  const framing = framingOf({ yaw: 0, pitch: 22, width: 34 }, 1, GEO);
   near(framing.z + framing.d / 2, 0);
 });
 
-test('moving through time changes where the camera is and nothing about how it looks', () => {
-  // The rule the clock bar was built on, and the one thing the redesign was not
+test('moving along the film changes where the camera is and nothing about how it looks', () => {
+  // The rule the clock bar was built on, and the one thing neither redesign was
   // allowed to break: scrubbing must never take the composition away.
   const rig = { yaw: -14, pitch: 33, width: 18, height: 4 };
-  const before = framingOf(rig, 9, WORLD);
-  const after = framingOf(rig, 17, WORLD);
+  const before = framingOf(rig, 0, GEO);
+  const after = framingOf(rig, 3, GEO);
   assert.equal(before.yaw, after.yaw);
   assert.equal(before.pitch, after.pitch);
   assert.equal(before.w, after.w);
   assert.equal(before.d, after.d);
   assert.equal(before.y, after.y);
-  // Only the position along the strip moved, and it moved by the hours crossed.
-  near(after.x - before.x, 8 * WORLD.spacing);
+  near(after.x - before.x, 3 * pitchOf(GEO));
   near(after.z, before.z);
 });
 
 test('a rig with nothing in it is still a usable camera', () => {
-  const rig = rigOf();
-  assert.ok(rig.width > 0 && rig.pitch > 0);
-  const framing = framingOf({}, 12, WORLD);
+  const framing = framingOf({}, 0, GEO);
   for (const key of ['x', 'z', 'w', 'd', 'pitch', 'yaw', 'y']) {
     assert.ok(Number.isFinite(framing[key]), `${key} is not a number`);
   }
   assert.ok(framing.w > 0 && framing.d > 0);
-});
-
-test('a pitch outside the world is pulled back into it', () => {
   // Straight down and below the ground are both framings a drag can ask for.
   assert.ok(rigOf({ pitch: 200 }).pitch <= 89);
   assert.ok(rigOf({ pitch: -40 }).pitch >= 1.5);
@@ -155,112 +248,101 @@ test('a pitch outside the world is pulled back into it', () => {
 
 // --- the ending -------------------------------------------------------------
 
-test('the reveal takes in the whole strip', () => {
-  const extent = { min: -180, max: 180 };
-  const framing = revealFraming({ yaw: 0, pitch: 22, width: 26 }, extent);
-  assert.ok(framing.x <= extent.min, 'the near end is off the left of the frame');
-  assert.ok(framing.x + framing.w >= extent.max, 'the far end is off the right');
-  near(framing.x + framing.w / 2, 0);
+test('the reveal takes in every piece of the film', () => {
+  const framing = revealFraming({ yaw: 0, pitch: 22, width: 34 }, 8, GEO);
+  const extent = stripExtent(8, GEO);
+  assert.ok(framing.x <= extent.min, 'the first piece is off the left of the frame');
+  assert.ok(framing.x + framing.w >= extent.max, 'the last piece is off the right');
 });
 
 test('the reveal keeps the yaw it was composed with and lifts the pitch', () => {
-  // A timeline read end to end is read from above: at the angle a close shot
-  // was composed at, the far end of a long strip is a smear on the horizon.
-  const framing = revealFraming({ yaw: -14, pitch: 12, width: 26 }, { min: -100, max: 100 });
+  const framing = revealFraming({ yaw: -14, pitch: 12, width: 34 }, 8, GEO);
   assert.equal(framing.yaw, -14);
   assert.ok(framing.pitch > 12);
 });
 
-test('the reveal never closes in on a story shorter than the shot already is', () => {
-  const framing = revealFraming({ yaw: 0, pitch: 22, width: 60 }, { min: -2, max: 2 });
-  assert.ok(framing.w >= 60, 'pulling back should never be a push in');
+test('the reveal never closes in on a strip shorter than the shot already is', () => {
+  const framing = revealFraming({ yaw: 0, pitch: 22, width: 90 }, 1, GEO);
+  assert.ok(framing.w >= 90, 'pulling back should never be a push in');
+});
+
+test('there is still an ending when there is no film', () => {
+  const framing = revealFraming({ yaw: 0, pitch: 22, width: 34 }, 0, GEO);
+  assert.ok(Number.isFinite(framing.x) && framing.w > 0);
 });
 
 test('the fog opens up as the camera pulls back, so the ending is not a wall of sky', () => {
   // Fog in fixed world units is what would ruin the reveal: 180 units of it is
-  // right for a room and shorter than an afternoon.
+  // right for a room and shorter than any strip worth pulling back from.
   const close = fogFor(26);
   near(close.near, 26);
   near(close.far, 180);
 
-  const strip = { min: -180, max: 180 };
-  const reveal = revealFraming({ yaw: 0, pitch: 22, width: 26 }, strip);
+  const pieces = 12;
+  const extent = stripExtent(pieces, GEO);
+  const reveal = revealFraming({ yaw: 0, pitch: 22, width: 34 }, pieces, GEO);
   const { far } = fogFor(reveal.w);
-  assert.ok(far > strip.max - strip.min,
-    `fog reaches ${far} and the strip is ${strip.max - strip.min} long`);
+  assert.ok(far > extent.max - extent.min,
+    `fog reaches ${far} and the strip is ${extent.max - extent.min} long`);
 });
 
 // --- playback ---------------------------------------------------------------
 
-test('a take with no moments is nothing to play, rather than a crash', () => {
-  assert.equal(clockAt([], 0), null);
-  assert.equal(takeDuration([]), 0);
-});
+test('the film runs at a steady rate, because every piece is the same width', () => {
+  const strip = [{ hour: 12, hold: 2000 }, { hour: 12.5, hold: 1000 }];
+  const rate = { secondsPerPiece: 2 };
 
-test('a take rests at a moment for its hold, then travels to the next', () => {
-  const moments = [{ hour: 12, hold: 4000 }, { hour: 13, hold: 2000 }];
-  const rate = 0.5;   // half an hour of story a second, so an hour takes two
-
-  const start = clockAt(moments, 0, { rate });
-  assert.equal(start.hour, 12);
+  const start = runAt(strip, 0, rate);
+  assert.equal(start.at, 0);
   assert.ok(start.resting);
 
-  const stillResting = clockAt(moments, 3.9, { rate });
-  assert.equal(stillResting.hour, 12);
+  const stillResting = runAt(strip, 1.9, rate);
+  assert.equal(stillResting.at, 0);
   assert.ok(stillResting.resting);
 
-  // Four seconds of rest, then two seconds of travel: half way through it is
-  // half past twelve.
-  const travelling = clockAt(moments, 5, { rate });
-  near(travelling.hour, 12.5);
-  assert.ok(!travelling.resting);
+  // Two seconds of rest, then two seconds of travel: halfway across the join.
+  const crossing = runAt(strip, 3, rate);
+  near(crossing.at, 0.5);
+  assert.ok(!crossing.resting);
 
-  const arrived = clockAt(moments, 6.5, { rate });
-  assert.equal(arrived.hour, 13);
+  const arrived = runAt(strip, 4, rate);
+  assert.equal(arrived.at, 1);
   assert.ok(arrived.resting);
 });
 
-test('a take ends on its last moment and stays there', () => {
-  // Rather than wrapping round midnight, which would run the story backwards
-  // through itself at exactly the moment it is meant to be over.
-  const moments = [{ hour: 12, hold: 1000 }, { hour: 13, hold: 1000 }];
-  const end = clockAt(moments, 999, { rate: 0.5 });
-  assert.equal(end.hour, 13);
+test('a take ends on its last piece and stays there', () => {
+  const end = runAt(STRIP, 999, { secondsPerPiece: 2 });
+  assert.equal(end.at, 2);
   assert.ok(end.done);
 });
 
 test('the take is over exactly when its stated duration says it is', () => {
-  const moments = [{ hour: 9, hold: 3000 }, { hour: 12, hold: 1500 }, { hour: 13, hold: 2000 }];
-  const rate = 0.75;
-  const total = takeDuration(moments, { rate });
-
-  assert.ok(!clockAt(moments, total - 0.01, { rate }).done, 'it ended early');
-  assert.ok(clockAt(moments, total, { rate }).done, 'it had not ended on time');
+  const rate = { secondsPerPiece: 3 };
+  const total = runDuration(STRIP, rate);
+  // 12 seconds of holds plus two joins at three seconds each.
+  near(total, 18);
+  assert.ok(!runAt(STRIP, total - 0.01, rate).done, 'it ended early');
+  assert.ok(runAt(STRIP, total, rate).done, 'it had not ended on time');
 });
 
-test('moments are played in the order they happen, not the order they were added', () => {
-  const moments = [{ hour: 18, hold: 0 }, { hour: 9, hold: 0 }];
-  const start = clockAt(moments, 0, { rate: 1 });
-  assert.equal(start.hour, 9);
-  // And the index it hands back points at the moment in the list, not at its
-  // place in time - so a caller reading its weather reads the right one.
-  assert.equal(start.moment, 1);
+test('a one-piece film is a still, and has no joins to cross', () => {
+  const one = [{ hour: 12, hold: 5000 }];
+  near(runDuration(one, { secondsPerPiece: 2 }), 5);
+  assert.ok(runAt(one, 6, { secondsPerPiece: 2 }).done);
 });
 
-test('the clock never runs backwards through a take', () => {
-  const moments = [{ hour: 9, hold: 1200 }, { hour: 13.5, hold: 800 }, { hour: 18.25, hold: 2000 }];
-  const rate = 0.6;
+test('the film never runs backwards', () => {
+  const rate = { secondsPerPiece: 1.5 };
   let previous = -Infinity;
-  for (let t = 0; t < takeDuration(moments, { rate }) + 2; t += 0.05) {
-    const at = clockAt(moments, t, { rate });
-    assert.ok(at.hour >= previous - 1e-9, `the clock went backwards at ${t}s`);
-    previous = at.hour;
+  for (let t = 0; t < runDuration(STRIP, rate) + 2; t += 0.05) {
+    const at = runAt(STRIP, t, rate);
+    assert.ok(at.at >= previous - 1e-9, `the film went backwards at ${t}s`);
+    previous = at.at;
   }
 });
 
-test('a moment with no hold is passed through rather than skipped', () => {
-  const moments = [{ hour: 12 }, { hour: 13 }];
-  const at = clockAt(moments, 0, { rate: 0.5 });
-  assert.equal(at.hour, 12);
-  assert.ok(Number.isFinite(takeDuration(moments, { rate: 0.5 })));
+test('a piece with no hold is crossed rather than skipped', () => {
+  const strip = [{ hour: 12 }, { hour: 13 }];
+  assert.equal(runAt(strip, 0, { secondsPerPiece: 2 }).at, 0);
+  near(runDuration(strip, { secondsPerPiece: 2 }), 2);
 });

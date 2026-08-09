@@ -23,54 +23,75 @@ The question the whole project was framed around has been replaced by a sharper 
 dragging a clock and watching a scene rearrange itself along a strip read as an event being
 recreated?** It cannot be answered by more features either.
 
-## Stage 8 - The strip, where distance is time
+## Stage 8 - The film strip
 
-**Decided 2026-08-08, nothing started.** Ordered so the app runs at every point: the pure
-modules first, then the file, then the renderer, then what is torn out.
+**Decided 2026-08-08, one module in.** A canvas is an ordered list of pieces, each one a minute
+with its own objects and its own weather, laid side by side like frames of film. Ordered so the
+app runs at every point: the pure module first, then the file, then the renderer, then what is
+torn out.
 
-### 8a - The mapping, which is one pure module
+### 8a - The strip itself, which is one pure module
 
-- [x] `lib/timeline.js`: an hour to a distance along the strip, and back again. `spacing` in
-      units per hour, an origin hour, and nothing else
-- [x] The camera's centre from the hour, so scrubbing slides the world past a camera that
-      keeps its own yaw, pitch, zoom and height. A test asserts that yaw, pitch, width, depth
-      and height are **identical** either side of an eight-hour scrub, because that is the one
-      rule the redesign was not allowed to break
+- [x] `lib/timeline.js`: pieces butt together at a fixed distance, so **only the minutes you
+      author take up room** and the times a piece carries do not position it
+- [x] `placeInPiece`: an object is stored against its own piece and placed against the strip.
+      This is the only code that undoes the relative positions, and it is why a cut is a splice
+- [x] `spliceOut` and `insertPiece`: cutting a section lets the strip close up, and a new piece
+      lands in the order its time runs. **`spliceOut` returns a new list** - a mutating version
+      takes six tests down with it, which is the blast radius it would have in the app
+- [x] `pieceAt` and `hourAt`: which piece is in front of the camera, how far between two it is,
+      and what time that lands on. The same shape a flight used to return, so the weather
+      cross-fade and the daylight read a scrub exactly as they read playback
+- [x] **`hourAt` searches outward in both directions.** Reading only the piece under the camera
+      and the one after left an untimed piece at the *end* of the strip with no time at all -
+      found by its own test, and the third time this project has had to hold the line that
+      **absent is not midnight**
+- [x] Minute resolution: `toMinute`, `fromMinute` and `clockOfPiece`, so a piece can be 12:07
+      and the bar can say so
+- [x] The camera's position from the strip, so moving along the film keeps its own yaw, pitch,
+      zoom and height. A test asserts all five are **identical** either side of a scrub, because
+      that is the one rule neither redesign was allowed to break
 - [x] The rectangle's depth is **derived from its width and the pitch** rather than stored, so
       the rig is four numbers and a tilt never leaves part of the frame empty. Confirmed by
       asserting that growing either axis pushes the camera back, which is only true when
       neither is slack
-- [x] The bounds of the whole strip, from the moments **and** the objects, since either can be
-      the wider of the two. `revealFraming` fits to it and lifts the pitch, because a timeline
-      read end to end is read from above
+- [x] `stripExtent` and `revealFraming`: the ending fits every piece and lifts the pitch,
+      because a strip read end to end is read from above
 - [x] `fogFor`: fog scales with how far out the shot is. **This is the one that would have
       ruined the ending** - the test fails with "fog reaches 180 and the strip is 360 long"
       when the old fixed-unit fog is put back
-- [x] `clockAt` and `takeDuration`: playback is the clock running from the first moment to the
-      last, resting `hold` at each. Replaces `routeAt` and its flights
-- [x] 27 tests in Node, against the module rather than through the page. The two doing real
-      work were each confirmed by reintroducing the bug they exist to catch
+- [x] `runAt` and `runDuration`: the film runs at a steady rate because every piece is the same
+      width, resting `hold` at each. Replaces `routeAt` and its flights
+- [x] 38 tests in Node, against the module rather than through the page. Three were confirmed
+      by reintroducing the bug they exist to catch, and one found a hole rather than confirming
+      one
+- [ ] **Written once against a continuous-ground design and rewritten against the film strip.**
+      The first version is in the history if a continuous world is ever wanted back
 
 ### 8b - The canvas file, version 5
 
-- [ ] `spacing` and the origin hour are world settings, saved with the canvas
-- [ ] A moment is `{ hour, weather, hold, label }`. **No framing, no approachTime**
-- [ ] An object is `{ model, at, rot, scale, pose, tints, label }`. **No from, no until, no path**
-- [ ] The camera rig - yaw, pitch, zoom, height - is saved, because it is the composition now
-- [ ] Migration from 4: a step's framing, hold ordering and approach time are dropped; an
-      object's `from` becomes its position on the strip, so an old canvas opens as a strip
-      rather than as a pile at the origin
+- [ ] A piece is `{ hour, weather, hold, label, objects, areas }`. **No framing, no approachTime**
+- [ ] An object is `{ model, at, rot, scale, pose, tints, label }`, positioned **from the middle
+      of its own piece**. No from, no until, no path
+- [ ] `piece: { width, depth, gap }` - how big a frame of this film is, per canvas
+- [ ] The camera rig - yaw, pitch, width, height - is saved, because it is the composition now
+- [ ] Migration from 4: `from` is read one last time and used to **sort the flat object list
+      into pieces**, shifting each object's position into its piece's own coordinates, so an old
+      canvas opens as a strip rather than as a heap on one piece
 - [ ] The round trip stays stable, and a version 4 file still opens
 
-### 8c - The camera stops travelling
+### 8c - The camera stops travelling, and the bar becomes the strip
 
 - [ ] Remove `walk` and `panScreen` from `orbit.js`, and the keys that drove them
-- [ ] The camera's centre follows the clock, and only the clock
-- [ ] `orbit`, `zoom`, `rise` and `fit` are the whole camera
-- [ ] **Zoom out far enough to see the whole strip**, which is `fit` against the timeline bounds
-      rather than against what happens to be placed
+- [ ] The camera's position follows the strip, and only the strip
+- [ ] `orbit`, `zoom`, `rise` and `revealFraming` are the whole camera
 - [ ] Remove `routeAt`, flights, `approachTime` and the per-step `framing`
-- [ ] Playback is the clock running from the first moment to the last, resting `hold` at each
+- [ ] Playback is `runAt`: the film running at a steady rate, resting `hold` at each piece
+- [ ] **The clock bar becomes the strip in miniature** - one evenly spaced mark per piece,
+      each labelled with the time it carries. This retires the note below about the bar showing
+      all 24 hours whatever the story uses, because a bar made of pieces has no empty regions
+- [ ] **Cut a section**: select a run of pieces on the bar and splice them out
+- [ ] Add a piece at a minute, which is what "add a step" now means
 
 ### 8d - The renderer stops drawing cubes
 
@@ -80,7 +101,8 @@ modules first, then the file, then the renderer, then what is torn out.
 - [ ] Remove `look.surface`, `cubeScale`, the roundness dial and `m` to compare
 - [ ] Remove `aFrom`, `aUntil`, `solidity()`, `SOLIDIFY`, `stepT` and the ghosting fade
 - [ ] Remove `travelOf`, `aTravel` and `arrive`
-- [ ] Remove `reorder` and its four reference remappings, which nothing points at any more
+- [ ] Remove `reorder` and its four reference remappings. Nothing points at a piece by index,
+      so the silent re-timing class it exists to prevent stops existing for the second time
 - [ ] Remove `lib/script.js`, which has been unused since the step tab went
 - [ ] `voxel.js`, `surfaceNets` and the four recipes are **left in the tree, unused**, until a
       real event says whether tinting and sway were missed
@@ -90,23 +112,25 @@ modules first, then the file, then the renderer, then what is torn out.
 - [ ] **Fog has to scale with how far out the camera is.** It runs 26 to 180 units today, and a
       day-long strip is longer than that, so the pull-back would show the timeline fading into
       the sky. This is the one that would ruin the ending
-- [ ] **The floor has to follow the camera.** One quad of extent 400 centred on the origin runs
-      out along a strip
-- [ ] **The scar map becomes a band.** 256 texels over 60 units is a map of a room. Weather is a
-      function of time and time is one direction, so a scar is a stripe across the strip - which
-      is cheaper than what exists rather than dearer
-- [ ] Measure the frame rate **at the pull-back**, which is the shot that draws everything at
+- [ ] **A piece has to look like a piece.** A plate of ground with edges, with a join between,
+      rather than one unbroken floor. This is what makes the pull-back read as film, and it is
+      the one addition in stage 8 that is geometry rather than arithmetic
+- [ ] **The floor has to follow the camera, or stop being an infinite plane.** One quad of
+      extent 400 centred on the origin runs out along a strip, and may be replaced outright by
+      the plates
+- [ ] **The scar map becomes per piece.** 256 texels over 60 units is a map of a room, and a
+      piece is a room. A scar belongs to the piece whose weather made it, which is cheaper than
+      one map over a whole strip and is the answer that survives a cut
+- [ ] Measure the frame rate **at the pull-back**, which is the shot that draws every piece at
       once. It has only ever been measured close in
 
 ### 8f - Composing a strip, once it runs
 
-- [ ] Duplicate a selected object further along the strip, so placing the same person at four
-      moments is not four trips to the library. Still placed by hand, just not from scratch
-- [ ] The clock bar zooms to the range the story actually uses, rather than showing 24 hours
-      whatever happens. Already on the list from 2026-08-08 and now cheap, because the strip and
-      the bar share one mapping
-- [ ] A mark on the ground at each moment, so an empty stretch reads as time passing rather than
-      as nothing being there
+- [ ] **Copy a piece to the next minute**, which is how a strip is actually built: the second
+      piece is the first with one person taken out. Placing every piece from scratch is the
+      chore this whole stage is at risk of becoming
+- [ ] Duplicate a selected object into the next piece, at the same spot, so a thing that stays
+      put across four minutes is not four trips to the library
 - [ ] Update `01-overview.md`, `02-interaction.md` and `03-architecture.md`, which all still
       describe a cube diorama toured by a routed camera
 

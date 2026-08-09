@@ -233,72 +233,106 @@ shape" under a hard no-AI-at-runtime rule.
 A word with no entry produces a visible placeholder and a warning in edit mode. It never fails
 silently and it never guesses.
 
-## The strip, and the canvas file at version 5
+## The film strip, and the canvas file at version 5
 
 **Decided 2026-08-08, not yet built.** Everything from here to the end of "Camera moves"
 describes version 4, which is what the code writes today. This section is what replaces it.
 
-**Distance along the canvas is time.** One pure module, `lib/timeline.js`, holds the whole
-mapping:
-
-    x = (hour - origin) * spacing
-
-`spacing` is units per hour and is a control, because a scene is 20 to 40 units across and how
-far apart two moments have to sit before they stop overlapping cannot be worked out from a
-desk. `origin` is the hour that sits at x = 0. There is nothing else in the module, and both
-directions of the mapping plus the bounds of the whole strip come out of those two numbers.
-
-**An object's position is when it happens**, so an object carries no time at all:
+**A canvas is an ordered list of pieces.** Each piece is a minute of the story, carrying its own
+objects and its own weather, and every piece is the same size - as every frame of film is. Piece
+`k` sits at `k * (width + gap)` along the strip, so **only the minutes you author take up room**
+and the times a piece carries do not position it.
 
 ```json
 {
   "trail": 5,
   "title": "the fallout, part one",
-  "world": { "spacing": 40, "origin": 12, "weather": "clear", "hour": 12 },
-  "camera": { "yaw": -14, "pitch": 22, "width": 26, "height": 0 },
-  "objects": [
-    { "model": "house1",      "at": [-38, 0, -6], "rot": 14 },
-    { "model": "Matt",        "at": [-4, 0, 2],   "rot": 200, "pose": { "clip": "Idle", "time": 0 } },
-    { "model": "Lis",         "at": [-1.4, 0, 2.6], "rot": 20, "label": "Lis" },
-    { "model": "normal-car1", "at": [2.4, 0, 3.2], "rot": -24 },
-
-    { "model": "Matt",        "at": [18, 0, 2],   "rot": 200 },
-    { "model": "normal-car1", "at": [24, 0, 3.2], "rot": -24 },
-
-    { "model": "Matt",        "at": [38, 0, 2],   "rot": 180 }
-  ],
-  "moments": [
-    { "hour": 12.0, "weather": "clear",    "hold": 6000, "label": "the argument" },
-    { "hour": 12.5, "weather": "overcast", "hold": 5000, "label": "Lis leaves" },
-    { "hour": 13.0, "weather": "storm",    "hold": 9000, "label": "alone" }
+  "piece": { "width": 30, "depth": 20, "gap": 2.5 },
+  "camera": { "yaw": -14, "pitch": 22, "width": 34, "height": 0 },
+  "playback": { "secondsPerPiece": 2 },
+  "pieces": [
+    {
+      "hour": 12.0, "weather": "clear", "hold": 6000, "label": "the argument",
+      "objects": [
+        { "model": "house1",      "at": [-9, 0, -6],   "rot": 14 },
+        { "model": "Matt",        "at": [-2, 0, 2],    "rot": 200, "pose": { "clip": "Idle", "time": 0 } },
+        { "model": "Lis",         "at": [0.6, 0, 2.6], "rot": 20, "label": "Lis" },
+        { "model": "normal-car1", "at": [4.4, 0, 3.2], "rot": -24 }
+      ]
+    },
+    {
+      "hour": 12.5, "weather": "overcast", "hold": 5000, "label": "Lis leaves",
+      "objects": [
+        { "model": "house1",      "at": [-9, 0, -6],   "rot": 14 },
+        { "model": "Matt",        "at": [-2, 0, 2],    "rot": 200 },
+        { "model": "normal-car1", "at": [4.4, 0, 3.2], "rot": -24 }
+      ]
+    },
+    {
+      "hour": 13.0, "weather": "storm", "hold": 9000, "label": "alone",
+      "objects": [
+        { "model": "house1", "at": [-9, 0, -6], "rot": 14 },
+        { "model": "Matt",   "at": [-2, 0, 2],  "rot": 180 }
+      ]
+    }
   ]
 }
 ```
 
-Read that objects list as the strip it is: three groups at x = -4, x = 18 and x = 38, which at
-40 units to the hour are noon, half past and one o'clock. Matt appears three times because he
-is there three times. The car appears twice and then does not, which is how it drives away.
-**Nothing in the file says when an object is visible, because nothing needs to.**
+Read that as the strip it is. Lis is in the first piece and not the second, which is how she
+leaves. The car is in the first two and not the third, which is how it drives away. **Nothing
+in the file says when an object is visible, because its piece already does.**
+
+**Every `at` is measured from the middle of its own piece**, not from the world. The house is at
+`[-9, 0, -6]` in all three pieces and is drawn at three different places on the strip, which is
+what makes it the same house at three times. `placeInPiece` is the only code that undoes this.
+
+### Why the positions are relative, which is the whole reason a piece is a container
+
+Cutting a section out is the gesture the film metaphor exists for, and with relative positions
+it is an array splice:
+
+    spliceOut(pieces, 1, 1)
+
+    +--------+ +--------+ +--------+        +--------+ +--------+
+    | 8   8  | |   8    | |   8    |   ->   | 8   8  | |   8    |
+    +--------+ +--------+ +--------+        +--------+ +--------+
+      12:00      12:30      13:00             12:00      13:00
+
+Everything after the cut renders one place nearer because its index changed. Nothing is
+rewritten. With absolute positions the same cut would have to move every object in every later
+piece, which is a rewrite of the whole canvas to express what a shorter strip already says.
+
+### Piece fields
+
+| Field | Meaning |
+| --- | --- |
+| `hour` | The time this piece carries, to the minute. Optional: absent takes the nearest piece's time, and **absent is not midnight** |
+| `weather` | This piece's own weather, cross-fading into the next across the join |
+| `hold` | How long a take rests here, in milliseconds. The one field of the old step that survived |
+| `label` | What happens here. Never drawn - it is for whoever is building the strip |
+| `objects` | What is on this piece, positioned from its middle |
 
 ### What changed from version 4, and what it costs to migrate
 
 | Version 4 | Version 5 | Why |
 | --- | --- | --- |
-| `steps`, each with a `framing` | `moments`, with no framing | The camera is not routed. A moment is a time, a weather and a pause |
-| `hold`, `approachTime` | `hold` only | How long the clock rests at a moment paces a shot. How long a flight takes is meaningless when travel is a distance at a speed |
-| `from`, `until` on every object | Nothing | Position is time |
-| `path: { to, step }` | Nothing | An object that moves is two placements further along the strip |
-| `areas` with `from` and `until` | `areas` with neither | Same reason |
+| One `objects` list for the whole canvas | `objects` per piece, positioned relative to it | A piece owns what is on it, which is what makes a cut a splice |
+| `steps`, each with a `framing` | `pieces`, with no framing | The camera is not routed. A piece is a time, a weather, a pause and its contents |
+| `hold`, `approachTime` | `hold` only | How long a take rests at a piece paces a shot. How long a flight takes is meaningless when every join is the same width |
+| `from`, `until` on every object | Nothing | An object's piece is when it happens |
+| `path: { to, step }` | Nothing | An object that moves is placed again, further along the strip |
+| `areas` with `from` and `until` | `areas` on a piece, with neither | Same reason |
 | `look: { surface, roundness, cubeScale }` | Nothing | There is one renderer |
 | No camera in the file | `camera: { yaw, pitch, width, height }` | It is the composition now, so it has to survive a reload |
-| No world block | `world: { spacing, origin, weather, hour }` | The mapping is per canvas, and the playground's own weather and hour already were |
+| No piece geometry | `piece: { width, depth, gap }` | How big a frame of this film is, per canvas |
 
-**The migration is the interesting one.** A version 4 canvas has objects piled around one
-origin with a `from` step, so opening it in version 5 without doing anything would stack the
-whole story on top of itself. Instead, `from` is read one last time and turned into a position:
-an object that solidified at the step happening at 13:00 is moved to the x that 13:00 maps to,
-keeping its z and its offset within the group. **This is the only place `from` survives**, and
-it exists so that the canvases already built still open as something recognisable.
+**The migration has real work in it.** A version 4 canvas has one flat object list with a `from`
+step on each, so opening it without doing anything would pile the whole story onto one piece.
+Instead, `from` is read one last time and used to sort objects into pieces: an object that
+solidified at step 2 joins the piece that step 2 became, and its position is shifted from world
+coordinates into that piece's own. **This is the only place `from` survives**, and it exists so
+that canvases already built open as something recognisable rather than as a heap.
 
 ## The canvas file, at version 4
 
