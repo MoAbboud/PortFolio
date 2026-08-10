@@ -300,6 +300,22 @@ const declaredTags = () => new Map(
   [...page().matchAll(/<([a-z]+)\b[^>]*\bid="([^"]+)"/gi)].map((m) => [m[2], m[1]])
 );
 
+test('no id is used twice in the markup', () => {
+  // **`getElementById` returns the first match and says nothing about the
+  // second.** A new "remove everything" button was given the id the pen's
+  // "clear" button already had, so both handlers bound to the same element:
+  // the pen cleared its marks and the canvas was never touched, with no error
+  // anywhere. The stub cannot catch it either - it keys elements by id, so a
+  // duplicate is one element to it as well, exactly as in a browser.
+  const seen = new Map();
+  const twice = [];
+  for (const [, id] of page().matchAll(/id="([^"]+)"/g)) {
+    seen.set(id, (seen.get(id) ?? 0) + 1);
+    if (seen.get(id) === 2) twice.push(id);
+  }
+  assert.deepEqual(twice, [], `these ids appear more than once: ${twice.join(', ')}`);
+});
+
 test('the page starts, loads its models, and draws', async () => {
   const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 60 });
   await runApp();
@@ -949,48 +965,206 @@ test('the clock bar moves through the day, and the panel gets out of the way', a
   assert.deepEqual(stub.failures, [], 'the clock reported a failure');
 });
 
-test('adding a step leaves the objects already on the canvas alone', async () => {
-  // **Reported by the user:** "i add a step one at 8 am, i add an object, works
-  // fine, then i fast forward to 11 am ... then i add a step, the object now is
-  // assigned to step 2 ... if i go back to step one, the object turns blue".
-  //
-  // Blue is the ghost: the object's `from` had been moved forward to the step
-  // that was just added, so at the step it was placed on it was not there yet.
-  // The cause was in `reorder`, and this is the same failure driven through the
-  // page rather than through the module.
-  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 2000 });
+test('remove everything clears the canvas and gives the memory back', async () => {
+  // Asked for because a canvas keeps what has been placed on it whether or not
+  // there are any steps - that is what makes an empty day a playground - so
+  // objects outlive the steps they were put there for.
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
   await runApp();
   const settle = async () => {
-    for (let i = 0; i < 20; i++) await new Promise((r) => setTimeout(r, 0));
+    for (let i = 0; i < 25; i++) await new Promise((r) => setTimeout(r, 0));
   };
 
-  const add = stub.element('b-step-add').listeners.get('click')?.[0];
-  const remove = stub.element('b-step-remove').listeners.get('click')?.[0];
-  const rangeOf = () => stub.win.__trail.canvas().objects.map((o) => o.from ?? 0);
-
-  // Clear every step, which is where the user's sequence starts.
-  for (let i = 0; i < 12 && stub.win.__trail.route().length; i++) {
-    remove();
+  // **Let startup finish first.** The packs load and the last canvas is
+  // restored in a deferred frame, and that frame ends by assigning the opening
+  // arrangement to `layout` - so clearing while it is still in flight is simply
+  // undone. Waited for by watching the canvas stop changing rather than by
+  // guessing a number of turns.
+  let settled = -1;
+  for (let i = 0; i < 40 && settled !== stub.win.__trail.placed(); i++) {
+    settled = stub.win.__trail.placed();
     await settle();
   }
-  assert.equal(stub.win.__trail.route().length, 0, 'the steps could not be cleared');
 
-  // One step, and everything on the canvas belongs to it.
+  assert.ok(stub.win.__trail.placed() > 0, 'nothing is placed, so there is nothing to clear');
+  const before = stub.win.__trail.held();
+  assert.ok(before.converted > 0, 'nothing was converted, so there is nothing to give back');
+
+  const clear = stub.element('b-clear-all').listeners.get('click');
+  assert.ok(clear?.[0], 'the remove-everything button has no handler');
+  clear[0]();
+  assert.equal(stub.win.__trail.placed(), 0, 'the handler did not clear the canvas');
+  await settle();
+
+  assert.equal(stub.win.__trail.placed(), 0, 'the canvas was not cleared');
+
+  // **The memory has to go with it.** A cache that quietly stops releasing
+  // looks exactly like one that works.
+  const after = stub.win.__trail.held();
+  assert.equal(after.converted, 0, `${after.converted} converted models were kept`);
+  assert.equal(after.meshes, 0, `${after.meshes} meshes were kept`);
+  assert.equal(after.textures, 0, `${after.textures} decoded images were kept`);
+  assert.equal(after.textureBytes, 0, `${after.textureBytes} bytes of images were kept`);
+
+  // The steps are left alone: clearing the canvas is not cutting the film.
+  assert.ok(stub.win.__trail.route().length > 0, 'removing the objects removed the steps too');
+  assert.deepEqual(stub.failures, [], 'clearing the canvas reported a failure');
+});
+
+test('the library never releases a model that is standing on the canvas', async () => {
+  // `imported` is keyed by model **and pose** - "Matt@Idle@0" - and the check
+  // for what is in use was built from the model name alone, so a posed model on
+  // the canvas never matched and was eligible for eviction. Browsing far enough
+  // would drop its grid and the next rebuild would take the object off the
+  // canvas as "not in the library": a cache evicting the thing it is held for.
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
+  await runApp();
+  const settle = async () => {
+    for (let i = 0; i < 25; i++) await new Promise((r) => setTimeout(r, 0));
+  };
+
+  const placed = stub.win.__trail.placed();
+  // Browsing is what fills the cache, and what used to push the canvas out of it.
+  stub.element('b-library').listeners.get('click')?.[0]?.();
+  await settle();
+  stub.element('b-close').listeners.get('click')?.[0]?.();
+  await settle();
+
+  assert.equal(stub.win.__trail.placed(), placed,
+    'an object was dropped from the canvas because its model had been released');
+  assert.deepEqual(stub.failures, [], 'browsing the library reported a failure');
+});
+
+test('inserting a step carries the later pieces and what stands on them', async () => {
+  // **Reported by the user:** "i cant add a step in the middle, it just takes
+  // the later step and replaces it with the one in the middle and the new one
+  // gets pushed to the end."
+  //
+  // A new piece pushes every later piece's *camera* one place along the strip.
+  // If what stands on them does not go too, the contents of step three are left
+  // sitting on step two's ground - which reads exactly as the new step having
+  // stolen the later one's scene.
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
+  await runApp();
+  const settle = async () => {
+    for (let i = 0; i < 25; i++) await new Promise((r) => setTimeout(r, 0));
+  };
+  const objects = () => stub.win.__trail.canvas().objects.map((o) => ({
+    model: o.model, x: o.at[0], from: o.from ?? 0,
+  }));
+
+  const before = objects();
+  assert.ok(before.length, 'nothing is placed, so there is nothing to carry');
+  assert.ok(before.some((o) => o.from > 0), 'everything is on the first piece');
+
+  // Land on the first step, then add one after it.
+  stub.element('ticks').children[0].listeners.get('click')?.[0]?.();
+  await settle();
+  stub.element('b-step-add').listeners.get('click')?.[0]?.();
+  await settle();
+
+  const after = objects();
+  assert.equal(after.length, before.length, 'objects were lost or duplicated');
+
+  // The join between pieces, read off the app rather than assumed.
+  const piece = stub.win.__trail.shot().veil.piece;
+  const pitch = piece.width + piece.gap;
+
+  for (let i = 0; i < before.length; i++) {
+    if (before[i].from === 0) {
+      assert.equal(after[i].x, before[i].x,
+        `${before[i].model} was on the first piece and should not have moved`);
+      assert.equal(after[i].from, 0);
+    } else {
+      // One whole piece along, and it says so.
+      assert.ok(Math.abs((after[i].x - before[i].x) - pitch) < 1e-6,
+        `${before[i].model} moved ${(after[i].x - before[i].x).toFixed(1)}, not one piece (${pitch})`);
+      assert.equal(after[i].from, before[i].from + 1,
+        `${before[i].model} still says it belongs to piece ${after[i].from}`);
+    }
+  }
+});
+
+test('cutting a step takes what stood on it, and it does not come back', async () => {
+  // **Reported by the user:** adding a step "re prints the objects that were in
+  // the previously deleted step".
+  //
+  // Nothing hides an object any more - being elsewhere on the strip is what
+  // hiding means - so objects left behind by a deleted step simply sat past the
+  // end of a shorter film, and reappeared the moment the strip grew back over
+  // them.
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
+  await runApp();
+  const settle = async () => {
+    for (let i = 0; i < 25; i++) await new Promise((r) => setTimeout(r, 0));
+  };
+  const placed = () => stub.win.__trail.placed();
+
+  const before = placed();
+  const onLast = stub.win.__trail.canvas().objects
+    .filter((o) => (o.from ?? 0) === stub.win.__trail.route().length - 1).length;
+  assert.ok(onLast > 0, 'the last piece is empty, so cutting it proves nothing');
+
+  // Cut the last piece.
+  stub.element('ticks').children.at(-1).listeners.get('click')?.[0]?.();
+  await settle();
+  stub.element('b-step-remove').listeners.get('click')?.[0]?.();
+  await settle();
+
+  const cut = placed();
+  assert.equal(cut, before - onLast,
+    `cutting a piece left ${cut - (before - onLast)} of its objects behind`);
+
+  // Growing the strip back must not bring them with it.
+  stub.element('b-step-add').listeners.get('click')?.[0]?.();
+  await settle();
+  assert.equal(placed(), cut, 'the deleted objects came back with the new step');
+});
+
+test('a step added between two others lands between them, on the strip and on the clock', async () => {
+  // **Reported by the user:** "with 6 steps, if i add one between 1 and 2, the
+  // new step becomes 7".
+  //
+  // A piece stands on the strip by its position in the array, and the camera
+  // finds it by its *hour*. The new step took whatever the clock happened to be
+  // showing, so the two orders disagreed: the panel said step 2 and the camera
+  // went to the far end of the film, because that is where that hour landed.
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
+  await runApp();
+  const settle = async () => {
+    for (let i = 0; i < 25; i++) await new Promise((r) => setTimeout(r, 0));
+  };
+  const add = stub.element('b-step-add').listeners.get('click')?.[0];
+  const hours = () => stub.win.__trail.route().map((s) => s.hour);
+
+  // Grow the route, then land on the first step and add one after it.
+  for (let i = 0; i < 3; i++) { add(); await settle(); }
+  const before = hours();
+  assert.ok(before.length >= 4, 'not enough steps to insert between');
+
+  stub.element('ticks').children[0].listeners.get('click')?.[0]?.();
+  await settle();
   add();
   await settle();
-  assert.equal(stub.win.__trail.route().length, 1);
-  const before = rangeOf();
-  assert.ok(before.length, 'there is nothing placed, so there is nothing to check');
-  assert.ok(before.every((from) => from === 0),
-    `everything should belong to the only step there is, was ${before.join()}`);
 
-  // A second step. Nothing was pointing past the first, so nothing may move.
-  add();
-  await settle();
-  assert.equal(stub.win.__trail.route().length, 2, 'the second step was never added');
+  const after = hours();
+  assert.equal(after.length, before.length + 1, 'the step was never added');
 
-  assert.deepEqual(rangeOf(), before,
-    'adding a step reassigned the objects already placed to it, so they ghost on step one');
+  // It is second in the route...
+  assert.equal(after[0], before[0], 'the first step moved');
+  assert.equal(after[2], before[1], 'the step it was added in front of did not move down one');
+  // ...and second on the clock, which is the half of it that was broken.
+  assert.ok(after[1] > after[0] && after[1] < after[2],
+    `added at ${after[1]}, which is not between ${after[0]} and ${after[2]}`);
+
+  // The route reads in the same order it plays in, which is what keeps the
+  // strip and the bar agreeing about which piece is which.
+  const sorted = [...after].sort((a, b) => a - b);
+  assert.deepEqual(after, sorted, `the route is out of time order: ${after.join(', ')}`);
+
+  // And the panel is looking at the step that was just added, not at the end.
+  assert.equal(stub.win.__trail.at().step, 1,
+    'the panel followed the clock to some other piece');
 });
 
 test('inserting a step does move what was pointing at a later one', async () => {

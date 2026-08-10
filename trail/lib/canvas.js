@@ -334,6 +334,98 @@ export function reorder({ route, layout = [], areas = [] }, order) {
   };
 }
 
+/**
+ * Which piece of the strip a thing is standing on.
+ *
+ * Read from **where it is**, not from what it says. An object carries `from`,
+ * which was the step it arrived at and is now the piece it belongs to - but the
+ * two can disagree the moment somebody drags it, and where a thing is is the
+ * thing that was actually drawn.
+ */
+export const pieceOf = (x, pitch) => Math.round((isNumber(x) ? x : 0) / Math.max(1e-6, pitch));
+
+/**
+ * Make room for a piece at `index`.
+ *
+ * **Everything after it moves one piece along the strip.** This is the half
+ * that was missing, and it is why inserting a step in the middle looked like it
+ * replaced one: a new piece pushes every later piece's *camera* one place
+ * along, and if what stands on them does not go too, the contents of step three
+ * are left sitting on step two's ground.
+ */
+export function openPiece({ route, layout = [], areas = [] }, index, pitch) {
+  const shift = (i) => (isNumber(i) && i >= index ? i + 1 : i);
+  const far = (until) => {
+    if (until === undefined) return {};
+    if (!isNumber(until) || until >= route.length) return { until };
+    return { until: shift(until) };
+  };
+  const move = (thing, on) => (on >= index ? on + 1 : on);
+
+  return {
+    layout: layout.map((o) => {
+      const on = pieceOf(o.at?.[0], pitch);
+      const to = move(o, on);
+      return {
+        ...o,
+        at: [o.at[0] + (to - on) * pitch, o.at[1], o.at[2]],
+        from: to,
+        ...far(o.until),
+        ...(o.path ? { path: { ...o.path, step: shift(o.path.step ?? 0) } } : {}),
+      };
+    }),
+    areas: areas.map((a) => {
+      const on = pieceOf(a.at?.[0], pitch);
+      const to = move(a, on);
+      return { ...a, at: [a.at[0] + (to - on) * pitch, a.at[1]], from: to, ...far(a.until) };
+    }),
+  };
+}
+
+/**
+ * Cut a piece out, and let the strip close up.
+ *
+ * **What stood on it goes with it.** Leaving the objects behind is what made a
+ * deleted step come back: nothing hides them any more - being elsewhere on the
+ * strip is what hiding means - so they simply sat past the end of a shorter
+ * film, out of reach, and reappeared the moment a step was added and the strip
+ * grew back over them.
+ */
+export function cutPiece({ route, layout = [], areas = [] }, index, pitch) {
+  const shift = (i) => {
+    if (!isNumber(i)) return i;
+    if (i > index) return i - 1;
+    // A reference to the piece that went falls back to the one before it, which
+    // keeps whatever pointed at it on screen rather than making it vanish.
+    return i === index ? Math.max(0, index - 1) : i;
+  };
+  const far = (until) => {
+    if (until === undefined) return {};
+    if (!isNumber(until) || until >= route.length) return { until };
+    return { until: shift(until) };
+  };
+  const survives = (at) => pieceOf(at?.[0], pitch) !== index;
+  const closed = (at, extra) => {
+    const on = pieceOf(at?.[0], pitch);
+    const to = on > index ? on - 1 : on;
+    return { at: [at[0] + (to - on) * pitch, ...extra], from: to };
+  };
+
+  return {
+    layout: layout.filter((o) => survives(o.at)).map((o) => ({
+      ...o,
+      ...closed(o.at, [o.at[1], o.at[2]]),
+      ...far(o.until),
+      ...(o.path ? { path: { ...o.path, step: shift(o.path.step ?? 0) } } : {}),
+    })),
+    areas: areas.filter((a) => survives(a.at)).map((a) => ({
+      ...a,
+      ...closed(a.at, [a.at[1]]),
+      ...far(a.until),
+    })),
+  };
+}
+
 /** The order that moves one step, keeping everything else where it was. */
 export function moved(length, from, to) {
   const order = Array.from({ length }, (_, i) => i);

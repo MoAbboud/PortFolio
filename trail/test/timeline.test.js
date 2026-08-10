@@ -261,10 +261,25 @@ test('the reveal takes in every piece of the film', () => {
   assert.ok(framing.x + framing.w >= extent.max, 'the last piece is off the right');
 });
 
-test('the reveal keeps the yaw it was composed with and lifts the pitch', () => {
-  const framing = revealFraming({ yaw: -14, pitch: 12, width: 34 }, 8, GEO);
-  assert.equal(framing.yaw, -14);
-  assert.ok(framing.pitch > 12);
+test('the reveal is a reset, not a wider version of the shot you were in', () => {
+  // **Reversed after seeing it.** It used to keep the yaw and height it was
+  // composed with, on the reasoning that the overview should feel continuous
+  // with the shot. In use that left the strip skewed across the frame and
+  // pointing off the side of it, and the user's verdict was that the overview
+  // "should reset the view and bring all the steps together".
+  const framing = revealFraming({ yaw: -40, pitch: 12, width: 34, height: 18 }, 8, GEO);
+  assert.equal(framing.yaw, 0, 'the overview should be straight on');
+  assert.equal(framing.y, 0, 'and level');
+  assert.ok(framing.pitch > 12, 'a strip read end to end is read from above');
+});
+
+test('the reveal takes in things placed past the edge of their piece', () => {
+  // An object dropped beyond its own piece is still part of the film, and the
+  // pieces alone do not know where it is.
+  const far = { min: -400, max: 900 };
+  const framing = revealFraming({ yaw: 0, pitch: 22, width: 34 }, 3, GEO, { include: far });
+  assert.ok(framing.x <= far.min, 'something placed off the near end was cut off');
+  assert.ok(framing.x + framing.w >= far.max, 'something placed off the far end was cut off');
 });
 
 test('the reveal never closes in on a strip shorter than the shot already is', () => {

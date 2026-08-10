@@ -120,6 +120,64 @@ not, because `timeline.js` was written and nothing imported it.
 - [ ] Positions are still **absolute**, not piece-relative. Placing works because the camera is
       already at the piece, and cutting a section will need the relative form - which is 8c
 
+### Clearing the canvas, and what the library was holding - 2026-08-09
+
+- [x] **"remove everything"** under the library. A canvas keeps what has been placed on it
+      whether or not there are any steps - that is what makes an empty day a playground - so
+      objects outlive the steps they were put there for. The steps are left alone: clearing the
+      canvas is not cutting the film
+- [x] **`release`** gives back every conversion, mesh, preview and decoded image that is not
+      standing on the canvas. `forget` is the ordinary housekeeping and keeps the last 48;
+      this keeps nothing, because clearing is a statement that none of it is wanted
+- [x] A **held** readout in the panel: models converted and megabytes of images. A cache that
+      quietly stops releasing looks exactly like one that works
+- [x] **A real eviction bug, found while looking.** `imported` is keyed by model *and pose* -
+      `Matt@Idle@0` - and the check for what was in use was built from `p.model` alone, so a
+      posed model standing on the canvas never matched and could be evicted. Browsing far
+      enough would drop its grid and the next rebuild would take the object off the canvas as
+      "not in the library": a cache evicting the thing it is held for
+- [x] **Startup no longer overwrites work done while it was loading.** The packs load in a
+      deferred frame that ends by applying the opening arrangement, so anything edited in that
+      window was silently thrown away - which looks exactly like a button not working
+- [x] **A duplicate id took an hour.** "remove everything" was given the id the pen's "clear"
+      already had, so both handlers bound to the same element: the pen cleared its marks and the
+      canvas was never touched, with no error anywhere. A test now refuses a repeated id, and
+      fails with `these ids appear more than once: b-clear`
+
+### Pieces carry what stands on them - 2026-08-09
+
+- [x] **`openPiece`**: making room moves every later piece **and what stands on it** one join
+      along the strip. Without it a new piece moved the later cameras and left their scenes
+      behind, so step three's contents sat on step two's ground and the far end went empty
+- [x] **`cutPiece`**: cutting takes what stood on the piece with it and closes the strip up.
+      Objects used to be stranded past the end of a shorter film and **came back** when a step
+      was added and the strip grew over them again
+- [x] Both read which piece a thing is on from **where it is**, not from `from`, because the two
+      disagree the moment somebody drags something
+- [x] A new step takes **the hour on the clock** and is inserted where that time belongs. The
+      previous fix timed it halfway to the next step, which is where the reported "35 min later
+      for some magical reason" came from
+- [x] Cutting a piece keeps the selection on an object standing somewhere else, rather than
+      dropping it because the indices moved
+- [x] Two tests, both confirmed by reintroducing the bug: `house1 moved 0.0, not one piece (64)`
+      and the deleted objects coming back with the new step
+
+### A step added in the middle landed at the end - 2026-08-09
+
+- [x] **A new step is timed halfway to the step it was added between.** It took whatever the
+      clock happened to be showing, which is the whole bug: a piece stands on the strip by its
+      **array position** and the camera finds it by its **hour**, so an hour that does not sit
+      between its neighbours makes the two orders disagree. The panel said step 2 and the camera
+      went to the far end of the film
+- [x] The clock moves to the new step, so adding one in front of you does not then show you
+      somewhere else
+- [x] A test drives the reported sequence and asserts the route stays in time order. It fails
+      with `added at 9, which is not between 9 and 12` when the old behaviour is put back
+- [ ] **Array order and clock order are two orders, and only convention keeps them together.**
+      Nothing enforces it: `reorder` can be handed any order, and a hand-edited file can carry
+      any hours. The film strip makes the two the same thing, so the honest fix is for a piece's
+      position to *be* its place in time - which is the version 5 file, still not built
+
 ### Separating the film, and letting the camera look up - 2026-08-09
 
 - [x] **The veil**: the world fades out by distance from the piece being looked at, not from the
@@ -147,6 +205,20 @@ not, because `timeline.js` was written and nothing imported it.
       the clock. Still understood when a canvas names one, so nothing already built breaks
 - [x] The varying check now compares **types** as well as names, and covers the `area` pair,
       which it had been missing. A mismatch is a link error and the stub says yes to linking
+- [x] **The veil is thick.** Asked for as *"thick fog that would hide the entire canvas except
+      the space im in"*: it closes halfway across the join rather than most of the way to the
+      next piece. Measured: the piece reaches 17, the veil is clear to 17.9 and shut by 32.9,
+      and the next piece does not begin until 47
+- [x] **The overview is a reset**, not a wider version of the shot you were in. It keeps neither
+      the yaw nor the height, because doing so left the strip skewed across the frame and
+      pointing off the side of it. **Reversed after seeing it**, which is the second camera
+      decision this project has made twice
+- [x] The overview fits what has actually been **placed** as well as where the pieces stand, so
+      an object dropped past the edge of its piece is still in the shot
+- [x] **Name tags fade with the veil.** Removing the step range from tags left them as
+      screen-space labels with no idea where their object was, so the names of every other piece
+      hung in mid-air over ground that had been faded to sky. They use the same numbers the
+      shaders are given, so a label and the thing it names go together
 - [ ] The veil is a circle. A shape that follows the piece - a soft-edged rectangle - would sit
       closer to what a frame of film looks like, and is worth trying by eye
 

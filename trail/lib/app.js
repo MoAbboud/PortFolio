@@ -25,14 +25,16 @@ import {
 // everything is what the overview does.
 import { orbit, zoom, rise, tidy, centreOf } from './orbit.js';
 import {
-  framingOf, revealFraming, veilFor, placeInPiece, DEFAULT_PIECE,
+  framingOf, revealFraming, veilFor, placeInPiece, pitchOf, DEFAULT_PIECE,
 } from './timeline.js';
 import { createRenderer } from './render.js';
 import { lerpWeather, resolve as resolveWeather, stampsUpTo } from './weather.js';
 import { clockOf } from './daylight.js';
 import { scarMap } from './scars.js';
 import { multiply } from './mat4.js';
-import { serialise, parse, isRefusal, reorder, dropped, byTime } from './canvas.js';
+import {
+  serialise, parse, isRefusal, reorder, dropped, byTime, openPiece, cutPiece, pieceOf,
+} from './canvas.js';
 import { scriptOf } from './script.js';
 import * as pen from './pen.js';
 import { thumbnail, preview } from './thumb.js';
@@ -630,9 +632,19 @@ async function main() {
     restage();
   }
 
-  /** The whole film at once, which is what the overview button asks for. */
+  /**
+   * The whole film at once, which is what the overview button asks for.
+   *
+   * Fitted to the pieces **and** to what has actually been placed, because an
+   * object dropped past the edge of its piece is still part of the film. The
+   * bounds come from the built scene, so this is where things are rather than
+   * where they were meant to be.
+   */
   function overviewFraming() {
-    return revealFraming(state.rig, Math.max(1, route.length), PIECE);
+    const placed = Number.isFinite(extent?.min?.[0])
+      ? { min: extent.min[0], max: extent.max[0] }
+      : null;
+    return revealFraming(state.rig, Math.max(1, route.length), PIECE, { include: placed });
   }
 
   function currentRoute() {
@@ -1279,7 +1291,16 @@ async function main() {
   }
 
   let saveTimer;
+  // True once anything has been changed. Startup finishes asynchronously - the
+  // packs load and only then is the opening arrangement applied - and it must
+  // not lay that over work done while it was waiting.
+  let edited = false;
   function autosave() {
+    // **Anything saved is something you did**, and startup must not undo it.
+    // The packs take a moment to load and the opening arrangement is applied
+    // when they land, so an edit made in that window was being silently thrown
+    // away - which looked exactly like the button not working.
+    edited = true;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
       try {
@@ -1506,10 +1527,22 @@ async function main() {
   let useClock = 0;
   const touch = (id) => usedAt.set(id, ++useClock);
 
+  /**
+   * What must not be released, whatever else is.
+   *
+   * **Keyed the way the cache is keyed.** `imported` is keyed by model *and
+   * pose* - `Matt@Idle@0` - and this used to be built from `p.model` alone, so
+   * a posed model standing on the canvas never matched and was eligible for
+   * eviction. Browsing the library far enough would then drop its grid, and the
+   * next rebuild would take the object off the canvas as "not in the library".
+   * A cache evicting the thing it is holding for.
+   */
+  const inUse = () => new Set(layout.map(keyFor));
+
   function forget() {
     const held = Object.keys(imported);
     if (held.length <= KEEP_CONVERTED) return 0;
-    const onCanvas = new Set(layout.map((p) => p.model));
+    const onCanvas = inUse();
     const spare = held
       .filter((id) => !onCanvas.has(id))
       .sort((a, b) => (usedAt.get(a) ?? 0) - (usedAt.get(b) ?? 0));
@@ -1528,6 +1561,39 @@ async function main() {
       gone++;
     }
     return gone;
+  }
+
+  /**
+   * Give back everything that is not standing on the canvas.
+   *
+   * `forget` is the ordinary housekeeping: it keeps the last 48 conversions so
+   * that browsing the library stays quick, which is the right trade while a
+   * canvas is being built. This is the deliberate version, and it keeps
+   * nothing - because clearing the canvas is a statement that none of it is
+   * wanted.
+   *
+   * Decoded images go too. They are **only ever a saving**: every colour is
+   * baked into the geometry at import, so dropping one costs a decode and can
+   * never cost a colour.
+   */
+  function release() {
+    const onCanvas = inUse();
+    let models = 0;
+    for (const key of Object.keys(imported)) {
+      if (onCanvas.has(key)) continue;
+      delete imported[key];
+      usedAt.delete(key);
+      meshCache.delete(key);
+      thumbs.delete(key);
+      models++;
+    }
+    // Previews of models that were never placed are the rest of it, and they
+    // are the reason opening the library twice is cheap. Cheap to redraw.
+    for (const key of [...thumbs.keys()]) if (!onCanvas.has(key)) thumbs.delete(key);
+    const bytes = textureWeight;
+    textures.clear();
+    textureWeight = 0;
+    return { models, bytes };
   }
 
   // What is being held, for the readout and for a test. A cache that quietly
@@ -1583,7 +1649,24 @@ async function main() {
   window.__trail.shot = () => {
     const framing = currentRoute().framing;
     const [cx, cz] = centreOf(framing);
-    return { x: cx, z: cz, w: framing.w, overview: state.overview };
+    const seen = veilFor(framing.w, PIECE);
+    return {
+      x: cx,
+      z: cz,
+      w: framing.w,
+      pitch: framing.pitch,
+      yaw: framing.yaw,
+      overview: state.overview,
+      // How far the world survives around the piece being looked at. Evaluated
+      // here rather than read back from anything drawn, for the same reason
+      // everything else on this object is.
+      //
+      // It doubles as a way to tell whether the browser is running the code on
+      // disk: if this is missing after a reload, the page is on a cached copy
+      // of this module and nothing changed recently will be visible. That has
+      // now happened twice, and `serve.json` is the fix for the cause.
+      veil: { near: seen.near, far: seen.far, piece: { ...PIECE } },
+    };
   };
 
   window.__trail.route = () => route.map((s) => ({
@@ -1747,7 +1830,17 @@ async function main() {
     return { x: clip[0] / clip[3], y: clip[1] / clip[3], w: clip[3] };
   }
 
-  function drawTags(matrix, step, arrive = 1) {
+  /**
+   * Names on a 2D layer over the frame.
+   *
+   * `veil` is the same pool the world is drawn through, so **a name fades with
+   * the thing it names**. Without it a tag is a screen-space label with no idea
+   * where its object is, and the names of every other piece of the film hang in
+   * mid-air over ground that has been faded to sky - which is exactly what was
+   * reported. Removing the step range from tags is what let it happen: the
+   * range used to hide them, and nothing took over the job.
+   */
+  function drawTags(matrix, step, arrive = 1, veil = null) {
     const view = renderer.view.css;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     if (tags.width !== Math.round(view.w * dpr) || tags.height !== Math.round(view.h * dpr)) {
@@ -1762,6 +1855,16 @@ async function main() {
     tagCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
     tagCtx.clearRect(0, 0, view.w, view.h);
 
+    // How much of a name survives the veil, given where the thing it names
+    // stands. The same numbers the shaders are given, so a label and the object
+    // under it disappear together rather than one outliving the other.
+    const through = (x, z) => {
+      if (!veil) return 1;
+      const away = Math.hypot(x - veil.focus[0], z - veil.focus[1]);
+      const t = Math.min(1, Math.max(0, (away - veil.near) / Math.max(1e-6, veil.far - veil.near)));
+      return 1 - t * t * (3 - 2 * t);   // smoothstep, as in the shader
+    };
+
     // Places first, so a person standing in the bar is labelled over it.
     for (const place of areas) {
       if (!place.label) continue;
@@ -1769,7 +1872,8 @@ async function main() {
       if (!at || Math.abs(at.x) > 1.1 || Math.abs(at.y) > 1.1) continue;
       // A place is read at a wider shot than a person is: it is the ground you
       // are looking across, so it survives the pull-back that drops the names.
-      const fade = Math.max(0, Math.min(1, (200 - at.w) / 90));
+      const fade = Math.max(0, Math.min(1, (200 - at.w) / 90))
+        * through(place.at[0], place.at[1]);
       if (fade <= 0.02) continue;
       writeTag(place.label, (at.x * 0.5 + 0.5) * view.w, (1 - (at.y * 0.5 + 0.5)) * view.h,
         fade * 0.85);
@@ -1796,8 +1900,10 @@ async function main() {
       if (!at || Math.abs(at.x) > 1.1 || Math.abs(at.y) > 1.1) continue;
 
       // Tags fade with distance and vanish entirely on a wide shot, so the
-      // final pull-back is a diorama and not a cloud of labels.
-      const fade = Math.max(0, Math.min(1, (90 - at.w) / 45));
+      // final pull-back is a diorama and not a cloud of labels - and they fade
+      // with the veil, so the names of other pieces of the film go with them.
+      const fade = Math.max(0, Math.min(1, (90 - at.w) / 45))
+        * through(anchor[0], anchor[2]);
       if (fade <= 0.02) continue;
 
       writeTag(p.label, (at.x * 0.5 + 0.5) * view.w, (1 - (at.y * 0.5 + 0.5)) * view.h, fade);
@@ -2050,30 +2156,48 @@ async function main() {
       return;
     }
 
+    // **At the time on the clock**, because that is where you are looking and
+    // it is the only moment you could have meant. An earlier version put the
+    // new step halfway to the next one instead, which is where the reported
+    // "35 min later for some magical reason" came from.
+    let hour = state.hour;
+    // Two steps at the same minute would put two marks on top of each other and
+    // leave `routeAtHour` with no way to say which one you meant.
+    while (route.some((s) => typeof s.hour === 'number' && Math.abs(s.hour - hour) < 1e-6)) {
+      hour = (hour + 1 / 60) % 24;
+    }
+
+    // Where that time belongs in the route. The strip is walked in array order
+    // and read in time order, so a step added at eleven has to sit between the
+    // steps either side of eleven - not after whichever one happens to be
+    // selected.
+    let index = route.findIndex((s) => typeof s.hour === 'number' && s.hour > hour);
+    if (index < 0) index = route.length;
+
+    // Make room: every piece after this one moves along the strip, and what
+    // stands on them goes too.
+    const opened = openPiece({ route, layout, areas }, index, pitchOf(PIECE));
+    layout = opened.layout;
+    areas = opened.areas;
+
     // A copy of the step it follows, so it is a real step immediately and the
-    // next act is moving the camera - which is what you were going to do.
-    const step = route[at];
-    // At the time the clock is showing, because that is where you are looking
-    // and it is the only moment you can have meant. Failing that, half an hour
-    // after the step it follows.
-    const next = state.hour;
-    route.splice(at + 1, 0, {
-      ...step,
-      framing: { ...step.framing },
-      ...(next === undefined ? {} : { hour: next }),
+    // next act is composing it - which is what you were going to do.
+    const like = route[Math.max(0, index - 1)] ?? route[0];
+    route.splice(index, 0, {
+      framing: { ...(like?.framing ?? currentRoute().framing) },
+      hold: like?.hold ?? 5000,
+      approachTime: like?.approachTime ?? 2500,
+      weather: like?.weather ?? state.weather,
+      hour,
       text: '',
     });
-    // Everything after the new step moved down one, so what points at those
-    // steps has to move with them.
-    const order = Array.from({ length: route.length }, (_, i) => (i <= at ? i : i - 1));
-    const out = reorder({ route, layout, areas }, order);
-    layout = out.layout;
-    areas = out.areas;
-    state.pinned = at + 1;
+
+    state.pinned = index;
+    state.hour = hour;
     rebuild();
     uploadAreas();
     stepsChanged();
-    say(next === undefined ? `step ${at + 2} added` : `${clockOf(next)} added`);
+    say(`step ${index + 1} of ${route.length}, at ${clockOf(hour)}`);
   });
 
   /**
@@ -2103,11 +2227,41 @@ async function main() {
     // a perfectly good thing to be looking at and is where a canvas starts.
     if (!route.length) { say('there are no steps to remove'); return; }
     const at = editing();
-    const gone = route[at];
-    rearrange(dropped(route.length, at), at);
-    say(route.length
-      ? (gone.text ? 'step removed, and its words with it' : 'step removed')
-      : 'every step removed - an empty day, drag the clock through it');
+
+    // **Cutting a piece takes what stood on it.** Leaving the objects behind is
+    // what made a deleted step come back: nothing hides an object any more, so
+    // they sat past the end of a shorter film and reappeared the moment a step
+    // was added and the strip grew back over them.
+    const pitch = pitchOf(PIECE);
+    const before = layout.length;
+    // Where the selected object ends up, if it survives. Cutting a piece is not
+    // a reason to deselect something standing on a different one, and the
+    // indices all move, so it has to be followed rather than kept.
+    const survivors = layout
+      .map((o, i) => i)
+      .filter((i) => pieceOf(layout[i].at?.[0], pitch) !== at);
+
+    const cut = cutPiece({ route, layout, areas }, at, pitch);
+    layout = cut.layout;
+    areas = cut.areas;
+    const taken = before - layout.length;
+
+    route = route.filter((_, i) => i !== at);
+    state.pinned = Math.max(0, Math.min(at, route.length - 1));
+    state.selected = survivors.indexOf(state.selected);
+    rebuild();
+    uploadAreas();
+    stepsChanged();
+    paintObject();
+    paintPath();
+
+    if (!route.length) {
+      say('every step removed - an empty day, drag the clock through it');
+    } else {
+      say(taken
+        ? `step removed, and the ${taken} ${taken === 1 ? 'thing' : 'things'} on it`
+        : 'step removed');
+    }
   });
 
 
@@ -2288,6 +2442,52 @@ async function main() {
     el('filter').focus();
   }
   el('b-library').addEventListener('click', openLibrary);
+
+  /**
+   * Take everything off the canvas, and give the memory back with it.
+   *
+   * The steps are left alone. A canvas keeps what has been placed on it whether
+   * or not there are any steps - that is what makes an empty day a playground -
+   * so objects outlive the steps they were put there for, and clearing them is
+   * a separate act from cutting the film.
+   */
+  el('b-clear-all').addEventListener('click', () => {
+    if (!layout.length && !areas.length) {
+      // Still worth releasing: the library holds whatever has been browsed.
+      const idle = release();
+      say(idle.models ? `nothing placed; gave back ${idle.models} models` : 'nothing to remove');
+      paintHeld();
+      return;
+    }
+    const objects = layout.length;
+    const places = areas.length;
+    layout = [];
+    areas = [];
+    state.selected = -1;
+    const freed = release();
+    rebuild();
+    uploadAreas();
+    paintObject();
+    paintAreas();
+    paintLibrary();
+    paintHeld();
+    autosave();
+    say(
+      `removed ${objects} ${objects === 1 ? 'object' : 'objects'}`
+      + (places ? ` and ${places} ${places === 1 ? 'place' : 'places'}` : '')
+      + (freed.bytes ? `, gave back ${(freed.bytes / 1e6).toFixed(1)} MB` : '')
+    );
+  });
+
+  /** What the library is holding on to. A cache that stops releasing looks
+   *  exactly like one that works, so it is on screen rather than inferred. */
+  function paintHeld() {
+    const models = Object.keys(imported).length;
+    const mb = textureWeight / 1e6;
+    el('s-held').textContent = models || mb >= 0.05
+      ? `${models} models, ${mb.toFixed(1)} MB`
+      : 'nothing';
+  }
   el('b-close').addEventListener('click', () => browser.close());
   // A dialog takes the keyboard, and the camera keys would otherwise reach the
   // page through it.
@@ -2708,6 +2908,7 @@ async function main() {
     paintObject();
     paintAreas();
     paintLibrary();
+    paintHeld();
   }
 
   /**
@@ -2749,10 +2950,15 @@ async function main() {
       .filter((name) => !recipes[name] && sources[name]);
     if (fromPacks.length) {
       await Promise.all(fromPacks.map((name) => materialise(name).catch(() => null)));
-      layout = PLACEMENTS.map((p) => ({ ...p, at: [...p.at] }));
-      rebuild();
+      // Only if the canvas is still the one this frame started with. Laying the
+      // opening arrangement over something the user has already changed is
+      // startup overwriting work, and it reads as the edit never happening.
+      if (!edited) {
+        layout = PLACEMENTS.map((p) => ({ ...p, at: [...p.at] }));
+        rebuild();
+      }
     }
-    if (restore()) say('picked up where you left off');
+    if (!edited && restore()) say('picked up where you left off');
     paintPanel();
   });
 
@@ -2933,7 +3139,7 @@ async function main() {
       step,
       stepT,
     });
-    drawTags(matrix, step, arrive);
+    drawTags(matrix, step, arrive, { focus: [cx, cz], near: seen.near, far: seen.far });
     paintInk();
 
     const fill = renderer.view.fill;

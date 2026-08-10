@@ -375,7 +375,13 @@
     <summary>library</summary>
     <div class="body">
       <button class="btn" id="b-library">browse models</button>
+      <!-- A canvas keeps whatever has been placed on it whether or not there
+           are any steps, which is what makes an empty day a playground. That
+           also means objects outlive the steps they were put there for, so
+           there has to be a way to start again. -->
+      <button class="btn" id="b-clear-all">remove everything</button>
       <div class="row"><span class="dim">models</span><b id="s-lib">-</b></div>
+      <div class="row"><span class="dim">held</span><b id="s-held">-</b></div>
     </div>
   </details>
 

@@ -326,11 +326,18 @@ export function framingOf(rig, at, geometry) {
  * end to end is read from above - at the angle a close shot was composed at,
  * the far end of a long strip is a smear on the horizon.
  */
-export function revealFraming(rig, count, geometry, { margin = 1.15, pitch = 52 } = {}) {
+export function revealFraming(rig, count, geometry, { margin = 1.15, pitch = 52, include } = {}) {
   const base = rigOf(rig);
-  const extent = stripExtent(count, geometry);
-  const lifted = clamp(pitch, 1.5, 89);
-  if (!extent) return framingOf({ ...base, pitch: lifted }, 0, geometry);
+  const lifted = clamp(pitch, PITCH_MIN, PITCH_MAX);
+  // Whichever is wider: where the pieces stand, or where things were actually
+  // put. An object dropped past the edge of its piece is still part of the film
+  // and still has to be in the shot.
+  const pieces = stripExtent(count, geometry);
+  const extent = pieces && include
+    ? { min: Math.min(pieces.min, include.min), max: Math.max(pieces.max, include.max) }
+    : (pieces ?? include);
+
+  if (!extent) return framingOf({ ...base, pitch: lifted, yaw: 0 }, 0, geometry);
   const width = Math.max(base.width, (extent.max - extent.min) * margin);
   const depth = depthFor(width, lifted);
   const centre = (extent.min + extent.max) / 2;
@@ -339,9 +346,13 @@ export function revealFraming(rig, count, geometry, { margin = 1.15, pitch = 52 
     z: -depth / 2,
     w: width,
     d: depth,
-    y: base.height,
+    // **A reset, not a wider version of the shot you were in.** The overview is
+    // the whole film read at once, and it reads straight on: keeping the yaw
+    // and the height you happened to be composing with left the strip skewed
+    // across the frame and pointing off the side of it.
+    y: 0,
     pitch: lifted,
-    yaw: base.yaw,
+    yaw: 0,
   };
 }
 
@@ -371,9 +382,13 @@ export function veilFor(shot, geometry) {
   const scale = Math.max(1, (isNumber(shot) ? shot : width) / width);
   return {
     // Just outside the piece being looked at, so nothing standing on it fades.
-    near: half * 1.15 * scale,
-    // Into the join, and short of where the next piece begins.
-    far: (half + gap * 0.9) * scale,
+    near: half * 1.05 * scale,
+    // **Closed well inside the join.** Asked for as *"thick fog that would hide
+    // the entire canvas except the space im in"*: the veil used to run most of
+    // the way to the next piece, which left a long visible slope of empty ground
+    // between two moments. Shutting it halfway across the join makes the piece
+    // being looked at read as the only thing there is.
+    far: (half * 1.05 + gap * 0.5) * scale,
   };
 }
 
