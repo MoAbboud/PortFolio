@@ -111,6 +111,9 @@ uniform float uFogFar;
 uniform float uTint;      // mirrored pass is dimmed
 uniform float uAmbient;
 uniform float uSmooth;    // 0 flat facets, 1 averaged across the surface
+uniform vec2 uFocus;      // the piece being looked at, on the ground
+uniform float uVeilNear;  // clear out to here
+uniform float uVeilFar;   // wholly sky by here
 
 out vec4 frag;
 
@@ -142,6 +145,19 @@ void main() {
 
   float fog = clamp((vDepth - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0);
   colour = mix(colour, uSky, fog * 0.85);
+
+  // **The veil: fog measured from the piece, not from the camera.**
+  //
+  // Distance fog cannot separate the film. A neighbouring piece sits *beside*
+  // the camera, at very nearly the same depth as the piece in front of it, so
+  // anything keyed to depth either shows both or hides both. This fades by
+  // distance from the piece being looked at instead, which leaves a clear pool
+  // around the scene and washes everything else into the sky.
+  //
+  // It is also what makes the world read as endless: the ground is gone long
+  // before it runs out, so there is no edge left to find.
+  float away = distance(vWorld.xz, uFocus);
+  colour = mix(colour, uSky, smoothstep(uVeilNear, uVeilFar, away));
 
   // A ghost is washed most of the way into the sky rather than made
   // transparent. It reads the same and it needs no sorting, which transparency
@@ -275,9 +291,13 @@ uniform mat4 uViewProj;
 uniform float uStep;
 uniform float uStepT;
 uniform float uArrive;
+uniform vec2 uFocus;
+uniform float uVeilNear;
+uniform float uVeilFar;
 
 out vec2 vLocal;
 out float vSolid;
+out float vVeil;
 
 float solidity(float step, float t, float from, float until) {
   if (step < from - 0.5) return 0.0;
@@ -298,6 +318,9 @@ vec3 travelled(vec3 t, float step, float arrive) {
 void main() {
   vLocal = aCorner;
   vSolid = solidity(uStep, uStepT, aFrom, aUntil);
+  // Veiled with the thing casting it. A shadow is multiplied onto the ground,
+  // so one left behind past the veil is a dark blot on what should be sky.
+  vVeil = 1.0 - smoothstep(uVeilNear, uVeilFar, distance(aCentre.xz, uFocus));
   // Just above the ground, so it never fights the floor for depth. A shadow
   // travels with the object casting it, or it is left standing where the
   // object used to be.
@@ -310,11 +333,12 @@ const SHADOW_FS = `#version 300 es
 precision highp float;
 in vec2 vLocal;
 in float vSolid;
+in float vVeil;
 uniform float uStrength;
 out vec4 frag;
 void main() {
   float edge = 1.0 - clamp(length(vLocal), 0.0, 1.0);
-  float mask = edge * edge * vSolid * uStrength;
+  float mask = edge * edge * vSolid * uStrength * vVeil;
   // Multiplied onto the ground rather than drawn over it, so a shadow darkens
   // whatever is beneath it instead of painting a grey disc on top.
   frag = vec4(vec3(1.0 - mask), 1.0);
@@ -548,9 +572,16 @@ uniform float uFogNear;
 uniform float uFogFar;
 uniform sampler2D uScars;
 uniform float uScarExtent;
+uniform vec2 uFocus;
+uniform float uVeilNear;
+uniform float uVeilFar;
 out vec4 frag;
 void main() {
   float fog = clamp((vDepth - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0);
+  // See the cube shader. On the floor this is the whole of the endless
+  // illusion: the ground reaches far past anything the veil lets you see, so it
+  // can never be caught ending.
+  float veil = smoothstep(uVeilNear, uVeilFar, distance(vWorld.xz, uFocus));
 
   // What the weather left behind. Red is wet, green is bleached by fog. The sky
   // is one sky, but the ground is a record of the whole story, which is what
@@ -570,11 +601,14 @@ void main() {
   vec3 ground = uFloor * mix(1.0, 0.55, wet);          // rain darkens it
   ground = mix(ground, vec3(0.82, 0.83, 0.84), pale * 0.65);
   vec3 colour = mix(ground, uSky, fog * 0.9) + vec3(spec) * mix(0.6, 1.5, wet);
+  colour = mix(colour, uSky, veil);
 
   // Wet ground mirrors harder; bleached ground barely mirrors at all.
   float clarity = mix(0.62, 0.34, wet);
   clarity = mix(clarity, 0.92, pale);
-  float alpha = mix(clarity, 1.0, fog);
+  // Opaque once veiled, so the reflection underneath does not show through what
+  // is meant to be empty sky.
+  float alpha = mix(mix(clarity, 1.0, fog), 1.0, veil);
   frag = vec4(colour, alpha);
 }`;
 
@@ -943,6 +977,7 @@ export function createRenderer(canvas) {
 
   function drawCubes(matrix, flip, weather, time, shimmer, selected, step, stepT, arrive) {
     gl.useProgram(cube.handle);
+    veil(cube);
     gl.bindVertexArray(vao);
     gl.uniformMatrix4fv(cube.u.uViewProj, false, matrix);
     gl.uniform1f(cube.u.uTime, time);
@@ -966,6 +1001,7 @@ export function createRenderer(canvas) {
 
   function drawMesh(matrix, flip, weather, time, shimmer, selected, step, stepT, arrive) {
     gl.useProgram(mesh.handle);
+    veil(mesh);
     gl.bindVertexArray(meshVao);
     gl.uniformMatrix4fv(mesh.u.uViewProj, false, matrix);
     gl.uniform1f(mesh.u.uTime, time);
@@ -995,15 +1031,37 @@ export function createRenderer(canvas) {
     }
   }
 
+  /**
+   * How far from the piece being looked at the world survives.
+   *
+   * Set once per frame and handed to every program that draws something
+   * standing on the ground, so the cubes, the surface, the floor and the
+   * shadows all agree about where the world stops.
+   */
+  let veilAt = [0, 0];
+  let veilFrom = 1e6;
+  let veilTo = 1e6 + 1;
+
+  function veil({ u }) {
+    if (u.uFocus) gl.uniform2f(u.uFocus, veilAt[0], veilAt[1]);
+    if (u.uVeilNear) gl.uniform1f(u.uVeilNear, veilFrom);
+    if (u.uVeilFar) gl.uniform1f(u.uVeilFar, veilTo);
+  }
+
   function draw({
     matrix, eye, target = [0, 0, 0], time, weather = WEATHER.clear, shimmer = 0.004,
     selected = -1, step = 0, stepT = 1, surface = 'cubes', smooth = 0,
+    // Where the veil is centred, and how far it reaches. Defaults are wide
+    // enough to change nothing, so a caller that does not ask for a veil does
+    // not get one.
+    focus = [0, 0], veilNear = 1e6, veilFar = 1e6 + 1,
     // How far through the flight into the current step the route is. An object
     // that travels is part way along its line by exactly this much. Settled on
     // a step means 1: the move is over and the object is where it ended up.
     arrive = 1,
   }) {
     smoothing = smooth;
+    veilAt = focus; veilFrom = veilNear; veilTo = veilFar;
     const view = resize();
     lastView = view;
     gl.enable(gl.SCISSOR_TEST);
@@ -1051,9 +1109,14 @@ export function createRenderer(canvas) {
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     gl.useProgram(floor.handle);
+    veil(floor);
     attribute(floor.handle, 'aCorner', quadBuf, 2);
     gl.uniformMatrix4fv(floor.u.uViewProj, false, matrix);
-    gl.uniform1f(floor.u.uExtent, 400);
+    // **The floor has to outrun the veil**, or the world has a visible edge and
+    // the illusion of it going on forever ends at a straight line. The veil
+    // closes over at `veilTo`, so a floor reaching well past that can never be
+    // seen to stop. It is one quad either way, so the size costs nothing.
+    gl.uniform1f(floor.u.uExtent, Math.max(400, veilTo * 3));
     gl.uniform3fv(floor.u.uFloor, weather.floor);
     gl.uniform3fv(floor.u.uSky, weather.sky);
     gl.uniform3fv(floor.u.uSun, weather.sun);
@@ -1084,6 +1147,7 @@ export function createRenderer(canvas) {
       gl.blendFunc(gl.DST_COLOR, gl.ZERO);
       gl.depthMask(false);
       gl.useProgram(shadow.handle);
+      veil(shadow);
       gl.bindVertexArray(shadowVao);
       gl.uniformMatrix4fv(shadow.u.uViewProj, false, matrix);
       gl.uniform1f(shadow.u.uStep, step);

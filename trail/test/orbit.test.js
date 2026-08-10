@@ -42,10 +42,24 @@ test('orbiting swings the eye without moving what it looks at', () => {
   near(after.distance, before.distance, 1e-9);
 });
 
-test('pitch cannot go under the ground or past straight down', () => {
+test('pitch is held at its limits rather than running away', () => {
   assert.equal(orbit(F(), 0, -1000).pitch, PITCH_MIN);
   assert.equal(orbit(F(), 0, 1000).pitch, PITCH_MAX);
-  assert.ok(framingToView(orbit(F(), 0, -1000)).eye[1] > 0, 'camera went underground');
+});
+
+test('tilting all the way up puts the eye below what it is looking at', () => {
+  // Which is the point of allowing it: the camera could only ever look down
+  // before, because the eye sits sin(pitch) * distance above its target.
+  //
+  // **Keeping the eye out of the ground is not this module's job any more.**
+  // It cannot be: the lift belongs to the look-at point, and how far the camera
+  // stands back - which decides how much lift is needed - is a property of the
+  // strip. `groundedRig` in `timeline.js` owns it, and asserts it across every
+  // pitch and every width.
+  const up = orbit(F(), 0, -1000);
+  assert.ok(up.pitch < 0, 'the camera cannot be tilted up at all');
+  assert.ok(framingToView(up).eye[1] < framingToView(up).target[1],
+    'the eye should end up under its target');
 });
 
 test('zooming keeps the same point in the middle', () => {
@@ -236,14 +250,22 @@ test('tidy rounds without changing the shot', () => {
   near(centreOf(saved)[0], centreOf(framing)[0], 0.02);
 });
 
-test('no amount of roaming can put the camera underground', () => {
+test('no amount of handling can make the camera non-finite', () => {
+  // **Keeping the eye above the ground moved out of this module** when the
+  // camera was allowed to tilt up: the lift belongs to the look-at point, and
+  // how much lift is needed depends on how far back the camera stands, which is
+  // the strip's business. `timeline.test.js` asserts it across every pitch and
+  // width, and fuzzes this same sequence through it.
+  //
+  // What has to hold here is that no sequence of handling produces a framing
+  // that is not a number, which is the failure that takes the whole page with it.
   let framing = F();
   for (let i = 0; i < 500; i++) {
     framing = orbit(framing, (i * 13) % 90 - 45, (i * 7) % 60 - 30);
     framing = zoom(framing, i % 3 === 0 ? 0.85 : 1.15);
     framing = panScreen(framing, (i % 11) * 30 - 150, (i % 7) * 40 - 120, 1920);
     const { eye } = framingToView(framing);
-    assert.ok(eye[1] > 0, `camera dipped below the ground on iteration ${i}`);
     assert.ok(eye.every(Number.isFinite), `camera went non-finite on iteration ${i}`);
+    assert.ok(framing.w > 0 && framing.d > 0, `the frame collapsed on iteration ${i}`);
   }
 });

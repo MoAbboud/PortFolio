@@ -366,8 +366,6 @@
         <button data-v="overcast">overcast</button>
         <button data-v="storm">storm</button>
         <button data-v="fog">fog</button>
-        <button data-v="dusk">dusk</button>
-        <button data-v="night">night</button>
       </div>
       <div class="row"><span class="dim">rain</span><b id="s-rain">-</b></div>
     </div>
@@ -390,13 +388,16 @@
            through the day, the camera is moved by hand, and what is left here
            is what a moment in the story is actually made of. -->
       <div class="row"><span class="dim">at</span><b id="s-editing">-</b></div>
+      <!-- Weather only. `dusk` and `night` were times of day dressed as
+           weather, and the clock decides the time of day now - having both
+           meant two controls arguing about how dark it is. They are still
+           understood when a canvas names one, so nothing already built breaks;
+           there is just no longer a way to choose one. -->
       <div class="seg" id="step-weather">
         <button data-v="clear">clear</button>
         <button data-v="overcast">overcast</button>
         <button data-v="storm">storm</button>
         <button data-v="fog">fog</button>
-        <button data-v="dusk">dusk</button>
-        <button data-v="night">night</button>
       </div>
       <div class="ctl">
         <div class="row"><span class="dim">hold</span><span class="val" id="v-hold">-</span></div>

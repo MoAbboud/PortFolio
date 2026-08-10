@@ -24,7 +24,9 @@ import {
 // any more, so there is nowhere to walk, nothing to pan across, and fitting
 // everything is what the overview does.
 import { orbit, zoom, rise, tidy, centreOf } from './orbit.js';
-import { framingOf, revealFraming, DEFAULT_PIECE } from './timeline.js';
+import {
+  framingOf, revealFraming, veilFor, placeInPiece, DEFAULT_PIECE,
+} from './timeline.js';
 import { createRenderer } from './render.js';
 import { lerpWeather, resolve as resolveWeather, stampsUpTo } from './weather.js';
 import { clockOf } from './daylight.js';
@@ -63,31 +65,37 @@ const PIECE = DEFAULT_PIECE;
 // `from` says which piece an object belongs to. Nothing hides an object any
 // more - a thing that is not happening here is somewhere else on the strip, so
 // being elsewhere is what hiding means.
-const PLACEMENTS = [
-  // Piece 1, nine in the morning: a house, two people and a car.
+const MARLA = { primary: '#e08a3c', hair: '#2b2118', skin: '#d9a97e' };
+const DEVON = { primary: '#3c7ae0', hair: '#4a3327', skin: '#c68a5e' };
+
+// **Written against the piece each one stands on, never against the world.**
+// The first version of this had the positions typed out in world coordinates,
+// which meant that widening the join between pieces silently left the opening
+// scene scattered across three of them. `from` says which piece; `placeInPiece`
+// says where that puts it.
+const OPENING = [
+  // Nine in the morning: a house, two people and a car.
   { model: 'house1', at: [-6, 0, -4], rot: 14, from: 0 },
-  { model: 'tree',  at: [7, 0, -5], from: 0 },
+  { model: 'tree', at: [7, 0, -5], from: 0 },
   { model: 'normal-car1', at: [2.4, 0, 3.2], rot: -24, from: 0 },
   // One figure recipe serves every character: the tints are who they are, and
   // the label is what the viewer reads.
-  { model: 'person', at: [0.6, 0, 1.4], rot: 200, from: 0, label: 'Marla',
-    tints: { primary: '#e08a3c', hair: '#2b2118', skin: '#d9a97e' } },
-  { model: 'person', at: [-0.7, 0, 2.1], rot: 20, from: 0, label: 'Devon',
-    tints: { primary: '#3c7ae0', hair: '#4a3327', skin: '#c68a5e' } },
+  { model: 'person', at: [0.6, 0, 1.4], rot: 200, from: 0, label: 'Marla', tints: MARLA },
+  { model: 'person', at: [-0.7, 0, 2.1], rot: 20, from: 0, label: 'Devon', tints: DEVON },
 
-  // Piece 2, half past one: Devon has gone. The car is still there.
-  { model: 'house1', at: [31, 0, -4], rot: 14, from: 1 },
-  { model: 'tree',  at: [44, 0, -5], from: 1 },
-  { model: 'normal-car1', at: [39.4, 0, 3.2], rot: -24, from: 1 },
-  { model: 'person', at: [37.6, 0, 1.4], rot: 200, from: 1, label: 'Marla',
-    tints: { primary: '#e08a3c', hair: '#2b2118', skin: '#d9a97e' } },
+  // Half past one: Devon has gone. The car is still there.
+  { model: 'house1', at: [-6, 0, -4], rot: 14, from: 1 },
+  { model: 'tree', at: [7, 0, -5], from: 1 },
+  { model: 'normal-car1', at: [2.4, 0, 3.2], rot: -24, from: 1 },
+  { model: 'person', at: [0.6, 0, 1.4], rot: 200, from: 1, label: 'Marla', tints: MARLA },
 
-  // Piece 3, quarter past six: the car has gone too.
-  { model: 'house1', at: [68, 0, -4], rot: 14, from: 2 },
-  { model: 'tree',  at: [81, 0, -5], from: 2 },
-  { model: 'person', at: [74.6, 0, 1.4], rot: 180, from: 2, label: 'Marla',
-    tints: { primary: '#e08a3c', hair: '#2b2118', skin: '#d9a97e' } },
+  // Quarter past six: the car has gone too.
+  { model: 'house1', at: [-6, 0, -4], rot: 14, from: 2 },
+  { model: 'tree', at: [7, 0, -5], from: 2 },
+  { model: 'person', at: [0.6, 0, 1.4], rot: 180, from: 2, label: 'Marla', tints: MARLA },
 ];
+
+const PLACEMENTS = OPENING.map((p) => ({ ...p, at: placeInPiece(p.at, p.from, PIECE) }));
 
 // A step is a piece of the film, called by the hour it happens at. Only the
 // shape of the framing matters now - how wide, how high, which way round -
@@ -607,12 +615,17 @@ async function main() {
    * camera off its piece - which is the whole of "fixed camera, moving canvas".
    */
   function adjustCamera(change) {
-    const framing = change(currentRoute().framing);
+    const before = currentRoute().framing;
+    const after = change(before);
     state.rig = {
-      yaw: framing.yaw ?? state.rig.yaw,
-      pitch: framing.pitch ?? state.rig.pitch,
-      width: framing.w ?? state.rig.width,
-      height: framing.y ?? state.rig.height,
+      yaw: after.yaw ?? state.rig.yaw,
+      pitch: after.pitch ?? state.rig.pitch,
+      width: after.w ?? state.rig.width,
+      // **Only when the change actually moved it.** A framing's `y` carries the
+      // lift that keeps the eye above the ground when the camera is tilted up,
+      // so reading it back in unconditionally would bank that lift into the rig
+      // and the camera would ratchet upward a little on every tilt.
+      height: after.y !== before.y ? after.y : state.rig.height,
     };
     restage();
   }
@@ -2886,6 +2899,9 @@ async function main() {
     if (state.forcedWeather) {
       weather = resolveWeather(skyOf({ weather: state.forcedWeather, hour: route[editing()]?.hour }));
     }
+    // Depth fog is left to the weather. It cannot separate the film - a
+    // neighbouring piece is beside the camera, not beyond it - so the veil
+    // below does that job, and doing both only made the scene itself hazy.
     scarsFor(step);
     el('s-rain').textContent = `${Math.round((weather.rain ?? 0) * 100)}%`;
 
@@ -2895,8 +2911,16 @@ async function main() {
     el('s-width').textContent = framing.w.toFixed(1);
     el('s-angles').textContent = `${(framing.pitch ?? 25).toFixed(0)} / ${(framing.yaw ?? 0).toFixed(0)}`;
 
+    // **The veil is centred on the piece being looked at**, not on the camera,
+    // so what falls away is everything that is not this moment of the film. It
+    // opens with the shot, so the overview shows the whole strip rather than a
+    // hole cut in it.
+    const seen = veilFor(framing.w, PIECE);
     const { matrix, eye, target } = viewProjection(framing);
     renderer.draw({
+      focus: [cx, cz],
+      veilNear: seen.near,
+      veilFar: seen.far,
       // The sky needs where the camera looks as well as where it is, so it can
       // turn a pixel into a direction and put the sun where it actually is.
       matrix, eye, target, time: now / 1000, weather,

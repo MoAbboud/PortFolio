@@ -5,7 +5,20 @@
 // the route is made of - which is what lets any angle you find be saved as a
 // step, with no conversion and nothing lost.
 
-export const PITCH_MIN = 1.5;
+/**
+ * How far the camera may tilt.
+ *
+ * **Negative pitch is the camera looking up**, which it could not do at all
+ * before: the eye is always `sin(pitch) * distance` above the point being looked
+ * at, so a pitch floor of 1.5 degrees meant the camera was always above its
+ * subject and could only ever look down at it. Reported as *"i can move it top
+ * down but i cant see anything bottom top"*.
+ *
+ * Going below the horizon is only safe because the look-at point is lifted to
+ * keep the eye above the ground - see `groundedRig` in `timeline.js`. Without
+ * that, a negative pitch buries the camera.
+ */
+export const PITCH_MIN = -38;
 export const PITCH_MAX = 89;
 export const WIDTH_MIN = 1.2;
 export const WIDTH_MAX = 400;

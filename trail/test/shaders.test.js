@@ -62,23 +62,28 @@ test('a fragment shader states its precision and its output', () => {
 });
 
 test('what a vertex shader sends out, its fragment shader takes in', () => {
+  // `area` was missing from this list, so its pair was never checked at all.
   const pairs = [['cube', 'cube'], ['mesh', 'mesh'], ['shadow', 'shadow'],
-    ['rain', 'rain'], ['sky', 'sky'], ['floor', 'floor']];
+    ['area', 'area'], ['rain', 'rain'], ['sky', 'sky'], ['floor', 'floor']];
+  // The type is captured as well as the name. A varying declared `float` on one
+  // side and `vec2` on the other links no better than one that is missing, and
+  // reads as a name that is present so the mismatch is easy to look past.
   const declared = (source, keyword) => {
-    const names = [];
-    const pattern = new RegExp(`^\\s*${keyword}\\s+\\w+\\s+(\\w+)\\s*;`, 'gm');
-    let match;
-    while ((match = pattern.exec(stripComments(source)))) names.push(match[1]);
-    return names.sort();
+    const found = new Map();
+    const pattern = new RegExp(`^\\s*${keyword}\\s+(\\w+)\\s+(\\w+)\\s*;`, 'gm');
+    for (const [, type, name] of stripComments(source).matchAll(pattern)) found.set(name, type);
+    return found;
   };
   for (const [vs, fs] of pairs) {
     const out = declared(SHADERS[`${vs} vertex`], 'out');
     const into = declared(SHADERS[`${fs} fragment`], 'in');
     // Every varying the fragment shader reads must be produced by its vertex
     // shader. The reverse is allowed: a vertex shader may compute more.
-    for (const name of into) {
-      assert.ok(out.includes(name),
+    for (const [name, type] of into) {
+      assert.ok(out.has(name),
         `${fs} fragment reads "${name}", which ${vs} vertex does not send`);
+      assert.equal(out.get(name), type,
+        `"${name}" is ${type} in the ${fs} fragment shader and ${out.get(name)} in ${vs} vertex`);
     }
   }
 });

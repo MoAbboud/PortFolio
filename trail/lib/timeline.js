@@ -22,7 +22,7 @@
 //
 // Nothing here knows about WebGL, the DOM, or how a piece is drawn.
 
-import { FOV_Y, ASPECT } from './camera.js';
+import { FOV_Y, ASPECT, MARGIN } from './camera.js';
 
 /**
  * How big a piece of film is.
@@ -33,7 +33,20 @@ import { FOV_Y, ASPECT } from './camera.js';
  * floor. `depth` is across the strip, and is the same for every piece for the
  * same reason every frame of film is the same size.
  */
-export const DEFAULT_PIECE = { width: 34, depth: 22, gap: 3 };
+export const DEFAULT_PIECE = { width: 34, depth: 22, gap: 30 };
+
+/**
+ * The join as it was before the veil needed room to sit in.
+ *
+ * Pieces were three units apart and thirty-four wide, so they very nearly
+ * touched: a neighbour's near edge stood twenty units from the middle of the
+ * piece being looked at, which is *inside* it. Nothing centred on a piece could
+ * separate them, because there was no space between them to fade in.
+ *
+ * Kept so a canvas written at the old spacing can be moved to the new one. See
+ * the version 6 migration in `canvas.js`.
+ */
+export const OLD_PITCH = 37;
 
 const isNumber = (v) => typeof v === 'number' && Number.isFinite(v);
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -236,14 +249,52 @@ export function depthFor(width, pitch = 25) {
   return width / (ASPECT * sin);
 }
 
+// How far the camera may tilt. Negative is looking up, which is only possible
+// because `groundedRig` lifts the look-at point to keep the eye out of the floor.
+export const PITCH_MIN = -38;
+export const PITCH_MAX = 89;
+
+// How close the eye may get to the ground. Low enough for a shot taken from the
+// pavement, high enough that the floor never clips through the near plane.
+export const EYE_FLOOR = 0.6;
+
 /** A camera rig, with anything missing filled in. */
 export function rigOf(rig = {}) {
   return {
     yaw: isNumber(rig.yaw) ? rig.yaw : 0,
-    pitch: clamp(isNumber(rig.pitch) ? rig.pitch : 22, 1.5, 89),
+    pitch: clamp(isNumber(rig.pitch) ? rig.pitch : 22, PITCH_MIN, PITCH_MAX),
     width: Math.max(1.2, isNumber(rig.width) ? rig.width : 34),
     height: Math.max(0, isNumber(rig.height) ? rig.height : 0),
   };
+}
+
+/**
+ * How far back the camera sits for a shot of this width.
+ *
+ * **It does not depend on the pitch**, because the depth is derived from the
+ * width and the two cancel: fitting the width and fitting the foreshortened
+ * depth ask for the same distance. That is what makes the height below solvable
+ * in one line instead of by searching for a fixed point.
+ */
+export const distanceFor = (width) =>
+  ((Math.max(1.2, width) / 2) / (Math.tan(FOV_Y / 2) * ASPECT)) * MARGIN;
+
+/**
+ * Lift the look-at point so the camera never ends up underground.
+ *
+ * The eye sits `sin(pitch) * distance` above whatever it is pointed at. Tilting
+ * up means a negative pitch, which puts the eye *below* that point - so unless
+ * the point rises, the camera goes through the floor.
+ *
+ * This is how a low shot is actually taken: the camera is on the pavement and
+ * aimed at something above it. Raising the target rather than refusing the tilt
+ * is what turns "you cannot look up" into "looking up means looking at
+ * something higher", which is the same thing a person with a tripod does.
+ */
+export function groundedRig(rig) {
+  const based = rigOf(rig);
+  const drop = Math.sin((based.pitch * Math.PI) / 180) * distanceFor(based.width);
+  return { ...based, height: Math.max(based.height, EYE_FLOOR - drop) };
 }
 
 /**
@@ -255,7 +306,7 @@ export function rigOf(rig = {}) {
  * and never what it is doing - which is the rule the clock bar was built on.
  */
 export function framingOf(rig, at, geometry) {
-  const { yaw, pitch, width, height } = rigOf(rig);
+  const { yaw, pitch, width, height } = groundedRig(rig);
   const depth = depthFor(width, pitch);
   return {
     x: xAt(at, geometry) - width / 2,
@@ -295,20 +346,35 @@ export function revealFraming(rig, count, geometry, { margin = 1.15, pitch = 52 
 }
 
 /**
- * How far the fog may be pushed back for a given shot.
+ * Where the world fades out around the piece being looked at.
  *
- * **Fog measured in fixed world units is what would ruin the ending.** It runs
- * 26 to 180 units, which is right for a scene in a room and shorter than a
- * strip of any length - so pulling back to reveal the whole event would show it
- * fading into the sky exactly when it is meant to be readable.
+ * **This is not distance fog and could not have been.** Distance fog is
+ * measured from the camera, and a neighbouring piece sits *beside* the camera
+ * at very nearly the same depth as the piece in front of it - so anything keyed
+ * to depth either shows both or hides both. The veil is measured from the piece
+ * instead, which is what lets one moment of the film be clear while everything
+ * either side of it washes into the sky.
  *
- * Tying it to the width of the shot fixes both ends at once: close in the fog
- * is where it always was and still gives depth; pulled back it opens up ahead
- * of the strip rather than swallowing it.
+ * It is measured against the **piece and its join**, not against a distance in
+ * metres, so it holds whatever size the pieces are: clear to just outside the
+ * piece, gone before the next one starts. That only works because the join is
+ * wide enough to fade across - see `OLD_PITCH`, where it was not.
+ *
+ * It is also what makes the world read as endless. The ground is gone long
+ * before it runs out, so there is no edge left to find.
  */
-export function fogFor(width, { near = 26, far = 180, reference = 26 } = {}) {
-  const scale = Math.max(1, (isNumber(width) ? width : reference) / reference);
-  return { near: near * scale, far: far * scale };
+export function veilFor(shot, geometry) {
+  const { width, gap } = geometryOf(geometry);
+  const half = width / 2;
+  // Opens with the shot, so pulling back to the overview lifts the veil rather
+  // than cutting a hole in the middle of the film.
+  const scale = Math.max(1, (isNumber(shot) ? shot : width) / width);
+  return {
+    // Just outside the piece being looked at, so nothing standing on it fades.
+    near: half * 1.15 * scale,
+    // Into the join, and short of where the next piece begins.
+    far: (half + gap * 0.9) * scale,
+  };
 }
 
 // --- playback ---------------------------------------------------------------

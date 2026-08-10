@@ -5,10 +5,12 @@ import {
   geometryOf, pitchOf, pieceX, placeInPiece, stripExtent,
   xAt, atOfX, clampAt, pieceAt, hourAt, toMinute, fromMinute, clockOfPiece,
   spliceOut, insertPiece,
-  depthFor, rigOf, framingOf, revealFraming, fogFor,
+  depthFor, rigOf, framingOf, revealFraming, veilFor,
   runAt, runDuration, DEFAULT_PIECE,
+  groundedRig, distanceFor, PITCH_MIN,
 } from '../lib/timeline.js';
 import { framingToView } from '../lib/camera.js';
+import { orbit, zoom, rise } from '../lib/orbit.js';
 
 const near = (a, b, tolerance = 1e-6) =>
   assert.ok(Math.abs(a - b) < tolerance, `${a} is not near ${b}`);
@@ -241,9 +243,13 @@ test('a rig with nothing in it is still a usable camera', () => {
     assert.ok(Number.isFinite(framing[key]), `${key} is not a number`);
   }
   assert.ok(framing.w > 0 && framing.d > 0);
-  // Straight down and below the ground are both framings a drag can ask for.
+  // Straight down and past looking up are both framings a drag can ask for, and
+  // both are held at the limit rather than refused.
   assert.ok(rigOf({ pitch: 200 }).pitch <= 89);
-  assert.ok(rigOf({ pitch: -40 }).pitch >= 1.5);
+  assert.ok(rigOf({ pitch: -400 }).pitch >= PITCH_MIN);
+  // Looking up is allowed now. The floor that used to sit at 1.5 degrees is
+  // what stopped the camera ever being below its subject.
+  assert.ok(rigOf({ pitch: -30 }).pitch < 0, 'the camera cannot tilt up');
 });
 
 // --- the ending -------------------------------------------------------------
@@ -271,19 +277,99 @@ test('there is still an ending when there is no film', () => {
   assert.ok(Number.isFinite(framing.x) && framing.w > 0);
 });
 
-test('the fog opens up as the camera pulls back, so the ending is not a wall of sky', () => {
-  // Fog in fixed world units is what would ruin the reveal: 180 units of it is
-  // right for a room and shorter than any strip worth pulling back from.
-  const close = fogFor(26);
-  near(close.near, 26);
-  near(close.far, 180);
+test('the veil clears the piece it is on and closes before the next one', () => {
+  // The whole job: one moment of the film clear, everything either side of it
+  // washed into the sky. Measured against the piece and its join rather than in
+  // metres, so it holds whatever size the pieces are.
+  //
+  // **It only works because the join is wide enough to fade across.** At the
+  // original spacing - 34 wide with 3 between - the next piece began 20 units
+  // from the middle of this one, which is inside it, and no veil centred on a
+  // piece could have separated them. Widening the join is what made this
+  // possible, and the version 6 migration is what carries old canvases over.
+  const geometry = DEFAULT_PIECE;
+  const { near: from, far: to } = veilFor(geometry.width, geometry);
+  const half = geometry.width / 2;
+  const nextPiece = pitchOf(geometry) - half;   // where the neighbour begins
 
+  assert.ok(from > half,
+    `the veil starts at ${from} and the piece reaches ${half}, so its own scene fades`);
+  assert.ok(to < nextPiece,
+    `the veil is not closed until ${to} and the next piece starts at ${nextPiece}`);
+});
+
+test('the veil opens up as the camera pulls back, so the ending is not a wall of sky', () => {
+  // A veil in fixed units is what would ruin the reveal: it is sized for one
+  // piece, and the overview draws every piece at once. Pulling back has to lift
+  // it rather than cut a hole in the middle of the film.
   const pieces = 12;
-  const extent = stripExtent(pieces, GEO);
-  const reveal = revealFraming({ yaw: 0, pitch: 22, width: 34 }, pieces, GEO);
-  const { far } = fogFor(reveal.w);
+  const geometry = DEFAULT_PIECE;
+  const extent = stripExtent(pieces, geometry);
+  const reveal = revealFraming({ yaw: 0, pitch: 22, width: 34 }, pieces, geometry);
+  const { far } = veilFor(reveal.w, geometry);
   assert.ok(far > extent.max - extent.min,
-    `fog reaches ${far} and the strip is ${extent.max - extent.min} long`);
+    `the veil closes at ${far.toFixed(0)} and the strip is ${(extent.max - extent.min).toFixed(0)} long`);
+});
+
+// --- looking up -------------------------------------------------------------
+
+test('the camera can be put below what it is looking at', () => {
+  // **Reported by the user:** "i can move it top down but i cant see anything
+  // bottom top... i cant look any higher from the angle that i am in."
+  //
+  // The eye sits sin(pitch) * distance above the point being looked at, and the
+  // pitch could not go below 1.5 degrees - so the camera was always above its
+  // subject and could only ever look down at it.
+  const up = framingOf({ yaw: 0, pitch: -30, width: 34 }, 0, GEO);
+  const { eye, target } = framingToView(up);
+  assert.ok(eye[1] < target[1],
+    `the eye is at ${eye[1].toFixed(2)} and the target at ${target[1].toFixed(2)}`);
+});
+
+test('looking up never puts the camera underground', () => {
+  // The look-at point is lifted instead, which is how a low shot is actually
+  // taken: the camera on the pavement, aimed at something above it.
+  for (let pitch = PITCH_MIN; pitch <= 89; pitch += 1) {
+    for (const width of [6, 20, 34, 90]) {
+      const framing = framingOf({ yaw: 0, pitch, width }, 0, GEO);
+      const { eye } = framingToView(framing);
+      assert.ok(eye[1] > 0,
+        `at pitch ${pitch} and width ${width} the eye is at ${eye[1].toFixed(2)}`);
+    }
+  }
+});
+
+test('no amount of handling can put the camera underground', () => {
+  // The property `orbit.test.js` used to own, moved here with the rule it
+  // depends on. Five hundred turns, zooms and climbs, each one grounded the way
+  // the app grounds it.
+  let rig = { yaw: 0, pitch: 25, width: 34, height: 0 };
+  for (let i = 0; i < 500; i++) {
+    const turned = orbit(framingOf(rig, i % 4, GEO), (i * 13) % 90 - 45, (i * 7) % 60 - 30);
+    const closer = zoom(turned, i % 3 === 0 ? 0.85 : 1.15);
+    const lifted = rise(closer, ((i % 5) - 2) * 0.1);
+    rig = { yaw: lifted.yaw, pitch: lifted.pitch, width: lifted.w, height: lifted.y };
+
+    const { eye } = framingToView(framingOf(rig, i % 4, GEO));
+    assert.ok(eye[1] > 0, `camera dipped below the ground on iteration ${i}`);
+    assert.ok(eye.every(Number.isFinite), `camera went non-finite on iteration ${i}`);
+  }
+});
+
+test('a shot that was already above the ground is left where it was put', () => {
+  // The lift is a floor, not a rule about where the camera goes: tilting down
+  // must not drag a high shot back to the ground.
+  const high = groundedRig({ yaw: 0, pitch: 40, width: 34, height: 25 });
+  assert.equal(high.height, 25);
+});
+
+test('how far back the camera stands does not depend on the tilt', () => {
+  // Which is what makes the lift solvable in one line rather than by searching
+  // for a fixed point, and it holds because the depth is derived from the width.
+  const at = (pitch) => framingToView(framingOf({ yaw: 0, pitch, width: 34 }, 0, GEO)).distance;
+  near(at(10), distanceFor(34), 1e-9);
+  near(at(70), distanceFor(34), 1e-9);
+  near(at(-20), distanceFor(34), 1e-9);
 });
 
 // --- playback ---------------------------------------------------------------

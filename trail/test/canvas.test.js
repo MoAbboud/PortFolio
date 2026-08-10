@@ -2,6 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { serialise, parse, isRefusal, VERSION, reorder, moved, dropped, byTime } from '../lib/canvas.js';
+import { pitchOf, DEFAULT_PIECE } from '../lib/timeline.js';
+
+const near = (a, b, tolerance = 1e-6) =>
+  assert.ok(Math.abs(a - b) < tolerance, `${a} is not near ${b}`);
 
 const LAYOUT = [
   { model: 'house', at: [-6, 0, -4], rot: 14, from: 0 },
@@ -332,6 +336,29 @@ test('a version 4 canvas is spread along the strip rather than piled on one piec
   // Across and up are untouched: a piece only moves things along the film.
   assert.equal(car.at[2], 3);
   assert.equal(tree.at[1], 0);
+});
+
+test('widening the join carries an old canvas across instead of scattering it', () => {
+  // The join between pieces was widened so the veil had room to fade across.
+  // Objects have to keep their place *on* their piece while the pieces move
+  // apart - otherwise everything built before the change ends up strewn between
+  // them, which is worse than where it started.
+  const before = parse({
+    trail: 5,
+    objects: [
+      { model: 'house', at: [-6, 0, -4], from: 0 },
+      { model: 'car', at: [37 + 2.4, 0, 3], from: 1 },
+      { model: 'tree', at: [74 - 6, 0, 1], from: 2 },
+    ],
+    steps: [{ framing: { x: 0, z: 0, w: 10, d: 6 }, hold: 1000 }],
+  });
+
+  const pitch = pitchOf(DEFAULT_PIECE);
+  const [house, car, tree] = before.layout;
+  // Each one keeps the offset it had within its own piece.
+  near(house.at[0] - 0 * pitch, -6);
+  near(car.at[0] - 1 * pitch, 2.4);
+  near(tree.at[0] - 2 * pitch, -6);
 });
 
 test('a canvas already on the strip is never pushed along it twice', () => {

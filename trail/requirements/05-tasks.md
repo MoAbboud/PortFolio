@@ -120,6 +120,36 @@ not, because `timeline.js` was written and nothing imported it.
 - [ ] Positions are still **absolute**, not piece-relative. Placing works because the camera is
       already at the piece, and cutting a section will need the relative form - which is 8c
 
+### Separating the film, and letting the camera look up - 2026-08-09
+
+- [x] **The veil**: the world fades out by distance from the piece being looked at, not from the
+      camera. Distance fog could never have done this - a neighbouring piece is *beside* the
+      camera at the same depth as the one in front of it, so anything keyed to depth shows both
+      or hides both. One clear pool around the scene, everything either side of it in the sky
+- [x] **The join was widened from 3 to 30.** A piece is 34 across, so its own scene reaches 17
+      and the next piece used to begin at 20 - no room to fade across. The next piece starts at
+      47 now and the veil lives between 20 and 44. A test asserts both ends against the piece
+      geometry rather than against numbers
+- [x] **The world reads as endless.** The ground is gone long before it runs out, and the floor
+      is sized from the veil rather than from a constant, so it can never be caught ending
+- [x] Canvas file version 6 carries a canvas written at the old spacing across, keeping each
+      object on its own piece
+- [x] The opening arrangement is written against pieces rather than world coordinates, so
+      changing the spacing cannot strew it between them again
+- [x] **The camera can look up.** Pitch reaches -38 and the look-at point rises to keep the eye
+      out of the ground: at full tilt the eye sits at 0.60 and the target at 15.95. It could
+      only ever look down before, because the eye is always `sin(pitch) * distance` above its
+      target and the pitch floor was 1.5 degrees
+- [x] The ground rule left `orbit.js` for `timeline.js`, because how much lift is needed depends
+      on how far back the camera stands. The 500-turn property test moved with it
+- [x] The lift is **not** banked into the rig, or the camera would ratchet upward on every tilt
+- [x] `dusk` and `night` are gone from the panel: times of day dressed as weather, arguing with
+      the clock. Still understood when a canvas names one, so nothing already built breaks
+- [x] The varying check now compares **types** as well as names, and covers the `area` pair,
+      which it had been missing. A mismatch is a link error and the stub says yes to linking
+- [ ] The veil is a circle. A shape that follows the piece - a soft-edged rectangle - would sit
+      closer to what a frame of film looks like, and is worth trying by eye
+
 ### Reported in use, 2026-08-09, and all three had one cause each
 
 - [x] **There were two cameras.** `state.roaming` was a second position the camera fell back to

@@ -4,9 +4,9 @@
 // There is nothing else to back up and nothing else to lose: if this file is
 // safe, the video is safe.
 
-import { pieceX, DEFAULT_PIECE } from './timeline.js';
+import { pieceX, pitchOf, DEFAULT_PIECE, OLD_PITCH } from './timeline.js';
 
-export const VERSION = 5;
+export const VERSION = 6;
 
 const isNumber = (v) => typeof v === 'number' && Number.isFinite(v);
 const isTriple = (v) => Array.isArray(v) && v.length === 3 && v.every(isNumber);
@@ -220,6 +220,37 @@ function migrate(data) {
         areas: out.areas.map((a) => (
           Array.isArray(a?.at) && a.at.length === 2
             ? { ...a, at: [a.at[0] + along(a.from), a.at[1]] }
+            : a
+        )),
+      } : {}),
+    };
+  }
+  if (out.trail < 6) {
+    // **The join was widened so the veil had somewhere to sit.** At the old
+    // spacing a piece was 34 across with 3 between, so the next one began 20
+    // units from the middle of this one - inside it. Nothing centred on a piece
+    // could separate them.
+    //
+    // Objects keep their place *on* their piece and the pieces move apart. The
+    // piece is read back from the position rather than from `from`, because a
+    // position is what was actually drawn and `from` may have been edited since.
+    const now = pitchOf(DEFAULT_PIECE);
+    const spread = (x) => {
+      const piece = Math.round(x / OLD_PITCH);
+      return (x - piece * OLD_PITCH) + piece * now;
+    };
+    out = {
+      ...out,
+      trail: 6,
+      objects: (out.objects ?? []).map((o) => (
+        Array.isArray(o?.at) && o.at.length === 3
+          ? { ...o, at: [spread(o.at[0]), o.at[1], o.at[2]] }
+          : o
+      )),
+      ...(Array.isArray(out.areas) ? {
+        areas: out.areas.map((a) => (
+          Array.isArray(a?.at) && a.at.length === 2
+            ? { ...a, at: [spread(a.at[0]), a.at[1]] }
             : a
         )),
       } : {}),
