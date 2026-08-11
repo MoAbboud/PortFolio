@@ -120,6 +120,105 @@ not, because `timeline.js` was written and nothing imported it.
 - [ ] Positions are still **absolute**, not piece-relative. Placing works because the camera is
       already at the piece, and cutting a section will need the relative form - which is 8c
 
+## Stage 9 - Halo mode: the film is a ring in space
+
+**Asked for 2026-08-09.** *"Imagine i rolled the film strip and made a sphere with it... the
+earth rolls as im cycling... Then the overview unfurls the ball into a straight long piece...
+where the strip isnt covering I want a space theme."* Settled as a **ring** rather than a
+sphere - a strip rolls into a cylinder, and the user's own reference was Halo, so the middle
+stays open.
+
+### 9a - The world rolls
+
+- [x] **`ROLL` in the shaders**: one shared block, injected into every program that draws part
+      of the world. `uRoll` blends flat to rolled, `uRadius` is the size of the loop and
+      `uFocusX` is the place on the film at the top of it
+- [x] **The overview is the same geometry unrolling**, not a second view. `uRoll` eases to
+      nought and the ring opens into a long straight strip
+- [x] Nothing runs per frame on the processor: three uniforms, and the field is still built
+      once and uploaded once
+- [x] Normals turn with the world, or the far side of the ring is lit as though it were still
+      facing up
+- [x] **The radius is the length of the story**, so the world grows as the film does - with a
+      floor, because three pieces closing a loop puts 120 degrees through each one and bends a
+      scene into a horseshoe. Under the floor the strip is an arc of a larger circle
+- [x] `easeRoll` is pure and frame-rate independent, so a stutter moves further rather than
+      making the whole animation longer, and it settles exactly instead of creeping
+- [x] The camera stops travelling in Halo mode: it sits at the top of the ring and the world
+      turns to bring a piece to it
+
+### 9b - The film is the only ground
+
+- [x] **The infinite floor is gone**, and with it the mirrored reflection pass that existed to
+      be seen in it. *"I never needed the infinite floor, its useless."*
+- [x] **`uploadStrip`**: one plate of ground per piece, instanced, rolled with everything else.
+      Without it a piece has no ground and objects float in the dark
+- [x] A darker lip at the edge of a plate, so one piece of film reads as one piece
+- [x] Weather marks are read in **strip space**, so a scar stays on the piece it fell on however
+      the world is rolled
+- [x] A **solid** switch fills the middle of the ring, for comparing a hoop against a body
+
+### 9c - Space
+
+- [x] `uSpace` pulls the sky to black, keeping a little of the hour's colour so the time of day
+      still says something
+- [x] Stars all the way round rather than fading out below a horizon, because there is no
+      horizon and no ground to hide the lower half of the sky
+
+### 9d - Picking on a curved world
+
+- [x] `ringGround`: a ray against the ring's surface, read back as a place on the flat film.
+      Everything that places, drags or draws works on the strip, so a click has to come back to
+      it. The near face only - clicking through the world onto its far side is not a gesture
+- [x] Placing lands on the piece being looked at rather than where the camera is, which are no
+      longer the same thing
+
+### 9e - Still to do
+
+- [ ] **The step list in the top right**, with a button to cycle to a step and one to delete it
+      with a confirmation. Asked for in the same message and not yet built: *"i really hate how
+      cluncky it is in the center bar, instead, i just want the buttons in the bar to rotate the
+      halo"*
+- [ ] The clock bar's job shrinks to turning the ring, once the list carries the rest
+- [ ] Judge the ring by eye: the bend limit, the plate lip, and whether a solid body reads
+      better than an open hoop
+- [ ] Rain still falls in a box around the camera, which is a weather for a flat world
+
+### The overview could not be left - 2026-08-09
+
+- [x] **The overview frames the film, whatever shot it was called from.** It used to floor the
+      width at the shot you were already in, so that pulling back could never be a push in -
+      which made it a **no-op** on an empty canvas or any short film seen from a wide shot. It
+      returned exactly what was on screen, so pressing the button changed nothing and neither
+      did pressing it again: a state you could not tell you were in and could not leave.
+      **Reversed after seeing it**, which is the third camera decision reasoned out and then
+      undone by looking
+- [x] Showing the whole film sometimes means closing in, and that is right. A one-piece film
+      seen from three hundred units out is a speck
+- [x] **Going to a step leaves the overview** - a mark, an arrow, a number key, the panel strip,
+      or adding a step. Asking to be somewhere and staying pulled back is the app ignoring what
+      was asked
+- [x] Two tests, both confirmed by reintroducing the bug: `the overview framed exactly what was
+      already on screen`, and the reveal depending on the shot it was called from
+
+### The app opens empty - 2026-08-09
+
+- [x] **No opening arrangement and no opening route.** *"The app should just load and i need to
+      fill it up with objects and steps."* It used to open on a three-piece demonstration, which
+      had to be deleted every time, made "did my canvas load?" ambiguous, and came back over work
+      in progress
+- [x] The demonstration moved into `test/startup.test.js` as a fixture, opened **through the
+      file control** - the same route a person takes. A test that can only reach something by a
+      route the user has not got is testing a route that can rot unnoticed
+- [x] **Opening a canvas now reads the models it names first.** A pack's models are only listed
+      until something asks for one, so `rebuild` found no grid and dropped every one of them as
+      "not in the library". The app got away with it because the arrangement it opened on named
+      the same two pack models every time and startup read those; opening empty is what exposed
+      it. **Any saved canvas using pack models was being quietly emptied**
+- [x] `apply` is async, and every caller awaits it
+- [x] Opening a canvas marks it edited, so the deferred startup does not lay the last autosave
+      over the file that was just opened
+
 ### Clearing the canvas, and what the library was holding - 2026-08-09
 
 - [x] **"remove everything"** under the library. A canvas keeps what has been placed on it

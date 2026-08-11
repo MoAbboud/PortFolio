@@ -17,7 +17,7 @@ import {
 import { surfaceNets, fromTriangles } from './mesh.js';
 import { toNdc, insideFrame, rayThrough, pick, groundPoint, dragTo, rotateBy } from './pick.js';
 import {
-  viewProjection, drift, autoMove, routeAt, routeAtHour, stepAround,
+  viewProjection, drift, autoMove, routeAt, routeAtHour, stepAround, lerpFraming,
   routeDuration, easeInOut,
 } from './camera.js';
 // `walk`, `panScreen` and `fit` are gone from here: the camera does not travel
@@ -25,7 +25,8 @@ import {
 // everything is what the overview does.
 import { orbit, zoom, rise, tidy, centreOf } from './orbit.js';
 import {
-  framingOf, revealFraming, veilFor, placeInPiece, pitchOf, DEFAULT_PIECE,
+  framingOf, revealFraming, veilFor, pitchOf, radiusFor, ringGround, xAt, easeRoll,
+  DEFAULT_PIECE,
 } from './timeline.js';
 import { createRenderer } from './render.js';
 import { lerpWeather, resolve as resolveWeather, stampsUpTo } from './weather.js';
@@ -48,8 +49,22 @@ import { readGltf, readGlb, externalBuffers, clipNames } from './gltf.js';
 window.__trail.started = true;
 
 // --- the scene --------------------------------------------------------------
-// The arrangement the app opens on. Placement is by hand and stays that way:
-// reading a script and offering what it names was built and then cancelled.
+//
+// **Trail opens empty.** No objects, no steps: an empty day, which the app has
+// treated as a perfectly good thing to be looking at since the playground was
+// settled. You fill it.
+//
+// It used to open on a three-piece demonstration - a house, two people and a
+// car at nine, one person and the car at half past one, one person at quarter
+// past six - which was there to show what the strip was for while it was being
+// built. It had stopped earning its place: it is the first thing to delete
+// every time the app is opened, it made "did my canvas load?" ambiguous, and
+// it kept coming back over work in progress. The user's words: *"the app
+// should just load and i need to fill it up with objects and steps."*
+//
+// The demonstration is not gone, it moved: `test/startup.test.js` builds it as
+// a fixture and opens it the way a person would, through the file control. So
+// the tests still exercise a real strip and the app carries no content.
 
 /**
  * The film strip.
@@ -64,52 +79,11 @@ window.__trail.started = true;
  */
 const PIECE = DEFAULT_PIECE;
 
-// `from` says which piece an object belongs to. Nothing hides an object any
-// more - a thing that is not happening here is somewhere else on the strip, so
-// being elsewhere is what hiding means.
-const MARLA = { primary: '#e08a3c', hair: '#2b2118', skin: '#d9a97e' };
-const DEVON = { primary: '#3c7ae0', hair: '#4a3327', skin: '#c68a5e' };
-
-// **Written against the piece each one stands on, never against the world.**
-// The first version of this had the positions typed out in world coordinates,
-// which meant that widening the join between pieces silently left the opening
-// scene scattered across three of them. `from` says which piece; `placeInPiece`
-// says where that puts it.
-const OPENING = [
-  // Nine in the morning: a house, two people and a car.
-  { model: 'house1', at: [-6, 0, -4], rot: 14, from: 0 },
-  { model: 'tree', at: [7, 0, -5], from: 0 },
-  { model: 'normal-car1', at: [2.4, 0, 3.2], rot: -24, from: 0 },
-  // One figure recipe serves every character: the tints are who they are, and
-  // the label is what the viewer reads.
-  { model: 'person', at: [0.6, 0, 1.4], rot: 200, from: 0, label: 'Marla', tints: MARLA },
-  { model: 'person', at: [-0.7, 0, 2.1], rot: 20, from: 0, label: 'Devon', tints: DEVON },
-
-  // Half past one: Devon has gone. The car is still there.
-  { model: 'house1', at: [-6, 0, -4], rot: 14, from: 1 },
-  { model: 'tree', at: [7, 0, -5], from: 1 },
-  { model: 'normal-car1', at: [2.4, 0, 3.2], rot: -24, from: 1 },
-  { model: 'person', at: [0.6, 0, 1.4], rot: 200, from: 1, label: 'Marla', tints: MARLA },
-
-  // Quarter past six: the car has gone too.
-  { model: 'house1', at: [-6, 0, -4], rot: 14, from: 2 },
-  { model: 'tree', at: [7, 0, -5], from: 2 },
-  { model: 'person', at: [0.6, 0, 1.4], rot: 180, from: 2, label: 'Marla', tints: MARLA },
-];
-
-const PLACEMENTS = OPENING.map((p) => ({ ...p, at: placeInPiece(p.at, p.from, PIECE) }));
-
-// A step is a piece of the film, called by the hour it happens at. Only the
-// shape of the framing matters now - how wide, how high, which way round -
-// because where it stands comes from its place on the strip.
-const ROUTE = [
-  { framing: { x: 0, z: 0, w: 26, d: 20, pitch: 20, yaw: -8 },
-    hold: 5000, weather: 'clear', hour: 9 },
-  { framing: { x: 0, z: 0, w: 26, d: 20, pitch: 20, yaw: -8 },
-    hold: 5000, approachTime: 3200, weather: 'storm', hour: 13.5 },
-  { framing: { x: 0, z: 0, w: 26, d: 20, pitch: 20, yaw: -8 },
-    hold: 9000, approachTime: 4200, weather: 'clear', hour: 18.25 },
-];
+// Nothing placed and no film yet. Both are read as ordinary state everywhere
+// else, so there is no empty case to special-case: an empty day is a place at a
+// time that can be looked at, lit and walked around before anything exists.
+const PLACEMENTS = [];
+const ROUTE = [];
 
 const SCARS = { extent: 60, resolution: 256, feather: 7 };
 const SOLIDIFY = 900;   // milliseconds for a ghost to become real
@@ -558,6 +532,18 @@ async function main() {
     // **The whole film at once.** Not a place on the strip but a way of looking
     // at it, so turning it off puts the camera back exactly where it was.
     overview: false,
+    /**
+     * How far the film is rolled into its ring, and how far it is going.
+     *
+     * **The two views are one geometry.** Halo mode is the strip rolled into a
+     * loop with the piece you are on at the top; the overview is the same strip
+     * lying flat. So the overview is not a second view, it is this number
+     * easing to nought - the ball unfurling into a long straight piece.
+     */
+    roll: 1,
+    rollTo: 1,
+    // A hoop you can see through, or a filled body. A look, so it is a switch.
+    solid: 0,
   };
 
   /**
@@ -592,6 +578,26 @@ async function main() {
   function onStrip() {
     if (staged.length !== route.length) restage();
     return staged;
+  }
+
+  /** How big the loop is for the film as it stands. */
+  const ringSize = () => radiusFor(Math.max(1, route.length), PIECE);
+
+  /**
+   * Where on the film the camera is pointed, in flat strip coordinates.
+   *
+   * **This is what turns when the clock moves.** In Halo mode the camera never
+   * goes anywhere: this is handed to the shader as the place that should be at
+   * the top of the ring, and the world rotates to bring it there.
+   */
+  function focusX() {
+    if (state.overview) return xAt((Math.max(1, route.length) - 1) / 2, PIECE);
+    const moment = routeAtHour(onStrip(), state.hour);
+    if (moment) {
+      const [cx] = centreOf(moment.framing);
+      return cx;
+    }
+    return xAt(editing(), PIECE);
   }
 
   function restage() {
@@ -685,6 +691,24 @@ async function main() {
 
   let drag = null;
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  /**
+   * Where a ray meets the ground, in **strip** coordinates.
+   *
+   * Everything that places, drags or draws works on the flat film - that is
+   * where objects live and where they are saved - so a click has to be read
+   * back onto it. Rolled, the ground is the ring's surface and the answer comes
+   * from `ringGround`; flat, it is the plane it always was.
+   *
+   * Part rolled, during an unfurl, the ring's answer is used: the surface it
+   * describes is the one being looked at for all but the last moment of the
+   * blend, and nobody places an object mid-animation.
+   */
+  function groundAt(ray, height = 0) {
+    if (!ray) return null;
+    if (state.roll > 0.5) return ringGround(ray, focusX(), ringSize());
+    return groundPoint(ray, height);
+  }
 
   /** The ray under the pointer, or null if the pointer is in the letterbox. */
   function rayAt(event) {
@@ -834,7 +858,7 @@ async function main() {
     // Drawing a place beats everything else: the button was pressed to draw
     // one, and picking an object instead would be ignoring what was asked.
     if (state.drawingArea && ray) {
-      const ground = groundPoint(ray, 0);
+      const ground = groundAt(ray);
       if (ground) {
         drag = { x: event.clientX, y: event.clientY, moved: 0, object: null, place: [ground[0], ground[2]] };
         return;
@@ -844,7 +868,7 @@ async function main() {
     // A traced line beats everything else, including picking a different
     // object: the button was pressed to draw one and nothing else is wanted.
     if (state.tracing && state.selected >= 0 && ray) {
-      const ground = groundPoint(ray, 0);
+      const ground = groundAt(ray);
       if (ground) {
         drag = { x: event.clientX, y: event.clientY, moved: 0, object: null, trace: [ground[0], ground[2]] };
         return;
@@ -855,7 +879,7 @@ async function main() {
     // else moves the camera. One click to choose, then drag to arrange, so
     // orbiting never fights with rearranging.
     if (ray && hit && hit.index === state.selected) {
-      const ground = groundPoint(ray, layout[hit.index].at[1]);
+      const ground = groundAt(ray, layout[hit.index].at[1]);
       const at = layout[hit.index].at;
       drag = {
         x: event.clientX, y: event.clientY, moved: 0, object: hit.index,
@@ -880,7 +904,7 @@ async function main() {
 
     if (drag.place) {
       const ray = rayAt(event);
-      const ground = ray ? groundPoint(ray, 0) : null;
+      const ground = groundAt(ray);
       if (ground) drag.placeTo = [ground[0], ground[2]];
       return;
     }
@@ -913,7 +937,7 @@ async function main() {
 
     if (drag.trace) {
       const ray = rayAt(event);
-      const ground = ray ? groundPoint(ray, 0) : null;
+      const ground = groundAt(ray);
       if (ground) drag.traceTo = [ground[0], ground[2]];
       return;
     }
@@ -921,7 +945,7 @@ async function main() {
     if (drag.object !== null) {
       const ray = rayAt(event);
       if (!ray) return;
-      const ground = groundPoint(ray, layout[drag.object].at[1]);
+      const ground = groundAt(ray, layout[drag.object].at[1]);
       reposition(drag.object, dragTo(layout[drag.object], drag.grab, ground));
       return;
     }
@@ -1231,6 +1255,7 @@ async function main() {
       // The whole film, which is what "frame everything" means on a strip.
       roam();
       state.overview = !state.overview;
+      state.rollTo = state.overview ? 0 : 1;
       el('b-overview').setAttribute('aria-pressed', String(state.overview));
       say(state.overview ? 'the whole film' : 'back to the strip');
     } else if (key === 'r') {
@@ -1246,6 +1271,7 @@ async function main() {
       el('penui').classList.toggle('hidden', hiding);
     } else if (key >= '1' && key <= String(route.length)) {
       state.pinned = Number(key) - 1;
+      leaveOverview();
       state.playing = false;
     }
   });
@@ -1311,7 +1337,29 @@ async function main() {
     }, 400);
   }
 
-  function apply(canvas) {
+  /**
+   * Open a canvas.
+   *
+   * **Reads what the canvas names before building it.** A pack's models are
+   * only *listed* in the manifest until something asks for one - that is what
+   * keeps opening the page from converting hundreds of models - so a canvas
+   * naming them has to ask first. Without it, `rebuild` finds no grid for any
+   * of them and drops every one as "not in the library", and a saved canvas
+   * opens as a handful of recipes and nothing else.
+   *
+   * The app used to get away with it because the arrangement it opened on named
+   * the same two pack models every time, and startup read those. It opens empty
+   * now, so this is the only thing standing between a saved canvas and being
+   * quietly emptied.
+   */
+  async function apply(canvas) {
+    // Opening a canvas is unambiguously something you did, so startup must not
+    // lay the last autosave over it when the packs finish loading.
+    edited = true;
+    const wanted = canvas.layout.filter((p) => !recipes[p.model] && sources[p.model]);
+    if (wanted.length) {
+      await Promise.all(wanted.map((p) => materialise(p.model, poseOf(p)).catch(() => null)));
+    }
     layout = canvas.layout;
     route = canvas.route;
     areas = canvas.areas ?? [];
@@ -1335,14 +1383,14 @@ async function main() {
     paintPanel();
   }
 
-  function restore() {
+  async function restore() {
     let saved;
     try {
       saved = localStorage.getItem(STORE);
     } catch { return false; }
     if (!saved) return false;
     try {
-      apply(parse(saved));
+      await apply(parse(saved));
       return true;
     } catch (error) {
       // A stored canvas that cannot be read is not worth keeping.
@@ -1657,6 +1705,14 @@ async function main() {
       pitch: framing.pitch,
       yaw: framing.yaw,
       overview: state.overview,
+      // How far the film is rolled into its ring: 1 is Halo mode, 0 is the
+      // overview, and anything between is the unfurl mid-flight.
+      roll: state.roll,
+      // Where the roll is heading. The eased value needs frames to reach it; what
+      // the app was *asked* for does not, and is the thing a control is judged on.
+      rollTo: state.rollTo,
+      solid: state.solid,
+      radius: ringSize(),
       // How far the world survives around the piece being looked at. Evaluated
       // here rather than read back from anything drawn, for the same reason
       // everything else on this object is.
@@ -1756,8 +1812,8 @@ async function main() {
     }
     // The middle of the piece being looked at, so a model lands on the part of
     // the film you are composing. `from` records which piece that is.
-    const [cx, cz] = centreOf(currentRoute().framing);
-    layout.push({ model: id, at: [cx, 0, cz], rot: 0, from: editing(), ...(pose ? { pose } : {}) });
+    const [, cz] = centreOf(currentRoute().framing);
+    layout.push({ model: id, at: [focusX(), 0, cz], rot: 0, from: editing(), ...(pose ? { pose } : {}) });
     rebuild();
     select(layout.length - 1);
     paintLibrary();
@@ -1787,7 +1843,7 @@ async function main() {
       if (/\.vox$/i.test(file.name)) {
         await addVoxFile(file.name, new Uint8Array(await file.arrayBuffer()));
       } else {
-        apply(parse(await file.text()));
+        await apply(parse(await file.text()));
         say(`opened ${file.name}`);
       }
     } catch (error) {
@@ -2103,6 +2159,7 @@ async function main() {
     // place on the strip comes from its position in the film, so adding,
     // removing or re-timing one moves every piece after it.
     restage();
+    renderer.uploadStrip(route.length, PIECE);
     buildSteps();
     paintClock();
     duration = routeDuration(route) / 1000;
@@ -2194,6 +2251,7 @@ async function main() {
 
     state.pinned = index;
     state.hour = hour;
+    leaveOverview();
     rebuild();
     uploadAreas();
     stepsChanged();
@@ -2644,6 +2702,7 @@ async function main() {
         mark.setPointerCapture?.(event.pointerId);
         state.pinned = index;
         state.playing = false;
+        leaveOverview();
         paintStep();
         // Stop the track underneath from reading this as a scrub.
         event.stopPropagation?.();
@@ -2681,6 +2740,7 @@ async function main() {
         state.playing = false;
         state.hour = step.hour;
         state.pinned = index;
+        leaveOverview();
         paintStep();
         paintClock();
       });
@@ -2719,8 +2779,30 @@ async function main() {
     el('b-step-remove').disabled = !route.length;
   }
 
+  el('b-solid').addEventListener('click', () => {
+    state.solid = state.solid ? 0 : 1;
+    el('b-solid').setAttribute('aria-pressed', String(!!state.solid));
+    say(state.solid ? 'a solid body' : 'a ring, open in the middle');
+  });
+
+  /**
+   * Leave the overview, because you have asked to be somewhere.
+   *
+   * Going to a step is a statement about where you want to be, and the overview
+   * is a way of looking at the whole film rather than a place on it - so asking
+   * for a step and staying pulled back is the app ignoring what was asked.
+   * Reported as the overview "not returning to a step".
+   */
+  function leaveOverview() {
+    if (!state.overview) return;
+    state.overview = false;
+    state.rollTo = 1;
+    el('b-overview').setAttribute('aria-pressed', 'false');
+  }
+
   /** Move to a moment in the day, and let the panel follow. */
   function scrubTo(hour) {
+    leaveOverview();
     // The camera keeps its composition. What moves is where along the film it
     // is standing, which is the whole of what the clock decides.
     state.playing = false;
@@ -2791,6 +2873,9 @@ async function main() {
    */
   el('b-overview').addEventListener('click', () => {
     state.overview = !state.overview;
+    // **The overview is the film unrolling.** Not a second view: the same
+    // geometry, with the ring opening out into a long straight strip.
+    state.rollTo = state.overview ? 0 : 1;
     if (state.overview) {
       state.playing = false;
     }
@@ -2825,6 +2910,7 @@ async function main() {
       button.addEventListener('click', () => {
         state.pinned = i;
         state.playing = false;
+        leaveOverview();
         // Pinning a step is also choosing which one to work on, so the panel
         // follows rather than making you say it twice.
         paintStep();
@@ -2849,7 +2935,7 @@ async function main() {
     const file = event.target.files?.[0];
     if (!file) return;
     try {
-      apply(parse(await file.text()));
+      await apply(parse(await file.text()));
       say(`opened ${file.name}`);
     } catch (error) {
       say(isRefusal(error) ? error.message : `could not open ${file.name}`);
@@ -2933,6 +3019,7 @@ async function main() {
     rebuild();
     // The pieces have to be standing before anything asks where the camera is.
     restage();
+    renderer.uploadStrip(route.length, PIECE);
     // Whatever was being worked on last time, if anything.
     paintPanel();
     sync();
@@ -2958,7 +3045,7 @@ async function main() {
         rebuild();
       }
     }
-    if (!edited && restore()) say('picked up where you left off');
+    if (!edited && await restore()) say('picked up where you left off');
     paintPanel();
   });
 
@@ -3121,12 +3208,25 @@ async function main() {
     // so what falls away is everything that is not this moment of the film. It
     // opens with the shot, so the overview shows the whole strip rather than a
     // hole cut in it.
+    // **Halo mode: the camera stops travelling and the world turns.** What was
+    // worked out above is where the camera would stand on the flat strip; when
+    // the film is rolled, that place is brought to the top of the ring instead
+    // and the camera sits still at the origin. Blended by the roll, so the
+    // unfurl moves the camera and the world together.
+    state.roll = easeRoll(state.roll, state.rollTo, delta);
+    if (state.roll > 0.0005) {
+      framing = lerpFraming(framing, framingOf(state.rig, 0, PIECE), state.roll, 0);
+    }
+
     const seen = veilFor(framing.w, PIECE);
     const { matrix, eye, target } = viewProjection(framing);
     renderer.draw({
-      focus: [cx, cz],
+      focus: [focusX(), 0],
       veilNear: seen.near,
       veilFar: seen.far,
+      roll: state.roll,
+      radius: ringSize(),
+      solid: state.solid,
       // The sky needs where the camera looks as well as where it is, so it can
       // turn a pixel into a direction and put the sun where it actually is.
       matrix, eye, target, time: now / 1000, weather,

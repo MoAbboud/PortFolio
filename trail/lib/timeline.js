@@ -230,6 +230,129 @@ export function insertPiece(pieces = [], piece) {
     .map(({ p }) => p);
 }
 
+// --- the ring ---------------------------------------------------------------
+//
+// **The strip rolled into a loop.** A film strip rolls into a cylinder, not a
+// sphere - the poles of a sphere have nowhere to come from - so the world is a
+// ring seen edge on, with nothing in the middle of it. Rolled around the
+// across-strip axis, so "up" for a piece points outward from the centre and the
+// pieces stand on the outside of the loop like a rolled reel.
+//
+// Scrubbing turns the ring rather than travelling along it: the piece being
+// looked at is always at the top, and the world rotates to bring it there.
+
+// How far a single piece may bend before it stops reading as a flat scene, in
+// degrees of arc. Beyond about this a piece visibly curves and the things
+// standing on it splay outward.
+const MAX_BEND = 30;
+
+/**
+ * One step of the unfurl.
+ *
+ * Pulled out of the frame loop so the curve can be checked without a browser.
+ * The page can be asked whether it *wants* to unroll but cannot be watched
+ * doing it: once several app instances have been started, the test harness
+ * starves any one of them of frames. This is the part that decides how it looks.
+ *
+ * Framed as "how much of what is left is covered in this much time", so it is
+ * **frame-rate independent** - a slow frame moves further rather than the whole
+ * animation running slower.
+ */
+export function easeRoll(from, to, seconds, rate = 3.5) {
+  const step = 1 - Math.exp(-Math.max(0, rate) * Math.max(0, seconds));
+  const next = from + (to - from) * step;
+  // Settle exactly, or it creeps toward the target for ever and the world is
+  // never quite rolled.
+  return Math.abs(to - next) < 0.002 ? to : next;
+}
+
+/**
+ * The radius of the ring for a film of this length.
+ *
+ * Closing the loop exactly means the circumference is the strip, so **the
+ * world's size is the length of the story** - a three-piece event is a marble,
+ * a forty-piece one is a proper world that turns slowly. That is a lovely
+ * property and it needs a floor: three pieces closing a loop puts 120 degrees
+ * of arc through each one, which bends a scene into a horseshoe.
+ *
+ * Under the floor the strip is an arc of a larger circle rather than a closed
+ * loop. You cannot see the far side from the top, so an open loop and a closed
+ * one look the same until the film is long enough to close honestly.
+ */
+export function radiusFor(count, geometry) {
+  const step = pitchOf(geometry);
+  const pieces = Math.max(1, Math.floor(isNumber(count) ? count : 1));
+  const closed = (pieces * step) / (2 * Math.PI);
+  const gentle = step / ((MAX_BEND * Math.PI) / 180);
+  return Math.max(closed, gentle);
+}
+
+/**
+ * A point on the flat strip, moved onto the ring.
+ *
+ * The same transform the vertex shader applies, kept here so that picking can
+ * undo it and a test can check the two agree. `focus` is the strip position
+ * currently at the top of the ring, so it is the thing that turns as the clock
+ * moves.
+ */
+export function rollPoint([x, y, z], focus, radius) {
+  const a = (x - focus) / radius;
+  const r = radius + y;
+  return [r * Math.sin(a), r * Math.cos(a) - radius, z];
+}
+
+/**
+ * A point on the ring, read back as a place on the flat strip.
+ *
+ * The inverse of `rollPoint`, and what turns a click into a position. Picking
+ * is done by finding where a ray meets the ring's surface and asking this where
+ * that is on the film.
+ */
+export function unrollPoint([x, y, z], focus, radius) {
+  const a = Math.atan2(x, y + radius);
+  const r = Math.hypot(x, y + radius);
+  return [focus + a * radius, r - radius, z];
+}
+
+/**
+ * Where a ray meets the ground of the ring.
+ *
+ * The ground is the cylinder of radius `radius` whose axis runs along z through
+ * `(0, -radius, 0)` - so the top of it passes through the origin, which is
+ * where the flat strip's ground was. Null when the ray misses, or only meets it
+ * behind the camera.
+ *
+ * Solved in the plane: the z component is along the axis and does not affect
+ * whether the ray hits.
+ */
+export function ringGround(ray, focus, radius) {
+  const ox = ray.origin[0];
+  const oy = ray.origin[1] + radius;
+  const dx = ray.direction[0];
+  const dy = ray.direction[1];
+
+  const a = dx * dx + dy * dy;
+  if (a < 1e-12) return null;
+  const b = 2 * (ox * dx + oy * dy);
+  const c = ox * ox + oy * oy - radius * radius;
+  const disc = b * b - 4 * a * c;
+  if (disc < 0) return null;
+
+  const root = Math.sqrt(disc);
+  // The near face, which is the one being looked at. The far one is the inside
+  // of the back of the ring, and clicking through the world is not a gesture.
+  const hits = [(-b - root) / (2 * a), (-b + root) / (2 * a)].filter((t) => t > 0);
+  if (!hits.length) return null;
+  const t = Math.min(...hits);
+
+  const point = [
+    ray.origin[0] + ray.direction[0] * t,
+    ray.origin[1] + ray.direction[1] * t,
+    ray.origin[2] + ray.direction[2] * t,
+  ];
+  return unrollPoint(point, focus, radius);
+}
+
 // --- the camera -------------------------------------------------------------
 
 /**
@@ -338,7 +461,19 @@ export function revealFraming(rig, count, geometry, { margin = 1.15, pitch = 52,
     : (pieces ?? include);
 
   if (!extent) return framingOf({ ...base, pitch: lifted, yaw: 0 }, 0, geometry);
-  const width = Math.max(base.width, (extent.max - extent.min) * margin);
+  // **Floored on the piece, not on the shot you were in.**
+  //
+  // This used to be `max(base.width, ...)`, so that pulling back could never be
+  // a push in. In use that made the overview a no-op: with a short film and a
+  // wide shot it returned exactly the framing already on screen, so the button
+  // did nothing and there was no way to tell it had been pressed. Reported as
+  // being stuck in overview.
+  //
+  // Showing the whole film sometimes means closing in - a one-piece film seen
+  // from a long way out is a speck - and that is the right answer, because the
+  // overview is a statement about the film rather than about the shot.
+  const { width: pieceWidth } = geometryOf(geometry);
+  const width = Math.max(pieceWidth * 1.2, (extent.max - extent.min) * margin);
   const depth = depthFor(width, lifted);
   const centre = (extent.min + extent.max) / 2;
   return {

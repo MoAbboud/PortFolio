@@ -8,6 +8,7 @@ import {
   depthFor, rigOf, framingOf, revealFraming, veilFor,
   runAt, runDuration, DEFAULT_PIECE,
   groundedRig, distanceFor, PITCH_MIN,
+  radiusFor, rollPoint, unrollPoint, ringGround, easeRoll,
 } from '../lib/timeline.js';
 import { framingToView } from '../lib/camera.js';
 import { orbit, zoom, rise } from '../lib/orbit.js';
@@ -194,6 +195,126 @@ test('a piece with no time goes on the end rather than at midnight', () => {
   assert.equal(grown[3].hour, undefined);
 });
 
+// --- the ring ---------------------------------------------------------------
+
+test('the piece being looked at sits where the flat strip put it', () => {
+  // The top of the ring is the origin, so rolling changes nothing about the
+  // piece in front of the camera. That is what lets the two views share a
+  // camera and lets the unfurl be a blend rather than a cut.
+  const R = radiusFor(6, GEO);
+  const [x, y, z] = rollPoint([120, 2, 3], 120, R);
+  near(x, 0);
+  near(y, 2);
+  near(z, 3);
+});
+
+test('rolling and unrolling are the same journey in both directions', () => {
+  const R = radiusFor(8, GEO);
+  for (const point of [[64, 0, 0], [104, 1.5, -6], [-26, 4, 11], [140, 0, 0]]) {
+    const back = unrollPoint(rollPoint(point, 64, R), 64, R);
+    for (let i = 0; i < 3; i++) near(back[i], point[i], 1e-9);
+  }
+});
+
+test('past half a turn a place comes back as its other name', () => {
+  // **Not a rounding failure - a property of a loop.** Two hundred and twenty
+  // degrees round the ring is the same place as a hundred and forty the other
+  // way, and `unrollPoint` answers with the nearer one. It matters because
+  // picking uses it: a click can only ever land on the side being looked at,
+  // so the near answer is always the right one.
+  const R = radiusFor(8, GEO);
+  const halfTurn = Math.PI * R;
+  const far = rollPoint([halfTurn * 1.2, 0, 0], 0, R);
+  const back = unrollPoint(far, 0, R)[0];
+  assert.ok(Math.abs(back) <= halfTurn + 1e-6,
+    `${back} is more than half a turn from the top`);
+  // And it is the same point on the ring, which is what "its other name" means.
+  const again = rollPoint([back, 0, 0], 0, R);
+  for (let i = 0; i < 3; i++) near(again[i], far[i], 1e-9);
+});
+
+test('the unfurl covers the same ground however the frames fall', () => {
+  // Frame-rate independent, so a stutter moves further rather than making the
+  // whole animation run slower - which is what accumulating a fixed fraction
+  // per frame does, and it makes an animation a different length on every
+  // machine.
+  const inOneGo = easeRoll(1, 0, 0.4);
+  let inSteps = 1;
+  for (let i = 0; i < 8; i++) inSteps = easeRoll(inSteps, 0, 0.05);
+  near(inOneGo, inSteps, 1e-9);
+});
+
+test('the unfurl finishes rather than creeping toward the end for ever', () => {
+  // An exponential ease never quite arrives, so the world would never be quite
+  // rolled and `uRoll` would sit at 0.001 for the rest of the session.
+  let roll = 1;
+  for (let i = 0; i < 200; i++) roll = easeRoll(roll, 0, 0.016);
+  assert.equal(roll, 0, `the roll settled at ${roll} rather than at its target`);
+
+  let back = 0;
+  for (let i = 0; i < 200; i++) back = easeRoll(back, 1, 0.016);
+  assert.equal(back, 1);
+});
+
+test('the unfurl never overshoots, however long a frame takes', () => {
+  // A frame can be arbitrarily long - a tab comes back from the background, a
+  // model finishes loading - and a fraction-per-frame ease overshoots wildly
+  // when it does.
+  for (const seconds of [0, 0.001, 0.5, 4, 60]) {
+    const roll = easeRoll(1, 0, seconds);
+    assert.ok(roll >= 0 && roll <= 1, `a ${seconds}s frame rolled to ${roll}`);
+  }
+});
+
+test('a piece never bends more than it can be read at', () => {
+  // Closing the loop exactly means a short film is a tiny world: three pieces
+  // would put 120 degrees of arc through each one, which bends a scene into a
+  // horseshoe. Under the floor the strip is an arc of a larger circle instead.
+  for (const count of [1, 2, 3, 6, 12, 40]) {
+    const R = radiusFor(count, GEO);
+    const bend = (pitchOf(GEO) / R) * (180 / Math.PI);
+    assert.ok(bend <= 30.001, `${count} pieces bends a piece ${bend.toFixed(1)} degrees`);
+  }
+});
+
+test('a long film closes the loop, so the world is the size of the story', () => {
+  const long = radiusFor(40, GEO);
+  const circumference = 2 * Math.PI * long;
+  near(circumference, 40 * pitchOf(GEO), 1e-6);
+  // And it grows with the film rather than being a fixed world.
+  assert.ok(radiusFor(80, GEO) > long);
+});
+
+test('a click on the ring reads back as a place on the film', () => {
+  const R = radiusFor(10, GEO);
+  const focus = 3 * pitchOf(GEO);
+  // Straight down onto the top of the ring, which is where the camera looks.
+  const straight = ringGround({ origin: [0, 40, 0], direction: [0, -1, 0] }, focus, R);
+  near(straight[0], focus, 1e-6);
+  near(straight[1], 0, 1e-6);
+
+  // And off to one side: further round the ring, which is further along the film.
+  const along = ringGround({ origin: [8, 40, 0], direction: [0, -1, 0] }, focus, R);
+  assert.ok(along[0] > focus, 'a click to the right should be later in the film');
+});
+
+test('a ray that misses the ring picks nothing, rather than guessing', () => {
+  const R = radiusFor(6, GEO);
+  assert.equal(ringGround({ origin: [0, 40, 0], direction: [0, 1, 0] }, 0, R), null,
+    'a ray pointing away from the world hit something');
+  assert.equal(ringGround({ origin: [0, R * 4, 0], direction: [1, 0, 0] }, 0, R), null,
+    'a ray passing well above the world hit something');
+});
+
+test('the near face is picked, not the inside of the far side', () => {
+  // Clicking through the world and landing on the back of it is not a gesture
+  // anybody makes on purpose.
+  const R = radiusFor(20, GEO);
+  const hit = ringGround({ origin: [0, R, 0], direction: [0, -1, 0] }, 0, R);
+  near(hit[1], 0, 1e-6);
+  near(hit[0], 0, 1e-6);
+});
+
 // --- the camera -------------------------------------------------------------
 
 test('the rectangle exactly fills the frame at any pitch', () => {
@@ -282,9 +403,22 @@ test('the reveal takes in things placed past the edge of their piece', () => {
   assert.ok(framing.x + framing.w >= far.max, 'something placed off the far end was cut off');
 });
 
-test('the reveal never closes in on a strip shorter than the shot already is', () => {
-  const framing = revealFraming({ yaw: 0, pitch: 22, width: 90 }, 1, GEO);
-  assert.ok(framing.w >= 90, 'pulling back should never be a push in');
+test('the reveal frames the film, whatever shot it was called from', () => {
+  // **Reversed after seeing it.** This used to floor the width at the shot you
+  // were already in, so that pulling back could never be a push in. In use that
+  // made the overview a no-op: with a short film and a wide shot it returned
+  // exactly the framing already on screen, so the button appeared to do nothing
+  // and there was no way to leave a state you could not tell you were in.
+  //
+  // Showing the whole film sometimes means closing in, and that is right - the
+  // overview is a statement about the film, not about the shot.
+  const wide = revealFraming({ yaw: 0, pitch: 22, width: 300 }, 1, GEO);
+  const close = revealFraming({ yaw: 0, pitch: 22, width: 8 }, 1, GEO);
+  assert.equal(wide.w, close.w, 'the overview depends on the shot it was called from');
+  assert.ok(wide.w < 300, 'a one-piece film seen from 300 units out is a speck');
+
+  // And it is never so tight that the piece does not fit in it.
+  assert.ok(wide.w > GEO.width, `the overview is ${wide.w}, narrower than a piece`);
 });
 
 test('there is still an ending when there is no film', () => {

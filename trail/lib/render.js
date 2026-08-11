@@ -1,11 +1,71 @@
-// WebGL2. Three draw calls carry the whole picture: the sky, the cube field,
-// and the cube field again mirrored under a shiny floor.
+// WebGL2. The sky, the film, and what stands on it.
+//
+// **The world is a ring hanging in space.** There is no ground plane and no
+// mirrored pass: the strip is rolled into a loop in the vertex shader, and the
+// only ground is the film itself, one plate per piece.
 //
 // This is the one module that is not pure. It knows about buffers, shaders and
 // uniforms, and it knows nothing about canvases, scripts or steps: it is handed
 // arrays and a matrix.
 
+/**
+ * Rolling the strip into a ring, shared by every program that draws the world.
+ *
+ * **A film strip rolls into a cylinder, not a sphere** - the poles of a sphere
+ * have nowhere to come from - so the world is a ring seen edge on with nothing
+ * in the middle. Rolled about the across-strip axis, so a piece's "up" points
+ * outward and things stand on the outside of the loop like a rolled reel.
+ *
+ * `uRoll` blends flat to rolled, which is what makes the overview an unfurl
+ * rather than a second view: the ball opens into a long straight strip and the
+ * same geometry is doing both. `uFocus.x` is the place on the film currently at
+ * the top of the ring, so scrubbing turns the world rather than travelling
+ * along it.
+ *
+ * Nothing here costs the processor anything: it is three uniforms, and the
+ * field is still built once and uploaded once.
+ */
+const ROLL = `
+uniform float uRoll;      // 0 flat, 1 rolled into the ring
+uniform float uRadius;
+uniform float uFocusX;    // the place on the film at the top of the ring
+uniform float uVeilNear;  // clear out to here, measured along the film
+uniform float uVeilFar;   // wholly gone by here
+
+// How much of the world survives here.
+//
+// **Measured on the flat strip**, always, whatever the world has been rolled
+// into: it is a distance along the film. On a ring two pieces can be close
+// together in space while being half a story apart, so anything measured after
+// the roll would fade the wrong things.
+float veilOf(vec3 onStrip) {
+  return 1.0 - smoothstep(uVeilNear, uVeilFar,
+    distance(onStrip.xz, vec2(uFocusX, 0.0)));
+}
+
+float bendAngle(float x) { return (x - uFocusX) / max(uRadius, 0.001); }
+
+vec3 bend(vec3 p) {
+  if (uRoll < 0.0005) return p;
+  float a = bendAngle(p.x);
+  float r = uRadius + p.y;
+  vec3 rolled = vec3(r * sin(a), r * cos(a) - uRadius, p.z);
+  return mix(p, rolled, uRoll);
+}
+
+// The same turn applied to a direction. Without it the lighting stays flat
+// while the world curves, and the far side of the ring is lit as though it were
+// still facing up.
+vec3 bendNormal(vec3 n, float x) {
+  if (uRoll < 0.0005) return n;
+  float a = bendAngle(x) * uRoll;
+  float c = cos(a), s = sin(a);
+  return normalize(vec3(n.x * c + n.y * s, -n.x * s + n.y * c, n.z));
+}
+`;
+
 const CUBE_VS = `#version 300 es
+${ROLL}
 in vec3 aPos;
 in vec3 aNormal;
 in vec3 aOffset;
@@ -35,6 +95,7 @@ out float vSolid;
 out float vAo;
 out vec3 vWorld;
 out vec2 vFinish;
+out float vVeil;
 
 
 // How far along its line this object is.
@@ -74,9 +135,13 @@ void main() {
   vSolid = solidity(uStep, uStepT, aFrom, aUntil);
   float grow = mix(0.5, 1.0, vSolid);
 
-  vec3 p = world + aPos * aSize * grow;
-  vY = p.y;
-  p.y *= uFlip;
+  // Measured on the flat strip, before the world is rolled: the veil is a
+  // distance along the film, and on a ring the rolled positions of two pieces
+  // can be close together while being half a story apart.
+  vec3 onStrip = world + aPos * aSize * grow;
+  vVeil = veilOf(onStrip);
+  vY = onStrip.y;
+  vec3 p = bend(onStrip);
   vWorld = p;
 
   vColour = aColour;
@@ -85,7 +150,7 @@ void main() {
   // the shimmer was sized for it in the first place.
   vFinish = vec2(0.0, 1.0);
   vPicked = abs(aObject - uSelected) < 0.5 ? 1.0 : 0.0;
-  vNormal = vec3(aNormal.x, aNormal.y * uFlip, aNormal.z);
+  vNormal = bendNormal(aNormal, onStrip.x);
   vec4 clip = uViewProj * vec4(p, 1.0);
   vDepth = clip.w;
   gl_Position = clip;
@@ -103,6 +168,7 @@ in float vSolid;
 in float vAo;
 in vec3 vWorld;
 in vec2 vFinish;
+in float vVeil;
 
 uniform vec3 uSun;
 uniform vec3 uSky;
@@ -111,9 +177,6 @@ uniform float uFogFar;
 uniform float uTint;      // mirrored pass is dimmed
 uniform float uAmbient;
 uniform float uSmooth;    // 0 flat facets, 1 averaged across the surface
-uniform vec2 uFocus;      // the piece being looked at, on the ground
-uniform float uVeilNear;  // clear out to here
-uniform float uVeilFar;   // wholly sky by here
 
 out vec4 frag;
 
@@ -146,18 +209,15 @@ void main() {
   float fog = clamp((vDepth - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0);
   colour = mix(colour, uSky, fog * 0.85);
 
-  // **The veil: fog measured from the piece, not from the camera.**
+  // **The veil: measured from the piece, not from the camera.**
   //
-  // Distance fog cannot separate the film. A neighbouring piece sits *beside*
-  // the camera, at very nearly the same depth as the piece in front of it, so
-  // anything keyed to depth either shows both or hides both. This fades by
-  // distance from the piece being looked at instead, which leaves a clear pool
-  // around the scene and washes everything else into the sky.
-  //
-  // It is also what makes the world read as endless: the ground is gone long
-  // before it runs out, so there is no edge left to find.
-  float away = distance(vWorld.xz, uFocus);
-  colour = mix(colour, uSky, smoothstep(uVeilNear, uVeilFar, away));
+  // Distance fog cannot separate the film - a neighbouring piece sits *beside*
+  // the camera at nearly the same depth as the one in front of it, so anything
+  // keyed to depth shows both or hides both. This is worked out in the vertex
+  // shader from the position on the **flat** strip, because once the world is
+  // rolled two pieces can be near each other in space while being half a story
+  // apart along the film.
+  colour = mix(uSky, colour, vVeil);
 
   // A ghost is washed most of the way into the sky rather than made
   // transparent. It reads the same and it needs no sorting, which transparency
@@ -176,6 +236,7 @@ void main() {
 // fragment shader exactly, so the two ways of drawing an object cannot drift
 // apart in how they are lit, fogged, ghosted or highlighted.
 const MESH_VS = `#version 300 es
+${ROLL}
 in vec3 aPos;
 in vec3 aNormal;
 in vec3 aColour;
@@ -233,6 +294,7 @@ out float vSolid;
 out float vAo;
 out vec3 vWorld;
 out vec2 vFinish;
+out float vVeil;
 
 float solidity(float step, float t, float from, float until) {
   if (step < from - 0.5) return 0.0;
@@ -263,15 +325,18 @@ void main() {
   vec3 p = turned(aPos, aPivot, aMotion, uTime) + aNormal * (breathe + shrink)
     + travelled(aTravel, uStep, uArrive);
 
+  // See the cube shader: the veil is measured on the flat strip.
+  vVeil = veilOf(p);
   vY = p.y;
-  p.y *= uFlip;
+  vec3 onStrip = p;
+  p = bend(p);
   vWorld = p;
 
   vColour = aColour;
   vAo = aAo;
   vFinish = aFinish;
   vPicked = abs(aObject - uSelected) < 0.5 ? 1.0 : 0.0;
-  vNormal = vec3(aNormal.x, aNormal.y * uFlip, aNormal.z);
+  vNormal = bendNormal(aNormal, onStrip.x);
   vec4 clip = uViewProj * vec4(p, 1.0);
   vDepth = clip.w;
   gl_Position = clip;
@@ -280,6 +345,7 @@ void main() {
 // A soft patch of darkness under each object. Without one, everything hovers
 // a little, and no amount of shading on the object itself fixes that.
 const SHADOW_VS = `#version 300 es
+${ROLL}
 in vec2 aCorner;
 in vec3 aCentre;
 in float aRadius;
@@ -291,10 +357,6 @@ uniform mat4 uViewProj;
 uniform float uStep;
 uniform float uStepT;
 uniform float uArrive;
-uniform vec2 uFocus;
-uniform float uVeilNear;
-uniform float uVeilFar;
-
 out vec2 vLocal;
 out float vSolid;
 out float vVeil;
@@ -320,7 +382,7 @@ void main() {
   vSolid = solidity(uStep, uStepT, aFrom, aUntil);
   // Veiled with the thing casting it. A shadow is multiplied onto the ground,
   // so one left behind past the veil is a dark blot on what should be sky.
-  vVeil = 1.0 - smoothstep(uVeilNear, uVeilFar, distance(aCentre.xz, uFocus));
+  vVeil = veilOf(aCentre);
   // Just above the ground, so it never fights the floor for depth. A shadow
   // travels with the object casting it, or it is left standing where the
   // object used to be.
@@ -352,6 +414,7 @@ void main() {
 // step range like everything else, so an area arrives with the part of the
 // story that happens in it.
 const AREA_VS = `#version 300 es
+${ROLL}
 in vec2 aCorner;
 in vec3 aCentre;
 in vec2 aHalf;
@@ -484,6 +547,10 @@ uniform vec3 uMoon;
 uniform float uSunUp;
 uniform float uMoonUp;
 uniform float uNight;
+// How far the sky is space rather than air. The world is a ring hanging in
+// nothing, so there is no atmosphere to hold a gradient and no horizon for one
+// to sit on - what is left is black with stars in it.
+uniform float uSpace;
 out vec4 frag;
 
 // A stable value per direction, for stars. Nothing is stored and nothing is
@@ -500,6 +567,9 @@ void main() {
   // screen, so tilting the camera tilts the sky with it.
   float h = clamp(dir.y * 0.5 + 0.5, 0.0, 1.0);
   vec3 colour = mix(uHorizon, uSky, pow(h, 0.75));
+  // Pulled toward black, keeping a little of the hour's colour so the weather
+  // and the time of day still say something rather than nothing.
+  colour = mix(colour, colour * 0.06, uSpace);
 
   vec3 sun = normalize(uSun);
   vec3 moon = normalize(uMoon);
@@ -518,11 +588,15 @@ void main() {
 
   // Stars, before either body, so both are drawn over them. They fade in with
   // the dark and never appear in daylight.
-  if (uNight > 0.01) {
+  float starlight = max(uNight, uSpace);
+  if (starlight > 0.01) {
     vec3 cell = floor(dir * 220.0);
     float star = hash(cell);
-    float bright = smoothstep(0.9975, 1.0, star) * max(dir.y, 0.0);
-    colour += vec3(0.85, 0.88, 1.0) * bright * uNight;
+    // In space there is no ground to hide the lower half of the sky, so stars
+    // go all the way round rather than fading out below the horizon.
+    float below = mix(max(dir.y, 0.0), 1.0, uSpace);
+    float bright = smoothstep(0.9975, 1.0, star) * below;
+    colour += vec3(0.85, 0.88, 1.0) * bright * starlight;
   }
 
   // The glow around the sun, wide and soft, and much wider near the horizon -
@@ -547,69 +621,102 @@ void main() {
   frag = vec4(colour, 1.0);
 }`;
 
-const FLOOR_VS = `#version 300 es
+/**
+ * The film itself: one plate of ground per piece.
+ *
+ * **This replaced the infinite floor**, which was an endless plane the world
+ * stood on. There is no ground any more - the world is a ring hanging in space
+ * - so the only ground is the film, and a piece of film is a plate you can see
+ * the edges of. That is what makes the strip read as a strip rather than as
+ * objects floating in the dark.
+ *
+ * One instanced quad per piece, rolled by the same transform everything else
+ * is, so the plates curve into the ring with what stands on them.
+ */
+const STRIP_VS = `#version 300 es
+${ROLL}
 in vec2 aCorner;
+in float aPiece;          // which piece of the film this plate is
+
 uniform mat4 uViewProj;
-uniform float uExtent;
-out vec3 vWorld;
+uniform float uPitch;     // centre to centre along the film
+uniform vec2 uPlate;      // how big a plate is: along the film, across it
+uniform float uSolid;     // 0 a ring you can see through, 1 a filled body
+
+out vec3 vStrip;
+out vec2 vLocal;
 out float vDepth;
+out float vVeil;
+out float vLit;
+
 void main() {
-  vWorld = vec3(aCorner.x * uExtent, 0.0, aCorner.y * uExtent);
-  vec4 clip = uViewProj * vec4(vWorld, 1.0);
+  // Inward, when solid: the plate's near edge is dragged toward the middle of
+  // the ring so the hole fills in and it reads as a body rather than a hoop.
+  float inward = mix(0.0, uRadius, uSolid) * (0.5 - aCorner.y * 0.5);
+
+  vec3 onStrip = vec3(
+    aPiece * uPitch + aCorner.x * uPlate.x * 0.5,
+    -inward,
+    aCorner.y * uPlate.y * 0.5
+  );
+  vLocal = aCorner;
+  vStrip = onStrip;
+  vVeil = veilOf(onStrip);
+
+  vec3 p = bend(onStrip);
+  // The plate faces outward from the ring, which is what its own turn says.
+  vLit = bendNormal(vec3(0.0, 1.0, 0.0), onStrip.x).y;
+
+  vec4 clip = uViewProj * vec4(p, 1.0);
   vDepth = clip.w;
   gl_Position = clip;
 }`;
 
-const FLOOR_FS = `#version 300 es
+const STRIP_FS = `#version 300 es
 precision highp float;
-in vec3 vWorld;
+in vec3 vStrip;
+in vec2 vLocal;
 in float vDepth;
+in float vVeil;
+in float vLit;
+
 uniform vec3 uFloor;
 uniform vec3 uSky;
-uniform vec3 uEye;
 uniform vec3 uSun;
 uniform float uFogNear;
 uniform float uFogFar;
 uniform sampler2D uScars;
 uniform float uScarExtent;
-uniform vec2 uFocus;
-uniform float uVeilNear;
-uniform float uVeilFar;
+
 out vec4 frag;
+
 void main() {
-  float fog = clamp((vDepth - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0);
-  // See the cube shader. On the floor this is the whole of the endless
-  // illusion: the ground reaches far past anything the veil lets you see, so it
-  // can never be caught ending.
-  float veil = smoothstep(uVeilNear, uVeilFar, distance(vWorld.xz, uFocus));
-
-  // What the weather left behind. Red is wet, green is bleached by fog. The sky
-  // is one sky, but the ground is a record of the whole story, which is what
-  // the final pull-back is looking at.
-  vec2 uv = (vWorld.xz + uScarExtent) / (2.0 * uScarExtent);
+  // What the weather left behind. Red is wet, green is bleached by fog. Read in
+  // **strip space**, so a mark stays on the piece it fell on however the world
+  // is rolled.
+  vec2 uv = (vStrip.xz + uScarExtent) / (2.0 * uScarExtent);
   vec2 marks = texture(uScars, uv).rg;
-  float wet = marks.r * step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0);
-  float pale = marks.g * step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0);
+  float inside = step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0);
+  float wet = marks.r * inside;
+  float pale = marks.g * inside;
 
-  // A shiny floor: the reflection beneath shows through where the floor is
-  // near, and the sky takes over as it recedes.
-  // "half" is a reserved word in GLSL, hence "halfway".
-  vec3 view = normalize(uEye - vWorld);
-  vec3 halfway = normalize(normalize(uSun) + view);
-  float spec = pow(max(halfway.y, 0.0), mix(90.0, 220.0, wet));
-
-  vec3 ground = uFloor * mix(1.0, 0.55, wet);          // rain darkens it
+  vec3 ground = uFloor * mix(1.0, 0.55, wet);
   ground = mix(ground, vec3(0.82, 0.83, 0.84), pale * 0.65);
-  vec3 colour = mix(ground, uSky, fog * 0.9) + vec3(spec) * mix(0.6, 1.5, wet);
-  colour = mix(colour, uSky, veil);
 
-  // Wet ground mirrors harder; bleached ground barely mirrors at all.
-  float clarity = mix(0.62, 0.34, wet);
-  clarity = mix(clarity, 0.92, pale);
-  // Opaque once veiled, so the reflection underneath does not show through what
-  // is meant to be empty sky.
-  float alpha = mix(mix(clarity, 1.0, fog), 1.0, veil);
-  frag = vec4(colour, alpha);
+  // Lit by where this part of the ring is facing, so the far side of the loop
+  // falls into shadow and the world reads as round.
+  float lambert = max((vLit * normalize(uSun).y + 0.35) / 1.35, 0.0);
+  vec3 colour = ground * mix(0.55, 1.15, lambert);
+
+  // A darker lip at the edge of a plate, so one piece of film is visibly one
+  // piece rather than part of a longer floor.
+  vec2 edge = 1.0 - abs(vLocal);
+  float lip = smoothstep(0.0, 0.06, min(edge.x, edge.y));
+  colour = mix(colour * 0.35, colour, lip);
+
+  float fog = clamp((vDepth - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0);
+  colour = mix(colour, uSky, fog * 0.9);
+  frag = vec4(colour, vVeil);
 }`;
 
 // A cube as 24 vertices and 36 indices, so each face gets its own normal.
@@ -656,8 +763,8 @@ export const SHADERS = {
   'rain fragment': RAIN_FS,
   'sky vertex': SKY_VS,
   'sky fragment': SKY_FS,
-  'floor vertex': FLOOR_VS,
-  'floor fragment': FLOOR_FS,
+  'strip vertex': STRIP_VS,
+  'strip fragment': STRIP_FS,
 };
 
 /** Show the offending line, since a GLSL error is a line number and little else. */
@@ -717,7 +824,7 @@ export function createRenderer(canvas) {
   const area = program(gl, AREA_VS, AREA_FS, 'area');
   const rain = program(gl, RAIN_VS, RAIN_FS, 'rain');
   const sky = program(gl, SKY_VS, SKY_FS, 'sky');
-  const floor = program(gl, FLOOR_VS, FLOOR_FS, 'floor');
+  const strip = program(gl, STRIP_VS, STRIP_FS, 'strip');
 
   const geo = cubeGeometry();
   const buffer = (data, target = gl.ARRAY_BUFFER, usage = gl.STATIC_DRAW) => {
@@ -834,6 +941,36 @@ export function createRenderer(canvas) {
   let areaVao = null;
   let areaCount = 0;
   const areaBuffers = {};
+
+  let stripVao = null;
+  let pieceBuf = null;
+
+  /**
+   * The film itself: one plate of ground per piece.
+   *
+   * Called when the number of pieces changes, which is the only thing it
+   * depends on - where each plate stands comes from its index and the geometry,
+   * both of which the shader is given. So adding a piece is one small buffer,
+   * not a rebuild of the world.
+   */
+  function uploadStrip(count, geometry) {
+    plateCount = Math.max(0, Math.floor(count) || 0);
+    plate = [geometry.width, geometry.depth];
+    platePitch = geometry.width + geometry.gap;
+    if (!plateCount) return;
+
+    const ids = new Float32Array(plateCount);
+    for (let i = 0; i < plateCount; i++) ids[i] = i;
+    if (pieceBuf) gl.deleteBuffer(pieceBuf);
+    pieceBuf = buffer(ids);
+
+    if (stripVao) gl.deleteVertexArray(stripVao);
+    stripVao = gl.createVertexArray();
+    gl.bindVertexArray(stripVao);
+    attribute(strip.handle, 'aCorner', quadBuf, 2);
+    attribute(strip.handle, 'aPiece', pieceBuf, 1, 1);
+    gl.bindVertexArray(null);
+  }
 
   /** Hand the ground its labelled places. Called whenever they change. */
   function uploadAreas(patches) {
@@ -1041,11 +1178,28 @@ export function createRenderer(canvas) {
   let veilAt = [0, 0];
   let veilFrom = 1e6;
   let veilTo = 1e6 + 1;
+  // How far the world is rolled, and how big the loop is when it is.
+  let rolled = 0;
+  let ringRadius = 1000;
+  let plateCount = 0;
+  let plate = [34, 22];
+  let platePitch = 64;
+  let solidBody = 0;
 
+  /**
+   * The shape of the world, handed to every program that draws part of it.
+   *
+   * The roll, the ring's size and where the veil sits all have to agree across
+   * the cubes, the surface, the film and the shadows, or the world comes apart
+   * along the seams between programs. One place to set them is the only way
+   * that stays true.
+   */
   function veil({ u }) {
-    if (u.uFocus) gl.uniform2f(u.uFocus, veilAt[0], veilAt[1]);
     if (u.uVeilNear) gl.uniform1f(u.uVeilNear, veilFrom);
     if (u.uVeilFar) gl.uniform1f(u.uVeilFar, veilTo);
+    if (u.uRoll) gl.uniform1f(u.uRoll, rolled);
+    if (u.uRadius) gl.uniform1f(u.uRadius, ringRadius);
+    if (u.uFocusX) gl.uniform1f(u.uFocusX, veilAt[0]);
   }
 
   function draw({
@@ -1055,6 +1209,11 @@ export function createRenderer(canvas) {
     // enough to change nothing, so a caller that does not ask for a veil does
     // not get one.
     focus = [0, 0], veilNear = 1e6, veilFar = 1e6 + 1,
+    // How far the strip is rolled into its ring, how big that ring is, and
+    // whether its middle is filled in.
+    roll = 0, radius = 1000, solid = 0,
+    // How far the sky is space rather than air.
+    space = 1,
     // How far through the flight into the current step the route is. An object
     // that travels is part way along its line by exactly this much. Settled on
     // a step means 1: the move is over and the object is where it ended up.
@@ -1062,6 +1221,7 @@ export function createRenderer(canvas) {
   }) {
     smoothing = smooth;
     veilAt = focus; veilFrom = veilNear; veilTo = veilFar;
+    rolled = roll; ringRadius = Math.max(1, radius); solidBody = solid;
     const view = resize();
     lastView = view;
     gl.enable(gl.SCISSOR_TEST);
@@ -1097,37 +1257,39 @@ export function createRenderer(canvas) {
     gl.uniform1f(sky.u.uSunUp, weather.sunUp ?? 1);
     gl.uniform1f(sky.u.uMoonUp, weather.moonUp ?? 0);
     gl.uniform1f(sky.u.uNight, weather.night ?? 0);
+    gl.uniform1f(sky.u.uSpace, space);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-    // 2. The field, mirrored under the floor.
+    // 2. Depth from here on. **There is no mirrored pass any more**: it was the
+    // field drawn upside down under a shiny floor, and there is no floor - the
+    // world is a ring hanging in space.
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
     gl.disable(gl.BLEND);
-    drawField(surface, matrix, -1, weather, time, shimmer, selected, step, stepT, arrive);
 
-    // 3. The floor, blended over its own reflection, carrying the weather's marks.
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-    gl.useProgram(floor.handle);
-    veil(floor);
-    attribute(floor.handle, 'aCorner', quadBuf, 2);
-    gl.uniformMatrix4fv(floor.u.uViewProj, false, matrix);
-    // **The floor has to outrun the veil**, or the world has a visible edge and
-    // the illusion of it going on forever ends at a straight line. The veil
-    // closes over at `veilTo`, so a floor reaching well past that can never be
-    // seen to stop. It is one quad either way, so the size costs nothing.
-    gl.uniform1f(floor.u.uExtent, Math.max(400, veilTo * 3));
-    gl.uniform3fv(floor.u.uFloor, weather.floor);
-    gl.uniform3fv(floor.u.uSky, weather.sky);
-    gl.uniform3fv(floor.u.uSun, weather.sun);
-    gl.uniform3fv(floor.u.uEye, eye);
-    gl.uniform1f(floor.u.uFogNear, weather.fogNear ?? 26);
-    gl.uniform1f(floor.u.uFogFar, weather.fogFar ?? 180);
-    gl.uniform1f(floor.u.uScarExtent, scarExtent);
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, scarTexture);
-    gl.uniform1i(floor.u.uScars, 0);
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    // 3. The film: one plate of ground per piece, carrying the weather's marks.
+    if (plateCount) {
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.useProgram(strip.handle);
+      veil(strip);
+      gl.bindVertexArray(stripVao);
+      gl.uniformMatrix4fv(strip.u.uViewProj, false, matrix);
+      gl.uniform1f(strip.u.uPitch, platePitch);
+      gl.uniform2f(strip.u.uPlate, plate[0], plate[1]);
+      gl.uniform1f(strip.u.uSolid, solidBody);
+      gl.uniform3fv(strip.u.uFloor, weather.floor);
+      gl.uniform3fv(strip.u.uSky, weather.sky);
+      gl.uniform3fv(strip.u.uSun, weather.sun);
+      gl.uniform1f(strip.u.uFogNear, weather.fogNear ?? 26);
+      gl.uniform1f(strip.u.uFogFar, weather.fogFar ?? 180);
+      gl.uniform1f(strip.u.uScarExtent, scarExtent);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, scarTexture);
+      gl.uniform1i(strip.u.uScars, 0);
+      gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, plateCount);
+      gl.bindVertexArray(null);
+    }
 
     // 4. Labelled places, laid on the ground under everything that stands on it.
     if (areaCount) {
@@ -1194,6 +1356,7 @@ export function createRenderer(canvas) {
     uploadMesh,
     uploadShadows,
     uploadAreas,
+    uploadStrip,
     updatePositions,
     setScars,
     draw,

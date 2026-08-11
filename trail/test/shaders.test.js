@@ -64,7 +64,7 @@ test('a fragment shader states its precision and its output', () => {
 test('what a vertex shader sends out, its fragment shader takes in', () => {
   // `area` was missing from this list, so its pair was never checked at all.
   const pairs = [['cube', 'cube'], ['mesh', 'mesh'], ['shadow', 'shadow'],
-    ['area', 'area'], ['rain', 'rain'], ['sky', 'sky'], ['floor', 'floor']];
+    ['area', 'area'], ['rain', 'rain'], ['sky', 'sky'], ['strip', 'strip']];
   // The type is captured as well as the name. A varying declared `float` on one
   // side and `vec2` on the other links no better than one that is missing, and
   // reads as a name that is present so the mismatch is easy to look past.
@@ -95,9 +95,12 @@ test('every uniform the renderer sets is declared by some shader', () => {
     'uViewProj', 'uTime', 'uFlip', 'uShimmer', 'uTint', 'uSelected',
     'uStep', 'uStepT', 'uAmbient',
     'uSun', 'uSky', 'uFogNear', 'uFogFar',
-    'uHorizon', 'uSunColour', 'uExtent', 'uFloor', 'uEye',
+    'uHorizon', 'uSunColour', 'uFloor',
     'uScars', 'uScarExtent', 'uStrength', 'uSmooth',
     'uRain', 'uBox', 'uScale', 'uColour',
+    // The world's shape, shared by every program that draws part of it.
+    'uRoll', 'uRadius', 'uFocusX', 'uVeilNear', 'uVeilFar',
+    'uPitch', 'uPlate', 'uSolid', 'uSpace',
   ];
   for (const name of used) {
     assert.match(all, new RegExp(`uniform\\s+\\w+\\s+${name}\\s*;`),

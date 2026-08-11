@@ -4,6 +4,7 @@ import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { readVox } from '../lib/vox.js';
+import { VERSION } from '../lib/canvas.js';
 
 const readVoxCount = (bytes) => readVox(bytes).models.length;
 
@@ -300,6 +301,87 @@ const declaredTags = () => new Map(
   [...page().matchAll(/<([a-z]+)\b[^>]*\bid="([^"]+)"/gi)].map((m) => [m[2], m[1]])
 );
 
+/**
+ * A three-piece strip, as a canvas file.
+ *
+ * **The app opens empty**, so a test that needs a film has to bring one. This
+ * is the demonstration the app used to open on - a house, two people and a car
+ * at nine, one person and the car at half past one, one person at quarter past
+ * six - moved out of the app and into the one place that still needs it.
+ *
+ * Written at the **current** version. An older one would be put through the
+ * migration that spreads a version 5 canvas along the strip, which rescales
+ * every position - so a fixture written at 5 with today's spacing comes out
+ * scattered, which is exactly what it did on the first attempt.
+ */
+const SCENE = () => {
+  const pitch = 64;   // DEFAULT_PIECE: 34 wide with a 30 join
+  const on = (piece, at) => [at[0] + piece * pitch, at[1], at[2]];
+  const marla = { primary: '#e08a3c', hair: '#2b2118', skin: '#d9a97e' };
+  const devon = { primary: '#3c7ae0', hair: '#4a3327', skin: '#c68a5e' };
+  const frame = { x: 0, z: 0, w: 26, d: 20, pitch: 20, yaw: -8 };
+  return {
+    trail: VERSION,
+    title: 'three pieces',
+    objects: [
+      { model: 'house1', at: on(0, [-6, 0, -4]), rot: 14, from: 0 },
+      { model: 'tree', at: on(0, [7, 0, -5]), from: 0 },
+      { model: 'normal-car1', at: on(0, [2.4, 0, 3.2]), rot: -24, from: 0 },
+      { model: 'person', at: on(0, [0.6, 0, 1.4]), rot: 200, from: 0, label: 'Marla', tints: marla },
+      { model: 'person', at: on(0, [-0.7, 0, 2.1]), rot: 20, from: 0, label: 'Devon', tints: devon },
+
+      { model: 'house1', at: on(1, [-6, 0, -4]), rot: 14, from: 1 },
+      { model: 'tree', at: on(1, [7, 0, -5]), from: 1 },
+      { model: 'normal-car1', at: on(1, [2.4, 0, 3.2]), rot: -24, from: 1 },
+      { model: 'person', at: on(1, [0.6, 0, 1.4]), rot: 200, from: 1, label: 'Marla', tints: marla },
+
+      { model: 'house1', at: on(2, [-6, 0, -4]), rot: 14, from: 2 },
+      { model: 'tree', at: on(2, [7, 0, -5]), from: 2 },
+      { model: 'person', at: on(2, [0.6, 0, 1.4]), rot: 180, from: 2, label: 'Marla', tints: marla },
+    ],
+    steps: [
+      { framing: { ...frame }, hold: 5000, weather: 'clear', hour: 9 },
+      { framing: { ...frame }, hold: 5000, approachTime: 3200, weather: 'storm', hour: 13.5 },
+      { framing: { ...frame }, hold: 9000, approachTime: 4200, weather: 'clear', hour: 18.25 },
+    ],
+  };
+};
+
+/**
+ * Open a canvas the way a person does: through the file control.
+ *
+ * Deliberately not a back door. Anything a test can only reach by a route the
+ * user has not got is a route that can rot without a test noticing.
+ */
+async function openCanvas(stub, canvas = SCENE()) {
+  // **Wait for the packs first.** A canvas naming a pack model that has not
+  // been read yet has every one of them dropped as "not in the library".
+  for (let i = 0; i < 120; i++) await new Promise((r) => setTimeout(r, 0));
+  const input = stub.element('file');
+  const change = input.listeners.get('change')?.[0];
+  assert.ok(change, 'there is no way to open a canvas file');
+  await change({
+    target: { files: [{ name: 'scene.json', text: async () => JSON.stringify(canvas) }], value: '' },
+  });
+  for (let i = 0; i < 40; i++) await new Promise((r) => setTimeout(r, 0));
+}
+
+test('the app opens with nothing on it', async () => {
+  // Asked for: "the app should just load and i need to fill it up with objects
+  // and steps". It used to open on a three-piece demonstration, which had to be
+  // deleted every time and came back over work in progress.
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 400 });
+  await runApp();
+  for (let i = 0; i < 60; i++) await new Promise((r) => setTimeout(r, 0));
+
+  assert.equal(stub.win.__trail.placed(), 0, 'the app opened with objects on the canvas');
+  assert.equal(stub.win.__trail.route().length, 0, 'the app opened with steps already in it');
+  // And an empty day is still a place: the clock lights it and it draws.
+  assert.ok(Number.isFinite(stub.win.__trail.at().hour));
+  assert.ok(stub.win.__trail.at().sun, 'an empty day was never drawn');
+  assert.deepEqual(stub.failures, [], 'opening empty reported a failure');
+});
+
 test('no id is used twice in the markup', () => {
   // **`getElementById` returns the first match and says nothing about the
   // second.** A new "remove everything" button was given the id the pen's
@@ -319,6 +401,8 @@ test('no id is used twice in the markup', () => {
 test('the page starts, loads its models, and draws', async () => {
   const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 60 });
   await runApp();
+  // The app opens empty, so this test brings its own film.
+  await openCanvas(stub);
 
   assert.deepEqual(stub.failures, [], 'the page reported a startup failure');
   assert.equal(stub.win.__trail.started, true, 'the module never reached its first line');
@@ -463,11 +547,15 @@ test('the page starts, loads its models, and draws', async () => {
   for (const name of manifest.recipes) {
     assert.ok(stub.requested.includes(`models/${name}.json`), `${name} was never fetched`);
   }
-  // The opening arrangement may name models from a pack, and those are only
-  // listed until something asks for them. If nothing reads them the scene
-  // silently drops every one and opens emptier than it should.
-  const fromPacks = manifest.meshes.filter((m) => PLACED.includes(m.name));
-  assert.ok(fromPacks.length, 'the opening arrangement names no pack models at all');
+  // A canvas may name models from a pack, and those are only *listed* in the
+  // manifest until something asks for them. If nothing reads them, opening a
+  // canvas silently drops every one of them as "not in the library".
+  //
+  // The app opens empty now, so the arrangement that has to be readable is the
+  // one a test opens rather than one the app carries.
+  const named = SCENE().objects.map((o) => o.model);
+  const fromPacks = manifest.meshes.filter((m) => named.includes(m.name));
+  assert.ok(fromPacks.length, 'the test canvas names no pack models at all');
   // Decoded, because a pack folder has spaces in it and `new URL` escapes them
   // on the way out. Comparing the raw path against the escaped one fails for a
   // reason that has nothing to do with what is being tested.
@@ -828,6 +916,8 @@ test('the new controls reach the canvas: a name, an hour, a move and a place', a
   // half that has broken before.
   const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 60 });
   await runApp();
+  // The app opens empty, so this test brings its own film.
+  await openCanvas(stub);
   stub.allowFrames(120);
   assert.deepEqual(stub.failures, [], 'the page reported a startup failure');
 
@@ -890,6 +980,8 @@ test('the new controls reach the canvas: a name, an hour, a move and a place', a
 test('a step is named by its hour, and moving one drags its references with it', async () => {
   const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 60 });
   await runApp();
+  // The app opens empty, so this test brings its own film.
+  await openCanvas(stub);
   stub.allowFrames(120);
   assert.deepEqual(stub.failures, [], 'the page reported a startup failure');
 
@@ -931,6 +1023,8 @@ test('a step is named by its hour, and moving one drags its references with it',
 test('the clock bar moves through the day, and the panel gets out of the way', async () => {
   const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 60 });
   await runApp();
+  // The app opens empty, so this test brings its own film.
+  await openCanvas(stub);
   stub.allowFrames(120);
   assert.deepEqual(stub.failures, [], 'the page reported a startup failure');
 
@@ -971,6 +1065,8 @@ test('remove everything clears the canvas and gives the memory back', async () =
   // objects outlive the steps they were put there for.
   const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
   await runApp();
+  // The app opens empty, so this test brings its own film.
+  await openCanvas(stub);
   const settle = async () => {
     for (let i = 0; i < 25; i++) await new Promise((r) => setTimeout(r, 0));
   };
@@ -1019,6 +1115,8 @@ test('the library never releases a model that is standing on the canvas', async 
   // canvas as "not in the library": a cache evicting the thing it is held for.
   const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
   await runApp();
+  // The app opens empty, so this test brings its own film.
+  await openCanvas(stub);
   const settle = async () => {
     for (let i = 0; i < 25; i++) await new Promise((r) => setTimeout(r, 0));
   };
@@ -1046,6 +1144,8 @@ test('inserting a step carries the later pieces and what stands on them', async 
   // stolen the later one's scene.
   const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
   await runApp();
+  // The app opens empty, so this test brings its own film.
+  await openCanvas(stub);
   const settle = async () => {
     for (let i = 0; i < 25; i++) await new Promise((r) => setTimeout(r, 0));
   };
@@ -1095,6 +1195,8 @@ test('cutting a step takes what stood on it, and it does not come back', async (
   // them.
   const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
   await runApp();
+  // The app opens empty, so this test brings its own film.
+  await openCanvas(stub);
   const settle = async () => {
     for (let i = 0; i < 25; i++) await new Promise((r) => setTimeout(r, 0));
   };
@@ -1131,6 +1233,8 @@ test('a step added between two others lands between them, on the strip and on th
   // went to the far end of the film, because that is where that hour landed.
   const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
   await runApp();
+  // The app opens empty, so this test brings its own film.
+  await openCanvas(stub);
   const settle = async () => {
     for (let i = 0; i < 25; i++) await new Promise((r) => setTimeout(r, 0));
   };
@@ -1174,6 +1278,8 @@ test('inserting a step does move what was pointing at a later one', async () => 
   // or the video is silently re-timed - which is what `reorder` exists for.
   const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 2000 });
   await runApp();
+  // The app opens empty, so this test brings its own film.
+  await openCanvas(stub);
   const settle = async () => {
     for (let i = 0; i < 20; i++) await new Promise((r) => setTimeout(r, 0));
   };
@@ -1201,6 +1307,8 @@ test('going from one step to the next moves the world, not just the weather', as
   // film now, and piece k stands at its own place along the strip.
   const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
   await runApp();
+  // The app opens empty, so this test brings its own film.
+  await openCanvas(stub);
   const settle = async () => {
     for (let i = 0; i < 40; i++) await new Promise((r) => setTimeout(r, 0));
   };
@@ -1243,6 +1351,8 @@ test('arrowing along the route can reach every step, including the middle ones',
   // nothing on one side of them.
   const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
   await runApp();
+  // The app opens empty, so this test brings its own film.
+  await openCanvas(stub);
   const settle = async () => {
     for (let i = 0; i < 20; i++) await new Promise((r) => setTimeout(r, 0));
   };
@@ -1266,6 +1376,108 @@ test('arrowing along the route can reach every step, including the middle ones',
     assert.ok(reached.has(i),
       `step ${i + 1} was never reached: got ${[...reached].map((s) => s + 1).join(', ')}`);
   }
+});
+
+test('the overview can always be left, even with no film to look at', async () => {
+  // **Reported by the user:** "the overview is bugged, its not returning to a
+  // step, if there is no step it just stays stuck in overview mode."
+  //
+  // Two faults. The framing was floored at the shot it was called from, so on
+  // an empty canvas - or any short film seen from a wide shot - it returned
+  // exactly what was already on screen: pressing the button changed nothing,
+  // and neither did pressing it again. And going to a step left the overview
+  // on, so asking to be somewhere was ignored.
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
+  await runApp();
+  const settle = async () => {
+    for (let i = 0; i < 30; i++) await new Promise((r) => setTimeout(r, 0));
+  };
+  const shot = () => stub.win.__trail.shot();
+
+  // Nothing placed and no steps, which is how the app opens.
+  await settle();
+  assert.equal(stub.win.__trail.route().length, 0);
+
+  // Zoom out past the size of the film, which is where it used to seize.
+  const wheel = stub.element('stage').listeners.get('wheel')?.[0];
+  assert.ok(wheel, 'there is no way to zoom');
+  for (let i = 0; i < 12; i++) wheel({ deltaY: 1, preventDefault: () => {} });
+  await settle();
+  const wideOpen = shot().w;
+
+  const overview = stub.element('b-overview').listeners.get('click')?.[0];
+  overview();
+  await settle();
+  assert.ok(shot().overview, 'the overview never turned on');
+  assert.notEqual(shot().w, wideOpen, 'the overview framed exactly what was already on screen');
+
+  overview();
+  await settle();
+  assert.ok(!shot().overview, 'the overview could not be turned off');
+  assert.equal(shot().w, wideOpen, 'leaving the overview did not give the shot back');
+
+  assert.deepEqual(stub.failures, [], 'the overview reported a failure');
+});
+
+test('the film is rolled into a ring, and the overview unrolls it', async () => {
+  // The two views are one geometry: Halo mode is the strip rolled into a loop
+  // with the piece being looked at at the top, and the overview is the same
+  // strip lying flat. So the overview is not a second view - it is the roll
+  // easing to nought, and the ball opening into a long straight piece.
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
+  await runApp();
+  await openCanvas(stub);
+  // The unfurl is eased over about a second, so this waits for the animation
+  // rather than for a single frame.
+  const settle = async () => {
+    for (let i = 0; i < 160; i++) await new Promise((r) => setTimeout(r, 0));
+  };
+
+  // **What is asserted here is what the app was asked for, not the eased
+  // value.** By this point in the file about thirty app instances from earlier
+  // tests are still asking this stub for frames - nothing stops them - so the
+  // instance under test is starved of them, and the stub's clock only advances
+  // per frame so a time-based ease cannot finish either. The curve itself is
+  // arithmetic and is tested in `timeline.test.js`; what only the page can
+  // answer is whether the button asks for the right thing.
+  assert.equal(stub.win.__trail.shot().rollTo, 1, 'the film did not open rolled');
+
+  stub.element('b-overview').listeners.get('click')?.[0]?.();
+  await settle();
+  assert.equal(stub.win.__trail.shot().rollTo, 0, 'the overview did not unroll the film');
+
+  stub.element('b-overview').listeners.get('click')?.[0]?.();
+  await settle();
+  assert.equal(stub.win.__trail.shot().rollTo, 1, 'it did not roll back up');
+
+  // And going to a step rolls it back up too, rather than leaving the film flat.
+  stub.element('b-overview').listeners.get('click')?.[0]?.();
+  await settle();
+  stub.element('ticks').children[1].listeners.get('click')?.[0]?.();
+  await settle();
+  assert.equal(stub.win.__trail.shot().rollTo, 1, 'going to a step left the film unrolled');
+
+  assert.deepEqual(stub.failures, [], 'rolling the film reported a failure');
+});
+
+test('going to a step leaves the overview', async () => {
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
+  await runApp();
+  await openCanvas(stub);
+  const settle = async () => {
+    for (let i = 0; i < 30; i++) await new Promise((r) => setTimeout(r, 0));
+  };
+
+  stub.element('b-overview').listeners.get('click')?.[0]?.();
+  await settle();
+  assert.ok(stub.win.__trail.shot().overview, 'the overview never turned on');
+
+  // Asking to be at a step is asking to be somewhere, and the overview is not
+  // a place.
+  stub.element('ticks').children[1].listeners.get('click')?.[0]?.();
+  await settle();
+  assert.ok(!stub.win.__trail.shot().overview, 'clicking a step left the camera pulled back');
+  assert.equal(stub.win.__trail.at().step, 1, 'and it did not go to that step');
 });
 
 test('the overview pulls back far enough to hold the whole film', async () => {
@@ -1306,6 +1518,8 @@ test('the clock says where you are, not how many steps have a time', async () =>
   // it never changed while reading exactly like a position.
   const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 2000 });
   await runApp();
+  // The app opens empty, so this test brings its own film.
+  await openCanvas(stub);
   const settle = async () => {
     for (let i = 0; i < 20; i++) await new Promise((r) => setTimeout(r, 0));
   };
