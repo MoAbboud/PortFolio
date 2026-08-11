@@ -228,6 +228,35 @@
   .tbtn:disabled { opacity: .3; cursor: default; }
   /* A word rather than a symbol, so it needs room. */
   .tbtn.wide { width: auto; padding: 0 10px; font-size: 12px; }
+  /* Space between turning the ring and changing what is on it. */
+  .tgap { flex: 0 0 auto; width: 18px; }
+
+  /* What is on the film, and when. Top right, out of the way of the frame. */
+  #reel {
+    position: fixed; top: 14px; right: 14px; z-index: 6;
+    width: 232px; max-height: 62vh; overflow-y: auto;
+    background: rgba(10,16,26,.82); border: 1px solid rgba(255,255,255,.14);
+    border-radius: 8px; padding: 8px; backdrop-filter: blur(6px);
+    font-size: 12px; color: #cfd9e4;
+  }
+  #reel h4 {
+    margin: 0 0 6px; font-size: 11px; font-weight: 600; letter-spacing: .06em;
+    text-transform: uppercase; color: #8fa3b8;
+  }
+  .reel-piece { border-top: 1px solid rgba(255,255,255,.09); padding: 6px 0 4px; }
+  .reel-piece:first-of-type { border-top: 0; }
+  .reel-piece.on { background: rgba(61,122,214,.16); border-radius: 5px; padding-left: 6px; }
+  .reel-head { display: flex; align-items: center; gap: 6px; }
+  .reel-time { font-weight: 700; color: #eaf1f8; flex: 1 1 auto; }
+  .reel-what { color: #8fa3b8; font-size: 11px; margin: 2px 0 0 2px; line-height: 1.45; }
+  .reel-btn {
+    flex: 0 0 auto; width: 22px; height: 22px; padding: 0; cursor: pointer;
+    font: inherit; font-size: 11px; color: #cfd9e4; border-radius: 4px;
+    background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.16);
+  }
+  .reel-btn:hover { background: rgba(255,255,255,.2); color: #fff; }
+  .reel-btn.cut:hover { background: #b3403a; border-color: #d4534c; }
+  .reel-empty { color: #6f8298; line-height: 1.5; }
   .tbtn[aria-pressed="true"] { background: #3d7ad6; border-color: #5b95e8; color: #fff; }
 
   /* The day, end to end. Dragging anywhere on it moves through time. */
@@ -304,8 +333,6 @@
     <button class="tbtn" id="b-time-prev" title="the step before this one">&#9664;</button>
     <div id="now"><span id="now-time">--:--</span><small id="now-what">no times set</small></div>
     <button class="tbtn" id="b-time-next" title="the step after this one">&#9654;</button>
-    <button class="tbtn" id="b-step-add" title="a step at this time">+</button>
-    <button class="tbtn" id="b-step-remove" title="remove the step nearest this time">&minus;</button>
     <!-- The ending: far enough back to read the whole film at once, every
          piece in the order it happened. -->
     <button class="tbtn wide" id="b-overview" aria-pressed="false"
@@ -314,11 +341,24 @@
          switch rather than a decision written into the format. -->
     <button class="tbtn wide" id="b-solid" aria-pressed="false"
             title="fill the middle of the ring">solid</button>
+    <!-- Kept well away from the arrows: turning the ring and changing what the
+         film is made of are different kinds of act, and they were a pixel
+         apart. -->
+    <span class="tgap"></span>
+    <button class="tbtn" id="b-step-add" title="a step at this time">+</button>
+    <button class="tbtn" id="b-step-remove" title="remove the step nearest this time">&minus;</button>
   </div>
   <div id="track">
     <div id="ticks"></div>
     <div id="needle"></div>
   </div>
+</div>
+
+<!-- The film, read as a list: what is on each piece and when it happens. The
+     clock bar turns the ring; this is where a piece is gone to or cut. -->
+<div id="reel">
+  <h4>the film</h4>
+  <div id="reel-list"></div>
 </div>
 
 <button id="b-panel" aria-pressed="false">settings</button>
@@ -357,6 +397,13 @@
       <div class="ctl">
         <div class="row"><span class="dim">block size</span><span class="val" id="v-cube">100%</span></div>
         <input type="range" id="r-cube" min="40" max="300" step="10" value="100">
+      </div>
+      <div class="ctl">
+        <!-- How much ground a piece of film shows. Only what you can see: how
+             far apart pieces stand is fixed, because every position on the
+             strip is measured against it. -->
+        <div class="row"><span class="dim">floor size</span><span class="val" id="v-plate">100%</span></div>
+        <input type="range" id="r-plate" min="20" max="260" step="10" value="100">
       </div>
     </div>
   </details>

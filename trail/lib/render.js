@@ -43,22 +43,45 @@ float veilOf(vec3 onStrip) {
     distance(onStrip.xz, vec2(uFocusX, 0.0)));
 }
 
+uniform float uPitch;     // centre to centre along the film
+
 float bendAngle(float x) { return (x - uFocusX) / max(uRadius, 0.001); }
 
+/** The middle of the piece a place belongs to. */
+float pieceCentre(float x) { return floor(x / max(uPitch, 0.001) + 0.5) * uPitch; }
+
+/**
+ * **A frame of film is flat, and a whole piece turns as one.**
+ *
+ * Bending every vertex by its own position curves the things standing on the
+ * strip: a tall object leans, a wide one shears, and its base no longer meets
+ * the plate it is standing on - which reads as objects tilting near the edges
+ * and hovering above the ground.
+ *
+ * So the angle is taken once, from the middle of the **piece**, and everything
+ * belonging to that piece is turned rigidly by it. The plate, what stands on it
+ * and their shadows all share one frame, so they cannot come apart. The ring is
+ * a polygon of flat frames rather than a smooth tube, which is what a real
+ * strip of film rolled up actually is.
+ */
 vec3 bend(vec3 p) {
   if (uRoll < 0.0005) return p;
-  float a = bendAngle(p.x);
+  float a = bendAngle(pieceCentre(p.x));
+  float dx = p.x - pieceCentre(p.x);
   float r = uRadius + p.y;
-  vec3 rolled = vec3(r * sin(a), r * cos(a) - uRadius, p.z);
+  vec3 rolled = vec3(
+    sin(a) * r + cos(a) * dx,
+    cos(a) * r - sin(a) * dx - uRadius,
+    p.z
+  );
   return mix(p, rolled, uRoll);
 }
 
-// The same turn applied to a direction. Without it the lighting stays flat
-// while the world curves, and the far side of the ring is lit as though it were
-// still facing up.
+// The same turn applied to a direction, taken from the same piece, so lighting
+// agrees with the geometry instead of staying flat while the world curves.
 vec3 bendNormal(vec3 n, float x) {
   if (uRoll < 0.0005) return n;
-  float a = bendAngle(x) * uRoll;
+  float a = bendAngle(pieceCentre(x)) * uRoll;
   float c = cos(a), s = sin(a);
   return normalize(vec3(n.x * c + n.y * s, -n.x * s + n.y * c, n.z));
 }
@@ -388,7 +411,9 @@ void main() {
   // object used to be.
   vec3 p = aCentre + vec3(aCorner.x * aRadius, 0.01, aCorner.y * aRadius)
     + travelled(aTravel, uStep, uArrive);
-  gl_Position = uViewProj * vec4(p, 1.0);
+  // **Rolled with everything else.** Left flat, a shadow stays where the object
+  // used to be while the world turns out from under it.
+  gl_Position = uViewProj * vec4(bend(p), 1.0);
 }`;
 
 const SHADOW_FS = `#version 300 es
@@ -445,7 +470,7 @@ void main() {
   // Above the floor but under the contact shadows, so a figure standing in a
   // bar still sits on the ground rather than hovering over a coloured card.
   vec3 p = aCentre + vec3(aCorner.x * aHalf.x, 0.006, aCorner.y * aHalf.y);
-  gl_Position = uViewProj * vec4(p, 1.0);
+  gl_Position = uViewProj * vec4(bend(p), 1.0);
 }`;
 
 const AREA_FS = `#version 300 es
@@ -639,7 +664,6 @@ in vec2 aCorner;
 in float aPiece;          // which piece of the film this plate is
 
 uniform mat4 uViewProj;
-uniform float uPitch;     // centre to centre along the film
 uniform vec2 uPlate;      // how big a plate is: along the film, across it
 uniform float uSolid;     // 0 a ring you can see through, 1 a filled body
 
@@ -953,10 +977,14 @@ export function createRenderer(canvas) {
    * both of which the shader is given. So adding a piece is one small buffer,
    * not a rebuild of the world.
    */
-  function uploadStrip(count, geometry) {
+  function uploadStrip(count, { pitch, width, depth }) {
     plateCount = Math.max(0, Math.floor(count) || 0);
-    plate = [geometry.width, geometry.depth];
-    platePitch = geometry.width + geometry.gap;
+    // **How big a plate is drawn and how far apart pieces stand are separate.**
+    // The pitch is what every position on the film is measured against, so it
+    // cannot move without every object on the strip moving with it. The plate
+    // is only what you can see of the ground, and is free to be any size.
+    plate = [Math.max(0.1, width), Math.max(0.1, depth)];
+    platePitch = Math.max(0.001, pitch);
     if (!plateCount) return;
 
     const ids = new Float32Array(plateCount);
@@ -1200,6 +1228,9 @@ export function createRenderer(canvas) {
     if (u.uRoll) gl.uniform1f(u.uRoll, rolled);
     if (u.uRadius) gl.uniform1f(u.uRadius, ringRadius);
     if (u.uFocusX) gl.uniform1f(u.uFocusX, veilAt[0]);
+    // Every program needs the pitch now: it is how a place finds which piece it
+    // belongs to, and therefore which frame it turns with.
+    if (u.uPitch) gl.uniform1f(u.uPitch, platePitch);
   }
 
   function draw({
@@ -1275,7 +1306,6 @@ export function createRenderer(canvas) {
       veil(strip);
       gl.bindVertexArray(stripVao);
       gl.uniformMatrix4fv(strip.u.uViewProj, false, matrix);
-      gl.uniform1f(strip.u.uPitch, platePitch);
       gl.uniform2f(strip.u.uPlate, plate[0], plate[1]);
       gl.uniform1f(strip.u.uSolid, solidBody);
       gl.uniform3fv(strip.u.uFloor, weather.floor);
@@ -1361,6 +1391,10 @@ export function createRenderer(canvas) {
     setScars,
     draw,
     get count() { return instanceCount; },
+    // How many plates of film the renderer is holding. Asked on demand rather
+    // than inferred from what was drawn, because a page starved of frames has
+    // drawn nothing and that says nothing about what it was given.
+    get pieces() { return plateCount; },
     get view() { return lastView; },
   };
 }

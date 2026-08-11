@@ -173,16 +173,64 @@ stays open.
 - [x] Placing lands on the piece being looked at rather than where the camera is, which are no
       longer the same thing
 
-### 9e - Still to do
+### 9e - The film list, and four bugs the ring brought with it
 
-- [ ] **The step list in the top right**, with a button to cycle to a step and one to delete it
-      with a confirmation. Asked for in the same message and not yet built: *"i really hate how
-      cluncky it is in the center bar, instead, i just want the buttons in the bar to rotate the
-      halo"*
-- [ ] The clock bar's job shrinks to turning the ring, once the list carries the rest
+- [x] **The film list, top right.** A row per piece: the time it happens at, what stands on it
+      counted by name, a button to turn the ring to it and one to cut it. **Cutting asks
+      first** - it takes what stands on the piece with it and there is no undo
+- [x] The clock bar's job is turning the ring; the list is where the film is changed. Add and
+      remove moved past the overview and solid switches, with a gap, because changing what the
+      film is made of sat a pixel from moving through it
+- [x] **A frame of film is flat.** Bending every vertex by its own position curved the things
+      standing on the strip - a tall object leaned, a wide one sheared, and its base no longer
+      met its plate. The angle is taken once from the middle of the **piece** and everything on
+      it turns rigidly, so the plate, its contents and their shadows share one frame. This is
+      the tilt, the hovering and half the shadow bug in one change
+- [x] **Shadows and places are rolled too.** The shared block was injected into their shaders
+      but `bend` was never applied to their positions, so they stayed flat while the world
+      turned out from under them
+- [x] **The stutter after placing an object.** `rebuild` emptied every grid, re-voxelised every
+      recipe, re-hollowed and re-anchored **every model ever converted** - the whole library as
+      browsed, not what is on the canvas - and cleared the mesh cache so every object was meshed
+      again. On every change. Only the grain is a reason to start again now, and grids are built
+      for what the canvas actually uses
+- [x] **Turning between pieces glides.** An arrow or a piece picked off the list asks the clock
+      to travel and the ring turns to it; dragging the bar is still direct, because an animation
+      fighting the hand on the mouse feels broken
+- [x] Arrows chain from where the clock is **heading**, not where it has reached, so pressing
+      twice quickly moves two pieces instead of finding the same one again
+
+### 9g - The film had no ground when a canvas was opened
+
+- [x] **Opening a canvas never told the renderer how many pieces the film has**, so a restored
+      film kept the count from an empty startup - none - and had no ground under it until a step
+      was added, which is the one path that happened to refresh it. Reported as the floor being
+      wrong on load and *"when a new step gets added the floors get reset"*
+- [x] `refreshStrip` is **guarded**, and called from everything that rebuilds the world. That is
+      the third derived thing here to go stale by being refreshed by hand - `staged` and the
+      grids were the others - and the answer is the same each time: comparing is cheap,
+      remembering is not reliable
+- [x] **A floor size slider.** How much ground a piece shows, from a fifth to two and a half
+      times a piece
+- [x] **How big a plate is drawn and how far apart pieces stand are now separate.** The pitch is
+      what every position on the film is measured against, so it cannot move without taking
+      every object on the strip with it - which is what widening the join cost a migration for.
+      The plate is only what you can see, so it is free
+- [x] `renderer.pieces` and `__trail.shot().pieces` report what the renderer is actually
+      holding. Asked on demand, because a page starved of frames has drawn nothing and that says
+      nothing about what it was given - the fourth time that distinction has mattered
+
+### 9f - Still to do
+
 - [ ] Judge the ring by eye: the bend limit, the plate lip, and whether a solid body reads
       better than an open hoop
 - [ ] Rain still falls in a box around the camera, which is a weather for a flat world
+- [ ] **Picking treats the ring as smooth and it is a polygon.** `ringGround` meets a cylinder,
+      but a piece is a flat plate, so a click near a plate's edge is out by up to the sagitta of
+      its chord - about a unit at the smallest radius. Harmless so far; it would show as a
+      dragged object jumping slightly near an edge
+- [ ] The list counts what stands on a piece by name. A piece with forty of something reads as
+      "tree x40", which is right, but there is no way to reach one of them from the list
 
 ### The overview could not be left - 2026-08-09
 

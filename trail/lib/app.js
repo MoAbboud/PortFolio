@@ -422,17 +422,51 @@ async function main() {
     renderer.uploadShadows(contactShadows(scene, layout.map(solid)));
   }
 
+  /**
+   * The grid for one model, built the first time it is wanted.
+   *
+   * Drawn models come in already voxelised, so they only need re-scaling and
+   * hollowing. Re-anchoring is what makes the block size slider reach them.
+   */
+  function gridFor(key) {
+    if (grids[key]) return grids[key];
+    if (recipes[key]) {
+      const recipe = recipes[key];
+      grids[key] = hollow(voxelise({ ...recipe, unit: recipe.unit * cubeScale }));
+      return grids[key];
+    }
+    const grid = imported[key];
+    if (!grid) return null;
+    grids[key] = hollow(reanchor({ ...grid, unit: grid.baseUnit * cubeScale }, grid.anchor));
+    return grids[key];
+  }
+
+  // What the grids and meshes were built at. Only the grain changes them, so
+  // only the grain is a reason to throw them away.
+  let grain = null;
+
   function rebuild() {
-    grids = {};
-    for (const [name, recipe] of Object.entries(recipes)) {
-      grids[name] = hollow(voxelise({ ...recipe, unit: recipe.unit * cubeScale }));
+    /**
+     * **Only rebuild what the grain changed.**
+     *
+     * This used to empty `grids`, re-voxelise every recipe and re-hollow and
+     * re-anchor **every model that had ever been converted** - which is every
+     * model browsed in the library, not just the ones on the canvas - and then
+     * clear the mesh cache so every object had to be meshed again. On every
+     * change. Placing one object rebuilt the entire world, which is the few
+     * seconds of stutter after adding something.
+     *
+     * Nothing about an existing model changes when another is placed. Only the
+     * block size and the roundness do, so they are the only reason to start
+     * again; everything else builds what is newly wanted and keeps the rest.
+     */
+    const want = `${cubeScale}|${roundness}`;
+    if (grain !== want) {
+      grids = {};
+      meshCache.clear();
+      grain = want;
     }
-    // Drawn models come in already voxelised, so they only need re-scaling and
-    // hollowing. Re-anchoring is what makes the block size slider reach them.
-    for (const [name, grid] of Object.entries(imported)) {
-      const unit = grid.baseUnit * cubeScale;
-      grids[name] = hollow(reanchor({ ...grid, unit }, grid.anchor));
-    }
+    for (const p of layout) gridFor(keyFor(p));
     // An entry whose model is not loaded would leave layout, scene.ranges and
     // boxes out of step, and a drag would then move the wrong object and write
     // over its neighbour's cubes. Drop it rather than carry a hole.
@@ -442,12 +476,14 @@ async function main() {
       state.selected = -1;
       say(`left out ${[...new Set(missing)].join(', ')}: not in the library`);
     }
+    // Guarded, so calling it from everything that rebuilds the world costs a
+    // string compare and cannot be forgotten by one caller.
+    refreshStrip();
     scene = assemble(layout.map((p) => ({ grid: grids[keyFor(p)], ...solid(p) })));
     renderer.upload(scene);
     boxes = objectBoxes(scene);
     extent = bounds(scene);
     el('s-cubes').textContent = scene.count.toLocaleString();
-    meshCache.clear();
     remesh();
     refreshShadows();
     return scene;
@@ -542,8 +578,27 @@ async function main() {
      */
     roll: 1,
     rollTo: 1,
+    /**
+     * Where the clock is going, when it was told to go somewhere.
+     *
+     * Dragging the bar is direct - the hour follows the hand and nothing eases,
+     * because an animation fighting a drag feels broken. **Asking** for a piece
+     * is different: pressing an arrow or picking one off the list should turn
+     * the ring to it rather than cutting to it, so those set a target and this
+     * is eased toward it.
+     */
+    hourTo: null,
     // A hoop you can see through, or a filled body. A look, so it is a switch.
     solid: 0,
+    /**
+     * How big the ground under a piece is drawn, as a multiple of the piece.
+     *
+     * **Only what you can see of the ground.** How far apart pieces stand is
+     * the pitch, and every position on the film is measured against it, so it
+     * cannot move without taking every object on the strip with it. This is
+     * free to be any size because nothing is measured against it.
+     */
+    plate: 1,
   };
 
   /**
@@ -582,6 +637,30 @@ async function main() {
 
   /** How big the loop is for the film as it stands. */
   const ringSize = () => radiusFor(Math.max(1, route.length), PIECE);
+
+  /**
+   * Put the film on screen, if what it should look like has changed.
+   *
+   * **Guarded rather than called from the right places**, because it was not
+   * called from all of them: opening a canvas rebuilt the world and never told
+   * the renderer how many pieces there were, so a restored film had no ground
+   * under it until a step was added and something else happened to refresh it.
+   *
+   * That is the third derived thing in this app to go stale by being refreshed
+   * by hand - `staged` and the grids were the others - and the answer is the
+   * same each time. Comparing is cheap; remembering is not reliable.
+   */
+  let filmShape = '';
+  function refreshStrip() {
+    const want = `${route.length}|${state.plate}|${PIECE.width}|${PIECE.depth}|${PIECE.gap}`;
+    if (want === filmShape) return;
+    filmShape = want;
+    renderer.uploadStrip(route.length, {
+      pitch: pitchOf(PIECE),
+      width: PIECE.width * state.plate,
+      depth: PIECE.depth * state.plate,
+    });
+  }
 
   /**
    * Where on the film the camera is pointed, in flat strip coordinates.
@@ -1011,7 +1090,7 @@ async function main() {
    * simply the colour it was drawn, and gets no controls.
    */
   function slotsOf(model) {
-    const palette = imported[model]?.drawn?.palette ?? grids[model]?.palette ?? [];
+    const palette = imported[model]?.drawn?.palette ?? gridFor(model)?.palette ?? [];
     const found = new Map();
     for (const entry of palette) {
       // The model's own colour is the default, so an untinted placement looks
@@ -1638,6 +1717,13 @@ async function main() {
     // Previews of models that were never placed are the rest of it, and they
     // are the reason opening the library twice is cheap. Cheap to redraw.
     for (const key of [...thumbs.keys()]) if (!onCanvas.has(key)) thumbs.delete(key);
+    // Swept by their own keys, not by what was imported: a recipe is meshed
+    // like anything else but was never imported, so a loop over `imported`
+    // walks straight past it. Rebuilding used to empty this every time and
+    // hide that; it does not any more, because emptying it every time was the
+    // stutter.
+    for (const key of [...meshCache.keys()]) if (!onCanvas.has(key)) meshCache.delete(key);
+    for (const key of Object.keys(grids)) if (!onCanvas.has(key)) delete grids[key];
     const bytes = textureWeight;
     textures.clear();
     textureWeight = 0;
@@ -1712,6 +1798,10 @@ async function main() {
       // the app was *asked* for does not, and is the thing a control is judged on.
       rollTo: state.rollTo,
       solid: state.solid,
+      // Plates of film the renderer is actually holding, and how big they are
+      // drawn. A restored canvas with no ground under it is this being zero.
+      pieces: renderer.pieces,
+      plate: state.plate,
       radius: ringSize(),
       // How far the world survives around the piece being looked at. Evaluated
       // here rather than read back from anything drawn, for the same reason
@@ -2159,7 +2249,7 @@ async function main() {
     // place on the strip comes from its position in the film, so adding,
     // removing or re-timing one moves every piece after it.
     restage();
-    renderer.uploadStrip(route.length, PIECE);
+    refreshStrip();
     buildSteps();
     paintClock();
     duration = routeDuration(route) / 1000;
@@ -2281,46 +2371,12 @@ async function main() {
   }
 
   el('b-step-remove').addEventListener('click', () => {
-    // The last step can go. An empty day is a place at a time of day, which is
-    // a perfectly good thing to be looking at and is where a canvas starts.
-    if (!route.length) { say('there are no steps to remove'); return; }
-    const at = editing();
-
-    // **Cutting a piece takes what stood on it.** Leaving the objects behind is
-    // what made a deleted step come back: nothing hides an object any more, so
-    // they sat past the end of a shorter film and reappeared the moment a step
-    // was added and the strip grew back over them.
-    const pitch = pitchOf(PIECE);
-    const before = layout.length;
-    // Where the selected object ends up, if it survives. Cutting a piece is not
-    // a reason to deselect something standing on a different one, and the
-    // indices all move, so it has to be followed rather than kept.
-    const survivors = layout
-      .map((o, i) => i)
-      .filter((i) => pieceOf(layout[i].at?.[0], pitch) !== at);
-
-    const cut = cutPiece({ route, layout, areas }, at, pitch);
-    layout = cut.layout;
-    areas = cut.areas;
-    const taken = before - layout.length;
-
-    route = route.filter((_, i) => i !== at);
-    state.pinned = Math.max(0, Math.min(at, route.length - 1));
-    state.selected = survivors.indexOf(state.selected);
-    rebuild();
-    uploadAreas();
-    stepsChanged();
-    paintObject();
-    paintPath();
-
-    if (!route.length) {
-      say('every step removed - an empty day, drag the clock through it');
-    } else {
-      say(taken
-        ? `step removed, and the ${taken} ${taken === 1 ? 'thing' : 'things'} on it`
-        : 'step removed');
-    }
+    // The last piece can go. An empty film is a place at a time of day, which
+    // is a perfectly good thing to be looking at and is where a canvas starts.
+    if (!route.length) { say('there are no pieces to cut'); return; }
+    cutStep(editing());
   });
+
 
 
 
@@ -2376,7 +2432,7 @@ async function main() {
       return true;
     }
     const grid = recipes[id]
-      ? grids[id]
+      ? gridFor(id)
       : await materialise(id, sources[id]?.pose ?? null).catch(() => null);
     if (!grid) return false;
     // A model that is drawn as a mesh is previewed as one, so the picture in
@@ -2596,6 +2652,10 @@ async function main() {
     (v) => { smoothing = v / 100; });
   const cubeSlider = slider('r-cube', (v) => `${v}%`,
     () => {}, { live: false, after: (v) => { cubeScale = v / 100; rebuild(); } });
+  // How much ground a piece shows. Live, because it is judged by eye and it
+  // costs one small buffer to change.
+  const plateSlider = slider('r-plate', (v) => `${v}%`,
+    (v) => { state.plate = v / 100; refreshStrip(); });
 
   // A step's own numbers. Declared here with the other controls rather than
   // beside the code that uses them, because `slider` and `segment` are defined
@@ -2800,6 +2860,152 @@ async function main() {
     el('b-overview').setAttribute('aria-pressed', 'false');
   }
 
+  /**
+   * The film as a list: what stands on each piece, and when it happens.
+   *
+   * **The clock bar turns the ring and this says what is on it.** Splitting
+   * them is the point: the bar was doing both and the buttons that changed the
+   * film were a pixel away from the ones that only moved through it.
+   *
+   * Rebuilt from the route and the layout rather than kept in step with them,
+   * so it cannot drift - which is the failure this app keeps finding whenever
+   * two things describe the same fact.
+   */
+  let cutting = -1;   // the piece whose delete is waiting to be confirmed
+
+  function paintReel() {
+    const host = el('reel-list');
+    host.innerHTML = '';
+
+    if (!route.length) {
+      const empty = document.createElement('div');
+      empty.className = 'reel-empty';
+      empty.textContent = 'No pieces yet. Move the clock to a time and press + to start one.';
+      host.append(empty);
+      return;
+    }
+
+    const pitch = pitchOf(PIECE);
+    route.forEach((step, index) => {
+      const row = document.createElement('div');
+      row.className = index === editing() ? 'reel-piece on' : 'reel-piece';
+
+      const head = document.createElement('div');
+      head.className = 'reel-head';
+
+      const when = document.createElement('span');
+      when.className = 'reel-time';
+      when.textContent = typeof step.hour === 'number' ? clockOf(step.hour) : `piece ${index + 1}`;
+      head.append(when);
+
+      const go = document.createElement('button');
+      go.className = 'reel-btn';
+      go.textContent = '▶';
+      go.title = 'turn the ring to this piece';
+      go.addEventListener('click', () => {
+        cutting = -1;
+        goToStep(index);
+      });
+      head.append(go);
+
+      const cut = document.createElement('button');
+      cut.className = 'reel-btn cut';
+      // **Asked twice before anything is lost.** Cutting a piece takes what
+      // stands on it, and there is no undo.
+      cut.textContent = cutting === index ? 'sure?' : '✕';
+      cut.title = cutting === index
+        ? 'press again to cut this piece and everything on it'
+        : 'cut this piece out of the film';
+      if (cutting === index) cut.style.width = '44px';
+      cut.addEventListener('click', () => {
+        if (cutting !== index) { cutting = index; paintReel(); return; }
+        cutting = -1;
+        goToStep(index);
+        cutStep(index);
+      });
+      head.append(cut);
+      row.append(head);
+
+      // What is standing on this piece, counted by model so a crowd reads as a
+      // crowd rather than as forty lines.
+      const here = layout.filter((p) => pieceOf(p.at?.[0], pitch) === index);
+      const what = document.createElement('div');
+      what.className = 'reel-what';
+      if (!here.length) {
+        what.textContent = 'nothing on it yet';
+      } else {
+        const counts = new Map();
+        for (const p of here) {
+          const name = p.label || p.model;
+          counts.set(name, (counts.get(name) ?? 0) + 1);
+        }
+        what.textContent = [...counts]
+          .map(([name, n]) => (n > 1 ? `${name} x${n}` : name))
+          .join(', ');
+      }
+      row.append(what);
+      host.append(row);
+    });
+  }
+
+  /** Ask the clock to travel somewhere, rather than jumping there. */
+  function glideTo(hour) {
+    state.playing = false;
+    state.scrubbing = true;
+    state.hourTo = ((hour % 24) + 24) % 24;
+  }
+
+  /**
+   * Cut a piece out of the film, taking what stands on it.
+   *
+   * Shared by the bar's minus button and the list, so the two cannot come to
+   * mean different things - which is how the same gesture in two places usually
+   * ends up doing two jobs.
+   */
+  function cutStep(index) {
+    if (!route[index]) return;
+    const pitch = pitchOf(PIECE);
+    const before = layout.length;
+    const survivors = layout
+      .map((o, i) => i)
+      .filter((i) => pieceOf(layout[i].at?.[0], pitch) !== index);
+
+    const cut = cutPiece({ route, layout, areas }, index, pitch);
+    layout = cut.layout;
+    areas = cut.areas;
+    const taken = before - layout.length;
+
+    route = route.filter((_, i) => i !== index);
+    state.pinned = Math.max(0, Math.min(index, route.length - 1));
+    state.selected = survivors.indexOf(state.selected);
+    rebuild();
+    uploadAreas();
+    stepsChanged();
+    paintObject();
+    paintPath();
+
+    if (!route.length) {
+      say('every piece cut - an empty film, drag the clock and press + to start one');
+    } else {
+      say(taken
+        ? `piece cut, and the ${taken} ${taken === 1 ? 'thing' : 'things'} on it`
+        : 'piece cut');
+    }
+  }
+
+  /** Turn the ring to a piece, smoothly. */
+  function goToStep(index) {
+    const step = route[index];
+    if (!step) return;
+    state.pinned = index;
+    state.playing = false;
+    leaveOverview();
+    if (typeof step.hour === 'number') glideTo(step.hour);
+    paintStep();
+    paintClock();
+    paintReel();
+  }
+
   /** Move to a moment in the day, and let the panel follow. */
   function scrubTo(hour) {
     leaveOverview();
@@ -2808,6 +3014,8 @@ async function main() {
     state.playing = false;
     state.scrubbing = true;
     state.hour = hour;
+    // A drag is the hand on the clock. Anything it was gliding toward is over.
+    state.hourTo = null;
     const found = routeAtHour(route, hour);
     // The step being worked on follows the clock, so opening the panel edits
     // what is on screen rather than whatever was pinned last. With no steps
@@ -2850,10 +3058,18 @@ async function main() {
   }
 
   const jump = (direction) => {
-    const found = stepAround(route, state.hour, direction);
+    // **From where the clock is heading, not where it has got to.** The ring
+    // turns rather than cutting, so the hour is part way through moving when
+    // the next press arrives - and reading the hour it has reached finds the
+    // same piece again. Pressing twice quickly should move two pieces.
+    const found = stepAround(route, state.hourTo ?? state.hour, direction);
     if (!found) { say(direction < 0 ? 'that is the first step of the day' : 'that is the last'); return; }
     state.pinned = found.index;
-    scrubTo(found.step.hour);
+    leaveOverview();
+    glideTo(found.step.hour);
+    paintStep();
+    paintClock();
+    paintReel();
     say(clockOf(found.step.hour));
   };
   el('b-time-prev').addEventListener('click', () => jump(-1));
@@ -2989,12 +3205,14 @@ async function main() {
     cubeSlider.set(Math.round(cubeScale * 100));
     surfaceSeg.paint();
     weatherSeg.paint();
+    plateSlider.set(Math.round(state.plate * 100));
     buildSteps();
     paintClock();
     paintObject();
     paintAreas();
     paintLibrary();
     paintHeld();
+    paintReel();
   }
 
   /**
@@ -3019,7 +3237,8 @@ async function main() {
     rebuild();
     // The pieces have to be standing before anything asks where the camera is.
     restage();
-    renderer.uploadStrip(route.length, PIECE);
+    refreshStrip();
+    paintReel();
     // Whatever was being worked on last time, if anything.
     paintPanel();
     sync();
@@ -3213,6 +3432,16 @@ async function main() {
     // the film is rolled, that place is brought to the top of the ring instead
     // and the camera sits still at the origin. Blended by the roll, so the
     // unfurl moves the camera and the world together.
+    // **The ring turns rather than cutting.** An arrow or a piece picked off
+    // the list asks the clock to travel; dragging the bar sets the hour
+    // directly and clears the target, because an animation fighting the hand on
+    // the mouse feels broken.
+    if (state.hourTo !== null) {
+      state.hour = easeRoll(state.hour, state.hourTo, delta, 4.5);
+      if (state.hour === state.hourTo) state.hourTo = null;
+      paintClock();
+    }
+
     state.roll = easeRoll(state.roll, state.rollTo, delta);
     if (state.roll > 0.0005) {
       framing = lerpFraming(framing, framingOf(state.rig, 0, PIECE), state.roll, 0);

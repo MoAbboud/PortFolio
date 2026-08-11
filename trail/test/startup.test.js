@@ -79,7 +79,7 @@ class FakeElement {
   closest() { return null; }
   click() {}
   getBoundingClientRect() { return { left: 0, top: 0, width: 1600, height: 900 }; }
-  getContext(kind) { return kind === 'webgl2' ? fakeGl() : fake2d(); }
+  getContext(kind) { return kind === 'webgl2' ? fakeGl(glCalls) : fake2d(); }
   showModal() { this.open = true; }
   close() { this.open = false; }
   setPointerCapture() {}
@@ -91,6 +91,11 @@ class FakeElement {
 // What the 2D layers were asked to draw. A preview that never reaches
 // putImageData is a preview that did not happen, and the panel would be empty.
 let drawn2d = [];
+
+// What the renderer asked the graphics context to do. A stub that only says
+// yes cannot tell which of two paths the page took, and "was the film drawn at
+// all" is exactly that kind of question.
+let glCalls = [];
 
 const fake2d = () => new Proxy({}, {
   get: (_, name) => (name === 'measureText'
@@ -153,6 +158,7 @@ function stubBrowser({ frames = 3, ids = new Set(), tags = new Map() } = {}) {
   // shortcut fire while somebody is typing" a question that can be asked.
   const keys = new Map();
   drawn2d = [];
+  glCalls = [];
   let clock = 0;
   let drawn = 0;
   let closed = false;
@@ -255,6 +261,7 @@ function stubBrowser({ frames = 3, ids = new Set(), tags = new Map() } = {}) {
       }
     },
     frames: () => drawn,
+    get calls() { return glCalls; },
     drew: (name) => drawn2d.filter((c) => c[0] === name).length,
     // The page asks for a frame every frame, so a fixed budget is spent by the
     // render loop long before a test can interact. This hands back some more.
@@ -1417,6 +1424,67 @@ test('the overview can always be left, even with no film to look at', async () =
   assert.equal(shot().w, wideOpen, 'leaving the overview did not give the shot back');
 
   assert.deepEqual(stub.failures, [], 'the overview reported a failure');
+});
+
+test('a canvas opened with pieces already in it has ground under them', async () => {
+  // **Reported by the user:** with steps and objects already there, the floor
+  // was wrong until a step was added, and "when a new step gets added the
+  // floors get reset".
+  //
+  // Opening a canvas rebuilt the world and never told the renderer how many
+  // pieces there were, so the film kept whatever count it had from an empty
+  // startup - none. Adding a step went through the one path that did refresh
+  // it, which is why that appeared to fix it.
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
+  await runApp();
+  await openCanvas(stub);
+
+  const pieces = stub.win.__trail.route().length;
+  assert.ok(pieces > 0, 'the canvas brought no pieces');
+  assert.equal(stub.win.__trail.shot().pieces, pieces,
+    'the renderer was never told how many pieces the film has, so it has no ground');
+
+  assert.deepEqual(stub.failures, [], 'opening a canvas reported a failure');
+});
+
+test('the film list says what is on each piece, and cutting one asks first', async () => {
+  // Asked for: a small list in the corner showing where the objects are and at
+  // what time, with a button to go to a piece and one to cut it. The clock bar
+  // turns the ring; this is where the film is changed.
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
+  await runApp();
+  await openCanvas(stub);
+  const settle = async () => {
+    for (let i = 0; i < 30; i++) await new Promise((r) => setTimeout(r, 0));
+  };
+
+  const rows = () => stub.element('reel-list').children;
+  assert.equal(rows().length, stub.win.__trail.route().length,
+    'the list does not have a row per piece');
+
+  // Each row says what stands on that piece.
+  const said = rows().map((row) => row.children.map((c) => c.textContent).join(' '));
+  assert.ok(said.some((text) => /house1|Marla|tree/.test(text)),
+    `no row named anything standing on it: ${said.join(' | ')}`);
+
+  // **Cutting asks first.** There is no undo, and a cut takes what stands on
+  // the piece with it.
+  const pieces = stub.win.__trail.route().length;
+  const placed = stub.win.__trail.placed();
+  const cut = () => rows()[1].children[0].children.find((c) => c.className?.includes('cut'));
+
+  cut().listeners.get('click')?.[0]?.();
+  await settle();
+  assert.equal(stub.win.__trail.route().length, pieces,
+    'the first press cut the piece instead of asking');
+  assert.match(cut().textContent, /sure/i, 'it never asked');
+
+  cut().listeners.get('click')?.[0]?.();
+  await settle();
+  assert.equal(stub.win.__trail.route().length, pieces - 1, 'the second press did not cut it');
+  assert.ok(stub.win.__trail.placed() < placed, 'the things standing on it were left behind');
+
+  assert.deepEqual(stub.failures, [], 'the film list reported a failure');
 });
 
 test('the film is rolled into a ring, and the overview unrolls it', async () => {
