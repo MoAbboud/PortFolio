@@ -104,9 +104,17 @@ const mix = (a, b, t) => a * (1 - t) + b * t;
  * the composition did not ask for: every intermediate frame is a valid framing.
  * `arc` widens the rectangle mid-flight, which pulls the camera back and up, so
  * a move between two close shots lifts to show the ground in between.
+ *
+ * **`ease` exists because a curve applied here is a second curve.** A caller
+ * already moving `t` along a curve of its own gets both, and the camera then
+ * runs ahead of whatever else that `t` is driving and falls behind it again -
+ * which is a pendulum, not an ease. The unfurl passes the identity for exactly
+ * that reason: the world, the pivot it turns about and the camera all have to
+ * be the same number.
  */
-export function lerpFraming(a, b, t, arc = 0.35) {
-  const e = easeInOut(Math.min(1, Math.max(0, t)));
+export const linear = (t) => t;
+export function lerpFraming(a, b, t, arc = 0.35, ease = easeInOut) {
+  const e = ease(Math.min(1, Math.max(0, t)));
   const lift = 1 + arc * Math.sin(Math.PI * e);
   const w = mix(a.w, b.w, e) * lift;
   const d = mix(a.d, b.d, e) * lift;

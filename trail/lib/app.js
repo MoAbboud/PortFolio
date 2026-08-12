@@ -17,7 +17,7 @@ import {
 import { surfaceNets, fromTriangles } from './mesh.js';
 import { toNdc, insideFrame, rayThrough, pick, groundPoint, dragTo, rotateBy } from './pick.js';
 import {
-  viewProjection, drift, autoMove, routeAt, routeAtHour, stepAround, lerpFraming,
+  viewProjection, drift, autoMove, routeAt, routeAtHour, stepAround, lerpFraming, linear,
   routeDuration, easeInOut,
 } from './camera.js';
 // `walk`, `panScreen` and `fit` are gone from here: the camera does not travel
@@ -657,6 +657,17 @@ async function main() {
 
   /** How big the loop is for the film as it stands. */
   const ringSize = () => radiusFor(Math.max(1, route.length), PIECE);
+
+  /**
+   * How much of the constant sway to apply.
+   *
+   * **None of it while the film is changing shape.** The sway exists so that a
+   * *held* shot is never a photograph; laid over a transition it is one more
+   * thing moving, and what reads as a camera unable to settle is usually two
+   * gentle movements rather than one violent one. It comes back as the roll
+   * arrives, so a shot is alive the moment it is being held.
+   */
+  const swayNow = () => (Math.abs(state.rollTo - state.roll) > 0.001 ? 0 : 1);
 
   /**
    * Put the film on screen, if what it should look like has changed.
@@ -3413,6 +3424,7 @@ async function main() {
       framing = drift(
         at.phase === 'fly' ? at.framing : autoMove(at.framing, shotHeld, state),
         now / 1000,
+        swayNow(),
       );
       step = at.step;
       el('mode').textContent = state.playing ? at.phase : 'paused';
@@ -3467,7 +3479,7 @@ async function main() {
         // because the camera has been taken by hand, and while the overview is
         // on, because that is the whole film rather than a place on it.
         if (!state.overview) {
-          framing = drift(moment.framing, now / 1000);
+          framing = drift(moment.framing, now / 1000, swayNow());
         }
         // The step being **worked on**, which is the one the bar and the panel
         // both name. `moment.step` is the step being arrived at, which is what
@@ -3525,7 +3537,11 @@ async function main() {
     // the way would be.
     state.roll = easeRoll(state.roll, state.rollTo, delta, 2.2);
     if (state.roll > 0.0005) {
-      framing = lerpFraming(framing, framingOf(state.rig, 0, PIECE), state.roll, 0);
+      // **The same number the world is using.** `lerpFraming` eases by default,
+      // and an ease on top of a roll that is already easing makes the camera
+      // run ahead of the world and then fall behind it - which is the wobble.
+      // The geometry, the pivot it turns about and the camera are all `roll`.
+      framing = lerpFraming(framing, framingOf(state.rig, 0, PIECE), state.roll, 0, linear);
     }
 
     const seen = veilFor(framing.w, PIECE);

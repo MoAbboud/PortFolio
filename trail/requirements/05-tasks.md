@@ -200,6 +200,18 @@ stays open.
 - [x] Arrows chain from where the clock is **heading**, not where it has reached, so pressing
       twice quickly moves two pieces instead of finding the same one again
 
+### 9k - Two curves for one movement
+
+- [x] **`lerpFraming` takes the curve to use**, defaulting to what it always did. It eased by
+      default, and the unfurl's roll is already on a curve - so the camera ran ahead of the
+      world and fell behind it. **Measured: up to 19 per cent of the unfurl out of step with the
+      thing it was looking at.** The world, the pivot and the camera are all the same number now
+- [x] **The sway is off while the film is changing shape.** It exists so a *held* shot is never
+      a photograph; over a transition it is one more thing moving. What reads as a camera unable
+      to settle is usually two gentle movements rather than one violent one
+- [x] A test asserts a linear blend is halfway at halfway and still lands exactly on both ends,
+      and that the default is unchanged
+
 ### 9j - The unfurl whipped, and it was not the animation
 
 - [x] **The pivot the world turns about is blended by the roll.** It switched the instant the

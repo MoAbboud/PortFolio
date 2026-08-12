@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  framingToView, viewProjection, lerpFraming, drift,
+  framingToView, viewProjection, lerpFraming, drift, linear,
   routeAt, routeAtHour, stepAround, routeDuration, easeInOut, ASPECT, autoMove, axesOf,
 } from '../lib/camera.js';
 
@@ -10,6 +10,39 @@ const near = (a, b, tolerance = 1e-6) =>
   assert.ok(Math.abs(a - b) < tolerance, `${a} is not near ${b}`);
 
 const F = (over = {}) => ({ x: 0, z: 0, w: 10, d: 8, pitch: 25, yaw: 0, ...over });
+
+test('a caller already on a curve can ask for no second one', () => {
+  // **Reported by the user:** the unfurl "keeps wobbling... like a pendulum".
+  //
+  // Three things move during it - the world, the point it turns about, and the
+  // camera - and they were not on the same curve. The first two used the roll
+  // as it stood; this eased it again, so the camera ran ahead of the world and
+  // then fell behind it. That is a pendulum rather than an ease, and no amount
+  // of adjusting the easing fixes it, because the fault is that there are two.
+  const a = { x: 0, z: 0, w: 10, d: 8, pitch: 20, yaw: 0 };
+  const b = { x: 100, z: 0, w: 50, d: 40, pitch: 40, yaw: 60 };
+
+  // Straight down the middle: an eased blend is not halfway at halfway, and a
+  // linear one is.
+  const half = lerpFraming(a, b, 0.5, 0, linear);
+  near(half.w, 30);
+  near(half.yaw, 30);
+  // The centres are 5 and 125, so halfway is 65 - it is the middles that are
+  // interpolated, not the near corners.
+  near(half.x + half.w / 2, 65);
+
+  // And it still lands exactly on both ends, which is what makes it safe to
+  // swap in for the eased one.
+  for (const [t, end] of [[0, a], [1, b]]) {
+    const at = lerpFraming(a, b, t, 0, linear);
+    near(at.w, end.w);
+    near(at.yaw, end.yaw ?? 0);
+  }
+
+  // The default is unchanged: a flight still eases, because nothing else is
+  // driving it.
+  assert.notEqual(lerpFraming(a, b, 0.25, 0).w, lerpFraming(a, b, 0.25, 0, linear).w);
+});
 
 test('the camera looks at the centre of the rectangle', () => {
   const { target } = framingToView({ x: 4, z: -6, w: 10, d: 8, pitch: 30 });
