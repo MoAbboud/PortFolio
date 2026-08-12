@@ -18,9 +18,16 @@ wrong and it gets fixed rather than worked around.
 was cancelled and why, and where the difficulty actually is. Several decisions here replaced
 earlier ones, and the context file is the only place that says what they replaced.
 
+**[01](01-overview.md), [02](02-interaction.md) and [03](03-architecture.md) are out of date.**
+They describe a cube diorama toured by a camera walking a numbered route of framings, which
+stopped being true on 2026-08-08. What Trail is now: a canvas is a strip of film, one piece per
+minute, each with its own objects and weather; the strip rolls into a ring hanging in space; the
+clock turns the ring; and the overview unrolls it flat to read the whole event at once.
+[00](00-plan.md), [04](04-data-model.md), [05](05-tasks.md) and [06](06-context.md) are current.
+
     Set-Location "C:\Users\Absol\OneDrive\Documents\GitHub\PortFol\trail"
     npx --yes serve .      # then open the address it prints
-    npm test               # 477 tests, about twenty-five seconds
+    npm test               # 583 tests, about two minutes
     npm run clips          # the poses every rigged model can be put into
 
 Four things worth knowing before editing:

@@ -247,6 +247,22 @@ export function insertPiece(pieces = [], piece) {
 const MAX_BEND = 30;
 
 /**
+ * The point the world turns about, part way through an unfurl.
+ *
+ * Rolled up, the ring turns about the piece in front of the camera. Unrolled,
+ * the film lies flat and is read about its middle. **Between them it has to
+ * move continuously**, because it is the pivot of the transform the whole world
+ * is drawn through - switching it in one frame swings everything sideways and
+ * then animates, which reads as the camera being whipped.
+ */
+export function pivotAt(here, middle, roll) {
+  const t = clamp(isNumber(roll) ? roll : 1, 0, 1);
+  const from = isNumber(here) ? here : 0;
+  const to = isNumber(middle) ? middle : from;
+  return from + (to - from) * (1 - t);
+}
+
+/**
  * One step of the unfurl.
  *
  * Pulled out of the frame loop so the curve can be checked without a browser.
@@ -449,9 +465,12 @@ export function framingOf(rig, at, geometry) {
  * end to end is read from above - at the angle a close shot was composed at,
  * the far end of a long strip is a smear on the horizon.
  */
-export function revealFraming(rig, count, geometry, { margin = 1.15, pitch = 52, include } = {}) {
+export function revealFraming(rig, count, geometry, { margin = 1.15, pitch, include } = {}) {
   const base = rigOf(rig);
-  const lifted = clamp(pitch, PITCH_MIN, PITCH_MAX);
+  // The angle it is given, falling back to the rig's own. Not a fixed number:
+  // being able to look at the film from the side is the difference between an
+  // object on a table and a diagram of one.
+  const lifted = clamp(isNumber(pitch) ? pitch : base.pitch, PITCH_MIN, PITCH_MAX);
   // Whichever is wider: where the pieces stand, or where things were actually
   // put. An object dropped past the edge of its piece is still part of the film
   // and still has to be in the shot.
@@ -460,7 +479,7 @@ export function revealFraming(rig, count, geometry, { margin = 1.15, pitch = 52,
     ? { min: Math.min(pieces.min, include.min), max: Math.max(pieces.max, include.max) }
     : (pieces ?? include);
 
-  if (!extent) return framingOf({ ...base, pitch: lifted, yaw: 0 }, 0, geometry);
+  if (!extent) return framingOf({ ...base, pitch: lifted, height: 0 }, 0, geometry);
   // **Floored on the piece, not on the shot you were in.**
   //
   // This used to be `max(base.width, ...)`, so that pulling back could never be
@@ -481,13 +500,19 @@ export function revealFraming(rig, count, geometry, { margin = 1.15, pitch = 52,
     z: -depth / 2,
     w: width,
     d: depth,
-    // **A reset, not a wider version of the shot you were in.** The overview is
-    // the whole film read at once, and it reads straight on: keeping the yaw
-    // and the height you happened to be composing with left the strip skewed
-    // across the frame and pointing off the side of it.
+    // **Level, and fitted, and otherwise the angle it is given.**
+    //
+    // The width comes from the film and the height is nought, because the
+    // overview is a statement about the whole strip rather than about the shot
+    // it was called from - carrying the composition across left it skewed and
+    // pointing off the side of the frame.
+    //
+    // The *angle* is a different matter and is the caller's: the app keeps one
+    // for the overview, apart from the working shot, so the film can be looked
+    // at from the side without disturbing where you were.
     y: 0,
     pitch: lifted,
-    yaw: 0,
+    yaw: base.yaw,
   };
 }
 
@@ -509,6 +534,24 @@ export function revealFraming(rig, count, geometry, { margin = 1.15, pitch = 52,
  * It is also what makes the world read as endless. The ground is gone long
  * before it runs out, so there is no edge left to find.
  */
+/**
+ * How far depth fog reaches for a given shot.
+ *
+ * **Separate from the veil, and it has to be.** The veil hides what is not the
+ * piece being looked at; fog is what gives a scene depth, and it is measured
+ * from the camera in world units. Left at a fixed distance it is right for one
+ * piece and swallows everything at any wider shot - which is what turned the
+ * whole film the colour of the sky in the overview.
+ *
+ * So it opens with the shot, in the same way the veil does. Close in it is
+ * where it always was.
+ */
+export function fogFor(shot, geometry, { near = 26, far = 180 } = {}) {
+  const { width } = geometryOf(geometry);
+  const scale = Math.max(1, (isNumber(shot) ? shot : width) / width);
+  return { near: near * scale, far: far * scale };
+}
+
 export function veilFor(shot, geometry) {
   const { width, gap } = geometryOf(geometry);
   const half = width / 2;

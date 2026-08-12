@@ -8,7 +8,7 @@ import {
   depthFor, rigOf, framingOf, revealFraming, veilFor,
   runAt, runDuration, DEFAULT_PIECE,
   groundedRig, distanceFor, PITCH_MIN,
-  radiusFor, rollPoint, unrollPoint, ringGround, easeRoll,
+  radiusFor, rollPoint, unrollPoint, ringGround, easeRoll, pivotAt,
 } from '../lib/timeline.js';
 import { framingToView } from '../lib/camera.js';
 import { orbit, zoom, rise } from '../lib/orbit.js';
@@ -233,6 +233,34 @@ test('past half a turn a place comes back as its other name', () => {
   for (let i = 0; i < 3; i++) near(again[i], far[i], 1e-9);
 });
 
+test('the point the world turns about moves smoothly with the roll', () => {
+  // **Reported by the user:** clicking the overview "whips the camera and the
+  // steps left and right then settles".
+  //
+  // The pivot the ring is rolled about used to switch the instant the overview
+  // was toggled - from the piece in front of you to the middle of the film - so
+  // the whole world swung sideways in one frame and *then* unrolled. The
+  // animation was fine; the thing it was animating about had already moved.
+  //
+  // This is the arithmetic the app blends it with. Anything derived from the
+  // roll is continuous because the roll is.
+  const here = 0;
+  const middle = 320;
+  const pivot = (roll) => pivotAt(here, middle, roll);
+
+  assert.equal(pivot(1), here, 'rolled up, the world turns about the piece you are on');
+  assert.equal(pivot(0), middle, 'unrolled, it turns about the middle of the film');
+
+  // No step anywhere between them: the biggest move over any hundredth of the
+  // animation is no larger than an even share of the whole distance.
+  let biggest = 0;
+  for (let t = 0; t < 1; t += 0.01) {
+    biggest = Math.max(biggest, Math.abs(pivot(t + 0.01) - pivot(t)));
+  }
+  assert.ok(biggest <= (middle - here) / 100 + 1e-9,
+    `the pivot jumped ${biggest.toFixed(1)} units in a hundredth of the unfurl`);
+});
+
 test('the unfurl covers the same ground however the frames fall', () => {
   // Frame-rate independent, so a stutter moves further rather than making the
   // whole animation run slower - which is what accumulating a fixed fraction
@@ -382,16 +410,23 @@ test('the reveal takes in every piece of the film', () => {
   assert.ok(framing.x + framing.w >= extent.max, 'the last piece is off the right');
 });
 
-test('the reveal is a reset, not a wider version of the shot you were in', () => {
-  // **Reversed after seeing it.** It used to keep the yaw and height it was
-  // composed with, on the reasoning that the overview should feel continuous
-  // with the shot. In use that left the strip skewed across the frame and
-  // pointing off the side of it, and the user's verdict was that the overview
-  // "should reset the view and bring all the steps together".
-  const framing = revealFraming({ yaw: -40, pitch: 12, width: 34, height: 18 }, 8, GEO);
-  assert.equal(framing.yaw, 0, 'the overview should be straight on');
-  assert.equal(framing.y, 0, 'and level');
-  assert.ok(framing.pitch > 12, 'a strip read end to end is read from above');
+test('the reveal is fitted and level, and takes the angle it is given', () => {
+  // **Settled in three goes, and the middle one is worth keeping.** It first
+  // carried the whole composition across, which left the strip skewed and
+  // pointing off the side of the frame. It then reset everything, including the
+  // angle - which made looking at the film from the side impossible.
+  //
+  // What it must not carry is the *shot*: the width comes from the film and the
+  // height is nought, because the overview is a statement about the whole strip
+  // rather than about where you happened to be. The angle is the caller's, and
+  // the app keeps one for the overview apart from the working shot.
+  const framing = revealFraming({ yaw: -40, pitch: 30, width: 34, height: 18 }, 8, GEO);
+  assert.equal(framing.y, 0, 'the overview should be level');
+  assert.equal(framing.yaw, -40, 'the overview should be able to be turned');
+  assert.equal(framing.pitch, 30, 'and to be looked at from the angle it is given');
+  // Fitted to the film, not to the shot it was called from.
+  const wider = revealFraming({ yaw: -40, pitch: 30, width: 300, height: 0 }, 8, GEO);
+  assert.equal(wider.w, framing.w, 'the overview depended on the shot it was called from');
 });
 
 test('the reveal takes in things placed past the edge of their piece', () => {

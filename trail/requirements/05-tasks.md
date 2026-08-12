@@ -200,6 +200,54 @@ stays open.
 - [x] Arrows chain from where the clock is **heading**, not where it has reached, so pressing
       twice quickly moves two pieces instead of finding the same one again
 
+### 9j - The unfurl whipped, and it was not the animation
+
+- [x] **The pivot the world turns about is blended by the roll.** It switched the instant the
+      overview was toggled - from the piece in front of you to the middle of the film - so the
+      whole world swung sideways in one frame and *then* unrolled. **The animation was fine; the
+      thing it was animating about had already moved**
+- [x] `pivotAt` is pure and tested: it asserts the pivot never moves more in a hundredth of the
+      unfurl than an even share of the whole distance, and fails when it is made to switch
+- [x] Placing and picking use the **clock's** place on the film rather than the pivot, which in
+      the overview is the middle of the strip. Placing while pulled back would have dropped
+      objects in the middle of the film
+- [x] The roll is slower - about a second and a third. The unfurl is the best thing the app
+      does and is worth watching
+
+### 9i - The overview would not let go, and everything in it was blue
+
+- [x] **The overview has its own angle, kept apart from the working shot.** Adjusting the camera
+      wrote whatever was on screen back into the one rig, so turning or zooming while pulled
+      back banked the *overview's* width - the width of the whole film - into the shot being
+      composed. Coming back left you as wide as the overview, which reads as never having left
+- [x] The width is not taken from the overview at all: it is fitted to the film, so a zoom has
+      nothing to change there
+- [x] **Lower and turned off square**, at 34 degrees and a yaw of -24 rather than 52 straight
+      on. *"A bit angled to the side, not too high."* Looking down on it read as a diagram;
+      this reads as an object on a table
+- [x] `revealFraming` takes the angle it is given and falls back to the rig's own, rather than
+      forcing one. **Settled in three goes**: it carried the whole composition across, then
+      reset everything including the angle, and now carries the angle and nothing else
+- [x] **Depth fog opens with the shot again.** Introducing the veil replaced the old scaled fog
+      with the weather's fixed distances, which are right for one piece and swallow the whole
+      film at any wider shot - so the overview turned everything the colour of the sky. The two
+      are separate things and both are needed: the veil hides what is not this piece, fog gives
+      a scene depth
+- [x] A test drives the reported sequence - pull back, turn, come back - and fails with the shot
+      not being given back the way it was
+
+### 9h - The app opened playing a film that did not exist
+
+- [x] **The app opens paused.** It opened playing, and the hour is applied to the sky inside the
+      branch that runs while paused - so on load the sky was lit by a preset carrying no time of
+      day, which against a space-black sky is a black screen until you touch something
+- [x] **Playback stops itself when there is no film to run.** `duration` is nought with no
+      pieces, and `clock % duration` is NaN, which spreads into the framing and everything after
+- [x] The test only fails with **both** fixes removed, because either one alone hides the other.
+      Written down rather than tidied away: it is the honest description of the bug
+- [x] `__trail.shot().playing`, because a hook that evaluates on demand cannot test which branch
+      of the frame ran - it can only test the state the branch is chosen by
+
 ### 9g - The film had no ground when a canvas was opened
 
 - [x] **Opening a canvas never told the renderer how many pieces the film has**, so a restored

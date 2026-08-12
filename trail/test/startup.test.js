@@ -1426,6 +1426,38 @@ test('the overview can always be left, even with no film to look at', async () =
   assert.deepEqual(stub.failures, [], 'the overview reported a failure');
 });
 
+test('the sky is lit by the clock from the first frame', async () => {
+  // **Reported by the user:** "when the app loads, the canvas is black, then
+  // when i click next scene it turns blue."
+  //
+  // The app opened *playing*, and the hour is applied to the sky inside the
+  // branch that runs while paused - so on load the sky was lit by a bare
+  // weather preset carrying no time of day, which against a space-black sky is
+  // a black screen. Any interaction paused it and the sky came right, which is
+  // why touching anything appeared to fix it.
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
+  await runApp();
+  // **A film with pieces in it is the case that tells the two apart.** With an
+  // empty one there is nothing to play, so playback stops itself on the first
+  // frame and the sky comes right whatever it opened as.
+  await openCanvas(stub);
+
+  const at = stub.win.__trail.at();
+  assert.equal(at.hour, 12, 'the clock should open at noon');
+  // Asked of the expression the frame draws with, not read back off a frame.
+  assert.ok(at.sun[1] > 0.9,
+    `at noon the sun should be overhead, and it is at ${at.sun[1].toFixed(2)}`
+    + ' - the hour never reached the sky');
+
+  // **The defect itself.** The sky above is worked out on demand and is right
+  // either way; what only the app can answer is which branch of the frame it
+  // would have been worked out in, and that is decided by this.
+  assert.equal(stub.win.__trail.shot().playing, false,
+    'the app opened playing, so the hour never reaches the sky');
+
+  assert.deepEqual(stub.failures, [], 'opening reported a failure');
+});
+
 test('a canvas opened with pieces already in it has ground under them', async () => {
   // **Reported by the user:** with steps and objects already there, the floor
   // was wrong until a step was added, and "when a new step gets added the
@@ -1526,6 +1558,45 @@ test('the film is rolled into a ring, and the overview unrolls it', async () => 
   assert.equal(stub.win.__trail.shot().rollTo, 1, 'going to a step left the film unrolled');
 
   assert.deepEqual(stub.failures, [], 'rolling the film reported a failure');
+});
+
+test('turning the overview while in it does not disturb the shot underneath', async () => {
+  // **Reported by the user:** "when i click in and out of the overview, it stays
+  // in overview mode so id have to zoom in to get back to the step."
+  //
+  // Adjusting the camera wrote whatever was on screen back into the one rig, so
+  // turning or zooming while pulled back banked the overview's width - the
+  // width of the whole film - into the shot being composed. Coming back out
+  // then left you as wide as the overview had been, which reads as never having
+  // left it.
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
+  await runApp();
+  await openCanvas(stub);
+  const settle = async () => {
+    for (let i = 0; i < 30; i++) await new Promise((r) => setTimeout(r, 0));
+  };
+  const shot = () => stub.win.__trail.shot();
+
+  await settle();
+  const working = shot().w;
+
+  const overview = stub.element('b-overview').listeners.get('click')?.[0];
+  overview();
+  await settle();
+  const wide = shot().w;
+  assert.ok(wide > working, 'the overview did not pull back');
+
+  // Turn and zoom while pulled back, which is what poisoned the rig.
+  const wheel = stub.element('stage').listeners.get('wheel')?.[0];
+  for (let i = 0; i < 6; i++) wheel({ deltaY: -1, preventDefault: () => {} });
+  await settle();
+
+  overview();
+  await settle();
+  assert.equal(shot().w, working,
+    'leaving the overview did not give the shot back the way it was');
+
+  assert.deepEqual(stub.failures, [], 'the overview reported a failure');
 });
 
 test('going to a step leaves the overview', async () => {

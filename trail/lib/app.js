@@ -25,7 +25,8 @@ import {
 // everything is what the overview does.
 import { orbit, zoom, rise, tidy, centreOf } from './orbit.js';
 import {
-  framingOf, revealFraming, veilFor, pitchOf, radiusFor, ringGround, xAt, easeRoll,
+  framingOf, revealFraming, veilFor, fogFor, pitchOf, radiusFor, ringGround, xAt, easeRoll,
+  pivotAt,
   DEFAULT_PIECE,
 } from './timeline.js';
 import { createRenderer } from './render.js';
@@ -525,7 +526,17 @@ async function main() {
   // Roaming and the route produce the same kind of value, so switching between
   // them is a matter of which framing is current, not two camera systems.
   const state = {
-    playing: true,
+    /**
+     * **Opens paused, because there is nothing to play.**
+     *
+     * It used to open playing, which had two costs. A take running from the
+     * first frame means a restored canvas starts scrubbing itself the moment it
+     * loads, which nobody asked for. Worse, the hour is applied to the sky
+     * inside the branch that runs while paused - so on load the sky was lit by
+     * a bare weather preset carrying no time of day at all, which against a
+     * space-black sky is a black screen until you touch something.
+     */
+    playing: false,
     clock: 0,
     pinned: null,
     /**
@@ -590,6 +601,15 @@ async function main() {
     hourTo: null,
     // A hoop you can see through, or a filled body. A look, so it is a switch.
     solid: 0,
+    /**
+     * The angle the whole film is read from, kept apart from the working shot.
+     *
+     * Low enough to be looking **at** the ring rather than down on it, and
+     * turned off square so the strip runs across the frame instead of straight
+     * away from the camera. Straight down read as a diagram; this reads as an
+     * object on a table.
+     */
+    wide: { yaw: -24, pitch: 34 },
     /**
      * How big the ground under a piece is drawn, as a multiple of the piece.
      *
@@ -669,14 +689,29 @@ async function main() {
    * goes anywhere: this is handed to the shader as the place that should be at
    * the top of the ring, and the world rotates to bring it there.
    */
-  function focusX() {
-    if (state.overview) return xAt((Math.max(1, route.length) - 1) / 2, PIECE);
+  /** Where the clock is on the film, in flat strip coordinates. */
+  function clockX() {
     const moment = routeAtHour(onStrip(), state.hour);
-    if (moment) {
-      const [cx] = centreOf(moment.framing);
-      return cx;
-    }
+    if (moment) return centreOf(moment.framing)[0];
     return xAt(editing(), PIECE);
+  }
+
+  function focusX() {
+    // The middle of the whole film, which is what the overview turns about.
+    const middle = xAt((Math.max(1, route.length) - 1) / 2, PIECE);
+    const here = clockX();
+    /**
+     * **Blended by the roll, because it is the pivot the world turns about.**
+     *
+     * This used to switch the moment the overview was toggled: the point the
+     * ring is rolled around jumped from the piece in front of you to the middle
+     * of the film, so the whole world swung sideways in one frame and *then*
+     * unrolled. That is the whip - the animation was fine and the thing it was
+     * animating about had already moved.
+     *
+     * `state.roll` is continuous, so anything derived from it is too.
+     */
+    return pivotAt(here, middle, state.roll);
   }
 
   function restage() {
@@ -704,6 +739,29 @@ async function main() {
   function adjustCamera(change) {
     const before = currentRoute().framing;
     const after = change(before);
+
+    /**
+     * **The overview has its own angle, and the working shot is left alone.**
+     *
+     * This used to write whatever was on screen back into the one rig, so
+     * turning or zooming while pulled back banked the overview's width - which
+     * is the width of the whole film - into the shot you were composing. Coming
+     * back out of the overview then left you as wide as the overview had been,
+     * which reads as never having left it.
+     *
+     * The width is not taken here at all: the overview is fitted to the film,
+     * so a zoom has nothing to change. What it does have is an angle, and
+     * remembering that separately is what lets it be looked at from the side
+     * without disturbing where you were working.
+     */
+    if (state.overview) {
+      state.wide = {
+        yaw: after.yaw ?? state.wide.yaw,
+        pitch: after.pitch ?? state.wide.pitch,
+      };
+      return;
+    }
+
     state.rig = {
       yaw: after.yaw ?? state.rig.yaw,
       pitch: after.pitch ?? state.rig.pitch,
@@ -729,7 +787,12 @@ async function main() {
     const placed = Number.isFinite(extent?.min?.[0])
       ? { min: extent.min[0], max: extent.max[0] }
       : null;
-    return revealFraming(state.rig, Math.max(1, route.length), PIECE, { include: placed });
+    return revealFraming(
+      { ...state.wide, width: state.rig.width, height: 0 },
+      Math.max(1, route.length),
+      PIECE,
+      { include: placed, pitch: state.wide.pitch },
+    );
   }
 
   function currentRoute() {
@@ -785,7 +848,7 @@ async function main() {
    */
   function groundAt(ray, height = 0) {
     if (!ray) return null;
-    if (state.roll > 0.5) return ringGround(ray, focusX(), ringSize());
+    if (state.roll > 0.5) return ringGround(ray, clockX(), ringSize());
     return groundPoint(ray, height);
   }
 
@@ -1800,6 +1863,10 @@ async function main() {
       solid: state.solid,
       // Plates of film the renderer is actually holding, and how big they are
       // drawn. A restored canvas with no ground under it is this being zero.
+      // Whether a take is running. It decides which branch of the frame the
+      // sky is worked out in, so it is the difference between the hour
+      // reaching the sky and not.
+      playing: state.playing,
       pieces: renderer.pieces,
       plate: state.plate,
       radius: ringSize(),
@@ -1903,7 +1970,7 @@ async function main() {
     // The middle of the piece being looked at, so a model lands on the part of
     // the film you are composing. `from` records which piece that is.
     const [, cz] = centreOf(currentRoute().framing);
-    layout.push({ model: id, at: [focusX(), 0, cz], rot: 0, from: editing(), ...(pose ? { pose } : {}) });
+    layout.push({ model: id, at: [clockX(), 0, cz], rot: 0, from: editing(), ...(pose ? { pose } : {}) });
     rebuild();
     select(layout.length - 1);
     paintLibrary();
@@ -3326,7 +3393,18 @@ async function main() {
     // two was the bug: one drag moved the camera off the film, and cycling
     // through the steps changed nothing on screen from then on.
     {
-      if (state.playing) { state.clock = (state.clock + delta) % duration; state.scrubbing = false; }
+      // **A film with no length cannot be played.** `duration` is nought with
+      // no pieces, and a modulo by nought is NaN - which then spreads into the
+      // clock, the framing and everything downstream of them.
+      if (state.playing && duration > 0) {
+        state.clock = (state.clock + delta) % duration;
+        state.scrubbing = false;
+      } else if (state.playing) {
+        // Nothing to play. Stopping is what lets the paused branch below apply
+        // the hour to the sky, which is the difference between a lit world and
+        // a black one.
+        state.playing = false;
+      }
 
       const at = currentRoute();
       // Time into this hold, so a move restarts with every shot rather than
@@ -3442,12 +3520,24 @@ async function main() {
       paintClock();
     }
 
-    state.roll = easeRoll(state.roll, state.rollTo, delta);
+    // Gentle. The unfurl is the best thing the app does and it is worth
+    // watching, so it is slower than a control that is merely getting out of
+    // the way would be.
+    state.roll = easeRoll(state.roll, state.rollTo, delta, 2.2);
     if (state.roll > 0.0005) {
       framing = lerpFraming(framing, framingOf(state.rig, 0, PIECE), state.roll, 0);
     }
 
     const seen = veilFor(framing.w, PIECE);
+    // **Fog opens with the shot too.** Fixed in world units it is right for one
+    // piece and swallows the whole film at any wider one, which is what turned
+    // everything the colour of the sky in the overview.
+    const haze = fogFor(framing.w, PIECE, {
+      near: weather.fogNear ?? 26,
+      far: weather.fogFar ?? 180,
+    });
+    weather = { ...weather, fogNear: haze.near, fogFar: haze.far };
+
     const { matrix, eye, target } = viewProjection(framing);
     renderer.draw({
       focus: [focusX(), 0],
