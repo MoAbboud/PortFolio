@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 import { SHADERS } from '../lib/render.js';
 
@@ -61,6 +62,32 @@ test('a fragment shader states its precision and its output', () => {
   }
 });
 
+test('a fragment shader states its precision before it declares anything', () => {
+  /**
+   * **A fragment shader has no default precision for float**, so a declaration
+   * above the `precision` line is an error - one per float, naming a line the
+   * author did not write.
+   *
+   * This is an *ordering* rule, and it is the hole the check above left: it
+   * asked whether the precision line existed, which it did. A shared block was
+   * injected between the version and the precision, and every float in it
+   * failed. The whole point of these tests is that a shader error costs a round
+   * trip through a browser, and this one made the round trip.
+   *
+   * Vertex shaders are exempt: float is highp there by default.
+   */
+  for (const [name, source] of Object.entries(SHADERS)) {
+    if (!name.includes('fragment')) continue;
+    const lines = stripComments(source).split('\n');
+    const precision = lines.findIndex((l) => /^\s*precision\s+\w+\s+float\s*;/.test(l));
+    const declared = lines.findIndex((l) => /^\s*(uniform|in|out)\s+/.test(l));
+    assert.ok(precision >= 0, `${name} never states a precision`);
+    assert.ok(precision < declared,
+      `${name} declares something on line ${declared + 1} before stating its precision on`
+      + ` line ${precision + 1} - every float above that line is a compile error`);
+  }
+});
+
 test('what a vertex shader sends out, its fragment shader takes in', () => {
   // `area` was missing from this list, so its pair was never checked at all.
   const pairs = [['cube', 'cube'], ['mesh', 'mesh'], ['shadow', 'shadow'],
@@ -88,6 +115,77 @@ test('what a vertex shader sends out, its fragment shader takes in', () => {
   }
 });
 
+/**
+ * A shader has to be self-contained: it is compiled on its own.
+ *
+ * **This is the check that was missing.** Shared blocks are injected into the
+ * shaders that need them, and the spotlight's block went into the vertex
+ * shaders while the *ground's fragment* shader was the one calling it. Every
+ * other check passed - the text is balanced, the version is first, no reserved
+ * words, the varyings line up - and it would have failed to compile in a
+ * browser, which is the round trip this whole file exists to avoid.
+ */
+for (const [name, source] of Object.entries(SHADERS)) {
+  test(`the ${name} shader declares every uniform it mentions`, () => {
+    const code = stripComments(source);
+    const declared = new Set(
+      [...code.matchAll(/uniform\s+\w+\s+(\w+)\s*;/g)].map((m) => m[1]),
+    );
+    const used = new Set([...code.matchAll(/\bu[A-Z]\w*/g)].map((m) => m[0]));
+    for (const u of used) {
+      assert.ok(declared.has(u),
+        `${u} is used but never declared - a block it lives in was not injected here`);
+    }
+  });
+
+  test(`the ${name} shader defines every helper it calls`, () => {
+    const code = stripComments(source);
+    const defined = new Set(
+      [...code.matchAll(/^\s*\w+\s+(\w+)\s*\([^)]*\)\s*\{/gm)].map((m) => m[1]),
+    );
+    // The ones this app injects rather than the whole GLSL standard library.
+    for (const fn of ['veilOf', 'spotAt', 'bend', 'bendNormal', 'grain', 'sprockets',
+      'solidity', 'travelled', 'turned', 'hash']) {
+      const calls = new RegExp(`\\b${fn}\\s*\\(`).test(code);
+      if (!calls) continue;
+      assert.ok(defined.has(fn),
+        `${fn} is called but never defined - the block it lives in was not injected here`);
+    }
+  });
+}
+
+test('every program that draws part of the world is handed the world it draws', () => {
+  /**
+   * **Declaring a shared uniform and never being given it is silent.**
+   *
+   * A uniform nobody sets is nought, so a shader that takes the roll block and
+   * calls `bend` draws the flat position for ever and reports nothing. That is
+   * what places were doing: `AREA_VS` turns with the piece it is on by design,
+   * `veil(area)` was never called, and every place stayed lying in the plane
+   * while the ring turned out from under it. Nothing caught it because nothing
+   * on the canvas had used a place since the ring landed.
+   *
+   * The checks above ask whether a shader is self-contained. This one asks
+   * whether the renderer holds up its half of the bargain.
+   */
+  const source = readFileSync(new URL('../lib/render.js', import.meta.url), 'utf8');
+  const shared = ['uRoll', 'uRadius', 'uFocusX', 'uPitch', 'uRoom', 'uSpot'];
+
+  const programs = new Map();
+  for (const [name, code] of Object.entries(SHADERS)) {
+    const program = name.split(' ')[0];
+    const takes = shared.filter((u) => new RegExp(`uniform\\s+\\w+\\s+${u}\\s*;`).test(code));
+    programs.set(program, [...(programs.get(program) ?? []), ...takes]);
+  }
+
+  for (const [program, takes] of programs) {
+    if (!takes.length) continue;
+    assert.match(source, new RegExp(`veil\\(${program}\\)`),
+      `the ${program} program declares ${[...new Set(takes)].join(', ')} and is never handed`
+      + ` them - add veil(${program}) where it is drawn, or it draws an unrolled world`);
+  }
+});
+
 test('every uniform the renderer sets is declared by some shader', () => {
   // A guard against a rename in one place and not the other.
   const all = Object.values(SHADERS).join('\n');
@@ -100,7 +198,8 @@ test('every uniform the renderer sets is declared by some shader', () => {
     'uRain', 'uBox', 'uScale', 'uColour',
     // The world's shape, shared by every program that draws part of it.
     'uRoll', 'uRadius', 'uFocusX', 'uVeilNear', 'uVeilFar',
-    'uPitch', 'uPlate', 'uSolid', 'uSpace',
+    'uPitch', 'uPlate', 'uSolid', 'uSpace', 'uStock', 'uEye',
+    'uGround', 'uRoom', 'uSpot',
   ];
   for (const name of used) {
     assert.match(all, new RegExp(`uniform\\s+\\w+\\s+${name}\\s*;`),

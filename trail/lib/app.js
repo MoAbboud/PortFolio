@@ -26,7 +26,6 @@ import {
 import { orbit, zoom, rise, tidy, centreOf } from './orbit.js';
 import {
   framingOf, revealFraming, veilFor, fogFor, pitchOf, radiusFor, ringGround, xAt, easeRoll,
-  pivotAt,
   DEFAULT_PIECE,
 } from './timeline.js';
 import { createRenderer } from './render.js';
@@ -601,6 +600,22 @@ async function main() {
     hourTo: null,
     // A hoop you can see through, or a filled body. A look, so it is a switch.
     solid: 0,
+    // How much the ground under a piece looks like film rather than a plain
+    // plate: sprocket holes, a lit panel where the scene sits, a sheen.
+    stock: 1,
+    // What the ground is made of: 0 the weather's own colour, 1 grass,
+    // 2 concrete. Procedural, so it costs no image and never has to be fetched.
+    ground: 0,
+    // A dark room to put the film in, and a light to point into it.
+    room: 0,
+    /**
+     * Where the spotlight is pointed, on the flat strip.
+     *
+     * Kept in strip coordinates like everything else that lives on the film,
+     * so it stays on the piece it was aimed at however the world is rolled.
+     * `power` is nought when it is off, which is also how the shaders skip it.
+     */
+    spot: { at: [0, 0], radius: 7, power: 0 },
     /**
      * The angle the whole film is read from, kept apart from the working shot.
      *
@@ -707,23 +722,23 @@ async function main() {
     return xAt(editing(), PIECE);
   }
 
-  function focusX() {
-    // The middle of the whole film, which is what the overview turns about.
-    const middle = xAt((Math.max(1, route.length) - 1) / 2, PIECE);
-    const here = clockX();
-    /**
-     * **Blended by the roll, because it is the pivot the world turns about.**
-     *
-     * This used to switch the moment the overview was toggled: the point the
-     * ring is rolled around jumped from the piece in front of you to the middle
-     * of the film, so the whole world swung sideways in one frame and *then*
-     * unrolled. That is the whip - the animation was fine and the thing it was
-     * animating about had already moved.
-     *
-     * `state.roll` is continuous, so anything derived from it is too.
-     */
-    return pivotAt(here, middle, state.roll);
-  }
+  /**
+   * The point the world is rolled about: always the piece in front of you.
+   *
+   * **It must not move, and it never needed to.** Two goes were spent trying to
+   * animate it. It first switched to the middle of the film the instant the
+   * overview was toggled, which swung the world sideways in one frame; the fix
+   * for that blended it across the unfurl instead, which was worse - it swings
+   * the piece you are looking at out to one side and brings it back, which is a
+   * pendulum in the most literal sense. Measured at 16 units out and back on a
+   * three-piece film.
+   *
+   * Neither was necessary. `bend` is `mix(flat, rolled, uRoll)`, so at nought
+   * roll it returns the flat position **whatever the pivot is** - the pivot has
+   * no effect at the only moment it was being moved for. Leaving it on the
+   * piece is both simpler and the only thing that holds still.
+   */
+  const focusX = () => clockX();
 
   function restage() {
     // **One composition for the whole film.** Every piece is looked at the same
@@ -1872,6 +1887,10 @@ async function main() {
       // the app was *asked* for does not, and is the thing a control is judged on.
       rollTo: state.rollTo,
       solid: state.solid,
+      stock: state.stock,
+      ground: state.ground,
+      room: state.room,
+      spot: [state.spot.at[0], state.spot.at[1], state.spot.radius, state.spot.power],
       // Plates of film the renderer is actually holding, and how big they are
       // drawn. A restored canvas with no ground under it is this being zero.
       // Whether a take is running. It decides which branch of the frame the
@@ -2791,6 +2810,43 @@ async function main() {
   const weatherSeg = segment('weather', () => state.forcedWeather ?? '', (v) => {
     state.forcedWeather = v || null;
   });
+  // What the ground under a piece is made of. Kept as a switch rather than
+  // settled in the shader, because every look decision in this app so far has
+  // been reversed the first time it was seen.
+  const stockSeg = segment('stock', () => String(state.stock), (v) => {
+    state.stock = Number(v) ? 1 : 0;
+  });
+  const groundSeg = segment('ground', () => String(state.ground), (v) => {
+    state.ground = Number(v) || 0;
+  });
+  const roomSeg = segment('room', () => String(state.room), (v) => {
+    state.room = Number(v) ? 1 : 0;
+  });
+
+  /**
+   * How bright the spotlight is, and where it is pointed.
+   *
+   * The slider is the whole of turning it on: nought is off, which is also how
+   * the shaders skip the work. Pointing it is a separate act, because where it
+   * shines and how hard are different decisions.
+   */
+  const spotSlider = slider('r-spot', (v) => (v ? `${v}%` : 'off'),
+    (v) => { state.spot.power = v / 100; });
+
+  el('b-spot-here').addEventListener('click', () => {
+    if (state.selected < 0) { say('select something to point the light at'); return; }
+    const box = boxes[state.selected];
+    state.spot.at = [(box.min[0] + box.max[0]) / 2, (box.min[2] + box.max[2]) / 2];
+    // Wide enough to hold what it is pointed at, with room around it, so the
+    // pool reads as light falling on a thing rather than as a disc under it.
+    const across = Math.max(box.max[0] - box.min[0], box.max[2] - box.min[2]);
+    state.spot.radius = Math.max(4, across * 1.9);
+    if (state.spot.power < 0.05) {
+      state.spot.power = 1;
+      spotSlider.set(100);
+    }
+    say(`the light is on ${layout[state.selected].label || layout[state.selected].model}`);
+  });
 
   // --- moving through the day -----------------------------------------------
   //
@@ -3284,6 +3340,10 @@ async function main() {
     surfaceSeg.paint();
     weatherSeg.paint();
     plateSlider.set(Math.round(state.plate * 100));
+    stockSeg.paint();
+    groundSeg.paint();
+    roomSeg.paint();
+    spotSlider.set(Math.round(state.spot.power * 100));
     buildSteps();
     paintClock();
     paintObject();
@@ -3562,6 +3622,10 @@ async function main() {
       roll: state.roll,
       radius: ringSize(),
       solid: state.solid,
+      stock: state.stock,
+      ground: state.ground,
+      room: state.room,
+      spot: [state.spot.at[0], state.spot.at[1], state.spot.radius, state.spot.power],
       // The sky needs where the camera looks as well as where it is, so it can
       // turn a pixel into a direction and put the sun where it actually is.
       matrix, eye, target, time: now / 1000, weather,

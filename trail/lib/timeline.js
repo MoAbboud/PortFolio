@@ -247,20 +247,19 @@ export function insertPiece(pieces = [], piece) {
 const MAX_BEND = 30;
 
 /**
- * The point the world turns about, part way through an unfurl.
+ * **The pivot does not move, and there is no function here for moving it.**
  *
- * Rolled up, the ring turns about the piece in front of the camera. Unrolled,
- * the film lies flat and is read about its middle. **Between them it has to
- * move continuously**, because it is the pivot of the transform the whole world
- * is drawn through - switching it in one frame swings everything sideways and
- * then animates, which reads as the camera being whipped.
+ * There was one, briefly. The ring turns about the piece in front of the
+ * camera, and it seemed to follow that the flat film should be read about its
+ * middle - so the pivot was animated between the two. It is wrong twice over.
+ * Moving the pivot swings the piece you are looking at out to one side and
+ * brings it back, which is a pendulum; and `bend` is `mix(flat, rolled, uRoll)`,
+ * so at nought roll the pivot has no effect at all - there was nothing to
+ * animate away from.
+ *
+ * Left as a note rather than a deleted commit, because it is a plausible idea
+ * that costs two rounds to disprove by eye.
  */
-export function pivotAt(here, middle, roll) {
-  const t = clamp(isNumber(roll) ? roll : 1, 0, 1);
-  const from = isNumber(here) ? here : 0;
-  const to = isNumber(middle) ? middle : from;
-  return from + (to - from) * (1 - t);
-}
 
 /**
  * One step of the unfurl.

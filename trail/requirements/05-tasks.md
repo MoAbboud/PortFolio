@@ -200,6 +200,111 @@ stays open.
 - [x] Arrows chain from where the clock is **heading**, not where it has reached, so pressing
       twice quickly moves two pieces instead of finding the same one again
 
+### 9p - Places were never handed the world they are drawn in
+
+Found while reviewing the work above, and it is older than that work: it arrived with the ring.
+
+- [x] **`veil(area)` was never called.** `AREA_VS` takes the roll block and calls `bend`, so a
+      place is meant to turn with the piece it is on - but nothing set `uRoll`, and a uniform
+      nobody sets is nought, so `bend` returned the flat position and every place stayed lying
+      in the plane while the ring turned out from under it. Places are the only part of the
+      world drawn without it, and it cost nothing so far only because nothing on a canvas has
+      used one since the ring landed
+- [x] A test: **every program whose shaders declare a shared uniform must be handed it.** The
+      other shader checks ask whether a shader is self-contained; this one asks whether the
+      renderer holds up its half. It fails with `the area program declares uRoll, uRadius,
+      uFocusX, uPitch, uRoom, uSpot and is never handed them`
+- [ ] **Declaring a shared uniform and never being given it is silent**, which is why this sat
+      there. Nothing errors, nothing looks broken, and the shader draws a world that is not the
+      one everything else is drawing
+
+### 9o - The shader lint had two holes, and both were about assembly
+
+- [x] **The precision line must come before anything it applies to.** A fragment shader has no
+      default precision for float, so the spotlight's block injected above it made every float
+      in it a compile error - and the page would not start. The previous check asked whether a
+      precision line *existed*, which it did
+- [x] **Every uniform declared where it is used, every helper defined where it is called.** The
+      spotlight's block reached the vertex shaders while the ground's *fragment* shader was the
+      one calling it
+- [x] Both read the **assembled** sources rather than the snippets, because a test that reads
+      one snippet proves nothing about the shader it ends up in
+- [ ] **None of this compiles anything.** There is no graphics context in Node and this app has
+      no dependencies, so every shader check is a rule read off the specification and applied to
+      the text. The ordering rule reached a browser before it was caught, which is a fair
+      measure of where that limit is
+
+### 9n - Ground, a dark room, and a light to point
+
+**Asked for 2026-08-09:** *"i want something like grass, concrete, i want a dark room, i want a
+spotlight feature where i could point it on an object, it will do a circle on the ground."*
+
+- [x] **Grass and concrete**, procedural: two scales of grain each, because one reads as noise
+      and two read as a surface. Concrete is scored into slabs, grass has mown patches and a dry
+      tip. No image, no download, and the same every time a canvas is opened
+- [x] **A dark room**, which dims the world before the light is added. Dimming first is what
+      makes a spot read as the only light in the place rather than a bright patch over a lit one
+- [x] **A spotlight**, kept in strip coordinates like everything else on the film, so it stays
+      on the piece it was aimed at however the world is rolled. A slider for how bright, and a
+      button to point it at whatever is selected - sized from that object's own box, so the
+      pool holds it with room around it
+- [x] Worked out **per fragment everywhere**, which took two goes. The ground was per fragment
+      from the start for a stated reason - a plate is two triangles, so a circle interpolated
+      across its corners is a diamond - and objects were left per vertex, which is fine for a
+      person and wrong for a street. **This library is 61 street and pavement pieces and they are
+      the same two triangles**, so the reason given for the plate was always the reason for them.
+      The vertex shaders carry a place on the flat film across and answer nothing
+- [x] **Places are lit by the room too.** A place is a wash of colour blended into the floor, so
+      leaving it out of the dimming drew it at full strength over ground at a tenth of that - a
+      coloured card glowing in a dark room, which is the one thing it must not do
+- [x] Switches and the pointing have tests of their own, each confirmed by breaking what it
+      guards: a pool of a fixed size fails with `the pool is 7.0 across on a house and 7.0 on a
+      figure`, and a switch that ignores its value fails with `the ground could not be made grass`
+- [x] **An example canvas built out of the library**: `examples/the-corner.json`, three pieces
+      of one street corner twenty minutes apart, 59 objects - streets, pavements, lamps, a
+      hydrant, buildings, a birch, two people and a dog. A file to open, because the app opens
+      empty and that is deliberate
+- [x] A test opens it and checks every model it names is in the library, so it cannot rot as
+      the library changes
+
+### 9m - The film looks like film
+
+**Asked for 2026-08-09:** *"I want the canvas to look better, i dont want this flat blue
+uninspiring thing."* It was one flat colour with a dark edge.
+
+- [x] **Sprocket holes** down the long edges, punched through so space shows behind them. The
+      app's whole metaphor, and in the overview it reads unmistakably as a reel
+- [x] **A lit panel where the scene sits**, with the film around it darker. That is what a frame
+      of film looks like, and it makes the moment being looked at the brightest thing on screen
+- [x] **Film stock rather than a mid-blue plate**: dark and neutral, so every colour standing on
+      it reads as a colour. A flat mid-blue gives a scene nothing to sit against
+- [x] **A sheen**, so the ground catches the sun as the ring turns and stops being a painted
+      rectangle. Wet ground takes it harder, which is what rain has always done here
+- [x] A lit rim along the top of the edge lip, so a plate has thickness
+- [x] **The plain plate is one click away**, in the panel. Every look decision in this app has
+      been reversed the first time it was seen - the cubes, the reveal's angle, what the
+      overview frames - so this is a switch rather than a settled question
+- [ ] Judge it by eye. The panel inset, how dark the stock is, how many sprockets and how
+      strong the sheen are all numbers picked by reasoning, which is the thing this project has
+      learned not to trust about its own appearance
+
+### 9l - The pivot never needed to move
+
+- [x] **The point the world is rolled about stays on the piece you are looking at.** Animating
+      it toward the middle of the film swings that piece out and back - measured at 15.8 units
+      on a three-piece film, out and back, ending where it started
+- [x] It was never needed: `bend` is `mix(flat, rolled, uRoll)`, so at nought roll it returns
+      the flat position **whatever the pivot is**. The pivot has no effect at the only moment it
+      was being moved for
+- [x] `pivotAt` removed, with a note left where it was. It is a plausible idea that cost two
+      rounds to disprove by eye
+- [x] The test asserts the piece holds still across the whole unfurl, **and** that moving the
+      pivot is what makes it swing - so it fails if it stops describing the thing it was
+      written for
+- [ ] Three rounds, three causes, two of them introduced while fixing the one before. A
+      transform has a pivot, a curve and a rate, and "it wobbles" does not say which. Printing
+      one point's position across the animation took a minute and would have found all three
+
 ### 9k - Two curves for one movement
 
 - [x] **`lerpFraming` takes the curve to use**, defaulting to what it always did. It eased by
@@ -291,6 +396,16 @@ stays open.
       dragged object jumping slightly near an edge
 - [ ] The list counts what stands on a piece by name. A piece with forty of something reads as
       "tree x40", which is right, but there is no way to reach one of them from the list
+- [ ] **None of the film stock, the ground, the room or the spotlight is in the canvas file**,
+      and that is a decision taken deliberately rather than an omission: it is canvas version 7
+      with a migration, and it was not worth doing in the same change as two shader fixes.
+      What it costs today: `examples/the-corner.json` is a street corner and cannot ask for
+      concrete, and a light aimed at an object is lost when the canvas is reopened. **The spot
+      is the one that matters**, because `autoMove` is saved on the step *"because play mode
+      carries no interface and a take has to play the same way twice"* - and a take with a
+      spotlight in it currently cannot be. `stock` and `ground` look like `look` block fields;
+      `room` and `spot` are composition and may belong to the piece rather than the canvas,
+      since weather already varies per piece and one event can cross a street and a lawn
 
 ### The overview could not be left - 2026-08-09
 

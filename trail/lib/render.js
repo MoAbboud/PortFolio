@@ -87,6 +87,45 @@ vec3 bendNormal(vec3 n, float x) {
 }
 `;
 
+/**
+ * The room, and the light in it.
+ *
+ * **Its own block rather than part of the roll**, because the two are wanted in
+ * different places. The roll is geometry and belongs to vertex shaders; this is
+ * light, and it belongs to **fragment shaders only** - every shader that
+ * receives it works the pool out per fragment, and the vertex shaders' whole
+ * part in it is carrying a position on the flat film across.
+ *
+ * **Per fragment everywhere, and it took two goes to get there.** The ground was
+ * always per fragment for a stated reason - a plate is two triangles, so a
+ * circle interpolated across its corners is a diamond - and objects were left
+ * per vertex, which is fine for a person and wrong for a street. This library is
+ * 61 street and pavement pieces and they are the same two triangles.
+ *
+ * Putting it in the roll block was a real bug: the ground's fragment shader
+ * called `spotAt` while the declaration only ever reached vertex shaders, which
+ * is a compile failure a browser would have reported and the shader lint did
+ * not, because nothing checked that a called function is declared.
+ *
+ * Measured on the flat strip, for the same reason the veil is: a spot lands on
+ * a place in the film, and once the world is rolled two places can be near each
+ * other in space while being half a story apart.
+ */
+const LIGHT = `
+uniform float uRoom;      // 0 the world as lit, 1 a dark room
+uniform vec4 uSpot;       // where the light points: x, z, its radius, and how bright
+
+/** How much of the spotlight reaches a place on the film. */
+float spotAt(vec3 onStrip) {
+  if (uSpot.w < 0.001) return 0.0;
+  float away = distance(onStrip.xz, uSpot.xy);
+  // Bright in the middle, soft at the rim. A hard circle reads as a decal on
+  // the ground; a soft one reads as light falling on it.
+  float pool = 1.0 - smoothstep(uSpot.z * 0.45, uSpot.z, away);
+  return pool * pool * uSpot.w;
+}
+`;
+
 const CUBE_VS = `#version 300 es
 ${ROLL}
 in vec3 aPos;
@@ -119,6 +158,7 @@ out float vAo;
 out vec3 vWorld;
 out vec2 vFinish;
 out float vVeil;
+out vec3 vStrip;
 
 
 // How far along its line this object is.
@@ -163,6 +203,10 @@ void main() {
   // can be close together while being half a story apart.
   vec3 onStrip = world + aPos * aSize * grow;
   vVeil = veilOf(onStrip);
+  // Where this is on the flat film, carried through so the fragment shader can
+  // ask the spotlight the same question the ground does. See the note on vStrip
+  // in the fragment shader for why it is not answered here.
+  vStrip = onStrip;
   vY = onStrip.y;
   vec3 p = bend(onStrip);
   vWorld = p;
@@ -181,6 +225,7 @@ void main() {
 
 const CUBE_FS = `#version 300 es
 precision highp float;
+${LIGHT}
 
 in vec3 vColour;
 in vec3 vNormal;
@@ -192,6 +237,15 @@ in float vAo;
 in vec3 vWorld;
 in vec2 vFinish;
 in float vVeil;
+/**
+ * Where this fragment is on the flat film, for the spotlight to measure against.
+ *
+ * **Per fragment, for the same reason the ground is.** The pool was worked out
+ * at the vertices first, which is fine for a person and wrong for a street: this
+ * library is 61 street and pavement pieces, and a slab that is two triangles
+ * interpolates a circle into a diamond exactly as the plate did.
+ */
+in vec3 vStrip;
 
 uniform vec3 uSun;
 uniform vec3 uSky;
@@ -228,6 +282,12 @@ void main() {
   float ao = mix(0.42, 1.0, clamp(vAo, 0.0, 1.0));
   vec3 colour = vColour * (0.30 * ao + 0.50 * lambert * mix(0.55, 1.0, ao)
     + 0.26 * sky * ao) * uAmbient;
+
+  // **The room, then the light in it.** Dimming first and adding the spot
+  // after is what makes a spotlight read as the only light in the place rather
+  // than as a bright patch laid over a lit world.
+  colour *= mix(1.0, 0.12, uRoom);
+  colour += vColour * spotAt(vStrip) * 1.35;
 
   float fog = clamp((vDepth - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0);
   colour = mix(colour, uSky, fog * 0.85);
@@ -318,6 +378,7 @@ out float vAo;
 out vec3 vWorld;
 out vec2 vFinish;
 out float vVeil;
+out vec3 vStrip;
 
 float solidity(float step, float t, float from, float until) {
   if (step < from - 0.5) return 0.0;
@@ -348,8 +409,10 @@ void main() {
   vec3 p = turned(aPos, aPivot, aMotion, uTime) + aNormal * (breathe + shrink)
     + travelled(aTravel, uStep, uArrive);
 
-  // See the cube shader: the veil is measured on the flat strip.
+  // See the cube shader: the veil and the spotlight are measured on the flat
+  // strip, and the spotlight is asked per fragment rather than here.
   vVeil = veilOf(p);
+  vStrip = p;
   vY = p.y;
   vec3 onStrip = p;
   p = bend(p);
@@ -454,6 +517,7 @@ uniform float uStepT;
 out vec2 vLocal;
 out vec3 vTint;
 out float vSolid;
+out vec3 vStrip;
 
 float solidity(float step, float t, float from, float until) {
   if (step < from - 0.5) return 0.0;
@@ -470,14 +534,20 @@ void main() {
   // Above the floor but under the contact shadows, so a figure standing in a
   // bar still sits on the ground rather than hovering over a coloured card.
   vec3 p = aCentre + vec3(aCorner.x * aHalf.x, 0.006, aCorner.y * aHalf.y);
+  // Where this is on the flat film, for the light to be measured against - the
+  // same thing the objects and the plates carry, and per fragment for the same
+  // reason: a place is two triangles.
+  vStrip = p;
   gl_Position = uViewProj * vec4(bend(p), 1.0);
 }`;
 
 const AREA_FS = `#version 300 es
 precision highp float;
+${LIGHT}
 in vec2 vLocal;
 in vec3 vTint;
 in float vSolid;
+in vec3 vStrip;
 out vec4 frag;
 void main() {
   // Soft at the edges and stronger at the rim than in the middle, so an area
@@ -488,7 +558,14 @@ void main() {
   float rim = smoothstep(0.62, 0.99, max(d.x, d.y));
   float alpha = inside * vSolid * (0.16 + 0.30 * rim);
   if (alpha < 0.004) discard;
-  frag = vec4(vTint, alpha);
+
+  // **A place is ground, so the room reaches it.** It is laid into the floor and
+  // blended over it, so leaving it out of the dimming lit it at full strength
+  // over ground at a tenth of that - a coloured card glowing in a dark room,
+  // which is the one thing a wash of colour on the floor must not do.
+  vec3 colour = vTint * mix(1.0, 0.12, uRoom);
+  colour += vTint * spotAt(vStrip) * 0.9;
+  frag = vec4(colour, alpha);
 }`;
 
 // Rain. One fixed cloud of drops that follows the camera and wraps around it,
@@ -669,9 +746,10 @@ uniform float uSolid;     // 0 a ring you can see through, 1 a filled body
 
 out vec3 vStrip;
 out vec2 vLocal;
+out vec3 vPos;
+out vec3 vFace;
 out float vDepth;
 out float vVeil;
-out float vLit;
 
 void main() {
   // Inward, when solid: the plate's near edge is dragged toward the middle of
@@ -688,8 +766,11 @@ void main() {
   vVeil = veilOf(onStrip);
 
   vec3 p = bend(onStrip);
+  vPos = p;
   // The plate faces outward from the ring, which is what its own turn says.
-  vLit = bendNormal(vec3(0.0, 1.0, 0.0), onStrip.x).y;
+  // Kept whole rather than reduced to how much light it catches: a sheen needs
+  // to know where the surface is pointing as well as how lit it is.
+  vFace = bendNormal(vec3(0.0, 1.0, 0.0), onStrip.x);
 
   vec4 clip = uViewProj * vec4(p, 1.0);
   vDepth = clip.w;
@@ -698,21 +779,64 @@ void main() {
 
 const STRIP_FS = `#version 300 es
 precision highp float;
+${LIGHT}
 in vec3 vStrip;
 in vec2 vLocal;
+in vec3 vPos;
+in vec3 vFace;
 in float vDepth;
 in float vVeil;
-in float vLit;
 
 uniform vec3 uFloor;
 uniform vec3 uSky;
 uniform vec3 uSun;
+uniform vec3 uEye;
 uniform float uFogNear;
 uniform float uFogFar;
 uniform sampler2D uScars;
 uniform float uScarExtent;
+// 0 a plain plate of ground, 1 a frame of film. A look, so it is a switch: this
+// app has settled its appearance by eye three times and expects to again.
+uniform float uStock;
+// What the ground is made of: 0 the weather's own colour, 1 grass, 2 concrete.
+uniform float uGround;
 
 out vec4 frag;
+
+/**
+ * A stable number per place on the ground.
+ *
+ * Nothing is stored and nothing is uploaded: the same place always hashes to
+ * the same number, so the ground holds still while the world turns through it.
+ * The same trick the stars use.
+ */
+float hash(vec2 p) {
+  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+/** Softened, so it reads as a material rather than as pixels. */
+float grain(vec2 p) {
+  vec2 cell = floor(p);
+  vec2 into = smoothstep(0.0, 1.0, fract(p));
+  return mix(
+    mix(hash(cell), hash(cell + vec2(1.0, 0.0)), into.x),
+    mix(hash(cell + vec2(0.0, 1.0)), hash(cell + vec2(1.0, 1.0)), into.x),
+    into.y
+  );
+}
+
+// Sprocket holes down the long edges of the film.
+//
+// The strip runs along x, so its long edges are where the across-strip
+// coordinate is near either end. Repeated along the piece and rounded off, so
+// they read at a glance and never as pixels.
+float sprockets(vec2 local) {
+  float band = smoothstep(0.74, 0.82, abs(local.y));
+  float along = fract(local.x * 5.0 + 0.5) - 0.5;
+  float across = (abs(local.y) - 0.88) / 0.075;
+  float d = max(abs(along) / 0.17, abs(across));
+  return band * (1.0 - smoothstep(0.72, 1.0, d));
+}
 
 void main() {
   // What the weather left behind. Red is wet, green is bleached by fog. Read in
@@ -724,23 +848,88 @@ void main() {
   float wet = marks.r * inside;
   float pale = marks.g * inside;
 
-  vec3 ground = uFloor * mix(1.0, 0.55, wet);
+  // Film stock is dark and neutral, and it is what makes the objects standing
+  // on it read as lit. A flat mid-blue plate gives a scene nothing to sit
+  // against; a dark one makes every colour on it a colour.
+  vec3 stock = mix(uFloor, uFloor * 0.34 + vec3(0.035, 0.038, 0.045), uStock);
+
+  /**
+   * What the ground is made of.
+   *
+   * Two scales of grain each, because one reads as noise and two read as a
+   * surface: a coarse one for patches and a fine one for texture. Procedural,
+   * so it costs no image, no download and no memory, and it is the same every
+   * time the canvas is opened.
+   */
+  vec2 at = vStrip.xz;
+  float coarse = grain(at * 0.42);
+  float fine = grain(at * 2.6);
+
+  // Grass: mown patches running across the piece, with a dry tip on the high
+  // ground so it is not one sheet of green.
+  vec3 grass = mix(vec3(0.16, 0.30, 0.13), vec3(0.30, 0.46, 0.20), coarse);
+  grass = mix(grass, vec3(0.44, 0.50, 0.26), fine * fine * 0.5);
+
+  // Concrete: pale and mottled, scored into slabs. The joints are what say
+  // "poured" rather than "painted".
+  vec3 concrete = mix(vec3(0.40, 0.40, 0.42), vec3(0.55, 0.55, 0.56), coarse * 0.7 + fine * 0.3);
+  vec2 slab = abs(fract(at / 4.0) - 0.5);
+  float joint = 1.0 - smoothstep(0.44, 0.5, max(slab.x, slab.y));
+  concrete *= mix(0.72, 1.0, joint);
+
+  vec3 stuff = stock;
+  stuff = mix(stuff, grass, clamp(1.0 - abs(uGround - 1.0), 0.0, 1.0));
+  stuff = mix(stuff, concrete, clamp(1.0 - abs(uGround - 2.0), 0.0, 1.0));
+
+  vec3 ground = stuff * mix(1.0, 0.55, wet);
   ground = mix(ground, vec3(0.82, 0.83, 0.84), pale * 0.65);
+
+  vec3 n = normalize(vFace);
+  vec3 sun = normalize(uSun);
+  vec3 view = normalize(uEye - vPos);
 
   // Lit by where this part of the ring is facing, so the far side of the loop
   // falls into shadow and the world reads as round.
-  float lambert = max((vLit * normalize(uSun).y + 0.35) / 1.35, 0.0);
+  float lambert = max((dot(n, sun) + 0.35) / 1.35, 0.0);
   vec3 colour = ground * mix(0.55, 1.15, lambert);
 
-  // A darker lip at the edge of a plate, so one piece of film is visibly one
-  // piece rather than part of a longer floor.
+  // A sheen, so the film catches the sun as the ring turns and the plate stops
+  // being a painted rectangle. Wet ground takes it harder, which is what rain
+  // has always done to the ground here.
+  // "half" is a reserved word in GLSL, hence "halfway".
+  vec3 halfway = normalize(sun + view);
+  float gloss = pow(max(dot(n, halfway), 0.0), mix(40.0, 140.0, wet));
+  colour += uSky * gloss * mix(0.10, 0.5, wet) * uStock;
+
   vec2 edge = 1.0 - abs(vLocal);
-  float lip = smoothstep(0.0, 0.06, min(edge.x, edge.y));
-  colour = mix(colour * 0.35, colour, lip);
+  float near = min(edge.x, edge.y);
+
+  // The scene sits in a lit panel, and the film around it is darker. That is
+  // what a frame of film looks like and it is also what makes the moment being
+  // looked at the brightest thing on screen.
+  float panel = smoothstep(0.10, 0.22, edge.y) * smoothstep(0.02, 0.12, edge.x);
+  colour *= mix(1.0, mix(0.42, 1.14, panel), uStock);
+
+  // Punched through, so the light behind the ring shows in the holes.
+  float holes = sprockets(vLocal) * uStock;
+
+  // A darker lip at the very edge, so one piece of film is visibly one piece
+  // rather than part of a longer floor, with a lit line along the top of it.
+  float lip = smoothstep(0.0, 0.05, near);
+  float rim = (1.0 - smoothstep(0.02, 0.07, near)) * smoothstep(0.03, 0.0, near - 0.03);
+  colour = mix(colour * 0.28, colour, lip);
+  colour += uSky * rim * 0.28 * uStock;
+
+  // **The room, then the light in it**, and the pool is worked out here rather
+  // than at the corners: a plate is two triangles, so a circle interpolated
+  // across it would be a diamond.
+  colour *= mix(1.0, 0.12, uRoom);
+  float pool = spotAt(vStrip);
+  colour += mix(vec3(1.0, 0.96, 0.88), ground * 3.0, 0.35) * pool * 0.9;
 
   float fog = clamp((vDepth - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0);
   colour = mix(colour, uSky, fog * 0.9);
-  frag = vec4(colour, vVeil);
+  frag = vec4(colour, vVeil * (1.0 - holes));
 }`;
 
 // A cube as 24 vertices and 36 indices, so each face gets its own normal.
@@ -1213,6 +1402,9 @@ export function createRenderer(canvas) {
   let plate = [34, 22];
   let platePitch = 64;
   let solidBody = 0;
+  // The room the film is in, and where the light in it is pointed.
+  let darkRoom = 0;
+  let spotAt = [0, 0, 6, 0];
 
   /**
    * The shape of the world, handed to every program that draws part of it.
@@ -1231,6 +1423,8 @@ export function createRenderer(canvas) {
     // Every program needs the pitch now: it is how a place finds which piece it
     // belongs to, and therefore which frame it turns with.
     if (u.uPitch) gl.uniform1f(u.uPitch, platePitch);
+    if (u.uRoom) gl.uniform1f(u.uRoom, darkRoom);
+    if (u.uSpot) gl.uniform4f(u.uSpot, spotAt[0], spotAt[1], spotAt[2], spotAt[3]);
   }
 
   function draw({
@@ -1243,6 +1437,11 @@ export function createRenderer(canvas) {
     // How far the strip is rolled into its ring, how big that ring is, and
     // whether its middle is filled in.
     roll = 0, radius = 1000, solid = 0,
+    // How much the film looks like film rather than a plain plate of ground.
+    stock = 1,
+    // What the ground is made of, how dark the room is, and where the light in
+    // it is pointed: x, z, its radius, and how bright.
+    ground = 0, room = 0, spot = [0, 0, 6, 0],
     // How far the sky is space rather than air.
     space = 1,
     // How far through the flight into the current step the route is. An object
@@ -1253,6 +1452,7 @@ export function createRenderer(canvas) {
     smoothing = smooth;
     veilAt = focus; veilFrom = veilNear; veilTo = veilFar;
     rolled = roll; ringRadius = Math.max(1, radius); solidBody = solid;
+    darkRoom = room; spotAt = spot;
     const view = resize();
     lastView = view;
     gl.enable(gl.SCISSOR_TEST);
@@ -1311,6 +1511,9 @@ export function createRenderer(canvas) {
       gl.uniform3fv(strip.u.uFloor, weather.floor);
       gl.uniform3fv(strip.u.uSky, weather.sky);
       gl.uniform3fv(strip.u.uSun, weather.sun);
+      gl.uniform3fv(strip.u.uEye, eye);
+      gl.uniform1f(strip.u.uStock, stock);
+      gl.uniform1f(strip.u.uGround, ground);
       gl.uniform1f(strip.u.uFogNear, weather.fogNear ?? 26);
       gl.uniform1f(strip.u.uFogFar, weather.fogFar ?? 180);
       gl.uniform1f(strip.u.uScarExtent, scarExtent);
@@ -1325,6 +1528,14 @@ export function createRenderer(canvas) {
     if (areaCount) {
       gl.depthMask(false);
       gl.useProgram(area.handle);
+      // **This was missing, and places were the only part of the world drawn
+      // without it.** `AREA_VS` takes the roll block and calls `bend`, so a
+      // place is meant to turn with the piece it is drawn on - but nothing ever
+      // handed it `uRoll`, which is nought until it is set, so `bend` returned
+      // the flat position and every place stayed lying in the plane while the
+      // ring turned out from under it. It cost nothing so far only because
+      // nothing on the canvas has used a place since the ring landed.
+      veil(area);
       gl.bindVertexArray(areaVao);
       gl.uniformMatrix4fv(area.u.uViewProj, false, matrix);
       gl.uniform1f(area.u.uStep, step);

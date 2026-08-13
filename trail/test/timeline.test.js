@@ -8,7 +8,7 @@ import {
   depthFor, rigOf, framingOf, revealFraming, veilFor,
   runAt, runDuration, DEFAULT_PIECE,
   groundedRig, distanceFor, PITCH_MIN,
-  radiusFor, rollPoint, unrollPoint, ringGround, easeRoll, pivotAt,
+  radiusFor, rollPoint, unrollPoint, ringGround, easeRoll,
 } from '../lib/timeline.js';
 import { framingToView } from '../lib/camera.js';
 import { orbit, zoom, rise } from '../lib/orbit.js';
@@ -233,32 +233,37 @@ test('past half a turn a place comes back as its other name', () => {
   for (let i = 0; i < 3; i++) near(again[i], far[i], 1e-9);
 });
 
-test('the point the world turns about moves smoothly with the roll', () => {
-  // **Reported by the user:** clicking the overview "whips the camera and the
-  // steps left and right then settles".
+test('a piece held at the pivot does not move as the film unrolls', () => {
+  // **Reported by the user:** the unfurl was "zooming back to the far left of
+  // the canvas, then correcting to the center".
   //
-  // The pivot the ring is rolled about used to switch the instant the overview
-  // was toggled - from the piece in front of you to the middle of the film - so
-  // the whole world swung sideways in one frame and *then* unrolled. The
-  // animation was fine; the thing it was animating about had already moved.
-  //
-  // This is the arithmetic the app blends it with. Anything derived from the
-  // roll is continuous because the roll is.
+  // The piece you are looking at has to hold still: it is the one thing the
+  // camera is pointed at throughout. It does exactly when the pivot stays on
+  // it, and swings out and back when the pivot is animated toward the middle of
+  // the film - which is a pendulum in the most literal sense, and was measured
+  // at 16 units out and back on a three-piece film.
+  const R = radiusFor(3, GEO);
   const here = 0;
-  const middle = 320;
-  const pivot = (roll) => pivotAt(here, middle, roll);
 
-  assert.equal(pivot(1), here, 'rolled up, the world turns about the piece you are on');
-  assert.equal(pivot(0), middle, 'unrolled, it turns about the middle of the film');
+  // Where the middle of that piece ends up, at a given roll, for a given pivot.
+  const centreAt = (roll, pivot) => {
+    const rolled = rollPoint([here, 0, 0], pivot, R)[0];
+    return here * (1 - roll) + rolled * roll;
+  };
 
-  // No step anywhere between them: the biggest move over any hundredth of the
-  // animation is no larger than an even share of the whole distance.
-  let biggest = 0;
-  for (let t = 0; t < 1; t += 0.01) {
-    biggest = Math.max(biggest, Math.abs(pivot(t + 0.01) - pivot(t)));
+  for (let roll = 0; roll <= 1.0001; roll += 0.05) {
+    near(centreAt(roll, here), here, 1e-9);
   }
-  assert.ok(biggest <= (middle - here) / 100 + 1e-9,
-    `the pivot jumped ${biggest.toFixed(1)} units in a hundredth of the unfurl`);
+
+  // And the idea that was tried twice: a pivot that travels to the middle.
+  const middle = pitchOf(GEO);
+  let worst = 0;
+  for (let roll = 0; roll <= 1.0001; roll += 0.05) {
+    worst = Math.max(worst, Math.abs(centreAt(roll, here + (middle - here) * (1 - roll))));
+  }
+  assert.ok(worst > 1,
+    'moving the pivot is supposed to be what swings the piece about - it did not here,'
+    + ' so this test is no longer describing the thing it was written for');
 });
 
 test('the unfurl covers the same ground however the frames fall', () => {

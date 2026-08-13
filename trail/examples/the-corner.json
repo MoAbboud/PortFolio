@@ -1,0 +1,634 @@
+{
+  "trail": 6,
+  "title": "the corner, three times",
+  "look": {
+    "surface": "mesh",
+    "roundness": 0,
+    "smoothing": 0,
+    "cubeScale": 1
+  },
+  "objects": [
+    {
+      "model": "street-2-lane",
+      "at": [
+        -9,
+        0,
+        1
+      ],
+      "rot": 90,
+      "from": 0
+    },
+    {
+      "model": "street-2-lane",
+      "at": [
+        -3,
+        0,
+        1
+      ],
+      "rot": 90,
+      "from": 0
+    },
+    {
+      "model": "street-2-lane",
+      "at": [
+        3,
+        0,
+        1
+      ],
+      "rot": 90,
+      "from": 0
+    },
+    {
+      "model": "street-2-lane",
+      "at": [
+        9,
+        0,
+        1
+      ],
+      "rot": 90,
+      "from": 0
+    },
+    {
+      "model": "sidewalk-straight-3m",
+      "at": [
+        -9,
+        0,
+        -6.5
+      ],
+      "rot": 90,
+      "from": 0
+    },
+    {
+      "model": "sidewalk-straight-3m",
+      "at": [
+        -3,
+        0,
+        -6.5
+      ],
+      "rot": 90,
+      "from": 0
+    },
+    {
+      "model": "sidewalk-straight-3m",
+      "at": [
+        3,
+        0,
+        -6.5
+      ],
+      "rot": 90,
+      "from": 0
+    },
+    {
+      "model": "sidewalk-straight-3m",
+      "at": [
+        9,
+        0,
+        -6.5
+      ],
+      "rot": 90,
+      "from": 0
+    },
+    {
+      "model": "sidewalk-corner-round-3m",
+      "at": [
+        12,
+        0,
+        -6.5
+      ],
+      "rot": 90,
+      "from": 0
+    },
+    {
+      "model": "lamp",
+      "at": [
+        -10,
+        0,
+        -8.5
+      ],
+      "from": 0
+    },
+    {
+      "model": "lamp",
+      "at": [
+        8,
+        0,
+        -8.5
+      ],
+      "from": 0
+    },
+    {
+      "model": "fire-hydrant",
+      "at": [
+        -4,
+        0,
+        -8.2
+      ],
+      "from": 0
+    },
+    {
+      "model": "building1-small",
+      "at": [
+        -7,
+        0,
+        -16
+      ],
+      "rot": 0,
+      "from": 0
+    },
+    {
+      "model": "building2-small",
+      "at": [
+        6,
+        0,
+        -17
+      ],
+      "rot": 0,
+      "from": 0
+    },
+    {
+      "model": "birch-tree-1",
+      "at": [
+        12,
+        0,
+        -12
+      ],
+      "from": 0
+    },
+    {
+      "model": "bush-common",
+      "at": [
+        -12,
+        0,
+        -10
+      ],
+      "from": 0
+    },
+    {
+      "model": "grass-large",
+      "at": [
+        13,
+        0,
+        -9
+      ],
+      "from": 0
+    },
+    {
+      "model": "characters-matt",
+      "at": [
+        -1.5,
+        0,
+        -7.5
+      ],
+      "rot": 200,
+      "label": "Matt",
+      "from": 0
+    },
+    {
+      "model": "characters-german-shepherd",
+      "at": [
+        0.6,
+        0,
+        -7.2
+      ],
+      "rot": 170,
+      "label": "the dog",
+      "from": 0
+    },
+    {
+      "model": "normal-car1",
+      "at": [
+        9,
+        0,
+        2.6
+      ],
+      "rot": 90,
+      "from": 0
+    },
+    {
+      "model": "street-2-lane",
+      "at": [
+        55,
+        0,
+        1
+      ],
+      "rot": 90,
+      "from": 1
+    },
+    {
+      "model": "street-2-lane",
+      "at": [
+        61,
+        0,
+        1
+      ],
+      "rot": 90,
+      "from": 1
+    },
+    {
+      "model": "street-2-lane",
+      "at": [
+        67,
+        0,
+        1
+      ],
+      "rot": 90,
+      "from": 1
+    },
+    {
+      "model": "street-2-lane",
+      "at": [
+        73,
+        0,
+        1
+      ],
+      "rot": 90,
+      "from": 1
+    },
+    {
+      "model": "sidewalk-straight-3m",
+      "at": [
+        55,
+        0,
+        -6.5
+      ],
+      "rot": 90,
+      "from": 1
+    },
+    {
+      "model": "sidewalk-straight-3m",
+      "at": [
+        61,
+        0,
+        -6.5
+      ],
+      "rot": 90,
+      "from": 1
+    },
+    {
+      "model": "sidewalk-straight-3m",
+      "at": [
+        67,
+        0,
+        -6.5
+      ],
+      "rot": 90,
+      "from": 1
+    },
+    {
+      "model": "sidewalk-straight-3m",
+      "at": [
+        73,
+        0,
+        -6.5
+      ],
+      "rot": 90,
+      "from": 1
+    },
+    {
+      "model": "sidewalk-corner-round-3m",
+      "at": [
+        76,
+        0,
+        -6.5
+      ],
+      "rot": 90,
+      "from": 1
+    },
+    {
+      "model": "lamp",
+      "at": [
+        54,
+        0,
+        -8.5
+      ],
+      "from": 1
+    },
+    {
+      "model": "lamp",
+      "at": [
+        72,
+        0,
+        -8.5
+      ],
+      "from": 1
+    },
+    {
+      "model": "fire-hydrant",
+      "at": [
+        60,
+        0,
+        -8.2
+      ],
+      "from": 1
+    },
+    {
+      "model": "building1-small",
+      "at": [
+        57,
+        0,
+        -16
+      ],
+      "rot": 0,
+      "from": 1
+    },
+    {
+      "model": "building2-small",
+      "at": [
+        70,
+        0,
+        -17
+      ],
+      "rot": 0,
+      "from": 1
+    },
+    {
+      "model": "birch-tree-1",
+      "at": [
+        76,
+        0,
+        -12
+      ],
+      "from": 1
+    },
+    {
+      "model": "bush-common",
+      "at": [
+        52,
+        0,
+        -10
+      ],
+      "from": 1
+    },
+    {
+      "model": "grass-large",
+      "at": [
+        77,
+        0,
+        -9
+      ],
+      "from": 1
+    },
+    {
+      "model": "characters-matt",
+      "at": [
+        63.6,
+        0,
+        -6.4
+      ],
+      "rot": 150,
+      "label": "Matt",
+      "from": 1
+    },
+    {
+      "model": "characters-german-shepherd",
+      "at": [
+        65.1,
+        0,
+        -6.9
+      ],
+      "rot": 120,
+      "label": "the dog",
+      "from": 1
+    },
+    {
+      "model": "normal-car1",
+      "at": [
+        64.5,
+        0,
+        -2.4
+      ],
+      "rot": 90,
+      "from": 1
+    },
+    {
+      "model": "characters-lis",
+      "at": [
+        66.4,
+        0,
+        -5.2
+      ],
+      "rot": 250,
+      "label": "Lis",
+      "from": 1
+    },
+    {
+      "model": "street-2-lane",
+      "at": [
+        119,
+        0,
+        1
+      ],
+      "rot": 90,
+      "from": 2
+    },
+    {
+      "model": "street-2-lane",
+      "at": [
+        125,
+        0,
+        1
+      ],
+      "rot": 90,
+      "from": 2
+    },
+    {
+      "model": "street-2-lane",
+      "at": [
+        131,
+        0,
+        1
+      ],
+      "rot": 90,
+      "from": 2
+    },
+    {
+      "model": "street-2-lane",
+      "at": [
+        137,
+        0,
+        1
+      ],
+      "rot": 90,
+      "from": 2
+    },
+    {
+      "model": "sidewalk-straight-3m",
+      "at": [
+        119,
+        0,
+        -6.5
+      ],
+      "rot": 90,
+      "from": 2
+    },
+    {
+      "model": "sidewalk-straight-3m",
+      "at": [
+        125,
+        0,
+        -6.5
+      ],
+      "rot": 90,
+      "from": 2
+    },
+    {
+      "model": "sidewalk-straight-3m",
+      "at": [
+        131,
+        0,
+        -6.5
+      ],
+      "rot": 90,
+      "from": 2
+    },
+    {
+      "model": "sidewalk-straight-3m",
+      "at": [
+        137,
+        0,
+        -6.5
+      ],
+      "rot": 90,
+      "from": 2
+    },
+    {
+      "model": "sidewalk-corner-round-3m",
+      "at": [
+        140,
+        0,
+        -6.5
+      ],
+      "rot": 90,
+      "from": 2
+    },
+    {
+      "model": "lamp",
+      "at": [
+        118,
+        0,
+        -8.5
+      ],
+      "from": 2
+    },
+    {
+      "model": "lamp",
+      "at": [
+        136,
+        0,
+        -8.5
+      ],
+      "from": 2
+    },
+    {
+      "model": "fire-hydrant",
+      "at": [
+        124,
+        0,
+        -8.2
+      ],
+      "from": 2
+    },
+    {
+      "model": "building1-small",
+      "at": [
+        121,
+        0,
+        -16
+      ],
+      "rot": 0,
+      "from": 2
+    },
+    {
+      "model": "building2-small",
+      "at": [
+        134,
+        0,
+        -17
+      ],
+      "rot": 0,
+      "from": 2
+    },
+    {
+      "model": "birch-tree-1",
+      "at": [
+        140,
+        0,
+        -12
+      ],
+      "from": 2
+    },
+    {
+      "model": "bush-common",
+      "at": [
+        116,
+        0,
+        -10
+      ],
+      "from": 2
+    },
+    {
+      "model": "grass-large",
+      "at": [
+        141,
+        0,
+        -9
+      ],
+      "from": 2
+    },
+    {
+      "model": "characters-german-shepherd",
+      "at": [
+        128.8,
+        0,
+        -7
+      ],
+      "rot": 150,
+      "label": "the dog",
+      "from": 2
+    }
+  ],
+  "steps": [
+    {
+      "framing": {
+        "x": 0,
+        "z": 0,
+        "w": 26,
+        "d": 20,
+        "pitch": 20,
+        "yaw": -8
+      },
+      "hold": 5000,
+      "approachTime": 2500,
+      "weather": "clear",
+      "hour": 18.666666666666668
+    },
+    {
+      "framing": {
+        "x": 0,
+        "z": 0,
+        "w": 26,
+        "d": 20,
+        "pitch": 20,
+        "yaw": -8
+      },
+      "hold": 5000,
+      "approachTime": 2500,
+      "weather": "clear",
+      "hour": 19
+    },
+    {
+      "framing": {
+        "x": 0,
+        "z": 0,
+        "w": 26,
+        "d": 20,
+        "pitch": 20,
+        "yaw": -8
+      },
+      "hold": 7000,
+      "approachTime": 2500,
+      "weather": "overcast",
+      "hour": 19.333333333333332
+    }
+  ]
+}

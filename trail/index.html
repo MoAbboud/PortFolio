@@ -405,6 +405,41 @@
         <div class="row"><span class="dim">floor size</span><span class="val" id="v-plate">100%</span></div>
         <input type="range" id="r-plate" min="20" max="260" step="10" value="100">
       </div>
+      <div class="ctl">
+        <!-- What the ground under a piece is made of. A look, and this app has
+             settled its appearance by eye three times and expects to again, so
+             the plain plate stays one click away. -->
+        <div class="row"><span class="dim">the film</span></div>
+        <div class="seg" id="stock">
+          <button data-v="1">film</button>
+          <button data-v="0">plain</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <!-- What the ground is made of. Procedural, so it costs no image and is
+             the same every time a canvas is opened. -->
+        <div class="row"><span class="dim">ground</span></div>
+        <div class="seg" id="ground">
+          <button data-v="0">bare</button>
+          <button data-v="1">grass</button>
+          <button data-v="2">concrete</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <!-- A dark room, and a light to point into it. The room is dimmed
+             first and the light added after, so a spot reads as the only light
+             in the place rather than a bright patch over a lit world. -->
+        <div class="row"><span class="dim">the room</span></div>
+        <div class="seg" id="room">
+          <button data-v="0">lit</button>
+          <button data-v="1">dark</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <div class="row"><span class="dim">spotlight</span><span class="val" id="v-spot">off</span></div>
+        <input type="range" id="r-spot" min="0" max="200" step="5" value="0">
+        <button class="btn" id="b-spot-here">point it at the selection</button>
+      </div>
     </div>
   </details>
 

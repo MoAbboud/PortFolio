@@ -1458,6 +1458,154 @@ test('the sky is lit by the clock from the first frame', async () => {
   assert.deepEqual(stub.failures, [], 'opening reported a failure');
 });
 
+test('the example canvas opens, and every model in it is in the library', async () => {
+  // A canvas built out of the library rather than described in a document:
+  // three pieces of one street corner, twenty minutes apart. It is a file to be
+  // opened rather than something the app carries, because the app opens empty.
+  const canvas = JSON.parse(readFileSync(`${root}examples/the-corner.json`, 'utf8'));
+  const manifest = JSON.parse(readFileSync(`${root}models/index.json`, 'utf8'));
+  const known = new Set([
+    ...(manifest.meshes ?? []).map((m) => m.name),
+    ...(manifest.recipes ?? []),
+  ]);
+
+  const missing = [...new Set(canvas.objects.map((o) => o.model))].filter((n) => !known.has(n));
+  assert.deepEqual(missing, [],
+    `the example names models the library does not have: ${missing.join(', ')}`);
+
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
+  await runApp();
+  await openCanvas(stub, canvas);
+
+  assert.equal(stub.win.__trail.placed(), canvas.objects.length,
+    'the example lost objects on the way in');
+  assert.equal(stub.win.__trail.route().length, canvas.steps.length);
+  assert.deepEqual(stub.failures, [], 'opening the example reported a failure');
+});
+
+test('the film can be switched between film stock and a plain plate', async () => {
+  // Every look decision in this app has been reversed the first time it was
+  // seen - the cubes, the reveal's angle, what the overview frames. So the
+  // plain plate stays one click away rather than being argued about.
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
+  await runApp();
+  await openCanvas(stub);
+  const settle = async () => {
+    for (let i = 0; i < 25; i++) await new Promise((r) => setTimeout(r, 0));
+  };
+
+  assert.equal(stub.win.__trail.shot().stock, 1, 'the film should open as film');
+
+  const pick = (value) => stub.element('stock').listeners.get('click')?.[0]?.({
+    target: { closest: () => ({ dataset: { v: value } }) },
+  });
+
+  pick('0');
+  await settle();
+  assert.equal(stub.win.__trail.shot().stock, 0, 'it could not be made a plain plate');
+
+  pick('1');
+  await settle();
+  assert.equal(stub.win.__trail.shot().stock, 1, 'it could not be made film again');
+
+  assert.deepEqual(stub.failures, [], 'switching the film reported a failure');
+});
+
+test('the ground can be made grass or concrete, and the room can be darkened', async () => {
+  // Two switches and nothing else, but a control that silently does nothing is
+  // worse than one that is not there - which this app has already shipped once,
+  // when the weather picker wrote to a step that did not exist.
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
+  await runApp();
+  await openCanvas(stub);
+  const settle = async () => {
+    for (let i = 0; i < 25; i++) await new Promise((r) => setTimeout(r, 0));
+  };
+  const pick = (id, value) => stub.element(id).listeners.get('click')?.[0]?.({
+    target: { closest: () => ({ dataset: { v: value } }) },
+  });
+
+  assert.equal(stub.win.__trail.shot().ground, 0, 'the ground should open bare');
+  assert.equal(stub.win.__trail.shot().room, 0, 'the room should open lit');
+
+  for (const [id, value, name] of [['ground', '1', 'grass'], ['ground', '2', 'concrete'],
+    ['ground', '0', 'bare'], ['room', '1', 'dark'], ['room', '0', 'lit']]) {
+    pick(id, value);
+    await settle();
+    assert.equal(stub.win.__trail.shot()[id], Number(value), `the ${id} could not be made ${name}`);
+  }
+
+  assert.deepEqual(stub.failures, [], 'changing the ground or the room reported a failure');
+});
+
+test('the light is pointed at what is selected, and sized from it', async () => {
+  /**
+   * The slider turns the light on; pointing it is a separate act, because where
+   * it shines and how hard are different decisions.
+   *
+   * The property worth holding is that the pool is **sized from the object's own
+   * box**, so the light falls on the thing rather than sitting under it as a
+   * disc. That is why this points at two objects of very different sizes rather
+   * than checking one number: a fixed radius passes the first half of this test
+   * and fails the second.
+   */
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
+  await runApp();
+  await openCanvas(stub);
+  const settle = async () => {
+    for (let i = 0; i < 40; i++) await new Promise((r) => setTimeout(r, 0));
+  };
+  const point = () => stub.element('b-spot-here').listeners.get('click')?.[0]?.();
+  const spot = () => stub.win.__trail.shot().spot;
+
+  // Nothing is selected when a canvas opens, so pointing the light must refuse
+  // rather than reach into boxes[-1].
+  assert.equal(spot()[3], 0, 'the light was on before anything asked for it');
+  point();
+  await settle();
+  assert.equal(spot()[3], 0, 'the light came on with nothing selected to point it at');
+  assert.deepEqual(stub.failures, [], 'pointing the light at nothing threw');
+
+  // Placing a model selects it, which is the shortest route to a selection.
+  const place = async (name) => {
+    stub.allowFrames(80);
+    stub.element('b-library').listeners.get('click')?.[0]?.();
+    const filter = stub.element('filter');
+    filter.value = name;
+    filter.listeners.get('input')?.[0]?.();
+    await settle();
+    const tile = stub.element('library').children.find((c) => c.title === name);
+    assert.ok(tile, `the library has no ${name} to place`);
+    tile.listeners.get('click')?.[0]?.();
+    await settle();
+    return stub.win.__trail.canvas().objects.at(-1);
+  };
+
+  const figure = await place('person');
+  point();
+  await settle();
+
+  const onFigure = spot();
+  assert.ok(onFigure[3] > 0, 'pointing the light at something left it switched off');
+  assert.ok(Number(stub.element('r-spot').value) > 0,
+    'the light is on and the slider still reads off');
+  assert.ok(Math.abs(onFigure[0] - figure.at[0]) < 2 && Math.abs(onFigure[1] - figure.at[2]) < 2,
+    `the light landed at ${onFigure[0].toFixed(1)}, ${onFigure[1].toFixed(1)}`
+    + ` and the figure is at ${figure.at[0].toFixed(1)}, ${figure.at[2].toFixed(1)}`);
+
+  // A house is far wider than a person, so a pool sized from what it is pointed
+  // at has to grow. This is the half that fails if the radius is a constant.
+  await place('house1');
+  point();
+  await settle();
+
+  const onHouse = spot();
+  assert.ok(onHouse[2] > onFigure[2],
+    `the pool is ${onHouse[2].toFixed(1)} across on a house and ${onFigure[2].toFixed(1)} on a`
+    + ' figure, so it is not sized from what it is pointed at');
+  assert.deepEqual(stub.failures, [], 'pointing the light reported a failure');
+});
+
 test('a canvas opened with pieces already in it has ground under them', async () => {
   // **Reported by the user:** with steps and objects already there, the floor
   // was wrong until a step was added, and "when a new step gets added the
