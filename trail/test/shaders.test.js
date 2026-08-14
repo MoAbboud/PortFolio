@@ -154,6 +154,62 @@ for (const [name, source] of Object.entries(SHADERS)) {
   });
 }
 
+test('smoothstep is given its edges in the order the specification requires', () => {
+  /**
+   * **Undefined, not wrong.** GLSL ES 3.00 says the result of `smoothstep` is
+   * undefined when the first edge is not below the second - so writing the ramp
+   * backwards to invert it produces whatever the driver felt like, on that
+   * driver, with nothing reported anywhere.
+   *
+   * Only literal edges are checked, because those are the ones that can be read
+   * off the text. It caught a star falloff written as `smoothstep(radius, 0.0,
+   * d)`, which is the natural way to say "bright in the middle" and is the one
+   * spelling of it that is not allowed.
+   */
+  for (const [name, source] of Object.entries(SHADERS)) {
+    const code = stripComments(source);
+    for (const [, first, second] of code.matchAll(/smoothstep\s*\(([^,]+),([^,]+),/g)) {
+      const from = first.trim();
+      const to = second.trim();
+      const numbers = /^-?[\d.]+$/.test(from) && /^-?[\d.]+$/.test(to);
+      if (numbers) {
+        assert.ok(Number(from) < Number(to),
+          `${name} calls smoothstep(${from}, ${to}, ...) - the edges must increase, and the`
+          + ' result is undefined rather than inverted when they do not');
+        continue;
+      }
+      // **The half that matters when one edge is a name.** Nothing in these
+      // shaders ramps down to nought from something below it, so a literal
+      // nought as the *second* edge is the backwards spelling every time - and
+      // it is the natural way to write "bright in the middle", which is how a
+      // star falloff got written that way here.
+      assert.ok(!/^-?0(\.0*)?$/.test(to),
+        `${name} calls smoothstep(${from}, ${to}, ...) - the second edge must be the larger.`
+        + ' Invert the result with 1.0 - smoothstep(...) rather than the edges');
+    }
+  }
+});
+
+test('pow is never handed a base that can go negative', () => {
+  /**
+   * **`pow(x, y)` is undefined for x < 0**, and the shape that reaches for it -
+   * a bell curve, `exp(-pow(t, 2.0))` - has a `t` that is negative on one side
+   * of its own middle by construction. Squaring by multiplying is both defined
+   * and cheaper.
+   *
+   * Read off the text: a `pow` whose base is a parenthesised expression rather
+   * than a name or a literal is the case that cannot be reasoned about here, and
+   * every one of them in this app is a bell curve.
+   */
+  for (const [name, source] of Object.entries(SHADERS)) {
+    const code = stripComments(source);
+    for (const [call] of code.matchAll(/pow\s*\(\s*\([^)]*\)[^,]*,/g)) {
+      assert.fail(`${name} has ${call.trim()} - a base that is an expression can go negative,`
+        + ' where pow is undefined. Multiply it out instead');
+    }
+  }
+});
+
 test('every program that draws part of the world is handed the world it draws', () => {
   /**
    * **Declaring a shared uniform and never being given it is silent.**

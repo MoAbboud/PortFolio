@@ -1,0 +1,555 @@
+<!-- Scroll progress bar -->
+<div class="progress-track">
+	<div class="progress-bar" id="progressBar"></div>
+</div>
+
+<div class="content-layer">
+
+	<!-- ===== TITLE BLOCK ===== -->
+	<div class="title-block" style="position:relative">
+		<div class="approval-stamp">Approved ✓</div>
+		<div class="title-block-header">
+			<div class="title-block-main">
+				<h1>Sandcastle Menu</h1>
+				<div class="subtitle">Beachside Sandwich Shack — Cross-Sectional Technical Drawing</div>
+			</div>
+			<div class="title-block-meta">
+				<span><strong>Drawing No.</strong> SB-2026-MAY</span>
+				<span><strong>Scale</strong> NTS (Not to Scale)</span>
+				<span><strong>Sheet</strong> 1 of 1</span>
+				<span><strong>Rev.</strong> C — Final Menu</span>
+			</div>
+		</div>
+		<div class="title-block-footer">
+			<div>Material: Sand, Salt Air & Good Vibes</div>
+			<div>Tolerance: ±∞ Flavor Units</div>
+			<div>Finish: Sun-Kissed</div>
+		</div>
+	</div>
+
+	<!-- ===== DRAWING AREA: SANDCASTLE CROSS-SECTION ===== -->
+	<div class="drawing-area">
+		<div class="dim-callout">Section A-A′ — Primary Elevation — Beachfront View</div>
+
+		<svg class="castle-drawing draw-in" id="castleSVG" viewBox="0 0 800 520" xmlns="http://www.w3.org/2000/svg">
+			<!-- GROUND LINE / SAND SURFACE -->
+			<line class="draw-anim" x1="0" y1="340" x2="800" y2="340" stroke-width="2" />
+			<!-- Hatching below ground (sand cross-section) -->
+			<g class="thin" opacity="0.4">
+				<line x1="50" y1="345" x2="70" y2="365" />
+				<line x1="90" y1="345" x2="110" y2="365" />
+				<line x1="130" y1="345" x2="150" y2="365" />
+				<line x1="170" y1="345" x2="190" y2="365" />
+				<line x1="210" y1="345" x2="230" y2="365" />
+				<line x1="250" y1="345" x2="270" y2="365" />
+				<line x1="310" y1="345" x2="330" y2="365" />
+				<line x1="350" y1="345" x2="370" y2="365" />
+				<line x1="430" y1="345" x2="450" y2="365" />
+				<line x1="470" y1="345" x2="490" y2="365" />
+				<line x1="510" y1="345" x2="530" y2="365" />
+				<line x1="550" y1="345" x2="570" y2="365" />
+				<line x1="610" y1="345" x2="630" y2="365" />
+				<line x1="650" y1="345" x2="670" y2="365" />
+				<line x1="690" y1="345" x2="710" y2="365" />
+				<line x1="730" y1="345" x2="750" y2="365" />
+			</g>
+
+			<!-- MOAT (water around the castle) -->
+			<rect class="draw-anim fill-water" x="80" y="345" rx="2" ry="2" width="640" height="35" />
+			<text x="400" y="368" text-anchor="middle" font-size="9" opacity="0.5">~ THE MOAT ~</text>
+
+			<!-- CASTLE BASE / FOUNDATION -->
+			<rect class="draw-anim fill-sand" x="140" y="300" width="520" height="42" />
+			<text x="400" y="325" text-anchor="middle" font-size="8" opacity="0.6">FOUNDATION LEVEL — DESSERTS
+				VAULT</text>
+
+			<!-- LEFT TOWER -->
+			<rect class="draw-anim fill-sand" x="140" y="140" width="100" height="162" />
+			<!-- Crenellations left tower -->
+			<polyline class="draw-anim" points="140,140 140,125 155,125 155,140 170,140 170,125 185,125 185,140 200,140 200,125 215,125 215,140 240,140 240,125" />
+			<!-- Window left tower -->
+			<rect class="draw-anim" x="170" y="180" width="20" height="30" rx="10" />
+			<!-- Interior label -->
+			<text x="190" y="230" text-anchor="middle" font-size="8" opacity="0.5">TOWER</text>
+			<text x="190" y="242" text-anchor="middle" font-size="7" opacity="0.4">Sandwiches</text>
+
+			<!-- RIGHT TOWER -->
+			<rect class="draw-anim fill-sand" x="560" y="155" width="100" height="147" />
+			<!-- Crenellations right tower -->
+			<polyline class="draw-anim" points="560,155 560,140 575,140 575,155 590,155 590,140 605,140 605,155 620,155 620,140 635,140 635,155 650,155 650,140 660,140 660,155" />
+			<!-- Window right tower -->
+			<rect class="draw-anim" x="592" y="195" width="20" height="30" rx="10" />
+			<text x="610" y="240" text-anchor="middle" font-size="8" opacity="0.5">TOWER</text>
+			<text x="610" y="252" text-anchor="middle" font-size="7" opacity="0.4">Seafood</text>
+
+			<!-- MAIN WALL / GREAT HALL -->
+			<rect class="draw-anim fill-sand" x="240" y="200" width="320" height="102" />
+			<!-- Battlement walkway -->
+			<polyline class="draw-anim" points="240,200 240,188 260,188 260,200 280,200 280,188 300,188 300,200 320,200 320,188 340,188 340,200 360,200 360,188 380,188 380,200 400,200 400,188 420,188 420,200 440,200 440,188 460,188 460,200 480,200 480,188 500,188 500,200 520,200 520,188 540,188 540,200 560,200" />
+			<!-- Gate arch -->
+			<path class="draw-anim" d="M370,302 L370,260 Q400,235 430,260 L430,302" />
+			<!-- Gate details -->
+			<line class="draw-anim thin" x1="385" y1="260" x2="385" y2="302" />
+			<line class="draw-anim thin" x1="400" y1="255" x2="400" y2="302" />
+			<line class="draw-anim thin" x1="415" y1="260" x2="415" y2="302" />
+			<!-- Interior labels -->
+			<text x="310" y="255" text-anchor="middle" font-size="8" opacity="0.5">GREAT HALL</text>
+			<text x="310" y="267" text-anchor="middle" font-size="7" opacity="0.4">Bowls & Greens</text>
+			<text x="490" y="255" text-anchor="middle" font-size="8" opacity="0.5">KITCHEN</text>
+			<text x="490" y="267" text-anchor="middle" font-size="7" opacity="0.4">Sides & Snacks</text>
+			<!-- Interior wall dividing great hall and kitchen -->
+			<line class="draw-anim" x1="400" y1="200" x2="400" y2="302" />
+
+			<!-- FLAG on left tower -->
+			<line class="draw-anim" x1="190" y1="125" x2="190" y2="70" />
+			<polygon class="draw-anim fill-sand" points="190,70 230,82 190,95" />
+			<text x="207" y="86" font-size="7" text-anchor="middle" font-weight="bold">SB</text>
+
+			<!-- SUBTERRANEAN LEVEL (below foundation) -->
+			<rect class="draw-anim fill-dark" x="200" y="382" width="400" height="55" rx="3" />
+			<text x="400" y="414" text-anchor="middle" font-size="8" opacity="0.6">SUBTERRANEAN CELLAR — DRINKS
+				VAULT</text>
+			<!-- Steps down -->
+			<line class="draw-anim" x1="380" y1="340" x2="380" y2="382" />
+			<line class="draw-anim" x1="420" y1="340" x2="420" y2="382" />
+			<line class="draw-anim thin" x1="380" y1="355" x2="420" y2="355" />
+			<line class="draw-anim thin" x1="380" y1="368" x2="420" y2="368" />
+
+			<!-- DIMENSION LINES -->
+			<!-- Width dimension -->
+			<line class="dimension" x1="140" y1="470" x2="660" y2="470" />
+			<line class="dimension" x1="140" y1="465" x2="140" y2="475" />
+			<line class="dimension" x1="660" y1="465" x2="660" y2="475" />
+			<text x="400" y="485" text-anchor="middle" font-size="8" fill="var(--ink-light)">520 UNITS OF
+				FLAVOR</text>
+
+			<!-- Height dimension left -->
+			<line class="dimension" x1="100" y1="70" x2="100" y2="380" />
+			<line class="dimension" x1="95" y1="70" x2="105" y2="70" />
+			<line class="dimension" x1="95" y1="380" x2="105" y2="380" />
+			<text x="88" y="230" text-anchor="middle" font-size="7" fill="var(--ink-light)" transform="rotate(-90,88,230)">HEIGHT: IMMEASURABLE SATISFACTION</text>
+
+			<!-- LEADER LINES to annotations -->
+			<!-- Leader: Left Tower → A -->
+			<circle class="draw-anim" cx="190" cy="210" r="10" fill="none" />
+			<text x="190" y="214" text-anchor="middle" font-size="11" font-weight="bold">A</text>
+
+			<!-- Leader: Right Tower → B -->
+			<circle class="draw-anim" cx="610" cy="225" r="10" fill="none" />
+			<text x="610" y="229" text-anchor="middle" font-size="11" font-weight="bold">B</text>
+
+			<!-- Leader: Great Hall → C -->
+			<circle class="draw-anim" cx="310" cy="275" r="10" fill="none" />
+			<text x="310" y="279" text-anchor="middle" font-size="11" font-weight="bold">C</text>
+
+			<!-- Leader: Kitchen → D -->
+			<circle class="draw-anim" cx="490" cy="275" r="10" fill="none" />
+			<text x="490" y="279" text-anchor="middle" font-size="11" font-weight="bold">D</text>
+
+			<!-- Leader: Moat → E -->
+			<circle class="draw-anim" cx="720" cy="360" r="10" fill="none" />
+			<text x="720" y="364" text-anchor="middle" font-size="11" font-weight="bold">E</text>
+
+			<!-- Leader: Foundation → F -->
+			<circle class="draw-anim" cx="720" cy="315" r="10" fill="none" />
+			<text x="720" y="319" text-anchor="middle" font-size="11" font-weight="bold">F</text>
+
+			<!-- SHELLS DECORATION on walls -->
+			<circle class="draw-anim thin" cx="160" cy="270" r="4" />
+			<circle class="draw-anim thin" cx="640" cy="200" r="3" />
+			<circle class="draw-anim thin" cx="280" cy="310" r="3.5" />
+			<circle class="draw-anim thin" cx="520" cy="220" r="3" />
+
+			<!-- SEAWEED on moat -->
+			<path class="draw-anim thin" d="M160,350 Q165,340 170,350 Q175,340 180,350" opacity="0.3" />
+			<path class="draw-anim thin" d="M600,350 Q605,338 610,350 Q615,338 620,350" opacity="0.3" />
+		</svg>
+
+		<div class="dim-callout">Detail sections referenced below — See callouts A through F</div>
+	</div>
+
+	<!-- ===== MENU SECTIONS ===== -->
+
+	<!-- SECTION A: SIGNATURE SANDWICHES (Left Tower) -->
+	<div class="section-annotation">
+		<div class="annotation-row" data-reveal>
+			<div class="annotation-marker">A</div>
+			<div class="annotation-content">
+				<div class="annotation-label">Callout A — Left Tower, Upper Chamber</div>
+				<h2 class="annotation-title">Signature Sandwiches</h2>
+				<p class="annotation-desc">Constructed between two slabs of freshly baked bread. Structural
+					integrity guaranteed through premium ingredient layering.</p>
+				<div class="items-spec-sheet">
+					<div class="spec-row">
+						<span class="spec-id">A-001</span>
+						<span class="spec-name">The Breaker<span class="spec-desc">Smoked turkey, pepper jack,
+								avocado mash, pickled jalapeños, chipotle aioli on sourdough</span>
+							<span class="spec-tags"><span class="spec-tag">Spicy</span><span class="spec-tag">Fan
+									Favorite</span></span>
+						</span>
+						<span class="spec-price">$14</span>
+					</div>
+					<div class="spec-row spec-row-alt">
+						<span class="spec-id">A-002</span>
+						<span class="spec-name">Pelican Club<span class="spec-desc">Triple-decker: crispy bacon,
+								roasted chicken, swiss, lettuce, tomato, herb mayo on toast</span>
+							<span class="spec-tags"><span class="spec-tag">Classic</span></span>
+						</span>
+						<span class="spec-price">$15</span>
+					</div>
+					<div class="spec-row">
+						<span class="spec-id">A-003</span>
+						<span class="spec-name">Reef Reuben<span class="spec-desc">Pastrami, sauerkraut, gruyère,
+								thousand island on dark rye — pressed warm</span>
+							<span class="spec-tags"><span class="spec-tag">Pressed</span></span>
+						</span>
+						<span class="spec-price">$14</span>
+					</div>
+					<div class="spec-row spec-row-alt">
+						<span class="spec-id">A-004</span>
+						<span class="spec-name">The Undertow<span class="spec-desc">Pulled pork, coleslaw, pickles,
+								Carolina gold sauce on a brioche bun</span>
+							<span class="spec-tags"><span class="spec-tag">Smoky</span><span class="spec-tag">Sweet</span></span>
+						</span>
+						<span class="spec-price">$13</span>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="section-divider"><span>Section B — Right Tower</span></div>
+
+	<!-- SECTION B: CATCH OF THE DAY (Right Tower) -->
+	<div class="section-annotation">
+		<div class="annotation-row" data-reveal>
+			<div class="annotation-marker">B</div>
+			<div class="annotation-content">
+				<div class="annotation-label">Callout B — Right Tower, Watchroom</div>
+				<h2 class="annotation-title">Catch of the Day</h2>
+				<p class="annotation-desc">Ocean specimens harvested at dawn. Assembled dockside with salt-air
+					precision.</p>
+				<div class="items-spec-sheet">
+					<div class="spec-row">
+						<span class="spec-id">B-001</span>
+						<span class="spec-name">Shore Catch Po' Boy<span class="spec-desc">Beer-battered cod,
+								shredded lettuce, tomato, remoulade on a crusty roll</span>
+							<span class="spec-tags"><span class="spec-tag">Crispy</span><span class="spec-tag">Signature</span></span>
+						</span>
+						<span class="spec-price">$16</span>
+					</div>
+					<div class="spec-row spec-row-alt">
+						<span class="spec-id">B-002</span>
+						<span class="spec-name">Tidal Wrap<span class="spec-desc">Grilled shrimp, mango salsa, black
+								beans, lime crema in a spinach tortilla</span>
+							<span class="spec-tags"><span class="spec-tag">Fresh</span><span class="spec-tag">Zesty</span></span>
+						</span>
+						<span class="spec-price">$15</span>
+					</div>
+					<div class="spec-row">
+						<span class="spec-id">B-003</span>
+						<span class="spec-name">Seabreeze Salad<span class="spec-desc">Seared ahi tuna, mixed
+								greens, edamame, sesame ginger dressing, wonton crisps</span>
+							<span class="spec-tags"><span class="spec-tag">Light</span><span class="spec-tag">Healthy</span></span>
+						</span>
+						<span class="spec-price">$13</span>
+					</div>
+					<div class="spec-row spec-row-alt">
+						<span class="spec-id">B-004</span>
+						<span class="spec-name">Captain's Lobster Roll<span class="spec-desc">Chilled lobster, lemon
+								butter, celery, chives on a toasted split-top roll</span>
+							<span class="spec-tags"><span class="spec-tag">Premium</span></span>
+						</span>
+						<span class="spec-price">$19</span>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="section-divider"><span>Section C — Great Hall</span></div>
+
+	<!-- SECTION C: BOWLS & GREENS (Great Hall) -->
+	<div class="section-annotation">
+		<div class="annotation-row" data-reveal>
+			<div class="annotation-marker">C</div>
+			<div class="annotation-content">
+				<div class="annotation-label">Callout C — Great Hall, West Wing</div>
+				<h2 class="annotation-title">Bowls & Greens</h2>
+				<p class="annotation-desc">Provisions for the health-conscious voyager. Assembled fresh upon each
+					order.</p>
+				<div class="items-spec-sheet">
+					<div class="spec-row">
+						<span class="spec-id">C-001</span>
+						<span class="spec-name">Sunset Buddha Bowl<span class="spec-desc">Quinoa, roasted sweet
+								potato, chickpeas, kale, tahini drizzle, pickled onion</span>
+							<span class="spec-tags"><span class="spec-tag">Vegan</span><span class="spec-tag">Power</span></span>
+						</span>
+						<span class="spec-price">$14</span>
+					</div>
+					<div class="spec-row spec-row-alt">
+						<span class="spec-id">C-002</span>
+						<span class="spec-name">Tropic Thunder Bowl<span class="spec-desc">Acai, coconut granola,
+								fresh mango, banana, passion fruit, toasted coconut flakes</span>
+							<span class="spec-tags"><span class="spec-tag">Sweet</span><span class="spec-tag">Energizing</span></span>
+						</span>
+						<span class="spec-price">$15</span>
+					</div>
+					<div class="spec-row">
+						<span class="spec-id">C-003</span>
+						<span class="spec-name">Seawall Caesar<span class="spec-desc">Crisp romaine, shaved
+								parmesan, garlic croutons, house-made caesar, add grilled chicken +$4</span>
+							<span class="spec-tags"><span class="spec-tag">Classic</span><span class="spec-tag">Customizable</span></span>
+						</span>
+						<span class="spec-price">$12</span>
+					</div>
+					<div class="spec-row spec-row-alt">
+						<span class="spec-id">C-004</span>
+						<span class="spec-name">Kelp Noodle Stir<span class="spec-desc">Kelp noodles, stir-fried
+								veggies, peanut sauce, cilantro, crushed peanuts, lime wedge</span>
+							<span class="spec-tags"><span class="spec-tag">Gluten-Free</span></span>
+						</span>
+						<span class="spec-price">$14</span>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="section-divider"><span>Section D — Kitchen</span></div>
+
+	<!-- SECTION D: SIDES & SNACKS (Kitchen) -->
+	<div class="section-annotation">
+		<div class="annotation-row" data-reveal>
+			<div class="annotation-marker">D</div>
+			<div class="annotation-content">
+				<div class="annotation-label">Callout D — Kitchen, East Wing</div>
+				<h2 class="annotation-title">Sides & Snacks</h2>
+				<p class="annotation-desc">Complementary structural components. Designed to support primary
+					assemblies.</p>
+				<div class="items-spec-sheet">
+					<div class="spec-row">
+						<span class="spec-id">D-001</span>
+						<span class="spec-name">Driftwood Fries<span class="spec-desc">Thick-cut seasoned fries with
+								house fry sauce</span>
+							<span class="spec-tags"><span class="spec-tag">Crispy</span></span>
+						</span>
+						<span class="spec-price">$6</span>
+					</div>
+					<div class="spec-row spec-row-alt">
+						<span class="spec-id">D-002</span>
+						<span class="spec-name">Tide Pool Bites<span class="spec-desc">Fried calamari with marinara
+								and lemon aioli</span>
+							<span class="spec-tags"><span class="spec-tag">Shareable</span></span>
+						</span>
+						<span class="spec-price">$9</span>
+					</div>
+					<div class="spec-row">
+						<span class="spec-id">D-003</span>
+						<span class="spec-name">Sand Dollar Sliders<span class="spec-desc">Three mini smash burgers
+								with American cheese, pickles, special sauce</span>
+							<span class="spec-tags"><span class="spec-tag">Mini</span><span class="spec-tag">3
+									Pack</span></span>
+						</span>
+						<span class="spec-price">$10</span>
+					</div>
+					<div class="spec-row spec-row-alt">
+						<span class="spec-id">D-004</span>
+						<span class="spec-name">Coconut Shrimp<span class="spec-desc">Crispy coconut-crusted shrimp
+								with sweet chili dipping sauce</span>
+							<span class="spec-tags"><span class="spec-tag">Tropical</span></span>
+						</span>
+						<span class="spec-price">$11</span>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="section-divider"><span>Section E — The Moat</span></div>
+
+	<!-- SECTION E: DRINKS (Moat) -->
+	<div class="section-annotation">
+		<div class="annotation-row" data-reveal>
+			<div class="annotation-marker">E</div>
+			<div class="annotation-content">
+				<div class="annotation-label">Callout E — Perimeter Moat, Ground Level</div>
+				<h2 class="annotation-title">Drinks</h2>
+				<p class="annotation-desc">Liquid provisions surrounding the structure. Essential for structural
+					hydration.</p>
+				<div class="items-spec-sheet">
+					<div class="spec-row">
+						<span class="spec-id">E-001</span>
+						<span class="spec-name">Riptide Lemonade<span class="spec-desc">Fresh-squeezed lemonade with
+								a hint of lavender and honey</span>
+							<span class="spec-tags"><span class="spec-tag">Refreshing</span><span class="spec-tag">House Made</span></span>
+						</span>
+						<span class="spec-price">$5</span>
+					</div>
+					<div class="spec-row spec-row-alt">
+						<span class="spec-id">E-002</span>
+						<span class="spec-name">Mango Current<span class="spec-desc">Mango purée, sparkling water,
+								lime, agave, served over crushed ice</span>
+							<span class="spec-tags"><span class="spec-tag">Tropical</span><span class="spec-tag">Non-Alcoholic</span></span>
+						</span>
+						<span class="spec-price">$6</span>
+					</div>
+					<div class="spec-row">
+						<span class="spec-id">E-003</span>
+						<span class="spec-name">Cold Brew Undertow<span class="spec-desc">Slow-steeped cold brew
+								with oat milk and vanilla bean</span>
+							<span class="spec-tags"><span class="spec-tag">Coffee</span><span class="spec-tag">Energizing</span></span>
+						</span>
+						<span class="spec-price">$5</span>
+					</div>
+					<div class="spec-row spec-row-alt">
+						<span class="spec-id">E-004</span>
+						<span class="spec-name">Kelp Colada Smoothie<span class="spec-desc">Pineapple, coconut
+								cream, spinach, banana, spirulina boost</span>
+							<span class="spec-tags"><span class="spec-tag">Superfood</span><span class="spec-tag">Vegan</span></span>
+						</span>
+						<span class="spec-price">$7</span>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="section-divider"><span>Section F — Foundation</span></div>
+
+	<!-- SECTION F: DESSERTS (Foundation) -->
+	<div class="section-annotation">
+		<div class="annotation-row" data-reveal>
+			<div class="annotation-marker">F</div>
+			<div class="annotation-content">
+				<div class="annotation-label">Callout F — Foundation Level, Below Grade</div>
+				<h2 class="annotation-title">Desserts</h2>
+				<p class="annotation-desc">The bedrock upon which all great meals are founded. Sweet structural
+					completion.</p>
+				<div class="items-spec-sheet">
+					<div class="spec-row">
+						<span class="spec-id">F-001</span>
+						<span class="spec-name">Key Lime Tide<span class="spec-desc">Classic key lime pie with
+								graham cracker crust and whipped cream</span>
+							<span class="spec-tags"><span class="spec-tag">Tangy</span><span class="spec-tag">Classic</span></span>
+						</span>
+						<span class="spec-price">$8</span>
+					</div>
+					<div class="spec-row spec-row-alt">
+						<span class="spec-id">F-002</span>
+						<span class="spec-name">Sandy Churros<span class="spec-desc">Cinnamon sugar churros with
+								chocolate and caramel dipping sauces</span>
+							<span class="spec-tags"><span class="spec-tag">Warm</span><span class="spec-tag">Shareable</span></span>
+						</span>
+						<span class="spec-price">$7</span>
+					</div>
+					<div class="spec-row">
+						<span class="spec-id">F-003</span>
+						<span class="spec-name">Coconut Bliss Sundae<span class="spec-desc">Coconut ice cream,
+								toasted macadamia nuts, pineapple compote, rum caramel drizzle</span>
+							<span class="spec-tags"><span class="spec-tag">Indulgent</span></span>
+						</span>
+						<span class="spec-price">$9</span>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- ===== INFO TABLE ===== -->
+	<div class="info-blueprint" data-reveal>
+		<div class="dim-callout">Site Information — General Notes</div>
+		<table class="info-table">
+			<thead>
+				<tr>
+					<th colspan="2">Project Site Data</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>Address</td>
+					<td>742 Seabreeze Boulevard, Sunset Cove, FL 33139</td>
+				</tr>
+				<tr>
+					<td>Operating Hours</td>
+					<td>Mon – Fri: 0700 – 2100 hrs &nbsp;|&nbsp; Sat – Sun: 0800 – 2200 hrs</td>
+				</tr>
+				<tr>
+					<td>Telephone</td>
+					<td>(305) 555-WAVE &nbsp;/&nbsp; (305) 555-9283</td>
+				</tr>
+				<tr>
+					<td>Structural Note</td>
+					<td>All sandwiches built to order. No structural warranties on sandcastle after high tide.</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+
+	<!-- ===== REVISION TABLE ===== -->
+	<div class="revision-block" data-reveal>
+		<div class="dim-callout">Revision History</div>
+		<table class="revision-table">
+			<thead>
+				<tr>
+					<th>Rev</th>
+					<th>Date</th>
+					<th>Description</th>
+					<th>By</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>A</td>
+					<td>2026-05-01</td>
+					<td>Initial sketch on napkin</td>
+					<td>Chef</td>
+				</tr>
+				<tr>
+					<td>B</td>
+					<td>2026-05-12</td>
+					<td>Added dessert foundation layer</td>
+					<td>Chef</td>
+				</tr>
+				<tr>
+					<td>C</td>
+					<td>2026-05-19</td>
+					<td>Final menu — Approved for construction</td>
+					<td>Chef</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+
+	<!-- ===== FOOTER ===== -->
+	<div class="footer-block">
+		<span>Copyright © 2026</span>
+		<span>Drawing: SB-2026-MAY Rev. C</span>
+		<span>Sandcastles Built Daily</span>
+	</div>
+
+</div>
+
+<!-- ===== COMPASS ROSE ===== -->
+<div class="compass" id="compass">
+	<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+		<circle cx="50" cy="50" r="45" fill="none" stroke="var(--ink)" stroke-width="1" opacity="0.4" />
+		<circle cx="50" cy="50" r="35" fill="none" stroke="var(--ink)" stroke-width="0.5" opacity="0.3" />
+		<!-- Tick marks -->
+		<line x1="50" y1="8" x2="50" y2="15" stroke="var(--ink)" stroke-width="1" opacity="0.5" />
+		<line x1="50" y1="85" x2="50" y2="92" stroke="var(--ink)" stroke-width="1" opacity="0.5" />
+		<line x1="8" y1="50" x2="15" y2="50" stroke="var(--ink)" stroke-width="1" opacity="0.5" />
+		<line x1="85" y1="50" x2="92" y2="50" stroke="var(--ink)" stroke-width="1" opacity="0.5" />
+		<!-- N/S/E/W labels -->
+		<text x="50" y="7" text-anchor="middle" font-size="6" font-family="Courier New" fill="var(--ink)" font-weight="bold">N</text>
+		<text x="50" y="99" text-anchor="middle" font-size="6" font-family="Courier New" fill="var(--ink)" font-weight="bold">S</text>
+		<text x="97" y="53" text-anchor="middle" font-size="6" font-family="Courier New" fill="var(--ink)" font-weight="bold">E</text>
+		<text x="3" y="53" text-anchor="middle" font-size="6" font-family="Courier New" fill="var(--ink)" font-weight="bold">W</text>
+		<!-- Needle -->
+		<g class="compass-needle" id="compassNeedle">
+			<polygon points="50,18 46,50 54,50" fill="var(--coral)" opacity="0.8" />
+			<polygon points="50,82 46,50 54,50" fill="var(--ink)" opacity="0.3" />
+			<circle cx="50" cy="50" r="4" fill="var(--ink)" opacity="0.6" />
+		</g>
+	</svg>
+</div>

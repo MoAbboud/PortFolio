@@ -1,0 +1,747 @@
+/* ============================================
+   THE SANDCASTLE BLUEPRINT
+   A technical drawing of a sandcastle
+   where each room IS a menu category.
+   ============================================ */
+
+/* === RESET === */
+*,
+*::before,
+*::after {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+/* === CUSTOM PROPERTIES === */
+:root {
+	--parchment: #f5ead6;
+	--parchment-dark: #e8d5b4;
+	--ink: #2c1810;
+	--ink-light: #5c3a28;
+	--blue-accent: #1a5276;
+	--blue-light: #2980b9;
+	--sand: #d4a853;
+	--sand-light: #e8c97a;
+	--sand-dark: #a87d32;
+	--water: #48a9a6;
+	--water-deep: #2d7a78;
+	--coral: #c0392b;
+	--seaweed: #27ae60;
+	--grid-line: rgba(44, 24, 16, 0.06);
+	--grid-line-major: rgba(44, 24, 16, 0.12);
+}
+
+html {
+	scroll-behavior: smooth;
+}
+
+body {
+	font-family: "Courier New", Courier, monospace;
+	background: var(--parchment);
+	color: var(--ink);
+	overflow-x: hidden;
+	line-height: 1.6;
+}
+
+/* === GRID PAPER BACKGROUND === */
+body::before {
+	content: "";
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background:
+                /* Minor grid */ linear-gradient(
+			var(--grid-line) 1px,
+			transparent 1px
+		),
+		linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+		/* Major grid */ linear-gradient(var(--grid-line-major) 1px, transparent 1px),
+		linear-gradient(90deg, var(--grid-line-major) 1px, transparent 1px);
+	background-size: 20px 20px, 20px 20px, 100px 100px, 100px 100px;
+	pointer-events: none;
+	z-index: 0;
+	opacity: 0.7;
+}
+
+/* === COFFEE STAIN DECORATION === */
+body::after {
+	content: "";
+	position: fixed;
+	top: 15vh;
+	right: 8vw;
+	width: 120px;
+	height: 120px;
+	border-radius: 50%;
+	background: radial-gradient(
+		circle,
+		transparent 35%,
+		rgba(139, 90, 43, 0.08) 36%,
+		rgba(139, 90, 43, 0.12) 40%,
+		rgba(139, 90, 43, 0.06) 45%,
+		transparent 46%
+	);
+	pointer-events: none;
+	z-index: 1;
+}
+
+/* === SCROLLBAR === */
+::-webkit-scrollbar {
+	width: 8px;
+}
+
+::-webkit-scrollbar-track {
+	background: var(--parchment-dark);
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--ink-light);
+	border-radius: 4px;
+}
+
+/* === SHARED === */
+.content-layer {
+	position: relative;
+	z-index: 2;
+}
+
+/* === TITLE BLOCK (Blueprint style) === */
+.title-block {
+	border: 2px solid var(--ink);
+	margin: 2rem auto;
+	max-width: 900px;
+	position: relative;
+}
+
+.title-block::before {
+	content: "";
+	position: absolute;
+	top: 4px;
+	left: 4px;
+	right: 4px;
+	bottom: 4px;
+	border: 1px solid var(--ink-light);
+	pointer-events: none;
+}
+
+.title-block-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: stretch;
+	border-bottom: 2px solid var(--ink);
+}
+
+.title-block-main {
+	flex: 1;
+	padding: 1.2rem 1.5rem;
+	border-right: 2px solid var(--ink);
+}
+
+.title-block-main h1 {
+	font-size: clamp(1.8rem, 5vw, 3rem);
+	font-weight: 900;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	line-height: 1.1;
+}
+
+.title-block-main .subtitle {
+	font-size: 0.75rem;
+	letter-spacing: 0.3em;
+	text-transform: uppercase;
+	color: var(--ink-light);
+	margin-top: 0.3rem;
+}
+
+.title-block-meta {
+	width: 200px;
+	padding: 0.8rem 1rem;
+	font-size: 0.7rem;
+	line-height: 1.8;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+}
+
+.title-block-meta span {
+	display: block;
+	border-bottom: 1px solid var(--grid-line-major);
+	padding-bottom: 2px;
+}
+
+.title-block-footer {
+	display: flex;
+	border-top: 2px solid var(--ink);
+}
+
+.title-block-footer > div {
+	flex: 1;
+	padding: 0.6rem 1rem;
+	font-size: 0.65rem;
+	letter-spacing: 0.15em;
+	text-transform: uppercase;
+	border-right: 2px solid var(--ink);
+	text-align: center;
+}
+
+.title-block-footer > div:last-child {
+	border-right: none;
+}
+
+/* === DRAWING AREA === */
+.drawing-area {
+	max-width: 900px;
+	margin: 3rem auto;
+	padding: 0 1.5rem;
+	position: relative;
+}
+
+/* === SANDCASTLE SVG === */
+.castle-drawing {
+	width: 100%;
+	max-width: 800px;
+	margin: 0 auto 2rem;
+	display: block;
+}
+
+.castle-drawing path,
+.castle-drawing line,
+.castle-drawing rect,
+.castle-drawing circle,
+.castle-drawing polygon,
+.castle-drawing polyline {
+	fill: none;
+	stroke: var(--ink);
+	stroke-width: 1.5;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+.castle-drawing .fill-sand {
+	fill: rgba(212, 168, 83, 0.15);
+	stroke: var(--ink);
+}
+
+.castle-drawing .fill-water {
+	fill: rgba(72, 169, 166, 0.12);
+	stroke: var(--ink);
+}
+
+.castle-drawing .fill-dark {
+	fill: rgba(44, 24, 16, 0.06);
+	stroke: var(--ink);
+}
+
+.castle-drawing .thin {
+	stroke-width: 0.75;
+	stroke-dasharray: 4 3;
+}
+
+.castle-drawing .dimension {
+	stroke-width: 0.5;
+	stroke: var(--ink-light);
+}
+
+.castle-drawing text {
+	font-family: "Courier New", Courier, monospace;
+	fill: var(--ink);
+}
+
+/* === SVG DRAW ANIMATION === */
+.draw-in path.draw-anim,
+.draw-in line.draw-anim,
+.draw-in rect.draw-anim,
+.draw-in circle.draw-anim,
+.draw-in polyline.draw-anim {
+	stroke-dasharray: 2000;
+	stroke-dashoffset: 2000;
+	transition: stroke-dashoffset 2.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.draw-in.revealed path.draw-anim,
+.draw-in.revealed line.draw-anim,
+.draw-in.revealed rect.draw-anim,
+.draw-in.revealed circle.draw-anim,
+.draw-in.revealed polyline.draw-anim {
+	stroke-dashoffset: 0;
+}
+
+/* === SECTION ANNOTATIONS (Leader lines from castle to menu) === */
+.section-annotation {
+	max-width: 900px;
+	margin: 0 auto;
+	padding: 0 1.5rem;
+}
+
+.annotation-row {
+	display: flex;
+	align-items: flex-start;
+	gap: 1rem;
+	margin-bottom: 4rem;
+	opacity: 0;
+	transform: translateY(30px);
+	transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.annotation-row.visible {
+	opacity: 1;
+	transform: translateY(0);
+}
+
+.annotation-marker {
+	flex-shrink: 0;
+	width: 48px;
+	height: 48px;
+	border: 2px solid var(--ink);
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1.2rem;
+	font-weight: 900;
+	position: relative;
+	background: var(--parchment);
+}
+
+.annotation-marker::after {
+	content: "";
+	position: absolute;
+	top: 100%;
+	left: 50%;
+	width: 2px;
+	height: 60px;
+	background: repeating-linear-gradient(
+		to bottom,
+		var(--ink) 0px,
+		var(--ink) 4px,
+		transparent 4px,
+		transparent 8px
+	);
+	transform: translateX(-50%);
+}
+
+.annotation-content {
+	flex: 1;
+	padding-top: 0.3rem;
+}
+
+.annotation-label {
+	font-size: 0.6rem;
+	letter-spacing: 0.4em;
+	text-transform: uppercase;
+	color: var(--ink-light);
+	margin-bottom: 0.2rem;
+}
+
+.annotation-title {
+	font-size: clamp(1.4rem, 3.5vw, 2rem);
+	font-weight: 900;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	margin-bottom: 0.3rem;
+	position: relative;
+	display: inline-block;
+}
+
+.annotation-title::after {
+	content: "";
+	position: absolute;
+	bottom: -2px;
+	left: 0;
+	width: 100%;
+	height: 3px;
+	background: var(--ink);
+}
+
+.annotation-desc {
+	font-size: 0.75rem;
+	color: var(--ink-light);
+	font-style: italic;
+	margin-bottom: 1.5rem;
+	max-width: 500px;
+}
+
+/* === MENU ITEMS (Spec sheet style) === */
+.items-spec-sheet {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 0;
+	border: 1.5px solid var(--ink);
+	background: rgba(245, 234, 214, 0.5);
+}
+
+.spec-row {
+	display: grid;
+	grid-template-columns: auto 1fr auto;
+	gap: 1rem;
+	padding: 0.8rem 1.2rem;
+	border-bottom: 1px solid var(--grid-line-major);
+	align-items: baseline;
+	transition: background 0.3s ease;
+	cursor: default;
+}
+
+.spec-row:last-child {
+	border-bottom: none;
+}
+
+.spec-row:hover {
+	background: rgba(212, 168, 83, 0.1);
+}
+
+.spec-row-alt {
+	background: rgba(44, 24, 16, 0.02);
+}
+
+.spec-id {
+	font-size: 0.6rem;
+	color: var(--ink-light);
+	letter-spacing: 0.1em;
+	min-width: 40px;
+	padding-top: 2px;
+}
+
+.spec-name {
+	font-weight: 700;
+	font-size: 0.95rem;
+}
+
+.spec-name .spec-desc {
+	display: block;
+	font-weight: 400;
+	font-size: 0.75rem;
+	color: var(--ink-light);
+	margin-top: 0.15rem;
+	line-height: 1.4;
+}
+
+.spec-tags {
+	display: flex;
+	gap: 0.3rem;
+	flex-wrap: wrap;
+	margin-top: 0.3rem;
+}
+
+.spec-tag {
+	font-size: 0.55rem;
+	letter-spacing: 0.15em;
+	text-transform: uppercase;
+	padding: 0.1rem 0.4rem;
+	border: 1px solid var(--ink-light);
+	color: var(--ink-light);
+}
+
+.spec-price {
+	font-weight: 900;
+	font-size: 1rem;
+	white-space: nowrap;
+	text-align: right;
+	min-width: 45px;
+}
+
+/* === DIMENSION CALLOUT LINE === */
+.dim-callout {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-size: 0.6rem;
+	color: var(--ink-light);
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	margin: 1.5rem 0 0.5rem;
+}
+
+.dim-callout::before,
+.dim-callout::after {
+	content: "";
+	flex: 1;
+	height: 1px;
+	background: repeating-linear-gradient(
+		90deg,
+		var(--ink-light) 0px,
+		var(--ink-light) 3px,
+		transparent 3px,
+		transparent 6px
+	);
+}
+
+/* === COMPASS ROSE === */
+.compass {
+	position: fixed;
+	bottom: 2rem;
+	right: 2rem;
+	width: 70px;
+	height: 70px;
+	z-index: 100;
+	opacity: 0.6;
+	transition: opacity 0.3s;
+	pointer-events: none;
+}
+
+.compass:hover {
+	opacity: 1;
+}
+
+.compass svg {
+	width: 100%;
+	height: 100%;
+}
+
+.compass-needle {
+	transform-origin: center;
+	transition: transform 0.5s ease;
+}
+
+/* === INFO SECTION === */
+.info-blueprint {
+	max-width: 900px;
+	margin: 4rem auto;
+	padding: 0 1.5rem;
+}
+
+.info-table {
+	width: 100%;
+	border: 2px solid var(--ink);
+	border-collapse: collapse;
+}
+
+.info-table th {
+	background: var(--ink);
+	color: var(--parchment);
+	padding: 0.6rem 1rem;
+	text-align: left;
+	font-size: 0.7rem;
+	letter-spacing: 0.3em;
+	text-transform: uppercase;
+}
+
+.info-table td {
+	padding: 0.7rem 1rem;
+	border-bottom: 1px solid var(--grid-line-major);
+	font-size: 0.8rem;
+	vertical-align: top;
+}
+
+.info-table tr:last-child td {
+	border-bottom: none;
+}
+
+.info-table td:first-child {
+	font-weight: 700;
+	width: 140px;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	font-size: 0.7rem;
+	color: var(--ink-light);
+}
+
+/* === REVISION TABLE === */
+.revision-block {
+	max-width: 900px;
+	margin: 2rem auto 4rem;
+	padding: 0 1.5rem;
+}
+
+.revision-table {
+	width: 100%;
+	border: 2px solid var(--ink);
+	border-collapse: collapse;
+}
+
+.revision-table th {
+	background: rgba(44, 24, 16, 0.06);
+	padding: 0.5rem 0.8rem;
+	text-align: left;
+	font-size: 0.65rem;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	border-bottom: 2px solid var(--ink);
+}
+
+.revision-table td {
+	padding: 0.5rem 0.8rem;
+	font-size: 0.75rem;
+	border-bottom: 1px solid var(--grid-line-major);
+}
+
+/* === FOOTER TITLE BLOCK === */
+.footer-block {
+	border-top: 3px solid var(--ink);
+	max-width: 900px;
+	margin: 0 auto;
+	padding: 1.5rem;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	font-size: 0.65rem;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	color: var(--ink-light);
+}
+
+/* === STAMP DECORATION === */
+.approval-stamp {
+	position: absolute;
+	top: 20px;
+	right: 20px;
+	border: 3px solid var(--coral);
+	border-radius: 8px;
+	padding: 0.4rem 0.8rem;
+	transform: rotate(12deg);
+	font-size: 0.7rem;
+	font-weight: 900;
+	color: var(--coral);
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	opacity: 0.7;
+	pointer-events: none;
+}
+
+/* === SCROLL PROGRESS BAR === */
+.progress-track {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 3px;
+	background: rgba(44, 24, 16, 0.1);
+	z-index: 200;
+}
+
+.progress-bar {
+	height: 100%;
+	width: 0%;
+	background: var(--ink);
+	transition: width 0.1s linear;
+}
+
+/* === SECTION DIVIDER === */
+.section-divider {
+	max-width: 900px;
+	margin: 0 auto;
+	padding: 0 1.5rem;
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+}
+
+.section-divider::before,
+.section-divider::after {
+	content: "";
+	flex: 1;
+	height: 0;
+	border-top: 1px solid var(--ink-light);
+}
+
+.section-divider span {
+	font-size: 0.6rem;
+	letter-spacing: 0.3em;
+	text-transform: uppercase;
+	color: var(--ink-light);
+	white-space: nowrap;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 640px) {
+	.title-block-header {
+		flex-direction: column;
+	}
+
+	.title-block-meta {
+		width: 100%;
+		border-top: 2px solid var(--ink);
+	}
+
+	.title-block-main {
+		border-right: none;
+	}
+
+	.title-block-footer {
+		flex-wrap: wrap;
+	}
+
+	.title-block-footer > div {
+		flex: 1 1 50%;
+		border-bottom: 1px solid var(--ink-light);
+	}
+
+	.annotation-row {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.annotation-marker::after {
+		display: none;
+	}
+
+	.spec-row {
+		grid-template-columns: 1fr auto;
+		gap: 0.5rem;
+	}
+
+	.spec-id {
+		display: none;
+	}
+
+	.info-table td:first-child {
+		width: 100px;
+	}
+
+	.compass {
+		width: 50px;
+		height: 50px;
+		bottom: 1rem;
+		right: 1rem;
+	}
+}
+
+/* === PRINT STYLES === */
+@media print {
+	body {
+		background: #fff;
+		color: #000;
+	}
+
+	body::before,
+	body::after {
+		display: none;
+	}
+
+	.compass,
+	.progress-track {
+		display: none;
+	}
+
+	.approval-stamp {
+		opacity: 0.5;
+		border-color: #999;
+		color: #999;
+	}
+
+	.title-block {
+		border-color: #000;
+	}
+
+	.annotation-row {
+		opacity: 1 !important;
+		transform: none !important;
+		page-break-inside: avoid;
+	}
+
+	.items-spec-sheet {
+		page-break-inside: avoid;
+	}
+
+	.spec-row:hover {
+		background: none;
+	}
+
+	.draw-in path.draw-anim,
+	.draw-in line.draw-anim,
+	.draw-in rect.draw-anim {
+		stroke-dashoffset: 0 !important;
+		stroke-dasharray: none !important;
+	}
+}

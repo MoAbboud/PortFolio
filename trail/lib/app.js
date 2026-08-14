@@ -1909,6 +1909,9 @@ async function main() {
     // proves the number was stored; this is the expression the frame draws
     // with, so it proves the hour reaches the sky.
     sun: skyNow(routeAtHour(route, state.hour)).sun,
+    // How much light there is where you are looking, which is the thing the
+    // overview is not allowed to inherit from the step it was called from.
+    ambient: skyNow(routeAtHour(route, state.hour)).ambient,
     orbit: state.orbit,
     push: state.push,
     // The step being **worked on**, which is what the panel edits and what the
@@ -2381,7 +2384,28 @@ async function main() {
    * rather than a dead bar - and it is the whole of the bug where removing every
    * step stopped the clock and the weather both.
    */
+  /**
+   * The hour the whole film is read at.
+   *
+   * **The overview is a statement about the film, not a moment in it**, which
+   * is the same argument that gives it its own angle and keeps it from banking
+   * the shot you were composing. It follows that it should not be read by the
+   * light of whichever step you happened to be standing on when you pressed the
+   * button: pulling back to see the whole event at nine at night in a storm
+   * shows you a dark smear of the thing you were trying to look at.
+   */
+  const OVERVIEW_HOUR = 11;
+
   function skyNow(moment) {
+    // **Always lit.** Asked for directly: *"The overview takes whatever weather
+    // the step has when the overview button is clicked, i dont want that, i
+    // want it always light."* Both halves have to be fixed or it is not - the
+    // weather decides how much light gets through and the hour decides whether
+    // there is any - so this takes a clear sky at a late morning hour and
+    // nothing about the step reaches it.
+    if (state.overview) {
+      return resolveWeather(skyOf({ weather: 'clear', hour: OVERVIEW_HOUR }));
+    }
     const base = moment
       ? (route[moment.fromStep ?? moment.step]
         ? lerpWeather(
@@ -3599,9 +3623,13 @@ async function main() {
       weather = skyNow(moment);
     }
 
-    // Forcing a weather while roaming keeps the hour of the step being worked
-    // on, so looking at a scene in a different weather does not also move the sun.
-    if (state.forcedWeather) {
+    // Forcing a weather keeps the hour of the step being worked on, so looking
+    // at a scene in a different weather does not also move the sun.
+    //
+    // **Not while the overview is on.** It would be the same fault by another
+    // route: the whole film read through a storm somebody left switched on for
+    // one moment of it.
+    if (state.forcedWeather && !state.overview) {
       weather = resolveWeather(skyOf({ weather: state.forcedWeather, hour: route[editing()]?.hour }));
     }
     // Depth fog is left to the weather. It cannot separate the film - a

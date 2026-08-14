@@ -127,6 +127,54 @@ drawing board... not even a take is a thing. Just steps."* The reasoning is in `
 under "Trail does not play anything". **This is the largest cancellation in the project**, because
 every document here had assumed since the first conversation that the output is a recording.
 
+### 11d - The stars, and something for them to fall toward
+
+**Asked for 2026-08-13:** *"especially the sigularity, would that be possible to incorportate in
+the backgroud? not 1 for 1 copy but more to beautify the stars."*
+
+- [x] **A star is a point, not a lit cell.** One per cell at a jittered place inside it, with a
+      round falloff. Every star used to be the same square at the same brightness, which is a grid
+      of identical dots and is why it read as noise
+- [x] **Three layers** - near, middle, and a dust that never quite resolves. One layer at any
+      density is a flat sheet of dots; depth is what makes a field read as a sky
+- [x] Colour and brightness hashed per star, so they are not all the same white
+- [x] A twinkle with **a phase per star**, so the field shimmers rather than pulsing as one
+- [x] **The singularity**: a bright ring around a dark middle, off to one side, fixed in the world
+      so it holds still as the camera turns. Stars crowd toward it, thin at the far edge, and the
+      centre takes them away. Not a copy - the shape rather than the drawing, because what those
+      references have that this did not is somewhere for the eye to go
+- [x] A slow sweep around the disc. One uniform a frame, which is the only per-frame work here
+- [ ] Judge it by eye: how crowded, how bright the ring is, and whether the sweep is noticed on a
+      held shot. Every number here was picked by reasoning
+
+### 11e - Two GLSL faults the lint could not see
+
+- [x] **`smoothstep` with its edges the wrong way round is undefined**, not inverted. Writing the
+      ramp backwards is the natural way to say "bright in the middle" and is the one spelling that
+      is not allowed
+- [x] **`pow` of a negative base is undefined**, and a bell curve written `exp(-pow(t, 2.0))` has
+      a negative `t` on one side of its own middle by construction
+- [x] A lint rule for each, both confirmed by putting the fault back. **The first had to be
+      widened after it was written**: comparing two literal edges did not catch the real bug,
+      whose first edge was a name. A rule that cannot fire on the thing it was written for is not
+      a rule
+- [ ] **Do not put a backtick in a shader comment.** The shaders are template literals, so it ends
+      the string and the error names a line of GLSL as though it were JavaScript. Three times in
+      one session
+
+### 11c - The overview is always lit
+
+- [x] **It no longer takes the weather or the hour of the step it was called from.** A clear sky
+      at a late morning hour, and nothing about the step reaches it. Pulling back to read a whole
+      event at two in the morning in a storm showed a dark smear of the thing being looked at
+- [x] **Both halves, or it is not fixed**: the weather says how much light gets through and the
+      hour says whether there is any, so a clear sky at 03:00 is still dark. The test uses a storm
+      at two in the morning
+- [x] A **forced** weather is refused there too - the same fault by another route
+- [x] **The third time this rule has been found from a different symptom.** The overview is a
+      statement about the film rather than a moment in it: it kept the shot's yaw once, banked the
+      working shot once, and took the step's light this time
+
 ### 11a - There is no take
 
 - [x] **`routeAt` and `routeDuration` are gone from `camera.js`**, and `runAt`, `runDuration`,

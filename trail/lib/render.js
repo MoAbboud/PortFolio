@@ -649,6 +649,9 @@ uniform vec3 uMoon;
 uniform float uSunUp;
 uniform float uMoonUp;
 uniform float uNight;
+// For the twinkle and the slow turn of the disc. One number a frame, which is
+// the only kind of per-frame work this app does.
+uniform float uTime;
 // How far the sky is space rather than air. The world is a ring hanging in
 // nothing, so there is no atmosphere to hold a gradient and no horizon for one
 // to sit on - what is left is black with stars in it.
@@ -660,6 +663,52 @@ out vec4 frag;
 // holds still while the camera turns through it.
 float hash(vec3 p) {
   return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453);
+}
+
+/**
+ * One layer of stars.
+ *
+ * **A star is a point, not a cell.** The field used to be a lit cell wherever
+ * the hash crossed a threshold, which makes every star the same square, the
+ * same size and the same colour - a grid of identical dots, which is what reads
+ * as noise rather than as a sky. Each cell now holds one star at a jittered
+ * place inside it, drawn as a round point with a falloff, and hashes its own
+ * brightness and colour.
+ *
+ * Only the cell the direction falls in is sampled, rather than its neighbours
+ * too. A star close to a cell wall is clipped by it, and at these radii - a
+ * star is a fraction of a cell across - that is rare enough to be invisible and
+ * saves twenty-six samples a layer.
+ *
+ * Depth comes from calling it more than once. One layer at any density is a
+ * flat sheet of dots; three at different densities, sizes and brightnesses read
+ * as near, middle and far.
+ */
+vec3 starLayer(vec3 dir, float density, float cut, float radius, float gain, float time) {
+  vec3 cell = floor(dir * density);
+  float pick = hash(cell);
+  // Most cells are empty. This is what sets how crowded the sky is, and it is
+  // the first thing to reach for if it ever looks busy.
+  if (pick < cut) return vec3(0.0);
+
+  vec3 jitter = vec3(hash(cell + 1.7), hash(cell + 5.3), hash(cell + 9.1));
+  vec3 at = normalize((cell + 0.5 + (jitter - 0.5) * 0.85) / density);
+  // Unit vectors, so the distance between them is the angle between them for
+  // anything this small. **Edges in increasing order**: smoothstep is undefined
+  // when the first is not below the second, so the ramp is inverted rather than
+  // written backwards.
+  float point = 1.0 - smoothstep(0.0, radius, length(at - dir));
+
+  // **Each star keeps its own phase**, so the field shimmers rather than
+  // pulsing as one, which is what an animated starfield usually gets wrong.
+  float phase = fract(pick * 17.0) * 6.2831853;
+  float alive = 0.78 + 0.22 * sin(time * 1.3 + phase);
+  // Stars are not all white and not all the same brightness. Both come off the
+  // same hash, so a star keeps its colour and its size wherever you look from.
+  vec3 tint = mix(vec3(0.72, 0.80, 1.00), vec3(1.00, 0.87, 0.70), fract(pick * 31.0));
+  float scale = 0.30 + 0.70 * fract(pick * 53.0);
+
+  return tint * point * point * alive * scale * gain;
 }
 
 void main() {
@@ -692,13 +741,64 @@ void main() {
   // the dark and never appear in daylight.
   float starlight = max(uNight, uSpace);
   if (starlight > 0.01) {
-    vec3 cell = floor(dir * 220.0);
-    float star = hash(cell);
     // In space there is no ground to hide the lower half of the sky, so stars
     // go all the way round rather than fading out below the horizon.
     float below = mix(max(dir.y, 0.0), 1.0, uSpace);
-    float bright = smoothstep(0.9975, 1.0, star) * below;
-    colour += vec3(0.85, 0.88, 1.0) * bright * starlight;
+
+    /**
+     * **The singularity.** A far-off core the field falls toward.
+     *
+     * Asked for after the user went looking at CodePen: *"especially the
+     * singularity, would that be possible to incorporate in the background? not
+     * 1 for 1 copy but more to beautify the stars."* So it is not a copy of
+     * anything - it is the one shape that gives a starfield somewhere to be.
+     * A sky of evenly scattered points has no depth and nowhere to look; a
+     * bright ring around a dark middle, with the stars crowding toward it, has
+     * both, and it costs an angle and two curves.
+     *
+     * Fixed in the **world**, like everything else out here, so it holds still
+     * as the camera turns and sits off to one side rather than centred, where
+     * it would read as a target rather than as a place.
+     */
+    vec3 core = normalize(vec3(-0.46, 0.20, 0.86));
+    float ang = acos(clamp(dot(dir, core), -1.0, 1.0));
+
+    // Two axes across the core, so the disc can be given a slow turn. Built
+    // from a vector the core is not parallel to, which is why it is up rather
+    // than anything derived from the camera.
+    vec3 across = normalize(cross(core, vec3(0.0, 1.0, 0.0)));
+    vec3 along = cross(core, across);
+    float around = atan(dot(dir, along), dot(dir, across));
+    // **A slow sweep rather than a spin.** Fast enough to notice on a held shot
+    // and slow enough never to be what you are looking at.
+    float sweep = 0.72 + 0.28 * sin(around * 2.0 + uTime * 0.22);
+
+    // The middle is dark and the light is in a ring around it, which is the
+    // whole of what makes this read as a singularity rather than as a lamp.
+    float halo = exp(-ang * 5.5) * smoothstep(0.0, 0.055, ang);
+    // **Squared by multiplying, not by pow.** The base goes negative inside the
+    // ring - that is what makes it a ring - and pow of a negative base is
+    // undefined in GLSL, which is a driver-by-driver result rather than an
+    // error anything would report.
+    float off = (ang - 0.085) / 0.045;
+    float ring = exp(-off * off) * sweep;
+
+    colour += vec3(0.34, 0.42, 0.78) * halo * 0.5 * starlight;
+    colour += vec3(0.70, 0.76, 1.00) * ring * 0.32 * starlight;
+
+    // Stars crowd toward it and thin out at the far side, so the field reads as
+    // being pulled rather than sprinkled - and the very middle takes them away
+    // again, because nothing gets out of there.
+    float pull = 1.0 + 0.85 * exp(-ang * 2.2);
+    float swallowed = smoothstep(0.0, 0.075, ang);
+
+    // Three layers: near and bright, middle, and a fine dust that never quite
+    // resolves. One layer at any density is a flat sheet of dots.
+    vec3 field = starLayer(dir, 110.0, 0.9880, 0.0115, 1.00, uTime)
+      + starLayer(dir, 240.0, 0.9930, 0.0060, 0.72, uTime)
+      + starLayer(dir, 520.0, 0.9955, 0.0032, 0.45, uTime);
+
+    colour += field * below * starlight * pull * swallowed;
   }
 
   // The glow around the sun, wide and soft, and much wider near the horizon -
@@ -1475,6 +1575,7 @@ export function createRenderer(canvas) {
     gl.uniform1f(sky.u.uSunUp, weather.sunUp ?? 1);
     gl.uniform1f(sky.u.uMoonUp, weather.moonUp ?? 0);
     gl.uniform1f(sky.u.uNight, weather.night ?? 0);
+    gl.uniform1f(sky.u.uTime, time);
     gl.uniform1f(sky.u.uSpace, space);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 

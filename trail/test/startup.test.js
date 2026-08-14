@@ -1877,6 +1877,65 @@ test('the film is rolled into a ring, and the overview unrolls it', async () => 
   assert.deepEqual(stub.failures, [], 'rolling the film reported a failure');
 });
 
+test('the overview is lit whatever the step it was called from was doing', async () => {
+  /**
+   * **Reported by the user:** *"The overview takes whatever weather the step has
+   * when the overview button is clicked, i dont want that, i want it always
+   * light."*
+   *
+   * The overview is a statement about the film rather than a moment in it -
+   * which is already why it keeps its own angle and never banks the shot being
+   * composed - so being read by the light of whichever step you happened to be
+   * standing on is the same mistake in a third place. Pulling back to see the
+   * whole event at night in a storm shows a dark smear of the thing you were
+   * trying to look at.
+   *
+   * **Both halves have to hold**: the weather decides how much light gets
+   * through and the hour decides whether there is any, so a fix to one alone
+   * leaves it dark at three in the morning.
+   */
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
+  await runApp();
+  const settle = async () => {
+    for (let i = 0; i < 30; i++) await new Promise((r) => setTimeout(r, 0));
+  };
+
+  // A storm in the middle of the night, which is the worst case of both.
+  const night = SCENE();
+  night.steps = night.steps.map((s) => ({ ...s, weather: 'storm', hour: 2 }));
+  await openCanvas(stub, night);
+
+  const dark = stub.win.__trail.at();
+  assert.ok(dark.ambient < 0.5,
+    `a storm at two in the morning should be dark, and it is at ${dark.ambient.toFixed(2)}`);
+
+  stub.element('b-overview').listeners.get('click')?.[0]?.();
+  await settle();
+
+  const wide = stub.win.__trail.at();
+  assert.ok(wide.ambient > 0.9,
+    `the overview is at ${wide.ambient.toFixed(2)} light, so it took the step's weather`);
+  assert.ok(wide.sun[1] > 0.5,
+    'the overview is lit from below the horizon, so it took the step\'s hour');
+
+  // Forcing a weather must not reach it either, which is the same fault by
+  // another route: the whole film read through a storm left switched on.
+  stub.element('weather').listeners.get('click')?.[0]?.({
+    target: { closest: () => ({ dataset: { v: 'storm' } }) },
+  });
+  await settle();
+  assert.ok(stub.win.__trail.at().ambient > 0.9,
+    'a forced weather reached the overview');
+
+  // And leaving it puts the storm back, because the film really is stormy.
+  stub.element('b-overview').listeners.get('click')?.[0]?.();
+  await settle();
+  assert.ok(stub.win.__trail.at().ambient < 0.5,
+    'leaving the overview left the whole canvas lit as though it were noon');
+
+  assert.deepEqual(stub.failures, [], 'the overview reported a failure');
+});
+
 test('turning the overview while in it does not disturb the shot underneath', async () => {
   // **Reported by the user:** "when i click in and out of the overview, it stays
   // in overview mode so id have to zoom in to get back to the step."
