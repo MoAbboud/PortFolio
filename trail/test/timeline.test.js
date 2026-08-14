@@ -6,7 +6,7 @@ import {
   xAt, atOfX, clampAt, pieceAt, hourAt, toMinute, fromMinute, clockOfPiece,
   spliceOut, insertPiece,
   depthFor, rigOf, framingOf, revealFraming, veilFor,
-  runAt, runDuration, DEFAULT_PIECE,
+  DEFAULT_PIECE,
   groundedRig, distanceFor, PITCH_MIN,
   radiusFor, rollPoint, unrollPoint, ringGround, easeRoll,
 } from '../lib/timeline.js';
@@ -117,7 +117,6 @@ test('the last piece has nothing to cross into', () => {
 test('an empty strip is nothing to stand on, rather than a crash', () => {
   assert.equal(pieceAt([], 0), null);
   assert.equal(hourAt([], 0), null);
-  assert.equal(runAt([], 0), null);
 });
 
 test('crossing a join moves the time from one piece to the next', () => {
@@ -563,61 +562,3 @@ test('how far back the camera stands does not depend on the tilt', () => {
 
 // --- playback ---------------------------------------------------------------
 
-test('the film runs at a steady rate, because every piece is the same width', () => {
-  const strip = [{ hour: 12, hold: 2000 }, { hour: 12.5, hold: 1000 }];
-  const rate = { secondsPerPiece: 2 };
-
-  const start = runAt(strip, 0, rate);
-  assert.equal(start.at, 0);
-  assert.ok(start.resting);
-
-  const stillResting = runAt(strip, 1.9, rate);
-  assert.equal(stillResting.at, 0);
-  assert.ok(stillResting.resting);
-
-  // Two seconds of rest, then two seconds of travel: halfway across the join.
-  const crossing = runAt(strip, 3, rate);
-  near(crossing.at, 0.5);
-  assert.ok(!crossing.resting);
-
-  const arrived = runAt(strip, 4, rate);
-  assert.equal(arrived.at, 1);
-  assert.ok(arrived.resting);
-});
-
-test('a take ends on its last piece and stays there', () => {
-  const end = runAt(STRIP, 999, { secondsPerPiece: 2 });
-  assert.equal(end.at, 2);
-  assert.ok(end.done);
-});
-
-test('the take is over exactly when its stated duration says it is', () => {
-  const rate = { secondsPerPiece: 3 };
-  const total = runDuration(STRIP, rate);
-  // 12 seconds of holds plus two joins at three seconds each.
-  near(total, 18);
-  assert.ok(!runAt(STRIP, total - 0.01, rate).done, 'it ended early');
-  assert.ok(runAt(STRIP, total, rate).done, 'it had not ended on time');
-});
-
-test('a one-piece film is a still, and has no joins to cross', () => {
-  const one = [{ hour: 12, hold: 5000 }];
-  near(runDuration(one, { secondsPerPiece: 2 }), 5);
-  assert.ok(runAt(one, 6, { secondsPerPiece: 2 }).done);
-});
-
-test('the film never runs backwards', () => {
-  const rate = { secondsPerPiece: 1.5 };
-  let previous = -Infinity;
-  for (let t = 0; t < runDuration(STRIP, rate) + 2; t += 0.05) {
-    const at = runAt(STRIP, t, rate);
-    assert.ok(at.at >= previous - 1e-9, `the film went backwards at ${t}s`);
-    previous = at.at;
-  }
-});
-
-test('a piece with no hold is crossed rather than skipped', () => {
-  const strip = [{ hour: 12 }, { hour: 13 }];
-  assert.equal(runAt(strip, 0, { secondsPerPiece: 2 }).at, 0);
-  near(runDuration(strip, { secondsPerPiece: 2 }), 2);
-});

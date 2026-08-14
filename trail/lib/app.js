@@ -17,8 +17,8 @@ import {
 import { surfaceNets, fromTriangles } from './mesh.js';
 import { toNdc, insideFrame, rayThrough, pick, groundPoint, dragTo, rotateBy } from './pick.js';
 import {
-  viewProjection, drift, autoMove, routeAt, routeAtHour, stepAround, lerpFraming, linear,
-  routeDuration, easeInOut,
+  viewProjection, drift, autoMove, routeAtHour, stepAround, lerpFraming, linear,
+  easeInOut,
 } from './camera.js';
 // `walk`, `panScreen` and `fit` are gone from here: the camera does not travel
 // any more, so there is nowhere to walk, nothing to pan across, and fitting
@@ -34,7 +34,7 @@ import { clockOf } from './daylight.js';
 import { scarMap } from './scars.js';
 import { multiply } from './mat4.js';
 import {
-  serialise, parse, isRefusal, reorder, dropped, byTime, openPiece, cutPiece, pieceOf,
+  serialise, parse, isRefusal, reorder, dropped, byTime, openPiece, cutPiece, copyPiece, pieceOf,
 } from './canvas.js';
 import { scriptOf } from './script.js';
 import * as pen from './pen.js';
@@ -89,7 +89,6 @@ const SCARS = { extent: 60, resolution: 256, feather: 7 };
 const SOLIDIFY = 900;   // milliseconds for a ghost to become real
 
 const canvas = document.getElementById('stage');
-const flash = document.getElementById('flash');
 const hud = document.getElementById('hud');
 const toast = document.getElementById('toast');
 /**
@@ -519,7 +518,6 @@ async function main() {
 
   // Recomputed when a canvas is opened, since a different route runs for a
   // different length of time.
-  let duration = routeDuration(route) / 1000;
 
   // --- state ----------------------------------------------------------------
   // Roaming and the route produce the same kind of value, so switching between
@@ -598,11 +596,6 @@ async function main() {
      * is eased toward it.
      */
     hourTo: null,
-    // A hoop you can see through, or a filled body. A look, so it is a switch.
-    solid: 0,
-    // How much the ground under a piece looks like film rather than a plain
-    // plate: sprocket holes, a lit panel where the scene sits, a sheen.
-    stock: 1,
     // What the ground is made of: 0 the weather's own colour, 1 grass,
     // 2 concrete. Procedural, so it costs no image and never has to be fetched.
     ground: 0,
@@ -821,38 +814,34 @@ async function main() {
     );
   }
 
+  /**
+   * Where the camera is looking, now.
+   *
+   * **There is no playback, so there is no second answer to this.** A take used
+   * to be a position in seconds that ran on its own and a `phase` saying whether
+   * the camera was resting or flying; the app is a drawing board rather than a
+   * projector, so the only thing that decides where you are is the clock, and
+   * the only thing that moves the clock is you.
+   */
   function currentRoute() {
     // The whole film, from far enough back to read it as one. Deliberately
     // outranks the step being shown: it is a way of looking at the strip, not a
     // place on it, so leaving it puts you back exactly where you were.
     if (state.overview) {
-      return { framing: overviewFraming(), step: editing(), phase: 'held', into: 1 };
+      return { framing: overviewFraming(), step: editing(), into: 1 };
     }
     // An empty day is the first piece of a film with nothing on it yet, which
     // is where every canvas starts.
     if (!route.length) {
-      return { framing: emptyFraming(), step: 0, phase: 'held', into: 1 };
+      return { framing: emptyFraming(), step: 0, into: 1 };
     }
-    return state.pinned === null
-      ? routeAt(onStrip(), state.clock)
-      : { framing: onStrip()[state.pinned].framing, step: state.pinned, phase: 'held' };
-  }
-
-  /**
-   * Take the camera by hand.
-   *
-   * **It no longer takes the camera anywhere.** Free roaming was a second
-   * position for the camera to be in, and having two was the bug: a drag moved
-   * the camera off the strip, and from then on cycling through the steps
-   * changed nothing on screen. All this does now is stop playback, because a
-   * take that carries on while you are composing is fighting you.
-   */
-  function roam() {
-    state.playing = false;
-  }
-
-  function toRoute() {
-    state.playing = true;
+    if (state.pinned !== null) {
+      return { framing: onStrip()[state.pinned].framing, step: state.pinned, into: 1 };
+    }
+    const moment = routeAtHour(onStrip(), state.hour);
+    return moment
+      ? { framing: moment.framing, step: moment.step, into: moment.into }
+      : { framing: onStrip()[editing()].framing, step: editing(), into: 1 };
   }
 
   // --- pointer --------------------------------------------------------------
@@ -1121,7 +1110,6 @@ async function main() {
     // **Turn on the spot, never travel.** Panning used to drag the camera
     // across the ground with the right button; there is nowhere to pan to now,
     // because where the camera stands is the piece of film in front of it.
-    roam();
     adjustCamera((f) => orbit(f, -dx * 0.32, dy * 0.26));
   });
 
@@ -1162,11 +1150,16 @@ async function main() {
       const hit = ray ? pick(ray, boxes) : null;
       select(hit ? hit.index : -1);
     }
+    const moved = drag.moved > 5 && drag.object !== null;
     drag = null;
     canvas.classList.remove('dragging', 'panning', 'moving');
     if (event && canvas.hasPointerCapture?.(event.pointerId)) {
       canvas.releasePointerCapture(event.pointerId);
     }
+    // **One gesture is one thing to undo.** A move autosaves on every pointer
+    // event and `remember` stays out of the way while the hand is down, so
+    // where the object ended up is remembered once, here.
+    if (moved) remember();
   };
   canvas.addEventListener('pointerup', endDrag);
   canvas.addEventListener('pointercancel', endDrag);
@@ -1327,7 +1320,6 @@ async function main() {
 
   canvas.addEventListener('wheel', (event) => {
     event.preventDefault();
-    roam();
     adjustCamera((f) => zoom(f, event.deltaY > 0 ? 1.12 : 1 / 1.12));
   }, { passive: false });
 
@@ -1386,7 +1378,6 @@ async function main() {
     if (WALK[key] || RISE[key]) {
       event.preventDefault();
       held.add(key);
-      roam();
       return;
     }
 
@@ -1416,18 +1407,31 @@ async function main() {
       return;
     }
 
-    if (key === ' ') {
+    // **Put back what the last edit changed.** Handled here rather than in a
+    // field, because the guard above has already stood aside for anything being
+    // typed into - where the browser's own undo is the one that is wanted.
+    if (key === 'z' && (event.ctrlKey || event.metaKey)) {
       event.preventDefault();
-      state.playing = !state.playing;
+      undo();
+      return;
+    }
+
+    if (key === ' ') {
+      // **Was: start a take.** There is no take, so the most useful thing the
+      // biggest key on the keyboard can do is step forward through the film -
+      // which is the gesture this app is now entirely made of.
+      event.preventDefault();
+      jump(1);
     } else if (key === 'f') {
       // The whole film, which is what "frame everything" means on a strip.
-      roam();
       state.overview = !state.overview;
       state.rollTo = state.overview ? 0 : 1;
       el('b-overview').setAttribute('aria-pressed', String(state.overview));
       say(state.overview ? 'the whole film' : 'back to the strip');
     } else if (key === 'r') {
-      state.clock = 0; state.pinned = null; toRoute(); sync();
+      // Back to the first piece. It used to restart a take from the top, and
+      // going to the beginning is what is left of that once nothing runs.
+      goToStep(0);
     } else if (key === 'enter') {
       event.preventDefault();
       toggleFullscreen();
@@ -1440,7 +1444,6 @@ async function main() {
     } else if (key >= '1' && key <= String(route.length)) {
       state.pinned = Number(key) - 1;
       leaveOverview();
-      state.playing = false;
     }
   });
 
@@ -1484,12 +1487,70 @@ async function main() {
     });
   }
 
+  /**
+   * What the canvas looked like before each edit.
+   *
+   * **Nothing here could be undone except the pen's own marks.** Deleting an
+   * object, dragging one off the spot you liked, cutting a piece - all of them
+   * were permanent, and the cost of that is not the lost work but the timidity:
+   * somebody who cannot undo stops trying the thing that might be better,
+   * because being wrong is paid for by hand. That is the exact instinct this
+   * format exists to remove - *a retake costs nothing* - and it was true of the
+   * recording while being false of the building.
+   *
+   * It is cheap here because the canvas is already one serialisable value and
+   * `autosave` already runs at every mutation, so the call sites were written
+   * long before there was a history to put in them.
+   *
+   * **The stack holds states, not changes**, so the one on top is where you are
+   * now: undoing pops it and applies whatever is underneath.
+   */
+  const past = [];
+  const PAST_DEPTH = 40;   // a canvas is not small, and nobody reaches further
+  let undoing = false;
+
+  function remember() {
+    // **Not while a drag is running.** Moving an object autosaves on every
+    // pointer event, so remembering each one would fill the whole history with
+    // one gesture and leave undo stepping back a pixel at a time. The state
+    // after the drag is remembered when the hand comes off the mouse.
+    if (undoing || drag) return;
+    const text = JSON.stringify(current());
+    if (past[past.length - 1] === text) return;
+    past.push(text);
+    if (past.length > PAST_DEPTH) past.shift();
+  }
+
+  /** Start again from here: opening a canvas is not something to undo across. */
+  function forgetPast() {
+    past.length = 0;
+    past.push(JSON.stringify(current()));
+  }
+
+  async function undo() {
+    if (past.length < 2) { say('nothing to undo'); return; }
+    past.pop();                                   // the state you are in now
+    const previous = past[past.length - 1];
+    undoing = true;
+    try {
+      await apply(parse(previous));
+      stepsChanged();
+      autosave();
+      say(`undone - ${past.length - 1} more to go back through`);
+    } catch (error) {
+      say(isRefusal(error) ? error.message : 'that edit could not be undone');
+    } finally {
+      undoing = false;
+    }
+  }
+
   let saveTimer;
   // True once anything has been changed. Startup finishes asynchronously - the
   // packs load and only then is the opening arrangement applied - and it must
   // not lay that over work done while it was waiting.
   let edited = false;
   function autosave() {
+    remember();
     // **Anything saved is something you did**, and startup must not undo it.
     // The packs take a moment to load and the opening arrangement is applied
     // when they land, so an edit made in that window was being silently thrown
@@ -1540,15 +1601,17 @@ async function main() {
     el('script').value = scriptOf(canvas.route);
     state.selected = -1;
     state.pinned = null;
-    state.clock = 0;
     scarredUpTo = -2;
-    duration = routeDuration(route) / 1000;
     rebuild();
     uploadAreas();
     select(-1);
     paintScript();
     paintStep();
     paintPanel();
+    // Opening a canvas is a fresh start, not an edit: undoing back across a
+    // file you opened into a canvas you had left behind is nobody's idea of
+    // undo. An undo applies a canvas too, so it keeps its own history.
+    if (!undoing) forgetPast();
   }
 
   async function restore() {
@@ -1886,17 +1949,11 @@ async function main() {
       // Where the roll is heading. The eased value needs frames to reach it; what
       // the app was *asked* for does not, and is the thing a control is judged on.
       rollTo: state.rollTo,
-      solid: state.solid,
-      stock: state.stock,
       ground: state.ground,
       room: state.room,
       spot: [state.spot.at[0], state.spot.at[1], state.spot.radius, state.spot.power],
       // Plates of film the renderer is actually holding, and how big they are
       // drawn. A restored canvas with no ground under it is this being zero.
-      // Whether a take is running. It decides which branch of the frame the
-      // sky is worked out in, so it is the difference between the hour
-      // reaching the sky and not.
-      playing: state.playing,
       pieces: renderer.pieces,
       plate: state.plate,
       radius: ringSize(),
@@ -1913,7 +1970,7 @@ async function main() {
   };
 
   window.__trail.route = () => route.map((s) => ({
-    text: s.text ?? '', hold: s.hold, weather: s.weather, framing: { ...s.framing },
+    text: s.text ?? '', weather: s.weather, framing: { ...s.framing },
     // The hour is what a step is called now, so a test asking about the route
     // has to be able to see it.
     ...(typeof s.hour === 'number' ? { hour: s.hour } : {}),
@@ -2173,18 +2230,23 @@ async function main() {
     tagCtx.globalAlpha = 1;
   }
 
-  // --- the take -------------------------------------------------------------
-
-  // The sync flash: one white frame at the start, so lining the picture up
-  // against a voice track is a one-second job in a video editor.
-  function sync() {
-    flash.style.transition = 'none';
-    flash.style.opacity = '1';
-    requestAnimationFrame(() => {
-      flash.style.transition = 'opacity 90ms linear';
-      flash.style.opacity = '0';
-    });
-  }
+  // --- there is no take -------------------------------------------------------
+  //
+  // **Trail does not play anything, and this is where the machinery for it
+  // used to be.** A take was: a clock running forward on its own, a countdown
+  // before the first frame, a hold per piece, a composed flight between them,
+  // and a white sync frame to line the result up against a voice track.
+  //
+  // All of it is gone. The user, deciding it: *"This app is to be used like a
+  // calculator, I dont want it to run anything, its an illustrator, like a
+  // drawing board... I want full control when im narrating, i want to cycle
+  // through it... So there is no such thing as a countdown before a take, not
+  // even a take is a thing. Just steps."*
+  //
+  // What replaced it is what was already underneath it: the clock bar, driven
+  // by hand. Cycling through the steps is the whole of moving through a film.
+  // **If a proposal starts to involve the app running on its own, it is
+  // reviving a dead design.**
   // --- the pen --------------------------------------------------------------
   // Marks on the glass, not in the world. They do not turn with the camera and
   // they are not part of the canvas: this is for pointing at a shot while
@@ -2349,7 +2411,6 @@ async function main() {
     refreshStrip();
     buildSteps();
     paintClock();
-    duration = routeDuration(route) / 1000;
     // The marks the weather leaves are derived from the steps, so a changed
     // route means a different ground. Forcing a rebuild keeps a seek looking
     // exactly like a playthrough, which is the whole point of deriving them.
@@ -2367,8 +2428,6 @@ async function main() {
         ? `${clockOf(route[at].hour)} (${at + 1} of ${route.length})`
         : `${at + 1} of ${route.length}`;
     if (!step) return;
-    holdSlider.set(step.hold ?? 5000);
-    approachSlider.set(step.approachTime ?? 2500);
     paintMove();
     stepWeatherSeg.paint();
     // The box shows the words of the step being worked on. While there is only
@@ -2377,8 +2436,14 @@ async function main() {
     if (document.activeElement !== box) box.value = step.text ?? '';
   }
 
-  el('b-step-add').addEventListener('click', () => {
+  el('b-step-add').addEventListener('click', (event) => {
     const at = editing();
+    // **Carrying forward is the default and an empty piece is the deliberate
+    // act.** An event is remembered as differences - "then the car pulls up" -
+    // and a strip of independent pieces otherwise asks you to restate
+    // everything that stayed the same, which is the only work in this app with
+    // no thought in it.
+    const empty = event?.shiftKey === true;
 
     // The first step of an empty day is made from where the camera is and what
     // the playground already looks like, so adding one keeps what is on screen
@@ -2386,8 +2451,6 @@ async function main() {
     if (!route.length) {
       route.push({
         framing: { ...currentRoute().framing },
-        hold: 5000,
-        approachTime: 2500,
         weather: state.weather,
         hour: state.hour,
         text: '',
@@ -2429,12 +2492,25 @@ async function main() {
     const like = route[Math.max(0, index - 1)] ?? route[0];
     route.splice(index, 0, {
       framing: { ...(like?.framing ?? currentRoute().framing) },
-      hold: like?.hold ?? 5000,
-      approachTime: like?.approachTime ?? 2500,
       weather: like?.weather ?? state.weather,
       hour,
       text: '',
     });
+
+    // **Carry what stands on the piece it follows.** From the one before it
+    // where there is one, and from the one after where the new piece is the
+    // first - either way it is "the world as it was a moment ago", which is
+    // what a new minute of an event nearly always is.
+    const pitch = pitchOf(PIECE);
+    const source = index > 0 ? index - 1 : (route.length > index + 1 ? index + 1 : -1);
+    let carried = 0;
+    if (!empty && source >= 0) {
+      const before = layout.length;
+      const copied = copyPiece({ layout, areas }, source, index, pitch);
+      layout = copied.layout;
+      areas = copied.areas;
+      carried = layout.length - before;
+    }
 
     state.pinned = index;
     state.hour = hour;
@@ -2442,7 +2518,12 @@ async function main() {
     rebuild();
     uploadAreas();
     stepsChanged();
-    say(`step ${index + 1} of ${route.length}, at ${clockOf(hour)}`);
+    // The toast is where carrying forward is taught, because it is the moment
+    // somebody is looking for the answer.
+    say(carried
+      ? `step ${index + 1} at ${clockOf(hour)}, carrying ${carried} forward`
+        + ' - shift-click + for an empty one'
+      : `step ${index + 1} of ${route.length}, at ${clockOf(hour)}`);
   });
 
   /**
@@ -2758,10 +2839,9 @@ async function main() {
   // beside the code that uses them, because `slider` and `segment` are defined
   // in this section and a control built above them is read before it exists -
   // which is the fourth time that has taken this page down.
-  const holdSlider = slider('r-hold', (v) => `${(v / 1000).toFixed(2)}s`,
-    (v) => { route[editing()].hold = v; }, { after: stepsChanged });
-  const approachSlider = slider('r-approach', (v) => (v ? `${(v / 1000).toFixed(2)}s` : 'cut'),
-    (v) => { route[editing()].approachTime = v; }, { after: stepsChanged });
+  // **There is no `hold` and no `flight in`.** Both were a take pacing itself
+  // against a narration, and nothing runs on its own any more: a moment lasts
+  // exactly as long as you are looking at it.
 
   const stepWeatherSeg = segment('step-weather',
     () => route[editing()]?.weather ?? state.weather,
@@ -2810,12 +2890,8 @@ async function main() {
   const weatherSeg = segment('weather', () => state.forcedWeather ?? '', (v) => {
     state.forcedWeather = v || null;
   });
-  // What the ground under a piece is made of. Kept as a switch rather than
-  // settled in the shader, because every look decision in this app so far has
-  // been reversed the first time it was seen.
-  const stockSeg = segment('stock', () => String(state.stock), (v) => {
-    state.stock = Number(v) ? 1 : 0;
-  });
+  // What the ground is made of. The film-stock switch that used to sit beside
+  // this went with the film: a piece is a sheet of paper on a drawing board now.
   const groundSeg = segment('ground', () => String(state.ground), (v) => {
     state.ground = Number(v) || 0;
   });
@@ -2895,7 +2971,6 @@ async function main() {
         dragging = true;
         mark.setPointerCapture?.(event.pointerId);
         state.pinned = index;
-        state.playing = false;
         leaveOverview();
         paintStep();
         // Stop the track underneath from reading this as a scrub.
@@ -2931,7 +3006,6 @@ async function main() {
       mark.addEventListener('click', () => {
         // Landing exactly on a step rather than near it, which is the whole
         // point of having marks as well as a bar.
-        state.playing = false;
         state.hour = step.hour;
         state.pinned = index;
         leaveOverview();
@@ -2973,12 +3047,6 @@ async function main() {
     el('b-step-remove').disabled = !route.length;
   }
 
-  el('b-solid').addEventListener('click', () => {
-    state.solid = state.solid ? 0 : 1;
-    el('b-solid').setAttribute('aria-pressed', String(!!state.solid));
-    say(state.solid ? 'a solid body' : 'a ring, open in the middle');
-  });
-
   /**
    * Leave the overview, because you have asked to be somewhere.
    *
@@ -3010,6 +3078,11 @@ async function main() {
   function paintReel() {
     const host = el('reel-list');
     host.innerHTML = '';
+
+    // **The first move.** Opening empty is deliberate; leaving a black screen
+    // that says nothing about what to do next was not. It goes the moment the
+    // film has a piece in it, so it can never be in a take.
+    el('first').classList.toggle('hidden', route.length > 0 || layout.length > 0);
 
     if (!route.length) {
       const empty = document.createElement('div');
@@ -3084,7 +3157,6 @@ async function main() {
 
   /** Ask the clock to travel somewhere, rather than jumping there. */
   function glideTo(hour) {
-    state.playing = false;
     state.scrubbing = true;
     state.hourTo = ((hour % 24) + 24) % 24;
   }
@@ -3132,7 +3204,6 @@ async function main() {
     const step = route[index];
     if (!step) return;
     state.pinned = index;
-    state.playing = false;
     leaveOverview();
     if (typeof step.hour === 'number') glideTo(step.hour);
     paintStep();
@@ -3145,7 +3216,6 @@ async function main() {
     leaveOverview();
     // The camera keeps its composition. What moves is where along the film it
     // is standing, which is the whole of what the clock decides.
-    state.playing = false;
     state.scrubbing = true;
     state.hour = hour;
     // A drag is the hand on the clock. Anything it was gliding toward is over.
@@ -3227,7 +3297,6 @@ async function main() {
     // geometry, with the ring opening out into a long straight strip.
     state.rollTo = state.overview ? 0 : 1;
     if (state.overview) {
-      state.playing = false;
     }
     el('b-overview').setAttribute('aria-pressed', String(state.overview));
     say(state.overview
@@ -3259,7 +3328,6 @@ async function main() {
       button.dataset.v = String(i);
       button.addEventListener('click', () => {
         state.pinned = i;
-        state.playing = false;
         leaveOverview();
         // Pinning a step is also choosing which one to work on, so the panel
         // follows rather than making you say it twice.
@@ -3267,18 +3335,30 @@ async function main() {
       });
       box.append(button);
     });
-    el('r-from').max = String(route.length);
   }
 
-  el('b-play').addEventListener('click', () => {
-    // Playing is watching the route, not scrubbing it, so the bar lets go.
-    state.scrubbing = false;
-    state.playing = !state.playing;
-    paintClock();
+  /**
+   * Open the example.
+   *
+   * It has existed since the spotlight landed and you had to know the file was
+   * on disk to ever see it - which for a tool with one user is the same as it
+   * not being there. Fetched rather than carried, because the app opens empty
+   * and that is deliberate.
+   */
+  el('b-example').addEventListener('click', async () => {
+    try {
+      const url = new URL('./examples/the-corner.json', location.href).href;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`the server said ${response.status}`);
+      await apply(parse(await response.text()));
+      stepsChanged();
+      say('a street corner, twenty minutes apart');
+    } catch (error) {
+      say(isRefusal(error) ? error.message : `the example could not be opened: ${error.message}`);
+    }
   });
-  el('b-restart').addEventListener('click', () => {
-    state.clock = 0; state.pinned = null; toRoute(); sync();
-  });
+
+  el('b-undo-edit').addEventListener('click', undo);
   el('b-save').addEventListener('click', download);
   el('b-open').addEventListener('click', () => el('file').click());
   el('file').addEventListener('change', async (event) => {
@@ -3294,7 +3374,7 @@ async function main() {
   });
   el('b-frame').addEventListener('click', async () => {
     const framing = tidy(currentRoute().framing);
-    const text = `{ framing: ${JSON.stringify(framing)}, hold: 5000, approachTime: 3000 },`;
+    const text = `{ framing: ${JSON.stringify(framing)} },`;
     try {
       await navigator.clipboard.writeText(text);
       say('framing copied');
@@ -3308,7 +3388,10 @@ async function main() {
   const objectSliders = [
     ['r-rot', (p) => (p.rot ?? 0), (p, v) => rotateBy({ ...p, rot: 0 }, v), (v) => `${v} deg`],
     ['r-scale', (p) => (p.scale ?? 1) * 100, (p, v) => ({ ...p, scale: v / 100 }), (v) => `${v}%`],
-    ['r-from', (p) => (p.from ?? 0) + 1, (p, v) => ({ ...p, from: v - 1 }), (v) => `${v}`],
+    // **There is no "appears at step".** It wrote `from`, which `solid()`
+    // overwrites before anything is drawn, so it had no effect at all - and
+    // `from` no longer means what it says: an object is on the piece it stands
+    // on, read from where it is rather than from what it claims.
   ];
   function buildObjectSliders() {
     for (const [id, , change, format] of objectSliders) {
@@ -3340,7 +3423,6 @@ async function main() {
     surfaceSeg.paint();
     weatherSeg.paint();
     plateSlider.set(Math.round(state.plate * 100));
-    stockSeg.paint();
     groundSeg.paint();
     roomSeg.paint();
     spotSlider.set(Math.round(state.spot.power * 100));
@@ -3379,7 +3461,6 @@ async function main() {
     paintReel();
     // Whatever was being worked on last time, if anything.
     paintPanel();
-    sync();
 
   // After the first frame, so the scene is on screen before a few megabytes of
   // models are fetched and parsed.
@@ -3403,6 +3484,10 @@ async function main() {
       }
     }
     if (!edited && await restore()) say('picked up where you left off');
+    // Whatever the page settled on is where undo stops going back. `restore`
+    // seeds this itself by way of `apply`; this covers the empty start, which
+    // is the usual one.
+    if (!past.length) forgetPast();
     paintPanel();
   });
 
@@ -3452,58 +3537,21 @@ async function main() {
     let arrive = 1;
     let weather = resolveWeather(skyOf(route[step]));
 
-    // How long this shot has been held. A camera move is measured from the
-    // start of its own shot rather than from the clock on the wall, so a take
-    // plays the same way twice - which is the whole reason play mode carries no
-    // interface.
+    // How long the shot in front of you has been held, which is what a slow
+    // orbit or push measures itself against. It resets when the moment changes,
+    // so a move starts again with each one rather than carrying on.
     if (state.shotAt === null || state.shotAt === undefined) state.shotAt = now;
-    let shotHeld = (now - state.shotAt) / 1000;
+    const shotHeld = (now - state.shotAt) / 1000;
 
-    // **There is one camera and it is on the strip.** The roaming branch that
-    // used to sit here was a second answer to "where is the camera", and having
-    // two was the bug: one drag moved the camera off the film, and cycling
-    // through the steps changed nothing on screen from then on.
     {
-      // **A film with no length cannot be played.** `duration` is nought with
-      // no pieces, and a modulo by nought is NaN - which then spreads into the
-      // clock, the framing and everything downstream of them.
-      if (state.playing && duration > 0) {
-        state.clock = (state.clock + delta) % duration;
-        state.scrubbing = false;
-      } else if (state.playing) {
-        // Nothing to play. Stopping is what lets the paused branch below apply
-        // the hour to the sky, which is the difference between a lit world and
-        // a black one.
-        state.playing = false;
-      }
-
+      // **There is one camera, it is on the strip, and nothing moves it on its
+      // own.** A take used to run the clock forward here and hand the frame a
+      // `phase` - resting or flying - and there is no take: the app is a
+      // drawing board, and the only thing that moves through the film is you.
       const at = currentRoute();
-      // Time into this hold, so a move restarts with every shot rather than
-      // carrying on from the last one.
-      if (at.phase === 'hold') shotHeld = (at.into ?? 0) * ((route[at.step]?.hold ?? 0) / 1000);
-      framing = drift(
-        at.phase === 'fly' ? at.framing : autoMove(at.framing, shotHeld, state),
-        now / 1000,
-        swayNow(),
-      );
+      framing = drift(autoMove(at.framing, shotHeld, state), now / 1000, swayNow());
       step = at.step;
-      el('mode').textContent = state.playing ? at.phase : 'paused';
-      el('mode').className = 'route';
-      el('s-step').textContent = `${at.step + 1} / ${route.length}`;
-
-      if (at.phase === 'fly' && route[at.step + 1]) {
-        // A flight is where the weather turns and the next part of the canvas
-        // arrives. Both land together, which reads as one change rather than two.
-        const flight = (route[at.step + 1].approachTime ?? 2500) / 1000;
-        const into = Math.min(1, Math.max(0, at.into ?? 0));
-        weather = lerpWeather(skyOf(route[at.step]), skyOf(route[at.step + 1]), into);
-        step = at.step + 1;
-        stepT = Math.min(1, (into * flight * 1000) / SOLIDIFY);
-        // Eased rather than linear, so an object that walks somewhere starts
-        // and stops rather than sliding at one speed, which reads as a prop
-        // being pushed.
-        arrive = easeInOut(into);
-      }
+      el('s-step').textContent = route.length ? `${at.step + 1} / ${route.length}` : '-';
     }
 
     // --- the clock ------------------------------------------------------------
@@ -3519,9 +3567,9 @@ async function main() {
     // bar moved. What travels now is the camera's *position along the strip*;
     // how it is looking - the yaw, the pitch, how wide - is untouched.
     //
-    // It sits outside the roam-or-route branch because the clock works the same
-    // way whichever the camera is in, rather than taking its mode away.
-    if (!state.playing) {
+    // **The clock is the only thing that moves you**, so this is no longer one
+    // branch of two: there is no playing state for it to sit outside of.
+    {
       // A route that says something about this hour is used; otherwise this is
       // an empty day, and the playground's own weather lights it. **Either way
       // the hour applies**, which is what makes an empty canvas a place at a
@@ -3535,11 +3583,10 @@ async function main() {
         stepT = moment.into;
         arrive = easeInOut(moment.into);
         // **Travel along the strip**, so a step is somewhere rather than a
-        // different weather where you already are. Left alone while roaming,
-        // because the camera has been taken by hand, and while the overview is
-        // on, because that is the whole film rather than a place on it.
+        // different weather where you already are. Left alone while the overview
+        // is on, because that is the whole film rather than a place on it.
         if (!state.overview) {
-          framing = drift(moment.framing, now / 1000, swayNow());
+          framing = drift(autoMove(moment.framing, shotHeld, state), now / 1000, swayNow());
         }
         // The step being **worked on**, which is the one the bar and the panel
         // both name. `moment.step` is the step being arrived at, which is what
@@ -3550,10 +3597,6 @@ async function main() {
         el('s-step').textContent = route.length ? `${editing() + 1} / ${route.length}` : 'none';
       }
       weather = skyNow(moment);
-      if (state.scrubbing || !route.length) {
-        el('mode').textContent = clockOf(state.hour);
-        el('mode').className = 'route';
-      }
     }
 
     // Forcing a weather while roaming keeps the hour of the step being worked
@@ -3621,8 +3664,6 @@ async function main() {
       veilFar: seen.far,
       roll: state.roll,
       radius: ringSize(),
-      solid: state.solid,
-      stock: state.stock,
       ground: state.ground,
       room: state.room,
       spot: [state.spot.at[0], state.spot.at[1], state.spot.radius, state.spot.power],

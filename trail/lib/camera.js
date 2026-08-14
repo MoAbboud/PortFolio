@@ -201,37 +201,11 @@ export function autoMove(framing, seconds, { orbit = 0, push = 0 } = {}) {
   return out;
 }
 
-/**
- * Walk a route: hold on each framing, fly to the next.
- *
- * Returns the framing for a moment in time, which step it belongs to, and how
- * far through that phase it is. `into` is what the weather cross-fade and the
- * canvas solidifying are both driven by, so the two land together.
- */
-export function routeAt(steps, seconds) {
-  let t = seconds;
-  for (let i = 0; i < steps.length; i++) {
-    const hold = steps[i].hold / 1000;
-    if (t < hold) {
-      return { framing: steps[i].framing, step: i, phase: 'hold', into: hold ? t / hold : 1 };
-    }
-    t -= hold;
-    const next = steps[i + 1];
-    if (!next) return { framing: steps[i].framing, step: i, phase: 'end', into: 1 };
-    const fly = (next.approachTime ?? 2500) / 1000;
-    if (t < fly) {
-      return {
-        framing: lerpFraming(steps[i].framing, next.framing, t / fly),
-        step: i,
-        phase: 'fly',
-        into: fly ? t / fly : 1,
-      };
-    }
-    t -= fly;
-  }
-  const last = steps[steps.length - 1];
-  return { framing: last.framing, step: steps.length - 1, phase: 'end', into: 1 };
-}
+// **There is no `routeAt` and no `routeDuration`.** They walked a route in
+// seconds - resting `hold` at each step, flying `approachTime` to the next -
+// and Trail does not play anything: it is a drawing board that is cycled
+// through by hand. `routeAtHour` below is what is left, and it is the one that
+// was always doing the work.
 
 /**
  * The route read as a day rather than as a list.
@@ -305,11 +279,4 @@ export function stepAround(steps, hour, direction) {
   }
   for (let i = 0; i < timed.length; i++) if (timed[i].step.hour > h + edge) return timed[i];
   return null;
-}
-
-export function routeDuration(steps) {
-  return steps.reduce((total, step, i) => {
-    const fly = i < steps.length - 1 ? (steps[i + 1].approachTime ?? 2500) : 0;
-    return total + step.hold + fly;
-  }, 0);
 }

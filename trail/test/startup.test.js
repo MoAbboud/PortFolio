@@ -53,8 +53,27 @@ class FakeElement {
     this.files = [];
     this.children = [];
     this.listeners = new Map();
+    /**
+     * **A real class list, because a stub that forgets is a stub that lies.**
+     *
+     * This used to be four functions that did nothing and a `contains` that
+     * always said no, so anything the page shows or hides by class was
+     * invisible to every test - and a check written against it could only ever
+     * agree with itself. That is the sixth gap of this shape: a stub less
+     * faithful than a browser makes a working implementation look broken, which
+     * costs as much time as one that is too permissive.
+     */
+    const classes = new Set();
     this.classList = {
-      add: () => {}, remove: () => {}, toggle: () => {}, contains: () => false,
+      add: (...names) => names.forEach((n) => classes.add(n)),
+      remove: (...names) => names.forEach((n) => classes.delete(n)),
+      contains: (name) => classes.has(name),
+      toggle: (name, force) => {
+        const on = force === undefined ? !classes.has(name) : Boolean(force);
+        if (on) classes.add(name);
+        else classes.delete(name);
+        return on;
+      },
     };
   }
 
@@ -389,6 +408,35 @@ test('the app opens with nothing on it', async () => {
   assert.deepEqual(stub.failures, [], 'opening empty reported a failure');
 });
 
+test('the keys the panel teaches are keys the page answers to', () => {
+  /**
+   * **A control that lies is worse than one that is missing.**
+   *
+   * The camera panel listed `w a s d` to walk, `q e` for height and right-drag
+   * to pan long after free roaming was removed, and called `f` "fit everything"
+   * when it toggles the overview. Anyone reading it pressed those keys, got
+   * nothing, and learned to stop trusting the panel - which is how the features
+   * that do work go unused.
+   *
+   * Only single letters are checked, because they are what goes stale: the
+   * words - drag, wheel, enter - are gestures rather than keys.
+   */
+  const keys = /<div class="body keys">([\s\S]*?)<\/div>/.exec(page());
+  assert.ok(keys, 'the camera panel no longer lists any keys at all');
+
+  const source = app();
+  const taught = [...keys[1].matchAll(/<k>([^<]+)<\/k>/g)]
+    .flatMap((m) => m[1].split(/[\s+]+/))
+    .map((word) => word.trim().toLowerCase())
+    .filter((word) => /^[a-z]$/.test(word));
+
+  assert.ok(taught.length >= 3, `only ${taught.length} letter keys are taught, which is suspicious`);
+  for (const key of taught) {
+    assert.match(source, new RegExp(`key === '${key}'`),
+      `the panel teaches "${key}" and the page does not answer to it`);
+  }
+});
+
 test('no id is used twice in the markup', () => {
   // **`getElementById` returns the first match and says nothing about the
   // second.** A new "remove everything" button was given the id the pen's
@@ -588,14 +636,14 @@ test('a control that is not in the markup is reported by name', async () => {
   // gone slightly wrong, and it used to surface as "cannot read properties of
   // null" naming nothing. This checks the complaint, not just the crash.
   const ids = declaredIds();
-  ids.delete('b-play');
+  ids.delete('b-library');
 
   const stub = stubBrowser({ ids });
   await runApp();
 
   assert.equal(stub.failures.length, 1, 'a missing control should stop the page');
   const said = stub.failures[0];
-  assert.match(said, /b-play/, 'the failure must name the id that is missing');
+  assert.match(said, /b-library/, 'the failure must name the id that is missing');
   assert.match(said, /markup/i, 'and say where to look for it');
 });
 
@@ -1167,7 +1215,10 @@ test('inserting a step carries the later pieces and what stands on them', async 
   // Land on the first step, then add one after it.
   stub.element('ticks').children[0].listeners.get('click')?.[0]?.();
   await settle();
-  stub.element('b-step-add').listeners.get('click')?.[0]?.();
+  // **An empty piece**, so this measures the one rule it was written for.
+  // Adding a piece carries the one before it forward, which is a different
+  // rule with a test of its own; mixing the two would leave neither clear.
+  stub.element('b-step-add').listeners.get('click')?.[0]?.({ shiftKey: true });
   await settle();
 
   const after = objects();
@@ -1225,7 +1276,10 @@ test('cutting a step takes what stood on it, and it does not come back', async (
     `cutting a piece left ${cut - (before - onLast)} of its objects behind`);
 
   // Growing the strip back must not bring them with it.
-  stub.element('b-step-add').listeners.get('click')?.[0]?.();
+  // **An empty piece**, so this measures the one rule it was written for.
+  // Adding a piece carries the one before it forward, which is a different
+  // rule with a test of its own; mixing the two would leave neither clear.
+  stub.element('b-step-add').listeners.get('click')?.[0]?.({ shiftKey: true });
   await settle();
   assert.equal(placed(), cut, 'the deleted objects came back with the new step');
 });
@@ -1297,7 +1351,10 @@ test('inserting a step does move what was pointing at a later one', async () => 
 
   // The opening route is three steps and the panel is on the first, so the new
   // step lands second and everything after it moves down one.
-  stub.element('b-step-add').listeners.get('click')?.[0]?.();
+  // **An empty piece**, so this measures the one rule it was written for.
+  // Adding a piece carries the one before it forward, which is a different
+  // rule with a test of its own; mixing the two would leave neither clear.
+  stub.element('b-step-add').listeners.get('click')?.[0]?.({ shiftKey: true });
   await settle();
 
   assert.deepEqual(rangeOf(), before.map((from) => (from > 0 ? from + 1 : 0)),
@@ -1449,12 +1506,12 @@ test('the sky is lit by the clock from the first frame', async () => {
     `at noon the sun should be overhead, and it is at ${at.sun[1].toFixed(2)}`
     + ' - the hour never reached the sky');
 
-  // **The defect itself.** The sky above is worked out on demand and is right
-  // either way; what only the app can answer is which branch of the frame it
-  // would have been worked out in, and that is decided by this.
-  assert.equal(stub.win.__trail.shot().playing, false,
-    'the app opened playing, so the hour never reaches the sky');
-
+  // **The defect this was written for cannot happen any more.** It was that the
+  // hour reached the sky in one branch of the frame and not the other, and the
+  // app opened on the wrong one. There is no playing state and no second
+  // branch: the clock is applied on every frame because nothing else can move
+  // it. What is left worth asserting is the half above - that the hour is in
+  // the sky at all - and that is now true by construction rather than by luck.
   assert.deepEqual(stub.failures, [], 'opening reported a failure');
 });
 
@@ -1483,32 +1540,144 @@ test('the example canvas opens, and every model in it is in the library', async 
   assert.deepEqual(stub.failures, [], 'opening the example reported a failure');
 });
 
-test('the film can be switched between film stock and a plain plate', async () => {
-  // Every look decision in this app has been reversed the first time it was
-  // seen - the cubes, the reveal's angle, what the overview frames. So the
-  // plain plate stays one click away rather than being argued about.
+test('adding a piece carries the one before it forward, unless you ask for empty', async () => {
+  /**
+   * **The only genuinely tedious thing in this app.**
+   *
+   * `examples/the-corner.json` is 59 objects across three pieces of one street
+   * corner, and the street never changed. An event is remembered as differences
+   * - "then the car pulls up" - so carrying forward is the default and the job
+   * becomes deleting the car rather than rebuilding the world.
+   */
   const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
   await runApp();
   await openCanvas(stub);
   const settle = async () => {
-    for (let i = 0; i < 25; i++) await new Promise((r) => setTimeout(r, 0));
+    for (let i = 0; i < 30; i++) await new Promise((r) => setTimeout(r, 0));
+  };
+  const add = (event = {}) => stub.element('b-step-add').listeners.get('click')?.[0]?.(event);
+  const onPieces = () => {
+    const objects = stub.win.__trail.canvas().objects;
+    const counts = new Map();
+    for (const o of objects) {
+      const piece = Math.round(o.at[0] / 64);   // DEFAULT_PIECE: 34 wide, 30 join
+      counts.set(piece, (counts.get(piece) ?? 0) + 1);
+    }
+    return counts;
   };
 
-  assert.equal(stub.win.__trail.shot().stock, 1, 'the film should open as film');
-
-  const pick = (value) => stub.element('stock').listeners.get('click')?.[0]?.({
-    target: { closest: () => ({ dataset: { v: value } }) },
-  });
-
-  pick('0');
+  // Stand on the first piece the way anyone does: the film list's own button.
+  // Deliberately not a test-only hook - a route a test can reach and the user
+  // cannot is a route that can rot without a test noticing.
+  const rows = stub.element('reel-list').children;
+  assert.ok(rows.length >= 2, 'the film list is not showing the pieces to go to');
+  const go = rows[0].children.flatMap((c) => c.children ?? []).find((c) => c.textContent === '▶');
+  assert.ok(go, 'there is no way to turn the ring to a piece from the list');
+  go.listeners.get('click')?.[0]?.();
   await settle();
-  assert.equal(stub.win.__trail.shot().stock, 0, 'it could not be made a plain plate');
+  assert.equal(stub.win.__trail.at().step, 0, 'the ring never turned to the first piece');
 
-  pick('1');
+  const before = onPieces();
+  assert.ok(before.get(0) > 1, 'the fixture has nothing on its first piece to carry');
+  const placedBefore = stub.win.__trail.placed();
+
+  add();
   await settle();
-  assert.equal(stub.win.__trail.shot().stock, 1, 'it could not be made film again');
+  const after = onPieces();
+  assert.equal(stub.win.__trail.placed(), placedBefore + before.get(0),
+    'adding a piece carried nothing forward, so the world has to be rebuilt by hand');
+  assert.equal(after.get(1), before.get(0),
+    'the new piece did not come out holding what the one before it held');
 
-  assert.deepEqual(stub.failures, [], 'switching the film reported a failure');
+  // And what was on the later pieces went with them rather than being left on
+  // ground that now belongs to somebody else.
+  assert.equal(after.get(2), before.get(1), 'a later piece lost what stood on it');
+
+  // Shift is the deliberate empty one, because sometimes the world does change.
+  const placedNow = stub.win.__trail.placed();
+  add({ shiftKey: true });
+  await settle();
+  assert.equal(stub.win.__trail.placed(), placedNow,
+    'shift-clicking + carried objects forward anyway, so there is no way to start clean');
+
+  assert.deepEqual(stub.failures, [], 'adding a piece reported a failure');
+});
+
+test('the last edit can be undone, and opening a canvas is not an edit', async () => {
+  /**
+   * **The only undo in this app was the pen's.**
+   *
+   * The cost of that is not the lost work, it is the timidity: somebody who
+   * cannot undo stops trying the thing that might be better. This app's whole
+   * claim is that a retake costs nothing, and that was true of the recording
+   * and false of the building.
+   */
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
+  await runApp();
+  await openCanvas(stub);
+  const settle = async () => {
+    for (let i = 0; i < 40; i++) await new Promise((r) => setTimeout(r, 0));
+  };
+  const undo = () => stub.element('b-undo-edit').listeners.get('click')?.[0]?.();
+
+  // Opening a canvas is a fresh start, so there is nothing behind it to undo.
+  const opened = stub.win.__trail.placed();
+  assert.ok(opened > 0, 'the fixture put nothing on the canvas');
+  undo();
+  await settle();
+  assert.equal(stub.win.__trail.placed(), opened,
+    'undo reached back past the canvas that was opened');
+
+  // A piece carried forward is one edit, however many objects it copied.
+  stub.element('b-step-add').listeners.get('click')?.[0]?.({});
+  await settle();
+  const added = stub.win.__trail.placed();
+  const steps = stub.win.__trail.route().length;
+  assert.ok(added > opened, 'adding a piece placed nothing to undo');
+
+  undo();
+  await settle();
+  assert.equal(stub.win.__trail.placed(), opened,
+    'undoing an added piece left what it carried forward behind');
+  assert.equal(stub.win.__trail.route().length, steps - 1,
+    'the piece itself was not taken back out');
+
+  // And a piece that was cut comes back, which is the one with no other way
+  // back at all: cutting takes everything standing on it.
+  const before = stub.win.__trail.placed();
+  stub.element('b-step-remove').listeners.get('click')?.[0]?.();
+  await settle();
+  assert.ok(stub.win.__trail.placed() < before, 'cutting a piece took nothing with it');
+
+  undo();
+  await settle();
+  assert.equal(stub.win.__trail.placed(), before, 'a cut piece could not be brought back');
+  assert.equal(stub.win.__trail.route().length, steps - 1);
+
+  assert.deepEqual(stub.failures, [], 'undoing reported a failure');
+});
+
+test('an empty canvas says what to do first, and stops saying it once you have', async () => {
+  // Opening empty is deliberate and right. Leaving a black screen that says
+  // nothing about the first move was not - and the first move is not guessable,
+  // because it is a button on the clock bar rather than anything on the canvas.
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
+  await runApp();
+  for (let i = 0; i < 80; i++) await new Promise((r) => setTimeout(r, 0));
+
+  assert.equal(stub.win.__trail.placed(), 0, 'the app did not open empty');
+  assert.ok(!stub.element('first').classList.contains('hidden'),
+    'an empty canvas says nothing about what to do first');
+
+  // The example is a real file on disk that you previously had to know about.
+  stub.element('b-example').listeners.get('click')?.[0]?.();
+  for (let i = 0; i < 120; i++) await new Promise((r) => setTimeout(r, 0));
+
+  assert.ok(stub.win.__trail.placed() > 0, 'the example opened with nothing in it');
+  assert.ok(stub.win.__trail.route().length > 0, 'the example opened with no pieces');
+  assert.ok(stub.element('first').classList.contains('hidden'),
+    'the first move is still on screen over a canvas that has something on it');
+  assert.deepEqual(stub.failures, [], 'opening the example reported a failure');
 });
 
 test('the ground can be made grass or concrete, and the room can be darkened', async () => {

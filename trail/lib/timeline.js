@@ -569,52 +569,14 @@ export function veilFor(shot, geometry) {
   };
 }
 
-// --- playback ---------------------------------------------------------------
-
-/** Seconds spent crossing one join, when the film is running. */
-export const DEFAULT_SECONDS_PER_PIECE = 2;
-
-/**
- * Playback: the film running through the projector.
- *
- * A take used to be a route of framings with a composed flight between each
- * pair. It is now a position along the strip moving at a steady rate, because
- * every piece is the same width - which is the film metaphor doing real work,
- * not decoration. The caller asks `framingOf` where that position puts the
- * camera.
- *
- * `hold` is a rest **at** a piece, and is the one field of the old step that
- * survived: it is how a shot is paced against a narration.
- *
- * Past the end it rests on the last piece rather than wrapping, because a story
- * that runs backwards through itself is not an ending.
- */
-export function runAt(pieces = [], seconds, { secondsPerPiece = DEFAULT_SECONDS_PER_PIECE } = {}) {
-  if (!pieces.length) return null;
-  const rate = Math.max(1e-6, secondsPerPiece);
-  let t = Math.max(0, isNumber(seconds) ? seconds : 0);
-
-  for (let i = 0; i < pieces.length; i++) {
-    const rest = Math.max(0, pieces[i]?.hold ?? 0) / 1000;
-    if (t < rest) return { at: i, piece: i, resting: true, done: false };
-    t -= rest;
-
-    if (i === pieces.length - 1) return { at: i, piece: i, resting: false, done: true };
-    if (t < rate) return { at: i + t / rate, piece: i, resting: false, done: false };
-    t -= rate;
-  }
-
-  const last = pieces.length - 1;
-  return { at: last, piece: last, resting: false, done: true };
-}
-
-/** How long a take runs, in seconds, so it can be checked against a narration. */
-export function runDuration(pieces = [], { secondsPerPiece = DEFAULT_SECONDS_PER_PIECE } = {}) {
-  if (!pieces.length) return 0;
-  const rate = Math.max(1e-6, secondsPerPiece);
-  const holds = pieces.reduce((total, piece) => total + Math.max(0, piece?.hold ?? 0) / 1000, 0);
-  return holds + rate * (pieces.length - 1);
-}
+// --- there is no playback ---------------------------------------------------
+//
+// `runAt`, `runDuration`, `startsAt` and `DEFAULT_SECONDS_PER_PIECE` were here:
+// the film running through a projector at a steady rate, resting at each piece,
+// and how long that took. **Nothing runs.** The user, on what this app is:
+// *"its an illustrator, like a drawing board... I want full control when im
+// narrating, i want to cycle through it."* A piece lasts exactly as long as you
+// are looking at it, so it has no length, and neither has the film.
 
 // Re-exported so a caller composing a shot does not have to import two modules
 // to find out what shape the frame is.

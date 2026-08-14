@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { serialise, parse, isRefusal, VERSION, reorder, moved, dropped, byTime } from '../lib/canvas.js';
+import {
+  serialise, parse, isRefusal, VERSION, reorder, moved, dropped, byTime, copyPiece, pieceOf,
+} from '../lib/canvas.js';
 import { pitchOf, DEFAULT_PIECE } from '../lib/timeline.js';
 
 const near = (a, b, tolerance = 1e-6) =>
@@ -46,7 +48,6 @@ test('a canvas survives a trip through actual text', () => {
   const text = JSON.stringify(serialise({ layout: LAYOUT, route: ROUTE, look: LOOK }));
   const back = parse(text);
   assert.deepEqual(back.route[1].framing, ROUTE[1].framing);
-  assert.equal(back.route[1].approachTime, 3200);
   assert.equal(back.route[1].weather, 'storm');
 });
 
@@ -71,7 +72,6 @@ test('defaults are filled in rather than left missing', () => {
   assert.equal(back.route[0].framing.pitch, 25);
   assert.equal(back.route[0].framing.y, 0);
   assert.equal(back.route[0].weather, 'clear');
-  assert.equal(back.route[0].approachTime, 2500);
 });
 
 // --- refusals ---------------------------------------------------------------
@@ -118,10 +118,13 @@ test('a step with a broken framing is refused, and says which', () => {
     { trail: VERSION, objects: [], steps: [{ framing: { x: 0, z: 0, w: 0, d: 1 }, hold: 1 }] },
     /step 1 has a frame with no size/,
   );
-  refuses(
+  // **A step with no hold is no longer refused.** Nothing plays, so there is
+  // nothing for a duration to pace, and a canvas cannot be turned away for
+  // leaving out a field that nothing reads.
+  const held = parse(
     { trail: VERSION, objects: [], steps: [{ framing: { x: 0, z: 0, w: 1, d: 1 } }] },
-    /step 1 has no hold/,
   );
+  assert.equal(held.route.length, 1, 'a step without a hold should open');
 });
 
 test('a canvas with no steps is a canvas, not a broken one', () => {
@@ -536,4 +539,98 @@ test('a camera move is no longer something a step carries', () => {
     steps: [{ framing: { x: 0, z: 0, w: 10, d: 6 }, hold: 1000, orbit: 1 }],
   });
   assert.equal(read.route[0].orbit, undefined, 'an older file with one is read without it');
+});
+
+/**
+ * Carrying a piece forward.
+ *
+ * The only genuinely tedious thing in this app: `examples/the-corner.json` is
+ * 59 objects across three pieces of one street corner, and the street never
+ * changed. Adding a piece now starts from the one before it, so the job is
+ * "delete the car" rather than "rebuild the world".
+ */
+test('what stands on a piece can be carried onto another', () => {
+  const pitch = pitchOf(DEFAULT_PIECE);
+  const layout = [
+    { model: 'street', at: [1, 0, 2], rot: 90, from: 0 },
+    { model: 'person', at: [-3, 0, 4], from: 0, label: 'the walker' },
+    { model: 'car', at: [pitch + 5, 0, 1], from: 1 },
+  ];
+  const areas = [{ name: 'the kerb', at: [2, 3], half: [4, 2], from: 0 }];
+
+  const out = copyPiece({ layout, areas }, 0, 2, pitch);
+
+  assert.equal(out.layout.length, 5, 'the two things on the first piece were not both copied');
+  const copies = out.layout.slice(3);
+  assert.deepEqual(copies.map((o) => o.model), ['street', 'person']);
+  for (const copy of copies) {
+    assert.equal(pieceOf(copy.at[0], pitch), 2, 'a copy did not land on the piece it was sent to');
+    assert.equal(copy.from, 2);
+  }
+  // The same spot on the new piece, which is what makes a carried world read as
+  // the same place a minute later rather than as a jump cut.
+  near(copies[0].at[0] - 2 * pitch, layout[0].at[0]);
+  near(copies[1].at[2], layout[1].at[2]);
+  assert.equal(copies[0].rot, 90, 'a copy lost its turn');
+  assert.equal(copies[1].label, 'the walker', 'a copy lost its name');
+
+  assert.equal(out.areas.length, 2, 'a place on the ground was not carried');
+  assert.equal(pieceOf(out.areas[1].at[0], pitch), 2);
+
+  // The originals are untouched: this appends, and a copy is independent the
+  // moment it exists.
+  assert.deepEqual(out.layout.slice(0, 3), layout);
+});
+
+test('a carried object walks its line on the piece it was carried to', () => {
+  // A path names the step it is walked on, and a copy that kept the original's
+  // would move on somebody else's minute.
+  const pitch = pitchOf(DEFAULT_PIECE);
+  const layout = [
+    { model: 'person', at: [2, 0, 0], from: 0, path: { to: [6, 3], step: 0 } },
+  ];
+  const out = copyPiece({ layout }, 0, 1, pitch);
+  const copy = out.layout[1];
+  assert.equal(copy.path.step, 1, 'the copy walks its line on the original piece');
+  // Where it walks to moves with it, or a carried figure walks back across the join.
+  near(copy.path.to[0], 6 + pitch);
+  near(copy.path.to[1], 3);
+});
+
+test('carrying a piece onto itself changes nothing', () => {
+  const pitch = pitchOf(DEFAULT_PIECE);
+  const layout = [{ model: 'tree', at: [1, 0, 1], from: 0 }];
+  const out = copyPiece({ layout }, 0, 0, pitch);
+  assert.deepEqual(out.layout, layout, 'a piece copied onto itself doubled its contents');
+});
+
+test('version 7 drops what a take needed, and an old canvas still opens', () => {
+  /**
+   * **Version 6 was a film that played; version 7 is a drawing board.**
+   *
+   * A step carried `hold` - how long a take rested on it - and `approachTime` -
+   * how long the camera took to fly to it. Nothing runs on its own any more, so
+   * neither has anything to pace. They are absences rather than changes, which
+   * is why an old canvas opens looking identical.
+   */
+  const old = {
+    trail: 6,
+    objects: [{ model: 'tree', at: [1, 0, 2] }],
+    steps: [
+      { framing: { x: 0, z: 0, w: 10, d: 8 }, hold: 4000, approachTime: 3000, weather: 'storm', hour: 9 },
+    ],
+  };
+  const back = parse(old);
+  assert.equal(back.route.length, 1, 'a version 6 canvas no longer opens');
+  assert.equal(back.route[0].weather, 'storm', 'it lost something that still means what it did');
+  assert.equal(back.route[0].hour, 9);
+  assert.equal(back.layout[0].model, 'tree');
+  assert.equal(back.route[0].hold, undefined, 'a hold survived into a Trail that cannot use it');
+  assert.equal(back.route[0].approachTime, undefined);
+
+  // And nothing writes them back out, so a canvas cannot pick them up again.
+  const written = serialise(back);
+  assert.equal(written.trail, VERSION);
+  assert.ok(!('hold' in written.steps[0]), 'a step was written with a hold on it');
+  assert.ok(!('approachTime' in written.steps[0]));
 });

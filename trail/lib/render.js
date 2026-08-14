@@ -742,7 +742,6 @@ in float aPiece;          // which piece of the film this plate is
 
 uniform mat4 uViewProj;
 uniform vec2 uPlate;      // how big a plate is: along the film, across it
-uniform float uSolid;     // 0 a ring you can see through, 1 a filled body
 
 out vec3 vStrip;
 out vec2 vLocal;
@@ -752,13 +751,14 @@ out float vDepth;
 out float vVeil;
 
 void main() {
-  // Inward, when solid: the plate's near edge is dragged toward the middle of
-  // the ring so the hole fills in and it reads as a body rather than a hoop.
-  float inward = mix(0.0, uRadius, uSolid) * (0.5 - aCorner.y * 0.5);
-
+  // **There is no filled body.** A switch used to drag a plate's near edge in
+  // toward the middle of the ring, so the hole closed up and the loop read as a
+  // disc rather than a hoop. It was there to be compared by eye and nobody
+  // could say afterwards what it was for - and the user's own reference for
+  // this shape was a halo, which is open in the middle by definition.
   vec3 onStrip = vec3(
     aPiece * uPitch + aCorner.x * uPlate.x * 0.5,
-    -inward,
+    0.0,
     aCorner.y * uPlate.y * 0.5
   );
   vLocal = aCorner;
@@ -795,10 +795,7 @@ uniform float uFogNear;
 uniform float uFogFar;
 uniform sampler2D uScars;
 uniform float uScarExtent;
-// 0 a plain plate of ground, 1 a frame of film. A look, so it is a switch: this
-// app has settled its appearance by eye three times and expects to again.
-uniform float uStock;
-// What the ground is made of: 0 the weather's own colour, 1 grass, 2 concrete.
+// What the ground is made of: 0 the board itself, 1 grass, 2 concrete.
 uniform float uGround;
 
 out vec4 frag;
@@ -825,17 +822,19 @@ float grain(vec2 p) {
   );
 }
 
-// Sprocket holes down the long edges of the film.
-//
-// The strip runs along x, so its long edges are where the across-strip
-// coordinate is near either end. Repeated along the piece and rounded off, so
-// they read at a glance and never as pixels.
-float sprockets(vec2 local) {
-  float band = smoothstep(0.74, 0.82, abs(local.y));
-  float along = fract(local.x * 5.0 + 0.5) - 0.5;
-  float across = (abs(local.y) - 0.88) / 0.075;
-  float d = max(abs(along) / 0.17, abs(across));
-  return band * (1.0 - smoothstep(0.72, 1.0, d));
+/**
+ * A ruled line at a spacing, thinning with distance.
+ *
+ * Screen-space derivatives, because a grid drawn at a fixed world width goes to
+ * moire the moment the camera pulls back for the overview - forty pieces of
+ * ruled paper at once is where a naive grid turns into interference. Keeping
+ * the line one pixel wide however far away it is, is the whole trick.
+ */
+float ruled(vec2 at, float every, float weight) {
+  vec2 grid = abs(fract(at / every - 0.5) - 0.5) * every;
+  vec2 width = fwidth(at) * weight;
+  vec2 line = 1.0 - smoothstep(vec2(0.0), width, grid);
+  return clamp(max(line.x, line.y), 0.0, 1.0);
 }
 
 void main() {
@@ -848,22 +847,31 @@ void main() {
   float wet = marks.r * inside;
   float pale = marks.g * inside;
 
-  // Film stock is dark and neutral, and it is what makes the objects standing
-  // on it read as lit. A flat mid-blue plate gives a scene nothing to sit
-  // against; a dark one makes every colour on it a colour.
-  vec3 stock = mix(uFloor, uFloor * 0.34 + vec3(0.035, 0.038, 0.045), uStock);
-
-  /**
-   * What the ground is made of.
-   *
-   * Two scales of grain each, because one reads as noise and two read as a
-   * surface: a coarse one for patches and a fine one for texture. Procedural,
-   * so it costs no image, no download and no memory, and it is the same every
-   * time the canvas is opened.
-   */
   vec2 at = vStrip.xz;
   float coarse = grain(at * 0.42);
   float fine = grain(at * 2.6);
+
+  /**
+   * **The board.**
+   *
+   * Trail is not a projector and the ground is not film: *"its an illustrator,
+   * like a drawing board."* So a piece is a sheet of paper - pale, warm, matte -
+   * with a faint tooth to it and a grid ruled on it, and everything placed
+   * stands on the sheet the way a drawing sits on a board.
+   *
+   * Pale rather than dark is the substantive change. Film stock was chosen so
+   * colours would read against it; paper does the same job from the other side,
+   * and it is the one that says "this is being drawn" rather than "this is
+   * being projected".
+   */
+  vec3 paper = mix(vec3(0.84, 0.82, 0.77), vec3(0.90, 0.88, 0.84), coarse);
+  paper = mix(paper, paper * 0.97, fine * 0.6);
+  // Two rules, like any board: a light one you read the spacing from and a
+  // heavier one every fifth line so the eye has something to count by.
+  float fineRule = ruled(at, 2.0, 1.0);
+  float heavyRule = ruled(at, 10.0, 1.2);
+  paper = mix(paper, vec3(0.62, 0.66, 0.72), fineRule * 0.16);
+  paper = mix(paper, vec3(0.50, 0.57, 0.66), heavyRule * 0.22);
 
   // Grass: mown patches running across the piece, with a dry tip on the high
   // ground so it is not one sheet of green.
@@ -877,48 +885,30 @@ void main() {
   float joint = 1.0 - smoothstep(0.44, 0.5, max(slab.x, slab.y));
   concrete *= mix(0.72, 1.0, joint);
 
-  vec3 stuff = stock;
+  // The weather still tints the board, because the ground remembering what
+  // happened on it is the one thing the strip carries across a whole event.
+  vec3 stuff = paper;
   stuff = mix(stuff, grass, clamp(1.0 - abs(uGround - 1.0), 0.0, 1.0));
   stuff = mix(stuff, concrete, clamp(1.0 - abs(uGround - 2.0), 0.0, 1.0));
+  stuff = mix(stuff, stuff * mix(vec3(1.0), uFloor * 1.6, 0.5), 0.18);
 
-  vec3 ground = stuff * mix(1.0, 0.55, wet);
-  ground = mix(ground, vec3(0.82, 0.83, 0.84), pale * 0.65);
-
-  vec3 n = normalize(vFace);
-  vec3 sun = normalize(uSun);
-  vec3 view = normalize(uEye - vPos);
+  vec3 ground = stuff * mix(1.0, 0.62, wet);
+  ground = mix(ground, vec3(0.88, 0.89, 0.90), pale * 0.5);
 
   // Lit by where this part of the ring is facing, so the far side of the loop
-  // falls into shadow and the world reads as round.
-  float lambert = max((dot(n, sun) + 0.35) / 1.35, 0.0);
-  vec3 colour = ground * mix(0.55, 1.15, lambert);
+  // falls into shadow and the world reads as round. **Flatter than a scene**:
+  // paper is matte and a board is meant to be read, not lit dramatically, so
+  // this is a gentle wash rather than the range a surface in a scene gets.
+  vec3 n = normalize(vFace);
+  float lambert = max((dot(n, normalize(uSun)) + 0.45) / 1.45, 0.0);
+  vec3 colour = ground * mix(0.72, 1.06, lambert);
 
-  // A sheen, so the film catches the sun as the ring turns and the plate stops
-  // being a painted rectangle. Wet ground takes it harder, which is what rain
-  // has always done to the ground here.
-  // "half" is a reserved word in GLSL, hence "halfway".
-  vec3 halfway = normalize(sun + view);
-  float gloss = pow(max(dot(n, halfway), 0.0), mix(40.0, 140.0, wet));
-  colour += uSky * gloss * mix(0.10, 0.5, wet) * uStock;
-
+  // **A soft edge rather than a lip.** The plate used to end in a dark band with
+  // a lit rim along it, which is what a frame of film has and what a sheet of
+  // paper does not. It fades out instead, so a piece reads as a sheet lying in
+  // the dark rather than as a slab with sides.
   vec2 edge = 1.0 - abs(vLocal);
-  float near = min(edge.x, edge.y);
-
-  // The scene sits in a lit panel, and the film around it is darker. That is
-  // what a frame of film looks like and it is also what makes the moment being
-  // looked at the brightest thing on screen.
-  float panel = smoothstep(0.10, 0.22, edge.y) * smoothstep(0.02, 0.12, edge.x);
-  colour *= mix(1.0, mix(0.42, 1.14, panel), uStock);
-
-  // Punched through, so the light behind the ring shows in the holes.
-  float holes = sprockets(vLocal) * uStock;
-
-  // A darker lip at the very edge, so one piece of film is visibly one piece
-  // rather than part of a longer floor, with a lit line along the top of it.
-  float lip = smoothstep(0.0, 0.05, near);
-  float rim = (1.0 - smoothstep(0.02, 0.07, near)) * smoothstep(0.03, 0.0, near - 0.03);
-  colour = mix(colour * 0.28, colour, lip);
-  colour += uSky * rim * 0.28 * uStock;
+  float sheet = smoothstep(0.0, 0.10, min(edge.x, edge.y));
 
   // **The room, then the light in it**, and the pool is worked out here rather
   // than at the corners: a plate is two triangles, so a circle interpolated
@@ -929,7 +919,7 @@ void main() {
 
   float fog = clamp((vDepth - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0);
   colour = mix(colour, uSky, fog * 0.9);
-  frag = vec4(colour, vVeil * (1.0 - holes));
+  frag = vec4(colour, vVeil * sheet);
 }`;
 
 // A cube as 24 vertices and 36 indices, so each face gets its own normal.
@@ -1401,7 +1391,6 @@ export function createRenderer(canvas) {
   let plateCount = 0;
   let plate = [34, 22];
   let platePitch = 64;
-  let solidBody = 0;
   // The room the film is in, and where the light in it is pointed.
   let darkRoom = 0;
   let spotAt = [0, 0, 6, 0];
@@ -1436,9 +1425,7 @@ export function createRenderer(canvas) {
     focus = [0, 0], veilNear = 1e6, veilFar = 1e6 + 1,
     // How far the strip is rolled into its ring, how big that ring is, and
     // whether its middle is filled in.
-    roll = 0, radius = 1000, solid = 0,
-    // How much the film looks like film rather than a plain plate of ground.
-    stock = 1,
+    roll = 0, radius = 1000,
     // What the ground is made of, how dark the room is, and where the light in
     // it is pointed: x, z, its radius, and how bright.
     ground = 0, room = 0, spot = [0, 0, 6, 0],
@@ -1451,7 +1438,7 @@ export function createRenderer(canvas) {
   }) {
     smoothing = smooth;
     veilAt = focus; veilFrom = veilNear; veilTo = veilFar;
-    rolled = roll; ringRadius = Math.max(1, radius); solidBody = solid;
+    rolled = roll; ringRadius = Math.max(1, radius);
     darkRoom = room; spotAt = spot;
     const view = resize();
     lastView = view;
@@ -1507,12 +1494,10 @@ export function createRenderer(canvas) {
       gl.bindVertexArray(stripVao);
       gl.uniformMatrix4fv(strip.u.uViewProj, false, matrix);
       gl.uniform2f(strip.u.uPlate, plate[0], plate[1]);
-      gl.uniform1f(strip.u.uSolid, solidBody);
       gl.uniform3fv(strip.u.uFloor, weather.floor);
       gl.uniform3fv(strip.u.uSky, weather.sky);
       gl.uniform3fv(strip.u.uSun, weather.sun);
       gl.uniform3fv(strip.u.uEye, eye);
-      gl.uniform1f(strip.u.uStock, stock);
       gl.uniform1f(strip.u.uGround, ground);
       gl.uniform1f(strip.u.uFogNear, weather.fogNear ?? 26);
       gl.uniform1f(strip.u.uFogFar, weather.fogFar ?? 180);

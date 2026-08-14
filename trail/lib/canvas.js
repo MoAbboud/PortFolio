@@ -6,7 +6,7 @@
 
 import { pieceX, pitchOf, DEFAULT_PIECE, OLD_PITCH } from './timeline.js';
 
-export const VERSION = 6;
+export const VERSION = 7;
 
 const isNumber = (v) => typeof v === 'number' && Number.isFinite(v);
 const isTriple = (v) => Array.isArray(v) && v.length === 3 && v.every(isNumber);
@@ -69,8 +69,6 @@ export function serialise({ layout, route, areas = [], look = {}, title = 'untit
     // saving twice from producing two different files.
     steps: route.map((s) => ({
       framing: Object.fromEntries(Object.entries(s.framing).map(([k, v]) => [k, round(v)])),
-      hold: s.hold,
-      approachTime: s.approachTime ?? 2500,
       weather: s.weather ?? 'clear',
       // The time of day, if this step has one. Absent is not midnight: it means
       // the step takes whatever light its weather preset carries, which is what
@@ -123,7 +121,9 @@ export function parse(input) {
       if (!isNumber(f[key])) throw new Refused(`step ${i + 1} has no ${key} in its framing`);
     }
     if (!(f.w > 0) || !(f.d > 0)) throw new Refused(`step ${i + 1} has a frame with no size`);
-    if (!isNumber(s.hold) || s.hold < 0) throw new Refused(`step ${i + 1} has no hold`);
+    // **A step no longer has to say how long it is held.** Nothing plays, so
+    // there is nothing for a duration to pace, and refusing a canvas for the
+    // absence of a field nothing reads would be refusing it for nothing.
   });
 
   return {
@@ -161,8 +161,6 @@ export function parse(input) {
       })),
     route: migrated.steps.map((s) => ({
       framing: { pitch: 25, yaw: 0, y: 0, ...s.framing },
-      hold: s.hold,
-      approachTime: s.approachTime ?? 2500,
       weather: s.weather ?? 'clear',
       // Wrapped rather than refused, because an hour outside the clock is a
       // typo in a hand-edited file and 25:00 plainly means one in the morning.
@@ -254,6 +252,26 @@ function migrate(data) {
             : a
         )),
       } : {}),
+    };
+  }
+  if (out.trail < 7) {
+    /**
+     * **Version 6 was a film that played; version 7 is a drawing board.**
+     *
+     * A step carried `hold` - how long a take rested on it - and `approachTime`
+     * - how long the camera took to fly to it. Trail does not play anything any
+     * more, so neither has anything to pace: *"there is no such thing as a
+     * countdown before a take, not even a take is a thing. Just steps."*
+     *
+     * Dropped rather than rewritten. They are absences, not changes: every
+     * other field of a version 6 step means exactly what it did, and an old
+     * canvas opens looking identical because nothing was ever drawn from these
+     * two. `parse` simply stops reading them, so this says so and moves on.
+     */
+    out = {
+      ...out,
+      trail: 7,
+      steps: (out.steps ?? []).map(({ hold, approachTime, ...rest }) => rest),
     };
   }
   return out;
@@ -423,6 +441,57 @@ export function cutPiece({ route, layout = [], areas = [] }, index, pitch) {
       ...closed(a.at, [a.at[1]]),
       ...far(a.until),
     })),
+  };
+}
+
+/**
+ * Copy what stands on one piece onto another.
+ *
+ * **This is the answer to the only genuinely tedious thing in the app.** An
+ * event is remembered as differences - "then the car pulls up" - and a strip of
+ * film made of independent pieces asks you to restate everything that stayed the
+ * same. `examples/the-corner.json` is 59 objects across three pieces of one
+ * street corner, and the street never changed: three facts, paid for with
+ * fifty-nine placements.
+ *
+ * **A copy is a copy.** It is independent the moment it exists and is edited
+ * like anything placed by hand, which is the whole difference between this and
+ * the repeat rule that was rejected twice - an object carrying a range of time
+ * has to be a thing on the ground and a rule about time at once, and brings a
+ * copy-and-override model with it.
+ *
+ * Which piece a thing is on is read from **where it is**, like `openPiece` and
+ * `cutPiece`, because `from` and the position disagree the moment somebody drags
+ * something.
+ */
+export function copyPiece({ layout = [], areas = [] }, from, to, pitch) {
+  if (!isNumber(from) || !isNumber(to) || from === to) return { layout, areas };
+  const step = (to - from) * pitch;
+  const on = (at) => pieceOf(at?.[0], pitch) === from;
+  // A path is a place on the ground the object walks to, so it moves with the
+  // copy - and it is walked on the piece the copy stands on, not the original's.
+  const path = (o) => (o.path
+    ? { path: { ...o.path, to: [o.path.to[0] + step, o.path.to[1]], step: to } }
+    : {});
+
+  return {
+    layout: [
+      ...layout,
+      ...layout.filter((o) => on(o.at)).map((o) => ({
+        ...o,
+        at: [o.at[0] + step, o.at[1], o.at[2]],
+        from: to,
+        ...path(o),
+      })),
+    ],
+    areas: [
+      ...areas,
+      ...areas.filter((a) => on(a.at)).map((a) => ({
+        ...a,
+        at: [a.at[0] + step, a.at[1]],
+        from: to,
+      })),
+    ],
   };
 }
 

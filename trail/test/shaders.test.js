@@ -144,7 +144,7 @@ for (const [name, source] of Object.entries(SHADERS)) {
       [...code.matchAll(/^\s*\w+\s+(\w+)\s*\([^)]*\)\s*\{/gm)].map((m) => m[1]),
     );
     // The ones this app injects rather than the whole GLSL standard library.
-    for (const fn of ['veilOf', 'spotAt', 'bend', 'bendNormal', 'grain', 'sprockets',
+    for (const fn of ['veilOf', 'spotAt', 'bend', 'bendNormal', 'grain', 'ruled',
       'solidity', 'travelled', 'turned', 'hash']) {
       const calls = new RegExp(`\\b${fn}\\s*\\(`).test(code);
       if (!calls) continue;
@@ -198,7 +198,7 @@ test('every uniform the renderer sets is declared by some shader', () => {
     'uRain', 'uBox', 'uScale', 'uColour',
     // The world's shape, shared by every program that draws part of it.
     'uRoll', 'uRadius', 'uFocusX', 'uVeilNear', 'uVeilFar',
-    'uPitch', 'uPlate', 'uSolid', 'uSpace', 'uStock', 'uEye',
+    'uPitch', 'uPlate', 'uSpace', 'uEye',
     'uGround', 'uRoom', 'uSpot',
   ];
   for (const name of used) {

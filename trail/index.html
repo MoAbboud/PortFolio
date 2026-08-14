@@ -188,7 +188,14 @@
   }
   #toast.on { opacity: 1; }
 
-  #flash { position: fixed; inset: 0; background: #fff; z-index: 7; opacity: 0; pointer-events: none; }
+  /* What to do first, on a canvas that has nothing on it yet. */
+  #first {
+    position: fixed; left: 50%; top: 38%; transform: translate(-50%, -50%);
+    z-index: 6; max-width: 340px; text-align: center; pointer-events: auto;
+    color: #9fb3c8; font-size: 13px; line-height: 1.7;
+  }
+  #first p { margin: 0 0 10px; }
+  #first.hidden { display: none; }
   #error {
     position: fixed; inset: 0; display: none; z-index: 9;
     padding: 5vh 6vw; background: #12161c; overflow: auto;
@@ -239,9 +246,17 @@
     border-radius: 8px; padding: 8px; backdrop-filter: blur(6px);
     font-size: 12px; color: #cfd9e4;
   }
+  /* What a session is doing, rather than what the code is made of. */
+  .group {
+    margin: 12px 0 4px; padding: 0 2px; font-size: 10px; font-weight: 700;
+    letter-spacing: .1em; text-transform: uppercase; color: #6d8299;
+    border-bottom: 1px solid rgba(255,255,255,.08); padding-bottom: 4px;
+  }
+  .group:first-of-type { margin-top: 4px; }
   #reel h4 {
     margin: 0 0 6px; font-size: 11px; font-weight: 600; letter-spacing: .06em;
     text-transform: uppercase; color: #8fa3b8;
+    display: flex; justify-content: space-between; gap: 8px;
   }
   .reel-piece { border-top: 1px solid rgba(255,255,255,.09); padding: 6px 0 4px; }
   .reel-piece:first-of-type { border-top: 0; }
@@ -322,8 +337,17 @@
     <button class="btn" id="b-clear">clear</button>
   </div>
 </div>
-<div id="flash"></div>
 <div id="toast"></div>
+
+<!-- **The first move.** Opening empty is deliberate and right, and it left a
+     black screen saying nothing about what to do next. Shown only while the
+     film has no pieces at all, so it can never appear in a take: a take needs
+     a film, and a film with no pieces cannot be played. -->
+<div id="first" class="hidden">
+  <p>An empty day. Move the clock to a time and press <b>+</b> to start a moment,
+     then put something on it from the library.</p>
+  <button class="btn" id="b-example">or open an example</button>
+</div>
 
 <!-- Moving through the day. The route is a clock: each step is a mark at the
      hour it happens, dragging the bar moves through time, and the camera goes
@@ -337,15 +361,14 @@
          piece in the order it happened. -->
     <button class="tbtn wide" id="b-overview" aria-pressed="false"
             title="unroll the film and see all of it">overview</button>
-    <!-- A hoop you can see through, or a filled body. A look, so it is a
-         switch rather than a decision written into the format. -->
-    <button class="tbtn wide" id="b-solid" aria-pressed="false"
-            title="fill the middle of the ring">solid</button>
     <!-- Kept well away from the arrows: turning the ring and changing what the
          film is made of are different kinds of act, and they were a pixel
          apart. -->
     <span class="tgap"></span>
-    <button class="tbtn" id="b-step-add" title="a step at this time">+</button>
+    <!-- Carrying forward is the default: a new minute of an event is nearly
+         always the world as it was a moment ago, with one thing changed. -->
+    <button class="tbtn" id="b-step-add"
+            title="a step here, carrying this one's objects forward - shift for an empty one">+</button>
     <button class="tbtn" id="b-step-remove" title="remove the step nearest this time">&minus;</button>
   </div>
   <div id="track">
@@ -366,54 +389,113 @@
 <div id="hud" class="hidden">
   <div class="head"><b>trail</b><span id="s-fps">-</span></div>
 
+  <!-- **Grouped by what a session is actually doing.** A session is spent
+       building the world, timing the story or shooting it, and the panel used
+       to be ordered by what the code does - so every session scrolled past six
+       sliders touched once in the life of the project to reach the two that
+       are touched every thirty seconds. -->
+
+  <div class="group" title="putting the world on the film">building</div>
+
   <details open>
-    <summary>playback</summary>
+    <summary>library</summary>
     <div class="body">
-      <div class="row"><span class="dim">mode</span><b id="mode">-</b></div>
-      <div class="row"><span class="dim">step</span><b id="s-step">-</b></div>
-      <div class="seg" id="steps"></div>
-      <div class="buttons">
-        <button class="btn" id="b-play">play</button>
-        <button class="btn" id="b-restart">restart</button>
-      </div>
+      <button class="btn" id="b-library">browse models</button>
+      <!-- A canvas keeps whatever has been placed on it whether or not there
+           are any steps, which is what makes an empty day a playground. That
+           also means objects outlive the steps they were put there for, so
+           there has to be a way to start again. -->
+      <button class="btn" id="b-clear-all">remove everything</button>
+      <div class="row"><span class="dim">models</span><b id="s-lib">-</b></div>
+      <div class="row"><span class="dim">held</span><b id="s-held">-</b></div>
     </div>
   </details>
 
   <details open>
-    <summary>look</summary>
+    <summary>object</summary>
     <div class="body">
-      <div class="seg" id="surface">
-        <button data-v="mesh">solid</button>
-        <button data-v="cubes">cubes</button>
+      <div class="row"><span class="dim">selected</span><b id="s-sel">nothing</b></div>
+      <div class="ctl">
+        <div class="row"><span class="dim">turn</span><span class="val" id="v-rot">-</span></div>
+        <input type="range" id="r-rot" min="0" max="355" step="5" value="0" disabled>
       </div>
       <div class="ctl">
-        <div class="row"><span class="dim">roundness</span><span class="val" id="v-round">0%</span></div>
-        <input type="range" id="r-round" min="0" max="100" step="5" value="0">
+        <div class="row"><span class="dim">size</span><span class="val" id="v-scale">-</span></div>
+        <input type="range" id="r-scale" min="30" max="300" step="5" value="100" disabled>
       </div>
+<!-- "appears at step" was here. It wrote `from`, and `solid()` overwrote that
+     with `from: 0, until: 9999` before anything was drawn, so the slider had no
+     visible effect whatsoever - a live control left over from the cancelled
+     ghosting design, and this app has already written the rule that a control
+     which silently does nothing is worse than one that is not there. **An
+     object is on the piece it stands on**; to move it to another minute, drag
+     it or place it there. -->
+      <!-- The pose a rigged model is standing in. One model in the library
+           holds dozens, and which one an object is in belongs to the object. -->
+      <div id="poses"></div>
+      <!-- The name that floats over this object. The layer that draws it has
+           existed since the first build and there was no way to set one, so
+           every figure was anonymous unless the page source was edited. -->
       <div class="ctl">
-        <div class="row"><span class="dim">shading</span><span class="val" id="v-shade">flat</span></div>
-        <input type="range" id="r-shade" min="0" max="100" step="5" value="0">
+        <div class="row"><span class="dim">name tag</span><span class="val" id="v-label">-</span></div>
+        <input type="text" id="o-label" placeholder="nobody" maxlength="24" disabled>
       </div>
-      <div class="ctl">
-        <div class="row"><span class="dim">block size</span><span class="val" id="v-cube">100%</span></div>
-        <input type="range" id="r-cube" min="40" max="300" step="10" value="100">
+      <!-- One row per tint slot the selected model offers, built when it is
+           selected: a model decides how many colours it has, not the markup. -->
+      <div id="tints"></div>
+      <!-- Where this object travels to, if it travels. Traced on the ground
+           rather than typed: click the button, then drag a line from the object
+           to where it ends up. -->
+      <div class="buttons">
+        <button class="btn" id="b-path">trace where it goes</button>
+        <button class="btn" id="b-path-clear">stay put</button>
       </div>
+      <div class="row"><span class="dim">travels</span><b id="s-path">nowhere</b></div>
+      <button class="btn" id="b-remove">remove from canvas</button>
+    </div>
+  </details>
+
+  <details open>
+    <summary>this moment</summary>
+    <div class="body">
+      <!-- What the step under the clock's needle carries. The old "step" tab
+           tried to be a route editor, a script editor and a camera editor at
+           once, and was confusing for exactly that reason. The clock moves
+           through the day, the camera is moved by hand, and what is left here
+           is what a moment in the story is actually made of. -->
+      <div class="row"><span class="dim">at</span><b id="s-editing">-</b></div>
+      <!-- Weather only. `dusk` and `night` were times of day dressed as
+           weather, and the clock decides the time of day now - having both
+           meant two controls arguing about how dark it is. They are still
+           understood when a canvas names one, so nothing already built breaks;
+           there is just no longer a way to choose one. -->
+      <div class="seg" id="step-weather">
+        <button data-v="clear">clear</button>
+        <button data-v="overcast">overcast</button>
+        <button data-v="storm">storm</button>
+        <button data-v="fog">fog</button>
+      </div>
+      <!-- **The step strip**, which was the one thing in the old playback
+           section worth keeping: a second way to reach a piece, beside the
+           clock bar and the film list. -->
+      <div class="row"><span class="dim">step</span><b id="s-step">-</b></div>
+      <div class="seg" id="steps"></div>
+      <!-- "hold" and "flight in" were here. Both were a take pacing itself
+           against a narration - how long the camera rests at a moment, and how
+           long it takes to fly to the next - and nothing runs on its own any
+           more. A moment lasts exactly as long as you are looking at it. -->
+    </div>
+  </details>
+
+  <details open>
+    <summary>the ground and the light</summary>
+    <div class="body">
       <div class="ctl">
         <!-- How much ground a piece of film shows. Only what you can see: how
              far apart pieces stand is fixed, because every position on the
              strip is measured against it. -->
         <div class="row"><span class="dim">floor size</span><span class="val" id="v-plate">100%</span></div>
         <input type="range" id="r-plate" min="20" max="260" step="10" value="100">
-      </div>
-      <div class="ctl">
-        <!-- What the ground under a piece is made of. A look, and this app has
-             settled its appearance by eye three times and expects to again, so
-             the plain plate stays one click away. -->
-        <div class="row"><span class="dim">the film</span></div>
-        <div class="seg" id="stock">
-          <button data-v="1">film</button>
-          <button data-v="0">plain</button>
-        </div>
       </div>
       <div class="ctl">
         <!-- What the ground is made of. Procedural, so it costs no image and is
@@ -444,63 +526,27 @@
   </details>
 
   <details>
-    <summary>weather</summary>
+    <summary>places</summary>
     <div class="body">
-      <div class="seg" id="weather">
-        <button data-v="">step</button>
-        <button data-v="clear">clear</button>
-        <button data-v="overcast">overcast</button>
-        <button data-v="storm">storm</button>
-        <button data-v="fog">fog</button>
-      </div>
-      <div class="row"><span class="dim">rain</span><b id="s-rain">-</b></div>
+      <!-- A rectangle of ground with a name on it: the bar, the car park, the
+           golf course. It is a place rather than an object, so it is drawn into
+           the ground and named by the same layer that names people. -->
+      <button class="btn" id="b-area">draw a place on the ground</button>
+      <div id="areas"></div>
     </div>
   </details>
 
-  <details open>
-    <summary>library</summary>
+  <details>
+    <summary>step notes</summary>
     <div class="body">
-      <button class="btn" id="b-library">browse models</button>
-      <!-- A canvas keeps whatever has been placed on it whether or not there
-           are any steps, which is what makes an empty day a playground. That
-           also means objects outlive the steps they were put there for, so
-           there has to be a way to start again. -->
-      <button class="btn" id="b-clear-all">remove everything</button>
-      <div class="row"><span class="dim">models</span><b id="s-lib">-</b></div>
-      <div class="row"><span class="dim">held</span><b id="s-held">-</b></div>
+      <!-- Whatever this step is about, for whoever is building the canvas.
+           Nothing reads it: the script lives outside the app now. -->
+      <textarea id="script" rows="5" spellcheck="false"
+        placeholder="What happens in this step."></textarea>
     </div>
   </details>
 
-  <details open>
-    <summary>this moment</summary>
-    <div class="body">
-      <!-- What the step under the clock's needle carries. The old "step" tab
-           tried to be a route editor, a script editor and a camera editor at
-           once, and was confusing for exactly that reason. The clock moves
-           through the day, the camera is moved by hand, and what is left here
-           is what a moment in the story is actually made of. -->
-      <div class="row"><span class="dim">at</span><b id="s-editing">-</b></div>
-      <!-- Weather only. `dusk` and `night` were times of day dressed as
-           weather, and the clock decides the time of day now - having both
-           meant two controls arguing about how dark it is. They are still
-           understood when a canvas names one, so nothing already built breaks;
-           there is just no longer a way to choose one. -->
-      <div class="seg" id="step-weather">
-        <button data-v="clear">clear</button>
-        <button data-v="overcast">overcast</button>
-        <button data-v="storm">storm</button>
-        <button data-v="fog">fog</button>
-      </div>
-      <div class="ctl">
-        <div class="row"><span class="dim">hold</span><span class="val" id="v-hold">-</span></div>
-        <input type="range" id="r-hold" min="500" max="20000" step="250" value="5000">
-      </div>
-      <div class="ctl">
-        <div class="row"><span class="dim">flight in</span><span class="val" id="v-approach">-</span></div>
-        <input type="range" id="r-approach" min="0" max="9000" step="100" value="2500">
-      </div>
-    </div>
-  </details>
+  <div class="group" title="watching it, and recording it">the take</div>
 
   <details open>
     <summary>camera moves</summary>
@@ -517,94 +563,81 @@
     </div>
   </details>
 
-  <details open>
-    <summary>step notes</summary>
-    <div class="body">
-      <!-- Whatever this step is about, for whoever is building the canvas.
-           Nothing reads it: the script lives outside the app now. -->
-      <textarea id="script" rows="5" spellcheck="false"
-        placeholder="What happens in this step."></textarea>
+  <details>
+    <summary>keys</summary>
+    <!-- **Every line here is a key the handler actually answers to.** It used
+         to list `w a s d` to walk, `q e` for height and right-drag to pan, none
+         of which have existed since free roaming went - and called `f` "fit
+         everything" when it toggles the overview. A control that lies is worse
+         than one that is missing, because it teaches you to stop trusting the
+         ones that do work. -->
+    <div class="body keys">
+      <k>drag</k>orbit the moment<br>
+      <k>wheel</k>closer / further<br>
+      <k>[ ]</k>cycle the model<br>
+      <k>f</k>the whole film<br>
+      <k>1..9</k>go to a piece<br>
+      <k>space</k>play / stop<br>
+      <k>ctrl+z</k>undo the last edit<br>
+      <k>ctrl+s</k>save the canvas<br>
+      <k>del</k>remove the selection<br>
+      <k>d</k>draw on the frame<br>
+      <k>enter</k>fullscreen<br>
+      <k>h</k>hide the panels
     </div>
   </details>
 
-  <details>
-    <summary>object</summary>
-    <div class="body">
-      <div class="row"><span class="dim">selected</span><b id="s-sel">nothing</b></div>
-      <div class="ctl">
-        <div class="row"><span class="dim">turn</span><span class="val" id="v-rot">-</span></div>
-        <input type="range" id="r-rot" min="0" max="355" step="5" value="0" disabled>
-      </div>
-      <div class="ctl">
-        <div class="row"><span class="dim">size</span><span class="val" id="v-scale">-</span></div>
-        <input type="range" id="r-scale" min="30" max="300" step="5" value="100" disabled>
-      </div>
-      <div class="ctl">
-        <div class="row"><span class="dim">appears at step</span><span class="val" id="v-from">-</span></div>
-        <input type="range" id="r-from" min="1" max="3" step="1" value="1" disabled>
-      </div>
-      <!-- The pose a rigged model is standing in. One model in the library
-           holds dozens, and which one an object is in belongs to the object. -->
-      <div id="poses"></div>
-      <!-- The name that floats over this object. The layer that draws it has
-           existed since the first build and there was no way to set one, so
-           every figure was anonymous unless the page source was edited. -->
-      <div class="ctl">
-        <div class="row"><span class="dim">name tag</span><span class="val" id="v-label">-</span></div>
-        <input type="text" id="o-label" placeholder="nobody" maxlength="24" disabled>
-      </div>
-      <!-- One row per tint slot the selected model offers, built when it is
-           selected: a model decides how many colours it has, not the markup. -->
-      <div id="tints"></div>
-      <!-- Where this object travels to, if it travels. Traced on the ground
-           rather than typed: click the button, then drag a line from the object
-           to where it ends up. -->
-      <div class="buttons">
-        <button class="btn" id="b-path">trace where it goes</button>
-        <button class="btn" id="b-path-clear">stay put</button>
-      </div>
-      <div class="row"><span class="dim">travels</span><b id="s-path">nowhere</b></div>
-      <button class="btn" id="b-remove">remove from canvas</button>
-    </div>
-  </details>
+  <div class="group" title="set once, and mostly left alone">now and then</div>
 
   <details>
-    <summary>places</summary>
-    <div class="body">
-      <!-- A rectangle of ground with a name on it: the bar, the car park, the
-           golf course. It is a place rather than an object, so it is drawn into
-           the ground and named by the same layer that names people. -->
-      <button class="btn" id="b-area">draw a place on the ground</button>
-      <div id="areas"></div>
-    </div>
-  </details>
-
-  <details>
-    <summary>canvas</summary>
+    <summary>the canvas</summary>
     <div class="body">
       <div class="buttons">
         <button class="btn" id="b-save">save</button>
         <button class="btn" id="b-open">open</button>
       </div>
+      <!-- Not the pen's undo, which is its own layer and has its own button.
+           This one puts back the last edit to the canvas: a placement, a drag,
+           a colour, a pose, a piece that was cut. -->
+      <button class="btn" id="b-undo-edit" title="ctrl+z">undo the last edit</button>
       <button class="btn" id="b-frame">copy this framing</button>
       <input type="file" id="file" accept=".json,application/json" hidden>
     </div>
   </details>
 
   <details>
-    <summary>camera</summary>
-    <div class="body keys">
-      <k>drag</k>orbit<br>
-      <k>right-drag</k>pan<br>
-      <k>wheel</k>closer / further<br>
-      <k>w a s d</k>walk<br>
-      <k>q e</k>down / up<br>
-      <k>[ ]</k>cycle the model<br>
-      <k>f</k>fit everything<br>
-      <k>space</k>play / route<br>
-      <k>d</k>draw on the frame<br>
-      <k>enter</k>fullscreen<br>
-      <k>h</k>hide the panels
+    <summary>appearance</summary>
+    <div class="body">
+      <div class="seg" id="surface">
+        <button data-v="mesh">solid</button>
+        <button data-v="cubes">cubes</button>
+      </div>
+      <div class="ctl">
+        <div class="row"><span class="dim">roundness</span><span class="val" id="v-round">0%</span></div>
+        <input type="range" id="r-round" min="0" max="100" step="5" value="0">
+      </div>
+      <div class="ctl">
+        <div class="row"><span class="dim">shading</span><span class="val" id="v-shade">flat</span></div>
+        <input type="range" id="r-shade" min="0" max="100" step="5" value="0">
+      </div>
+      <div class="ctl">
+        <div class="row"><span class="dim">block size</span><span class="val" id="v-cube">100%</span></div>
+        <input type="range" id="r-cube" min="40" max="300" step="10" value="100">
+      </div>
+    </div>
+  </details>
+
+  <details>
+    <summary>weather</summary>
+    <div class="body">
+      <div class="seg" id="weather">
+        <button data-v="">step</button>
+        <button data-v="clear">clear</button>
+        <button data-v="overcast">overcast</button>
+        <button data-v="storm">storm</button>
+        <button data-v="fog">fog</button>
+      </div>
+      <div class="row"><span class="dim">rain</span><b id="s-rain">-</b></div>
     </div>
   </details>
 
@@ -620,6 +653,7 @@
       <div class="row"><span class="dim">pitch / yaw</span><b id="s-angles">-</b></div>
     </div>
   </details>
+
 </div>
 
 <dialog id="browser">

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   framingToView, viewProjection, lerpFraming, drift, linear,
-  routeAt, routeAtHour, stepAround, routeDuration, easeInOut, ASPECT, autoMove, axesOf,
+  routeAtHour, stepAround, easeInOut, ASPECT, autoMove, axesOf,
 } from '../lib/camera.js';
 
 const near = (a, b, tolerance = 1e-6) =>
@@ -155,60 +155,10 @@ test('drift stays small enough to be felt rather than noticed', () => {
   }
 });
 
-const ROUTE = [
-  { framing: F({ x: 0 }), hold: 4000 },
-  { framing: F({ x: 20 }), hold: 3000, approachTime: 2000 },
-  { framing: F({ x: 40 }), hold: 5000, approachTime: 1000 },
-];
-
-test('a route lasts as long as its holds and its flights', () => {
-  assert.equal(routeDuration(ROUTE), 4000 + 2000 + 3000 + 1000 + 5000);
-});
-
-test('a route holds, then flies, then holds', () => {
-  assert.equal(routeAt(ROUTE, 0).phase, 'hold');
-  assert.equal(routeAt(ROUTE, 0).step, 0);
-  assert.equal(routeAt(ROUTE, 5).phase, 'fly');
-  assert.equal(routeAt(ROUTE, 7).phase, 'hold');
-  assert.equal(routeAt(ROUTE, 7).step, 1);
-});
-
-test('a route reports how far into each phase it is', () => {
-  // The weather cross-fade and the canvas solidifying are both driven by this,
-  // which is what makes them land together rather than one after the other.
-  assert.equal(routeAt(ROUTE, 0).into, 0);
-  near(routeAt(ROUTE, 2).into, 0.5, 1e-9);      // halfway through a 4s hold
-  near(routeAt(ROUTE, 5).into, 0.5, 1e-9);      // halfway through a 2s flight
-  assert.equal(routeAt(ROUTE, 999).into, 1);
-});
-
-test('progress through a phase never leaves 0..1', () => {
-  const total = routeDuration(ROUTE) / 1000;
-  for (let t = 0; t <= total + 2; t += 0.05) {
-    const { into } = routeAt(ROUTE, t);
-    assert.ok(into >= 0 && into <= 1, `into was ${into} at t=${t}`);
-  }
-});
-
-test('a route rests on its final framing rather than looping or breaking', () => {
-  const end = routeAt(ROUTE, 999);
-  assert.equal(end.phase, 'end');
-  assert.equal(end.step, ROUTE.length - 1);
-  assert.equal(end.framing.x, 40);
-});
-
-test('every moment of a route yields a usable camera', () => {
-  const total = routeDuration(ROUTE) / 1000;
-  for (let t = 0; t <= total; t += 0.05) {
-    const { framing } = routeAt(ROUTE, t);
-    const { eye, target } = framingToView(framing);
-    assert.ok(eye.every(Number.isFinite), `eye went bad at t=${t}`);
-    assert.ok(eye[1] > 0, `camera went underground at t=${t}`);
-    assert.ok(target.every(Number.isFinite));
-  }
-});
-
-// --- a move the camera makes on its own --------------------------------------
+// **The route tests that walked a film in seconds are gone**, with `routeAt`
+// and `routeDuration`. Trail does not play anything: it is a drawing board that
+// is cycled through by hand, so a route has no duration and a step has no hold.
+// What is left is `routeAtHour`, which is what the clock has always used.
 
 test('a camera left alone does not move on its own', () => {
   const framing = { x: -5, z: -5, w: 10, d: 10, pitch: 30, yaw: 0 };
@@ -341,14 +291,14 @@ test('between two steps it is part way through the move between them', () => {
   assert.ok(at.framing.x > 0 && at.framing.x < 20, `framing was at ${at.framing.x}`);
 });
 
-test('what it hands back is the same shape a flight does', () => {
-  // This is the whole reason there is no second code path: the caller passes
-  // `step` and `into` to the renderer exactly as it does during playback, so
-  // ghosting, solidifying and an object walking its line behave identically.
-  const flying = routeAt(DAY_ROUTE, DAY_ROUTE[0].hold / 1000 + 0.5);
+test('a scrubbed moment carries everything the renderer is handed', () => {
+  // This used to compare the shape against a flight's, because there were two
+  // code paths and the point was that they agreed. **There is one now** - the
+  // clock, moved by hand - so what is left to check is that the one that
+  // survived still says everything the frame needs: which framing, which step,
+  // and how far into it, which is what the weather cross-fade reads.
   const scrubbed = routeAtHour(DAY_ROUTE, 11);
   for (const key of ['framing', 'step', 'into']) {
-    assert.ok(key in flying, `a flight has no ${key}`);
     assert.ok(key in scrubbed, `a scrubbed moment has no ${key}`);
   }
 });

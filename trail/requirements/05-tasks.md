@@ -120,6 +120,135 @@ not, because `timeline.js` was written and nothing imported it.
 - [ ] Positions are still **absolute**, not piece-relative. Placing works because the camera is
       already at the piece, and cutting a section will need the relative form - which is 8c
 
+## Stage 11 - Nothing runs: the take is cancelled and the ground is a board
+
+**Decided 2026-08-13.** *"remove the playback stuff, they are useless... its an illustrator, like a
+drawing board... not even a take is a thing. Just steps."* The reasoning is in `06-context.md`
+under "Trail does not play anything". **This is the largest cancellation in the project**, because
+every document here had assumed since the first conversation that the output is a recording.
+
+### 11a - There is no take
+
+- [x] **`routeAt` and `routeDuration` are gone from `camera.js`**, and `runAt`, `runDuration`,
+      `startsAt` and `DEFAULT_SECONDS_PER_PIECE` from `timeline.js`. All of them walked a film in
+      seconds; nothing does
+- [x] **`hold` and `approachTime` are gone from a step**, so a canvas no longer says how long it
+      is looked at or how long the camera takes to reach it. **Canvas file version 7**, which
+      drops them: they are absences rather than changes, so a version 6 file opens identical
+- [x] The countdown, play, play from here and restart are gone, and so is **the sync flash** -
+      it existed to mark the first frame for a video editor, and there is no recording
+- [x] `state.playing`, `state.clock`, `duration`, `roam`, `toRoute` and the `phase` a moment
+      carried, all of which existed to say whether the app was running
+- [x] **Space steps to the next piece and `r` goes back to the first.** They were start-a-take
+      and restart-a-take; stepping through is what the app is now made of
+- [x] The times-as-times work of 10c goes with it, one turn after it landed. **A piece lasts as
+      long as you look at it**, so it has no length and neither has the film
+- [x] The rule *"play mode carries no interface"* is **retired rather than broken**: there is no
+      play mode. The other hard rule, no generative AI, is untouched
+
+### 11b - A sheet of paper rather than a frame of film
+
+- [x] **The ground is a drawing board**: pale warm paper with a faint tooth, a light rule every
+      two units and a heavier one every ten. Asked for by name - the user's own word for the app
+- [x] **A soft edge rather than a lip.** The plate ended in a dark band with a lit rim, which is
+      what a frame of film has and a sheet of paper does not
+- [x] Sprocket holes, the lit panel, the sheen and the film/plain switch are all gone
+- [x] **The grid is drawn from screen-space derivatives**, not at a fixed width in the world. A
+      fixed-width grid goes to moire the moment the camera pulls back, and the overview draws
+      every piece at once
+- [x] Grass and concrete stay as materials over the board, and the weather still tints it
+- [x] **The solid switch is gone.** It filled the middle of the ring to compare a body against a
+      hoop, and the user's own reference for the shape was a halo, which is open in the middle
+- [ ] Judge the board by eye. How pale, how strong the rules are and how far the edge fades are
+      numbers picked by reasoning - which is the thing that has now been reversed four times
+
+## Stage 10 - The app stops charging you for continuity
+
+**Asked for 2026-08-13:** *"what can be better, what can be more user friendly, what can be done
+to help me smooth out the video making process."* Read against the running app rather than these
+documents. The reasoning is in `06-context.md` under "The app charges you for continuity".
+
+**Nothing here adds an authoring capability.** `00-plan.md` lists *"it becomes a 3D editor"* as a
+risk with the response *"anything more is a signal to stop"*, so every item was checked against
+it: no new object types, no new camera language, nothing new in the file format. Duplication
+removes typing, undo removes fear, times-as-times removes arithmetic, and the rest is subtraction.
+
+### 10a - Carrying a piece forward, which is the whole of the chore
+
+- [x] **Adding a piece carries what stands on the piece it follows.** `examples/the-corner.json`
+      is 59 objects across three pieces of one street corner, and the street never changed - so
+      the job becomes "delete the car" rather than "rebuild the world"
+- [x] An **empty** piece is still one gesture away, because sometimes the world does change
+- [x] `copyPiece` is pure and lives in `canvas.js` beside `openPiece` and `cutPiece`, and reads
+      which piece a thing is on from **where it is**, like both of them
+- [x] Placement stays manual. **A copy is a copy** - independent the moment it exists. Rejected
+      again: a repeat rule where an object carries a range of time, which makes an object a thing
+      on the ground and a rule about time at once
+
+### 10b - Undo, over the canvas rather than the pen
+
+- [x] **`Ctrl+Z` puts back what the last edit changed.** Placing, dragging, tinting, posing,
+      deleting, cutting a piece - all of it
+- [x] The history is serialised canvases, pushed where `autosave()` already runs, so the call
+      sites did not have to be found
+- [x] Bounded, because a canvas is not small and forty steps back is further than anybody reaches
+- [x] It stays out of text fields, where the browser's own undo is what is wanted
+
+### 10c - Times in the units the job is measured in - CANCELLED by stage 11
+
+- [~] **Built, then cancelled one turn later.** There is no take, so a piece has no length and
+      the film has no duration. Kept here because the reasoning was right for the app as it then
+      was: while something ran, timing it against a recorded narration was the hardest guess in
+      the workflow
+- [x] **Each piece says when it starts**, cumulatively, in `0:14` rather than `14000`
+- [x] **The film says what it runs to**, where the film list can be seen
+- [x] No audio, nothing parsed, nothing read. `runDuration` already exists; the number was simply
+      never shown
+
+### 10d - The controls that lie
+
+- [x] The camera help lists `w a s d`, `q e` and right-drag pan, **none of which exist** - they
+      went with free roaming - and calls `f` "fit everything" when it toggles the overview
+- [x] **"appears at step" does nothing at all.** It writes `from`, and `solid()` overwrites it
+      before anything is drawn. A live control from the cancelled ghosting design
+
+### 10e - The take - CANCELLED by stage 11
+
+- [~] **Built, then cancelled one turn later**, along with the take it was counting into.
+- [x] **A countdown before a take**, so fumbling the start does not cost the whole thing. It runs
+      before the first frame and the sync flash still marks the true start, so the take itself
+      still carries no interface
+- [x] **Play from where the clock is**, so rehearsing the end of a film is not watching all of it
+
+### 10f - What a session actually touches
+
+- [x] The panel grouped by **building, timing and shooting**, with what is touched once in the
+      life of the project closed by default
+- [x] **A first move.** The app opens empty, which is right, and then says nothing about what to
+      do first
+- [x] **The example is reachable.** `examples/the-corner.json` exists and you have to know it does
+
+### 10h - Two things found while building it
+
+- [x] **`toRoute()` sets `playing`**, so calling it at the top of a take started the film running
+      behind the numerals and it was a second in before they cleared. The count is the only thing
+      that may start playback
+- [x] **The stub's `classList` did nothing**, so anything the page shows or hides by class was
+      invisible to every test and a check written against it could only agree with itself. It is
+      a real set now - the **sixth** gap of this shape, and the rule stands: when a test disagrees
+      with the page, suspect the stub first
+- [x] Three existing tests asked for an empty piece rather than being changed to expect the carry.
+      They exist to prove a piece's *contents move along with it*, which carrying forward does not
+      touch, and mixing the two rules into one test would have left neither clear
+
+### 10g - Still open
+
+- [ ] **The ring may be a presentation idea rather than an authoring one.** On a flat strip later
+      is to the right; on a ring it is an inference made every time you scrub. Not to be touched
+      on reasoning alone - a look decision is a preference until it has been seen - but worth
+      watching for while building the first real film. If the overview is being pressed to work
+      out where you are, the answer may be to author flat and present rolled
+
 ## Stage 9 - Halo mode: the film is a ring in space
 
 **Asked for 2026-08-09.** *"Imagine i rolled the film strip and made a sphere with it... the
