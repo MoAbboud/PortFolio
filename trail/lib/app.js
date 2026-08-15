@@ -12,7 +12,7 @@
 
 import { voxelise, hollow, anchor as reanchor } from './voxel.js';
 import {
-  assemble, assembleMeshes, contactShadows, bounds, place, objectBoxes, travelOf,
+  assemble, assembleMeshes, contactShadows, bounds, place, objectBoxes,
 } from './scene.js';
 import { surfaceNets, fromTriangles } from './mesh.js';
 import { toNdc, insideFrame, rayThrough, pick, groundPoint, dragTo, rotateBy } from './pick.js';
@@ -552,7 +552,6 @@ async function main() {
     selected: -1,
     forcedWeather: null,
     // True while a line is being traced for the selected object to walk.
-    tracing: false,
     // True while a rectangle is being dragged out for a named place.
     drawingArea: false,
     // When the shot being watched began, so a camera move that was asked for
@@ -970,42 +969,18 @@ async function main() {
     say('drag a rectangle on the ground, then name it');
   });
 
-  // --- tracing where an object goes -----------------------------------------
+  // --- objects do not move -----------------------------------------------
   //
-  // Drag a line on the ground and the selected object walks it: it starts where
-  // the line starts and ends where it ends, travelling across the flight into
-  // whichever step is pinned.
+  // **"Trace where it goes" is gone.** An object could be given a line to walk:
+  // it stood at one end, the vertex shader added an offset from three numbers
+  // uploaded with it, and it crossed the ground as the route reached its step.
+  // The user, deciding it: *"i dont want to add motion to my objects for now."*
   //
-  // **Nothing about the field stops being static.** The object is uploaded once,
-  // at the start of its line, and the vertex shader adds an offset from two
-  // numbers that travelled with it. No processor work per frame, no work per
-  // cube, one draw call as before. See `travelOf` in `scene.js`.
-
-  function paintPath() {
-    const chosen = state.selected >= 0 ? layout[state.selected] : null;
-    const path = chosen?.path;
-    el('s-path').textContent = !chosen ? 'nowhere'
-      : path ? `to ${path.to[0].toFixed(1)}, ${path.to[1].toFixed(1)} on step ${(path.step ?? 0) + 1}`
-        : 'nowhere';
-    el('b-path').disabled = !chosen;
-    el('b-path-clear').disabled = !chosen?.path;
-  }
-
-  el('b-path').addEventListener('click', () => {
-    if (state.selected < 0) { say('select an object first'); return; }
-    state.tracing = true;
-    canvas.classList.add('tracing');
-    say(`drag a line on the ground: ${layout[state.selected].model} walks it on step ${editing() + 1}`);
-  });
-
-  el('b-path-clear').addEventListener('click', () => {
-    if (state.selected < 0) return;
-    delete layout[state.selected].path;
-    rebuild();
-    paintPath();
-    autosave();
-    say('it stays where it is');
-  });
+  // It cost `travelOf`, an attribute in three shaders, a uniform, a field in
+  // the canvas file and a rule in every operation that moves a piece. Nothing
+  // moves now: an object stands where it was put, and something that is
+  // somewhere else later is placed again on a later piece, which is what the
+  // film strip has always said. **The history has it if it is ever wanted.**
 
   canvas.addEventListener('pointerdown', (event) => {
     canvas.setPointerCapture(event.pointerId);
@@ -1018,16 +993,6 @@ async function main() {
       const ground = groundAt(ray);
       if (ground) {
         drag = { x: event.clientX, y: event.clientY, moved: 0, object: null, place: [ground[0], ground[2]] };
-        return;
-      }
-    }
-
-    // A traced line beats everything else, including picking a different
-    // object: the button was pressed to draw one and nothing else is wanted.
-    if (state.tracing && state.selected >= 0 && ray) {
-      const ground = groundAt(ray);
-      if (ground) {
-        drag = { x: event.clientX, y: event.clientY, moved: 0, object: null, trace: [ground[0], ground[2]] };
         return;
       }
     }
@@ -1092,13 +1057,6 @@ async function main() {
       return;
     }
 
-    if (drag.trace) {
-      const ray = rayAt(event);
-      const ground = groundAt(ray);
-      if (ground) drag.traceTo = [ground[0], ground[2]];
-      return;
-    }
-
     if (drag.object !== null) {
       const ray = rayAt(event);
       if (!ray) return;
@@ -1115,34 +1073,6 @@ async function main() {
 
   const endDrag = (event) => {
     if (!drag) return;
-
-    if (drag.trace) {
-      const from = drag.trace;
-      const to = drag.traceTo;
-      const chosen = state.selected >= 0 ? layout[state.selected] : null;
-      state.tracing = false;
-      canvas.classList.remove('tracing');
-      drag = null;
-
-      // A line with no length is a click, and a click is how you change your
-      // mind about having pressed the button.
-      const length = to ? Math.hypot(to[0] - from[0], to[1] - from[1]) : 0;
-      if (!chosen || length < 0.25) {
-        say('nothing traced - drag a line rather than clicking');
-        paintPath();
-        return;
-      }
-
-      // The object stands at the start of its line and walks to the end. Both
-      // ends come from one gesture, which is what "trace where it goes" means.
-      chosen.at = [from[0], chosen.at[1] ?? 0, from[1]];
-      chosen.path = { to: [to[0], to[1]], step: editing() };
-      rebuild();
-      paintPath();
-      autosave();
-      say(`${chosen.model} walks ${length.toFixed(1)} units on step ${editing() + 1}`);
-      return;
-    }
 
     // A press that did not really move is a click, and a click chooses.
     if (drag.moved < 5 && drag.object === null) {
@@ -1312,7 +1242,6 @@ async function main() {
     paintPose();
     paintTints();
     paintLabel();
-    paintPath();
     if (index >= 0) say(`${layout[index].model} selected - drag to move it`);
   }
   // Nothing is selected to begin with, and the panel says so in its markup.
@@ -1958,6 +1887,12 @@ async function main() {
       // Plates of film the renderer is actually holding, and how big they are
       // drawn. A restored canvas with no ground under it is this being zero.
       pieces: renderer.pieces,
+      // The sheet being drawn into mid air, if one is: which piece, and how far
+      // through. Asked on demand, so it is this page's answer or nothing.
+      drawing: drawAsked && { ...drawAsked, running: Boolean(sheet) },
+      // The light that was asked for: which object, where, and how strong it
+      // will be once it has arrived.
+      spotlight: asked,
       plate: state.plate,
       radius: ringSize(),
       // How far the world survives around the piece being looked at. Evaluated
@@ -2143,7 +2078,7 @@ async function main() {
    * reported. Removing the step range from tags is what let it happen: the
    * range used to hide them, and nothing took over the job.
    */
-  function drawTags(matrix, step, arrive = 1, veil = null) {
+  function drawTags(matrix, step, veil = null) {
     const view = renderer.view.css;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     if (tags.width !== Math.round(view.w * dpr) || tags.height !== Math.round(view.h * dpr)) {
@@ -2188,16 +2123,13 @@ async function main() {
       // No step range: a name belongs to the figure, and the figure belongs to
       // a piece of the film that is either in shot or is not.
       const box = boxes[i];
-      // A box is measured from the buffers, which hold an object at the start
-      // of its line - the travelling itself happens in the shader. So the tag
-      // has to be offset by the same amount, or a name stands still while the
-      // person it belongs to walks out from under it.
-      const [dx, dz, when] = travelOf(p);
-      const gone = when < 0 ? 0 : step > when ? 1 : step === when ? arrive : 0;
+      // **Straight over the object.** This used to be offset by however far the
+      // object had walked along its line, because the box is measured from the
+      // buffers and the travelling happened in the shader. Nothing walks now.
       const anchor = [
-        (box.min[0] + box.max[0]) / 2 + dx * gone,
+        (box.min[0] + box.max[0]) / 2,
         box.max[1] + 0.5,
-        (box.min[2] + box.max[2]) / 2 + dz * gone,
+        (box.min[2] + box.max[2]) / 2,
       ];
       const at = project(matrix, anchor);
       if (!at || Math.abs(at.x) > 1.1 || Math.abs(at.y) > 1.1) continue;
@@ -2396,6 +2328,56 @@ async function main() {
    */
   const OVERVIEW_HOUR = 11;
 
+  /**
+   * Drawing the canvas into mid air.
+   *
+   * **The sheet is drawn before anything stands on it**, asked for as: *"I want
+   * the canvas to be drawn into mid air, then a short delay, then show the
+   * objects, fade in style... when steps are switched the animation plays each
+   * time. When overview is clicked, the animation plays one step at the time,
+   * starting with the first one to the last one."*
+   *
+   * Two cases and one mechanism. `only` names a single piece and leaves the rest
+   * of the film alone, which is what changing step does; `only: -1` sweeps the
+   * head along the whole film, which is what the overview does. The shader works
+   * out its own piece's progress from its own index, so nothing is uploaded and
+   * nothing runs per frame over the objects.
+   */
+  const DRAW_PIECE = 900;      // how long one sheet takes to be drawn, in ms
+  const DRAW_STAGGER = 0.55;   // how far into one sheet before the next begins
+  let sheet = null;
+  // What was last drawn in, so the frame can notice when it changes. `-1` is
+  // the overview, which draws every piece in order.
+  let drawnStep = null;
+  // **What was asked for**, which outlives the animation that answers it. The
+  // eased state needs frames to run and is gone by the time anything can look;
+  // the request is the thing a control is judged on. Same reason `rollTo` is
+  // reported beside `roll`.
+  let drawAsked = null;
+
+  function drawIn(only) {
+    if (!route.length) { sheet = null; return; }
+    sheet = { only, at: performance.now(), pieces: route.length };
+    drawAsked = { only, pieces: route.length };
+  }
+
+  /** What the renderer is handed, or null once there is nothing left to draw. */
+  function drawNow(now) {
+    if (!sheet) return null;
+    const span = 1;
+    const gone = (now - sheet.at) / DRAW_PIECE;
+    if (sheet.only >= 0) {
+      if (gone >= 1) { sheet = null; return null; }
+      // The head runs across the one piece being drawn.
+      return { head: sheet.only + gone, span, only: sheet.only };
+    }
+    // Every piece in order, each starting part way into the one before it, so
+    // the film arrives as a sequence rather than all at once.
+    const total = 1 + (sheet.pieces - 1) * DRAW_STAGGER;
+    if (gone >= total) { sheet = null; return null; }
+    return { head: gone / DRAW_STAGGER, span: 1 / DRAW_STAGGER, only: -1 };
+  }
+
   function skyNow(moment) {
     // **Always lit.** Asked for directly: *"The overview takes whatever weather
     // the step has when the overview button is clicked, i dont want that, i
@@ -2569,7 +2551,6 @@ async function main() {
     uploadAreas();
     stepsChanged();
     paintObject();
-    paintPath();
   }
 
   el('b-step-remove').addEventListener('click', () => {
@@ -2924,28 +2905,79 @@ async function main() {
   });
 
   /**
-   * How bright the spotlight is, and where it is pointed.
+   * The spotlight, as one press.
    *
-   * The slider is the whole of turning it on: nought is off, which is also how
-   * the shaders skip the work. Pointing it is a separate act, because where it
-   * shines and how hard are different decisions.
+   * **It was a slider and a button and it wanted neither.** The user, on using
+   * it: *"i like it but I dont like that i need to constantly adjust it. I need
+   * a button called Spotlight when an object is selected. The spotlight will be
+   * an animation that gets played, the camera slightly zooms in on the object
+   * and a spotlight hits them... 50% spotlight strength is enough."*
+   *
+   * So there is no strength to choose and nothing to aim: the light is half
+   * strength, it lands on whatever is selected, and the camera closes in a
+   * little while it arrives. The room goes dark with it, because a spotlight in
+   * a lit room is a bright patch rather than a light.
    */
-  const spotSlider = slider('r-spot', (v) => (v ? `${v}%` : 'off'),
-    (v) => { state.spot.power = v / 100; });
+  const SPOT_POWER = 0.5;
+  const SPOT_IN = 900;        // how long the light takes to arrive, in ms
+  const SPOT_CLOSE = 0.82;    // how much of the shot is left at the end of it
+  let spotting = null;
+  let asked = null;
 
-  el('b-spot-here').addEventListener('click', () => {
-    if (state.selected < 0) { say('select something to point the light at'); return; }
-    const box = boxes[state.selected];
-    state.spot.at = [(box.min[0] + box.max[0]) / 2, (box.min[2] + box.max[2]) / 2];
+  function spotlight(index) {
+    const box = boxes[index];
+    if (!box) return;
+    const at = [(box.min[0] + box.max[0]) / 2, (box.min[2] + box.max[2]) / 2];
     // Wide enough to hold what it is pointed at, with room around it, so the
     // pool reads as light falling on a thing rather than as a disc under it.
     const across = Math.max(box.max[0] - box.min[0], box.max[2] - box.min[2]);
+    state.spot.at = at;
     state.spot.radius = Math.max(4, across * 1.9);
-    if (state.spot.power < 0.05) {
-      state.spot.power = 1;
-      spotSlider.set(100);
+    state.room = 1;
+    roomSeg.paint();
+    spotting = { at: null, width: state.rig.width };
+    // What the light was asked for, which outlives the ramp that answers it.
+    // The ramp needs frames and is gone before anything can look at it; the
+    // request is the thing the control is judged on, the same reason `rollTo`
+    // is reported beside `roll`.
+    asked = { on: index, at, power: SPOT_POWER };
+    say(`spotlight on ${layout[index].label || layout[index].model}`);
+  }
+
+  /** Run the arrival, if one is running. Called once a frame. */
+  function spotNow(now) {
+    if (!spotting) return;
+    // Stamped from the frame's own clock rather than from `performance.now()`.
+    // Two clocks that agree today are two clocks.
+    if (spotting.at === null) spotting.at = now;
+    const t = Math.min(1, (now - spotting.at) / SPOT_IN);
+    const eased = easeInOut(t);
+    state.spot.power = SPOT_POWER * eased;
+    // **The camera closes in rather than cutting.** It is the same rig every
+    // other camera control writes to, so nothing here can put the camera
+    // somewhere a composition could not have been.
+    state.rig.width = spotting.width * (1 - (1 - SPOT_CLOSE) * eased);
+    if (t >= 1) spotting = null;
+  }
+
+  el('b-spot').addEventListener('click', () => {
+    if (state.selected < 0) { say('select something to put the light on'); return; }
+    // **Asked for, rather than arrived.** Judging this on how bright the light
+    // has become makes pressing it during the ramp start the ramp again, which
+    // reads as the button not working - and it is the same distinction as
+    // everywhere else here: what was asked for is the thing a control answers.
+    if (asked) {
+      // Pressed again with the light already on: put it out, and give the room
+      // back, because leaving somebody in the dark is not a toggle anybody wants.
+      state.spot.power = 0;
+      state.room = 0;
+      asked = null;
+      spotting = null;
+      roomSeg.paint();
+      say('the light is off');
+      return;
     }
-    say(`the light is on ${layout[state.selected].label || layout[state.selected].model}`);
+    spotlight(state.selected);
   });
 
   // --- moving through the day -----------------------------------------------
@@ -3212,7 +3244,6 @@ async function main() {
     uploadAreas();
     stepsChanged();
     paintObject();
-    paintPath();
 
     if (!route.length) {
       say('every piece cut - an empty film, drag the clock and press + to start one');
@@ -3449,7 +3480,6 @@ async function main() {
     plateSlider.set(Math.round(state.plate * 100));
     groundSeg.paint();
     roomSeg.paint();
-    spotSlider.set(Math.round(state.spot.power * 100));
     buildSteps();
     paintClock();
     paintObject();
@@ -3555,10 +3585,6 @@ async function main() {
     let framing;
     let step = state.pinned ?? 0;
     let stepT = 1;
-    // How far through the flight into this step the route is. An object that
-    // travels is exactly this far along its line; settled on a step means the
-    // move is over. Roaming shows the world as the story left it, so it is 1.
-    let arrive = 1;
     let weather = resolveWeather(skyOf(route[step]));
 
     // How long the shot in front of you has been held, which is what a slow
@@ -3605,7 +3631,6 @@ async function main() {
       if (moment) {
         step = moment.step;
         stepT = moment.into;
-        arrive = easeInOut(moment.into);
         // **Travel along the strip**, so a step is somewhere rather than a
         // different weather where you already are. Left alone while the overview
         // is on, because that is the whole film rather than a place on it.
@@ -3621,6 +3646,29 @@ async function main() {
         el('s-step').textContent = route.length ? `${editing() + 1} / ${route.length}` : 'none';
       }
       weather = skyNow(moment);
+    }
+
+    /**
+     * **Noticed here rather than called from everywhere that moves.**
+     *
+     * A step is reached from the arrows, a mark on the bar, a number key, the
+     * film list, the panel strip, adding one, and dragging across a join - and
+     * a call in each of those is a call somebody forgets. Watching what the app
+     * is actually showing cannot be forgotten, and it is the same rule this
+     * project has had to relearn three times: anything derived from state is
+     * recomputed or guarded, never remembered by convention.
+     */
+    spotNow(now);
+
+    if (route.length) {
+      const showing = state.overview ? -1 : editing();
+      if (showing !== drawnStep) {
+        drawnStep = showing;
+        drawIn(showing);
+      }
+    } else {
+      drawnStep = null;
+      sheet = null;
     }
 
     // Forcing a weather keeps the hour of the step being worked on, so looking
@@ -3695,10 +3743,11 @@ async function main() {
       ground: state.ground,
       room: state.room,
       spot: [state.spot.at[0], state.spot.at[1], state.spot.radius, state.spot.power],
+      // The sheet being drawn into mid air, if one is.
+      draw: drawNow(now),
       // The sky needs where the camera looks as well as where it is, so it can
       // turn a pixel into a direction and put the sun where it actually is.
       matrix, eye, target, time: now / 1000, weather,
-      arrive,
       selected: state.selected,
       surface,
       smooth: smoothing,
@@ -3707,7 +3756,7 @@ async function main() {
       step,
       stepT,
     });
-    drawTags(matrix, step, arrive, { focus: [cx, cz], near: seen.near, far: seen.far });
+    drawTags(matrix, step, { focus: [cx, cz], near: seen.near, far: seen.far });
     paintInk();
 
     const fill = renderer.view.fill;

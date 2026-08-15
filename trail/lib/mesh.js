@@ -488,8 +488,8 @@ function occlude(positions, normals, count, size, scale) {
     const b = [positions[f * 9 + 3], positions[f * 9 + 4], positions[f * 9 + 5]];
     const c = [positions[f * 9 + 6], positions[f * 9 + 7], positions[f * 9 + 8]];
     const side = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]);
-    const steps = Math.min(24, Math.max(1,
-      Math.ceil(Math.max(side(a, b), side(a, c), side(b, c)) / (step * 0.5))));
+    const steps = Math.min(12, Math.max(1,
+      Math.ceil(Math.max(side(a, b), side(a, c), side(b, c)) / step)));
     for (let i = 0; i <= steps; i++) {
       for (let j = 0; i + j <= steps; j++) {
         const u = i / steps; const v = j / steps; const w = 1 - u - v;

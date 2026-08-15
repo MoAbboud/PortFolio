@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { voxelise, hollow, count } from '../lib/voxel.js';
-import { place, assemble, bounds, travelOf, contactShadows } from '../lib/scene.js';
+import { place, assemble, bounds, contactShadows } from '../lib/scene.js';
 
 const model = (name) => JSON.parse(
   readFileSync(fileURLToPath(new URL(`../models/${name}.json`, import.meta.url)), 'utf8')
@@ -229,55 +229,8 @@ test('moving an object writes exactly its own cubes and no others', () => {
   }
 });
 
-// --- an object that travels --------------------------------------------------
-
-test('an object with no path does not travel', () => {
-  assert.deepEqual(travelOf({ at: [1, 0, 2] }), [0, 0, -1]);
-  assert.deepEqual(travelOf({ at: [1, 0, 2], path: {} }), [0, 0, -1]);
-  assert.deepEqual(travelOf(null), [0, 0, -1]);
-});
-
-test('a path is stored as how far it goes, not as where it ends', () => {
-  // The shader adds this to a position that is already in the buffer, so what
-  // it needs is the difference. Storing the destination would mean the vertex
-  // shader had to know where the object started.
-  const travel = travelOf({ at: [10, 0, -4], path: { to: [13, 2], step: 2 } });
-  assert.deepEqual(travel, [3, 6, 2]);
-});
-
-test('the whole of an object travels, and nothing else does', () => {
-  // The field is still uploaded once and never touched. What moves is an offset
-  // the shader adds, so every vertex of the travelling object has to carry the
-  // same one and every vertex of its neighbour has to carry none.
-  const grid = {
-    unit: 1, dims: [2, 1, 1], origin: [0, 0, 0], offset: [0, 0, 0],
-    cells: new Uint8Array([1, 1]), palette: [{ hex: '#ffffff' }], anchor: 'base',
-  };
-  const scene = assemble([
-    { grid, at: [0, 0, 0] },
-    { grid, at: [8, 0, 0], path: { to: [12, 3], step: 1 } },
-  ]);
-
-  const first = scene.ranges[0];
-  const second = scene.ranges[1];
-  for (let i = first.start; i < first.start + first.count; i++) {
-    assert.equal(scene.travel[i * 3 + 2], -1, 'a still object should carry no step');
-  }
-  for (let i = second.start; i < second.start + second.count; i++) {
-    assert.equal(scene.travel[i * 3], 4, 'every cube of it should go the same way');
-    assert.equal(scene.travel[i * 3 + 1], 3);
-    assert.equal(scene.travel[i * 3 + 2], 1);
-  }
-});
-
-test('a shadow is given the same journey as the thing casting it', () => {
-  // Otherwise it stays where the object used to be, which is exactly the bug
-  // this file already recorded once for a dragged object.
-  const grid = {
-    unit: 1, dims: [1, 1, 1], origin: [0, 0, 0], offset: [0, 0, 0],
-    cells: new Uint8Array([1]), palette: [{ hex: '#ffffff' }], anchor: 'base',
-  };
-  const placements = [{ grid, at: [0, 0, 0], path: { to: [5, -2], step: 3 } }];
-  const patches = contactShadows(assemble(placements), placements);
-  assert.deepEqual([...patches.travel], [5, -2, 3]);
-});
+// **The tests for an object that travels went with the feature.** An object
+// could be given a line to walk, carried as three numbers per vertex so the
+// field stayed static and nothing ran per frame over the cubes. It is not
+// wanted - *"i dont want to add motion to my objects for now"* - and the whole
+// mechanism went with it. The history has both.

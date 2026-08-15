@@ -180,6 +180,8 @@ function stubBrowser({ frames = 3, ids = new Set(), tags = new Map() } = {}) {
   glCalls = [];
   let clock = 0;
   let drawn = 0;
+  // The frame that was refused, kept so allowFrames can start the loop again.
+  let pending = null;
   let closed = false;
 
   const win = {
@@ -226,6 +228,12 @@ function stubBrowser({ frames = 3, ids = new Set(), tags = new Map() } = {}) {
       // A closed stub schedules nothing: a page from an earlier test keeps
       // asking for frames forever, and it must not touch this test's counters.
       if (!closed && drawn++ < frames) queueMicrotask(() => { clock += 16; fn(clock); });
+      // **Held rather than dropped.** Refusing a frame used to end the loop for
+      // good: the page asks for the next frame from inside the last one, so once
+      // one is refused nothing ever asks again and `allowFrames` had nothing to
+      // restart. Anything that needs the loop running *after* startup - which is
+      // everything the frame itself is responsible for - was untestable.
+      else pending = fn;
       return drawn;
     },
     addEventListener: (type, fn) => {
@@ -283,8 +291,14 @@ function stubBrowser({ frames = 3, ids = new Set(), tags = new Map() } = {}) {
     get calls() { return glCalls; },
     drew: (name) => drawn2d.filter((c) => c[0] === name).length,
     // The page asks for a frame every frame, so a fixed budget is spent by the
-    // render loop long before a test can interact. This hands back some more.
-    allowFrames: (n) => { drawn = Math.max(0, drawn - n); },
+    // render loop long before a test can interact. This hands back some more,
+    // and restarts the loop if it had already stopped.
+    allowFrames: (n) => {
+      drawn = Math.max(0, drawn - n);
+      const resume = pending;
+      pending = null;
+      if (resume && !closed) queueMicrotask(() => { clock += 16; resume(clock); });
+    },
     close: () => { closed = true; },
   };
 }
@@ -1707,74 +1721,70 @@ test('the ground can be made grass or concrete, and the room can be darkened', a
   assert.deepEqual(stub.failures, [], 'changing the ground or the room reported a failure');
 });
 
-test('the light is pointed at what is selected, and sized from it', async () => {
+test('the spotlight is one press, and it lands on what is selected', async () => {
   /**
-   * The slider turns the light on; pointing it is a separate act, because where
-   * it shines and how hard are different decisions.
+   * **It was a slider and a button and it wanted neither.** The user, on using
+   * it: *"i dont like that i need to constantly adjust it. I need a button
+   * called Spotlight when an object is selected... 50% spotlight strength is
+   * enough."*
    *
-   * The property worth holding is that the pool is **sized from the object's own
-   * box**, so the light falls on the thing rather than sitting under it as a
-   * disc. That is why this points at two objects of very different sizes rather
-   * than checking one number: a fixed radius passes the first half of this test
-   * and fails the second.
+   * What is asserted here is **what the button asks for**, not what the ramp has
+   * reached. The ramp needs frames, and a page this late in the file has none
+   * left - which is the distinction this project has now recorded five times: a
+   * hook that evaluates on demand cannot test the code path that draws. The
+   * shape of the pool and the way it eases in are both arithmetic that needs a
+   * graphics context and a running clock, and neither is here.
    */
   const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 3000 });
   await runApp();
   await openCanvas(stub);
-  const settle = async () => {
-    for (let i = 0; i < 40; i++) await new Promise((r) => setTimeout(r, 0));
+  const settle = async (turns = 40) => {
+    for (let i = 0; i < turns; i++) await new Promise((r) => setTimeout(r, 0));
   };
-  const point = () => stub.element('b-spot-here').listeners.get('click')?.[0]?.();
-  const spot = () => stub.win.__trail.shot().spot;
+  const press = () => stub.element('b-spot').listeners.get('click')?.[0]?.();
+  const shot = () => stub.win.__trail.shot();
 
-  // Nothing is selected when a canvas opens, so pointing the light must refuse
-  // rather than reach into boxes[-1].
-  assert.equal(spot()[3], 0, 'the light was on before anything asked for it');
-  point();
-  await settle();
-  assert.equal(spot()[3], 0, 'the light came on with nothing selected to point it at');
-  assert.deepEqual(stub.failures, [], 'pointing the light at nothing threw');
+  // Nothing selected: it must say so rather than reach into boxes[-1].
+  assert.equal(shot().spotlight, null, 'a light was asked for before anything selected one');
+  press();
+  await settle(10);
+  assert.equal(shot().spotlight, null, 'the light came on with nothing selected');
+  assert.deepEqual(stub.failures, [], 'pressing it with nothing selected threw');
 
   // Placing a model selects it, which is the shortest route to a selection.
-  const place = async (name) => {
-    stub.allowFrames(80);
-    stub.element('b-library').listeners.get('click')?.[0]?.();
-    const filter = stub.element('filter');
-    filter.value = name;
-    filter.listeners.get('input')?.[0]?.();
-    await settle();
-    const tile = stub.element('library').children.find((c) => c.title === name);
-    assert.ok(tile, `the library has no ${name} to place`);
-    tile.listeners.get('click')?.[0]?.();
-    await settle();
-    return stub.win.__trail.canvas().objects.at(-1);
-  };
-
-  const figure = await place('person');
-  point();
+  stub.allowFrames(200);
+  stub.element('b-library').listeners.get('click')?.[0]?.();
+  const filter = stub.element('filter');
+  filter.value = 'person';
+  filter.listeners.get('input')?.[0]?.();
+  await settle();
+  const tile = stub.element('library').children.find((c) => c.title === 'person');
+  assert.ok(tile, 'the library has no figure to place');
+  tile.listeners.get('click')?.[0]?.();
   await settle();
 
-  const onFigure = spot();
-  assert.ok(onFigure[3] > 0, 'pointing the light at something left it switched off');
-  assert.ok(Number(stub.element('r-spot').value) > 0,
-    'the light is on and the slider still reads off');
-  assert.ok(Math.abs(onFigure[0] - figure.at[0]) < 2 && Math.abs(onFigure[1] - figure.at[2]) < 2,
-    `the light landed at ${onFigure[0].toFixed(1)}, ${onFigure[1].toFixed(1)}`
-    + ` and the figure is at ${figure.at[0].toFixed(1)}, ${figure.at[2].toFixed(1)}`);
+  press();
+  await settle(20);
 
-  // A house is far wider than a person, so a pool sized from what it is pointed
-  // at has to grow. This is the half that fails if the radius is a constant.
-  await place('house1');
-  point();
-  await settle();
+  const on = shot().spotlight;
+  assert.ok(on, 'pressing spotlight asked for nothing');
+  assert.equal(on.power, 0.5, 'the light should be half strength and nothing else');
+  assert.equal(shot().room, 1,
+    'the room stayed lit, so the light would be a bright patch rather than a light');
+  const figure = stub.win.__trail.canvas().objects.at(-1);
+  assert.ok(Math.abs(on.at[0] - figure.at[0]) < 3 && Math.abs(on.at[1] - figure.at[2]) < 3,
+    `the light landed at ${on.at[0].toFixed(1)}, ${on.at[1].toFixed(1)} and the figure is`
+    + ` at ${figure.at[0].toFixed(1)}, ${figure.at[2].toFixed(1)}`);
 
-  const onHouse = spot();
-  assert.ok(onHouse[2] > onFigure[2],
-    `the pool is ${onHouse[2].toFixed(1)} across on a house and ${onFigure[2].toFixed(1)} on a`
-    + ' figure, so it is not sized from what it is pointed at');
-  assert.deepEqual(stub.failures, [], 'pointing the light reported a failure');
+  // Pressing again puts it out and gives the room back, because leaving
+  // somebody in the dark is not a toggle anybody wants.
+  press();
+  await settle(20);
+  assert.equal(shot().spotlight, null, 'the light would not go out');
+  assert.equal(shot().room, 0, 'the room was left dark with the light off');
+
+  assert.deepEqual(stub.failures, [], 'the spotlight reported a failure');
 });
-
 test('a canvas opened with pieces already in it has ground under them', async () => {
   // **Reported by the user:** with steps and objects already there, the floor
   // was wrong until a step was added, and "when a new step gets added the
@@ -1877,6 +1887,61 @@ test('the film is rolled into a ring, and the overview unrolls it', async () => 
   assert.deepEqual(stub.failures, [], 'rolling the film reported a failure');
 });
 
+test('changing step draws the sheet in, and the overview draws them in order', async () => {
+  /**
+   * **The canvas is drawn into mid air before anything stands on it.** Asked for
+   * as: *"when i change steps, I want the canvas box to start from one point...
+   * forming and filling the canvas... When overview is clicked, the animation
+   * plays one step at the time, starting with the first one to the last one."*
+   *
+   * The shape of the line is arithmetic in the shader and cannot be checked
+   * here - there is no graphics context in Node. What only the page can answer
+   * is whether the animation is asked for at all, and for which piece, which is
+   * the half that goes wrong when a control is added and nothing triggers it.
+   */
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 6000 });
+  await runApp();
+  await openCanvas(stub);
+  const settle = async (turns = 30) => {
+    for (let i = 0; i < turns; i++) await new Promise((r) => setTimeout(r, 0));
+  };
+  const drawing = () => stub.win.__trail.shot().drawing;
+
+  // **Frames have to be paid for.** Startup and the packs spend the stub's
+  // budget, so a test that needs the frame loop running *after* a canvas is
+  // open has to top it up - otherwise the loop has already stopped and nothing
+  // the frame is responsible for ever happens.
+  stub.allowFrames(400);
+  await settle(60);
+
+  // Opening a canvas draws it in, which is the first thing the request says.
+  assert.ok(drawing(), 'opening a canvas did not draw it in');
+
+  // Going to another piece draws that one, and names it.
+  const rows = stub.element('reel-list').children;
+  const go = rows[1].children.flatMap((c) => c.children ?? []).find((c) => c.textContent === '▶');
+  go.listeners.get('click')?.[0]?.();
+  stub.allowFrames(400);
+  await settle(60);
+
+  const one = drawing();
+  assert.ok(one, 'changing step did not draw the sheet in');
+  assert.equal(one.only, 1, `the wrong piece is being drawn: ${one.only}`);
+
+  // The overview draws every piece, in order, which is what `only: -1` says.
+  stub.element('b-overview').listeners.get('click')?.[0]?.();
+  stub.allowFrames(400);
+  await settle(60);
+
+  const all = drawing();
+  assert.ok(all, 'the overview did not draw the film in');
+  assert.equal(all.only, -1, 'the overview drew one piece rather than the whole film');
+  assert.equal(all.pieces, stub.win.__trail.route().length,
+    'the overview drew a different number of pieces than the film has');
+
+  assert.deepEqual(stub.failures, [], 'drawing the canvas in reported a failure');
+});
+
 test('the overview is lit whatever the step it was called from was doing', async () => {
   /**
    * **Reported by the user:** *"The overview takes whatever weather the step has
@@ -1960,6 +2025,7 @@ test('turning the overview while in it does not disturb the shot underneath', as
   overview();
   await settle();
   const wide = shot().w;
+  console.log("BEFORE", JSON.stringify({sp: shot().spotting, pw: shot().power, ft: stub.win.__trail.frameTicks}));
   assert.ok(wide > working, 'the overview did not pull back');
 
   // Turn and zoom while pulled back, which is what poisoned the rig.

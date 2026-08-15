@@ -443,14 +443,10 @@
       <!-- One row per tint slot the selected model offers, built when it is
            selected: a model decides how many colours it has, not the markup. -->
       <div id="tints"></div>
-      <!-- Where this object travels to, if it travels. Traced on the ground
-           rather than typed: click the button, then drag a line from the object
-           to where it ends up. -->
-      <div class="buttons">
-        <button class="btn" id="b-path">trace where it goes</button>
-        <button class="btn" id="b-path-clear">stay put</button>
-      </div>
-      <div class="row"><span class="dim">travels</span><b id="s-path">nowhere</b></div>
+      <!-- "Trace where it goes" was here: a line drawn on the ground that the
+           object walked as the route reached its step. Objects do not move.
+           Something that is somewhere else later is placed again on a later
+           piece, which is what the film strip has always said. -->
       <button class="btn" id="b-remove">remove from canvas</button>
     </div>
   </details>
@@ -517,11 +513,10 @@
           <button data-v="1">dark</button>
         </div>
       </div>
-      <div class="ctl">
-        <div class="row"><span class="dim">spotlight</span><span class="val" id="v-spot">off</span></div>
-        <input type="range" id="r-spot" min="0" max="200" step="5" value="0">
-        <button class="btn" id="b-spot-here">point it at the selection</button>
-      </div>
+      <!-- One press. It was a slider and a button, and it wanted neither: the
+           light is half strength, it lands on whatever is selected, and the
+           camera closes in a little while it arrives. -->
+      <button class="btn" id="b-spot">spotlight</button>
     </div>
   </details>
 

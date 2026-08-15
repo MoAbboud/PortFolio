@@ -254,7 +254,7 @@ test('every uniform the renderer sets is declared by some shader', () => {
     'uRain', 'uBox', 'uScale', 'uColour',
     // The world's shape, shared by every program that draws part of it.
     'uRoll', 'uRadius', 'uFocusX', 'uVeilNear', 'uVeilFar',
-    'uPitch', 'uPlate', 'uSpace', 'uEye',
+    'uPitch', 'uPlate', 'uSpace', 'uEye', 'uBackdrop', 'uDraw', 'uDrawOnly',
     'uGround', 'uRoom', 'uSpot',
   ];
   for (const name of used) {

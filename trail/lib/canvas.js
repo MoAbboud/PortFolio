@@ -6,11 +6,11 @@
 
 import { pieceX, pitchOf, DEFAULT_PIECE, OLD_PITCH } from './timeline.js';
 
-export const VERSION = 7;
+export const VERSION = 8;
 
 const isNumber = (v) => typeof v === 'number' && Number.isFinite(v);
 const isTriple = (v) => Array.isArray(v) && v.length === 3 && v.every(isNumber);
-// A path is a place on the ground, so two numbers rather than three.
+// Two numbers rather than three: a place on the ground has no height.
 const isPair = (v) => Array.isArray(v) && v.length === 2 && v.every(isNumber);
 
 class Refused extends Error {}
@@ -43,10 +43,6 @@ export function serialise({ layout, route, areas = [], look = {}, title = 'untit
       ...(p.until !== undefined ? { until: p.until } : {}),
       ...(p.label ? { label: p.label } : {}),
       ...(p.tints && Object.keys(p.tints).length ? { tints: { ...p.tints } } : {}),
-      // Where this object walks to, and the step it arrives at. The object
-      // itself never moves in the buffers - the offset is added in the shader -
-      // so this is two numbers and a step rather than a position per frame.
-      ...(isPair(p.path?.to) ? { path: { to: p.path.to.map(round), step: p.path.step ?? 0 } } : {}),
       // Which pose a rigged model is frozen in. One model in the library can be
       // stood, sat, walking or fallen, and which it is belongs to the placement
       // rather than to the library.
@@ -143,9 +139,6 @@ export function parse(input) {
       ...(o.until !== undefined ? { until: o.until } : {}),
       ...(o.label ? { label: o.label } : {}),
       ...(o.tints && typeof o.tints === 'object' ? { tints: { ...o.tints } } : {}),
-      ...(isPair(o.path?.to)
-        ? { path: { to: [o.path.to[0], o.path.to[1]], step: Number(o.path.step) || 0 } }
-        : {}),
       ...(typeof o.pose?.clip === 'string'
         ? { pose: { clip: o.pose.clip, time: Number(o.pose.time) || 0 } }
         : {}),
@@ -274,6 +267,25 @@ function migrate(data) {
       steps: (out.steps ?? []).map(({ hold, approachTime, ...rest }) => rest),
     };
   }
+  if (out.trail < 8) {
+    /**
+     * **Version 7 could move an object; version 8 cannot.**
+     *
+     * An object could carry a `path` - somewhere on the ground it walked to and
+     * the step it arrived at - and the user does not want it: *"i dont want to
+     * add motion to my objects for now."* Dropped rather than rewritten, like
+     * `hold` before it: an object with no path stayed where it was put, so a
+     * version 7 canvas opens exactly as it did and simply cannot walk.
+     *
+     * Left where it can be found rather than only in the history, because
+     * *"for now"* is not *"never"*.
+     */
+    out = {
+      ...out,
+      trail: 8,
+      objects: (out.objects ?? []).map(({ path, ...rest }) => rest),
+    };
+  }
   return out;
 }
 
@@ -342,7 +354,6 @@ export function reorder({ route, layout = [], areas = [] }, order) {
       ...o,
       from: clamp(remap(o.from ?? 0)),
       ...far(o.until),
-      ...(o.path ? { path: { ...o.path, step: clamp(remap(o.path.step ?? 0)) } } : {}),
     })),
     areas: areas.map((a) => ({
       ...a,
@@ -389,7 +400,6 @@ export function openPiece({ route, layout = [], areas = [] }, index, pitch) {
         at: [o.at[0] + (to - on) * pitch, o.at[1], o.at[2]],
         from: to,
         ...far(o.until),
-        ...(o.path ? { path: { ...o.path, step: shift(o.path.step ?? 0) } } : {}),
       };
     }),
     areas: areas.map((a) => {
@@ -434,7 +444,6 @@ export function cutPiece({ route, layout = [], areas = [] }, index, pitch) {
       ...o,
       ...closed(o.at, [o.at[1], o.at[2]]),
       ...far(o.until),
-      ...(o.path ? { path: { ...o.path, step: shift(o.path.step ?? 0) } } : {}),
     })),
     areas: areas.filter((a) => survives(a.at)).map((a) => ({
       ...a,
@@ -468,11 +477,6 @@ export function copyPiece({ layout = [], areas = [] }, from, to, pitch) {
   if (!isNumber(from) || !isNumber(to) || from === to) return { layout, areas };
   const step = (to - from) * pitch;
   const on = (at) => pieceOf(at?.[0], pitch) === from;
-  // A path is a place on the ground the object walks to, so it moves with the
-  // copy - and it is walked on the piece the copy stands on, not the original's.
-  const path = (o) => (o.path
-    ? { path: { ...o.path, to: [o.path.to[0] + step, o.path.to[1]], step: to } }
-    : {});
 
   return {
     layout: [
@@ -481,7 +485,6 @@ export function copyPiece({ layout = [], areas = [] }, from, to, pitch) {
         ...o,
         at: [o.at[0] + step, o.at[1], o.at[2]],
         from: to,
-        ...path(o),
       })),
     ],
     areas: [

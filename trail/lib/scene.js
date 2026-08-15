@@ -93,8 +93,6 @@ export function assemble(placements) {
   const objects = new Float32Array(count);
   const fromStep = new Float32Array(count);
   const untilStep = new Float32Array(count);
-  // Where this object goes, if it goes anywhere. See `travelOf`.
-  const travel = new Float32Array(count * 3);
   const ranges = [];
 
   let at = 0;
@@ -107,39 +105,20 @@ export function assemble(placements) {
     // A placement with no range is solid from the start and never leaves.
     fromStep.fill(placements[index].from ?? 0, at, at + part.count);
     untilStep.fill(placements[index].until ?? 9999, at, at + part.count);
-    const [dx, dz, when] = travelOf(placements[index]);
-    for (let i = at; i < at + part.count; i++) {
-      travel[i * 3] = dx; travel[i * 3 + 1] = dz; travel[i * 3 + 2] = when;
-    }
     ranges.push({ start: at, count: part.count });
     at += part.count;
   });
-  return { positions, colours, seeds, sizes, objects, fromStep, untilStep, travel, ranges, count };
+  return { positions, colours, seeds, sizes, objects, fromStep, untilStep, ranges, count };
 }
 
-/**
- * Where a placement travels to, as three numbers per vertex.
- *
- * An object that moves would seem to contradict the rule the whole renderer
- * rests on - the field is built once and never touched again - and it does not,
- * because **nothing here moves.** The buffers still hold one fixed position per
- * vertex. What travels is an offset the vertex shader adds, from two numbers
- * that were uploaded with everything else and a uniform saying how far through
- * the move the route is.
- *
- * So the processor does no work per frame and no work per cube, the field is
- * still uploaded once, and a step range still decides what is solid. This is
- * the same trick the looped motion already uses, pointed at a longer distance.
- *
- * `step` is which step the object arrives at. Before it, the object is at the
- * start of its line; after it, at the end; during the flight into it, part way.
- */
-export function travelOf(placement) {
-  const path = placement?.path;
-  if (!path || !Array.isArray(path.to) || path.to.length < 2) return [0, 0, -1];
-  const at = placement.at ?? [0, 0, 0];
-  return [path.to[0] - at[0], path.to[1] - at[2], path.step ?? 0];
-}
+// **There is no travelOf.** An object could be given a line to walk: it was
+// uploaded at the start of it and the vertex shader added an offset from three
+// numbers carried per vertex, so the field stayed static and nothing ran per
+// frame over the cubes. It was a sound mechanism for a feature that is not
+// wanted - *"i dont want to add motion to my objects for now"* - and everything
+// it fed went with it: the attribute in three shaders, the uniform that drove
+// it, and the field in the canvas file.
+
 
 /**
  * The same placements, as one merged surface instead of cubes.
@@ -171,8 +150,6 @@ export function assembleMeshes(items) {
   // How each model wants to be finished, worked out from how fine its own
   // triangles are. See `finishFor`.
   const finish = new Float32Array(count * 2);
-  // Where this object goes, if it goes anywhere. See `travelOf`.
-  const travel = new Float32Array(count * 3);
   const indices = new Uint32Array(triangles);
   const ranges = [];
 
@@ -241,12 +218,6 @@ export function assembleMeshes(items) {
     objects.fill(index, at, at + mesh.count);
     fromStep.fill(item.from ?? 0, at, at + mesh.count);
     untilStep.fill(item.until ?? 9999, at, at + mesh.count);
-    const [dx, dz, when] = travelOf(item);
-    for (let v = 0; v < mesh.count; v++) {
-      travel[(at + v) * 3] = dx;
-      travel[(at + v) * 3 + 1] = dz;
-      travel[(at + v) * 3 + 2] = when;
-    }
 
     for (let i = 0; i < mesh.indices.length; i++) indices[face + i] = mesh.indices[i] + at;
 
@@ -257,7 +228,7 @@ export function assembleMeshes(items) {
 
   return {
     positions, normals, colours, seeds, objects, fromStep, untilStep, ao,
-    pivots, motion, finish, travel,
+    pivots, motion, finish,
     indices, ranges, count, triangles: triangles / 3,
   };
 }
@@ -321,11 +292,6 @@ export function contactShadows(scene, placements) {
   const radii = new Float32Array(count);
   const fromStep = new Float32Array(count);
   const untilStep = new Float32Array(count);
-  // A shadow travels with the thing casting it. Leaving it behind is exactly
-  // the bug this file already recorded once, when a dragged object left its
-  // shadow where it had been.
-  const travel = new Float32Array(count * 3);
-
   boxes.forEach((box, i) => {
     centres[i * 3] = (box.min[0] + box.max[0]) / 2;
     centres[i * 3 + 1] = 0;
@@ -335,11 +301,9 @@ export function contactShadows(scene, placements) {
     radii[i] = footprint * 0.62;
     fromStep[i] = placements[i]?.from ?? 0;
     untilStep[i] = placements[i]?.until ?? 9999;
-    const [dx, dz, when] = travelOf(placements[i]);
-    travel[i * 3] = dx; travel[i * 3 + 1] = dz; travel[i * 3 + 2] = when;
   });
 
-  return { centres, radii, fromStep, untilStep, travel, count };
+  return { centres, radii, fromStep, untilStep, count };
 }
 
 /**

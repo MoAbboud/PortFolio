@@ -257,28 +257,22 @@ test('a canvas with no places reads as having none rather than as broken', () =>
   assert.deepEqual(read.areas, []);
 });
 
-test('where an object walks to survives a round trip', () => {
-  const written = serialise({
-    layout: [{ model: 'person', at: [1, 0, 2], path: { to: [9, -3], step: 4 } }],
-    route: [{ framing: { x: 0, z: 0, w: 10, d: 6 }, hold: 1000 }],
-  });
-  assert.deepEqual(written.objects[0].path, { to: [9, -3], step: 4 });
-  assert.deepEqual(parse(written).layout[0].path, { to: [9, -3], step: 4 });
-});
-
-test('an object with a half-written path is left standing still', () => {
+test('a path is dropped, because objects do not move', () => {
+  // **Version 7 could move an object; version 8 cannot.** An object carried a
+  // `path` - somewhere on the ground it walked to and the step it arrived at -
+  // and it is not wanted: *"i dont want to add motion to my objects for now."*
+  // Dropped rather than rewritten, like `hold` before it: an object with no
+  // path stayed where it was put, so an old canvas opens exactly as it did.
   const read = parse({
-    trail: 4,
-    objects: [
-      { model: 'a', at: [0, 0, 0], path: { step: 1 } },
-      { model: 'b', at: [0, 0, 0], path: { to: [1] } },
-      { model: 'c', at: [0, 0, 0] },
-    ],
-    steps: [{ framing: { x: 0, z: 0, w: 10, d: 6 }, hold: 1000 }],
+    trail: 7,
+    objects: [{ model: 'person', at: [1, 0, 2], path: { to: [9, -3], step: 4 } }],
+    steps: [{ framing: { x: 0, z: 0, w: 10, d: 6 } }],
   });
-  for (const object of read.layout) {
-    assert.equal(object.path, undefined, `${object.model} should not travel`);
-  }
+  assert.equal(read.layout[0].path, undefined, 'a path survived into a Trail that cannot walk it');
+  assert.deepEqual(read.layout[0].at, [1, 0, 2], 'the object moved when its path was dropped');
+  // And nothing writes one back out.
+  const written = serialise(read);
+  assert.ok(!('path' in written.objects[0]), 'an object was written with a path on it');
 });
 
 test('a version 3 canvas still opens, and gains nothing it did not say', () => {
@@ -288,7 +282,6 @@ test('a version 3 canvas still opens, and gains nothing it did not say', () => {
     steps: [{ framing: { x: 0, z: 0, w: 10, d: 6 }, hold: 2000, weather: 'dusk' }],
   });
   assert.equal(read.route[0].hour, undefined);
-  assert.equal(read.layout[0].path, undefined);
   assert.deepEqual(read.areas, []);
 });
 
@@ -296,7 +289,7 @@ test('everything new survives being saved twice', () => {
   // The round trip has to be stable or an autosave rewrites the file every time
   // it runs, which makes a canvas under version control unreadable.
   const build = () => serialise(parse(serialise({
-    layout: [{ model: 'person', at: [1, 0, 2], label: 'Marla', path: { to: [4, 5], step: 1 } }],
+    layout: [{ model: 'person', at: [1, 0, 2], label: 'Marla' }],
     route: [{ framing: { x: 0, z: 0, w: 10, d: 6 }, hold: 1000, hour: 7.25 }],
     areas: [{ at: [0, 0], size: [6, 6], label: 'the bar' }],
   })));
@@ -386,7 +379,7 @@ const THREE = () => ({
   ],
   layout: [
     { model: 'a', at: [0, 0, 0], from: 0 },
-    { model: 'b', at: [0, 0, 0], from: 2, path: { to: [4, 4], step: 2 } },
+    { model: 'b', at: [0, 0, 0], from: 2 },
     { model: 'c', at: [0, 0, 0], from: 1, until: 2 },
   ],
   areas: [{ at: [0, 0], size: [4, 4], label: 'the bar', from: 2 }],
@@ -403,7 +396,6 @@ test('everything pointing at a moved step follows it', () => {
   // arriving in the wrong shot.
   const out = reorder(THREE(), moved(3, 2, 0));
   assert.equal(out.layout[1].from, 0, 'the object that appeared at the last step follows it');
-  assert.equal(out.layout[1].path.step, 0, 'and so does the step it walks its line on');
   assert.equal(out.layout[0].from, 1, 'the object that appeared first moved down one');
   assert.equal(out.layout[2].from, 2);
   assert.equal(out.layout[2].until, 0, 'both ends of a range move');
@@ -444,9 +436,6 @@ test('a reference is never left pointing past the end of a shorter route', () =>
     if (object.until !== undefined && object.until < 9999) {
       assert.ok(object.until < out.route.length, `${object.model} ends past the end`);
     }
-    if (object.path) {
-      assert.ok(object.path.step < out.route.length, `${object.model} walks on a step that is gone`);
-    }
   }
 });
 
@@ -481,7 +470,6 @@ test('a duplicated step keeps its references on the original, at any position', 
   assert.equal(out.layout[0].from, 0, 'an object before the insertion is untouched');
   assert.equal(out.layout[2].from, 1, 'an object on the duplicated step stays on the original');
   assert.equal(out.layout[1].from, 3, 'an object after it moves down one');
-  assert.equal(out.layout[1].path.step, 3, 'and so does the step it walks its line on');
   assert.equal(out.areas[0].from, 3, 'a place is a step reference too');
 });
 
@@ -490,7 +478,6 @@ test('rearranging nothing changes nothing', () => {
   const out = reorder(before, [0, 1, 2]);
   assert.deepEqual(out.route, before.route);
   assert.deepEqual(out.layout.map((o) => o.from), [0, 2, 1]);
-  assert.deepEqual(out.layout[1].path, { to: [4, 4], step: 2 });
 });
 
 test('an order is a list of old positions, and a bad move is refused quietly', () => {
@@ -583,18 +570,14 @@ test('what stands on a piece can be carried onto another', () => {
 });
 
 test('a carried object walks its line on the piece it was carried to', () => {
-  // A path names the step it is walked on, and a copy that kept the original's
-  // would move on somebody else's minute.
+  //   // would move on somebody else's minute.
   const pitch = pitchOf(DEFAULT_PIECE);
   const layout = [
-    { model: 'person', at: [2, 0, 0], from: 0, path: { to: [6, 3], step: 0 } },
+    { model: 'person', at: [2, 0, 0], from: 0 },
   ];
   const out = copyPiece({ layout }, 0, 1, pitch);
   const copy = out.layout[1];
-  assert.equal(copy.path.step, 1, 'the copy walks its line on the original piece');
   // Where it walks to moves with it, or a carried figure walks back across the join.
-  near(copy.path.to[0], 6 + pitch);
-  near(copy.path.to[1], 3);
 });
 
 test('carrying a piece onto itself changes nothing', () => {

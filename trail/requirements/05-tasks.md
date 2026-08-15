@@ -127,6 +127,103 @@ drawing board... not even a take is a thing. Just steps."* The reasoning is in `
 under "Trail does not play anything". **This is the largest cancellation in the project**, because
 every document here had assumed since the first conversation that the output is a recording.
 
+### 11j - Objects do not move
+
+**Decided 2026-08-13:** *"Remove the trace where it goes features, i dont want to add motion to my
+objects for now."*
+
+- [x] **`travelOf` and the travel buffers are gone** from `scene.js`, in all three paths - the
+      cube field, the surface and the contact shadows
+- [x] **`aTravel`, `travelled()` and `uArrive`** are gone from the cube, mesh and shadow shaders,
+      and `arrive` from everything that passed it down
+- [x] The trace and clear buttons, `state.tracing`, and the drag that drew the line
+- [x] The name tag's travel offset, which existed so a tag walked with the person it names
+- [x] **Canvas file version 8 drops `path`.** Dropped rather than rewritten, like `hold` before
+      it: an object with no path stayed where it was put, so a version 7 canvas opens exactly as
+      it did and simply cannot walk
+- [x] The rule that dragged a path along with its object in `reorder`, `openPiece`, `cutPiece`
+      and `copyPiece` - four operations that each had to know about it
+- [x] **The mechanism was the good part**, and it does not save the feature. It is written up in
+      `06-context.md` as the one request that looked like it broke the static-field rule and did
+      not; a mechanism with nothing to carry is only surface area
+- [ ] *"For now"* is not *"never"*. The migration says what it dropped where it can be found,
+      rather than leaving it only in the history
+
+### 11i - The border, the light and the stutter
+
+- [x] **The sheet has a hard edge.** It faded out over a tenth of its width, which was written up
+      as a sheet lying in the dark and is, in use, a blur
+- [x] **The border is a line, not a gradient** - and that took two goes. The first version ramped
+      from full strength at the edge down to nothing across its whole width, so there was no width
+      at which it was solid, and making it brighter only made a brighter gradient. Measured in
+      pixels it is solid to its half-width and softened over exactly one pixel after it
+- [x] **The outer rule is ink and the inner one is gold.** Gold on parchment is two warm light
+      colours a few steps apart, so a gold border had almost nothing to define itself against.
+      Ink is what a line on a drawing board is; the gold moved inward to a **second rule**, which
+      is what a border on a technical drawing actually is
+- [x] Both rules are traced together, so what is watched is two concentric lines being drawn
+- [x] Floored at a pixel and capped against the plate, so it neither disappears at the far end of
+      the overview nor swallows a plate that is small on screen
+- [x] **The border is wide in pixels, not in the world**, so it holds at any distance - a width in
+      world units is a band close up and gone at the pull-back. It stays bright after it is drawn:
+      a pencil guide fades, the edge of the sheet is what is being composed inside
+- [x] **The drawing has a head.** What was missing was not brightness but the two points doing the
+      drawing; a bright head travelling the path is what makes it read as being drawn
+- [x] Stars a little bigger, floor and ceiling both
+- [x] **The spotlight is one press.** Half strength, on the selection, the room dark with it, the
+      camera closing in a little. No slider and no aim button - two decisions where there are none
+- [x] **It comes in from the top right**: the pool is an ellipse thrown past what it is aimed at,
+      because a cone meeting the ground at an angle makes one, and the faces turned toward the
+      light take more of it
+- [x] Pressing again puts it out **and gives the room back**, judged on what was asked for rather
+      than on how bright the light has become
+- [x] **The stutter, measured**: `fromTriangles` is 224 ms on a house against 31 for voxelising
+      and 86 for reading. The occupancy grid was sampled at half a cell, four times what a grid of
+      that resolution holds. At one cell it is **173 ms**, and the occlusion tests are unchanged
+- [ ] **Not fixed, only smaller.** A model is converted once and cached, so browsing pays it
+      rather than placing - and what placing pays is `rebuild`, which reassembles the whole cube
+      field and re-uploads it every time. **That has never been measured** and at sixty objects it
+      is the obvious next suspect
+
+### 11f - The blueprint theme, and the canvas drawing itself in
+
+**Asked for 2026-08-13**, from `templates/drawing/Straight lines - gold background/`.
+
+- [x] **The palette is the reference's own**, written into the shader as constants rather than
+      settings: parchment `#f5ead6`, `#e8d5b4`, ink `#2c1810`, gold `#d4a853`. The board's rules
+      at 2 and 10 units are already the reference's 20/100 ratio
+- [x] **The sheet is drawn into mid air**: from the middle of a short side, two points diverge,
+      take the corners, run the long sides and converge on the far side. **The fill follows the
+      pen**, so the sheet closes rather than switching on
+- [x] **Two cases, one mechanism.** Changing step draws one piece and leaves the rest alone; the
+      overview sweeps a head along the film so every piece draws in order, first to last
+- [x] **Objects, shadows and places arrive after it**, faded in, reading which piece they are on
+      from where they stand. Nothing can arrive before the sheet it stands on
+- [x] Nothing uploaded, nothing per frame over the objects: a piece works out its own progress
+      from the index it already carries
+- [x] **The trigger is noticed, not called.** A step is reached from seven different controls,
+      and a call in each is a call somebody forgets
+- [ ] Judge the timing by eye: 900ms a sheet, and the next starting 55 per cent into the one
+      before. Both picked by reasoning
+
+### 11g - The blue fog was a sky that is not there
+
+- [x] **The veil faded objects into `uSky`** - the weather's own sky colour, a bright blue for
+      clear - while the sky shader pulls that most of the way to black, because the film hangs in
+      space. So the world receded into blue against a black backdrop
+- [x] `uBackdrop` is worked out once beside the sky's own arithmetic and handed to everything that
+      fades: the veil, the depth fog and the ghost. **Three shaders were each computing "the sky"
+      and none of them was computing the sky**
+
+### 11h - The stub could not test anything the frame does
+
+- [x] **A refused frame ended the loop for good.** The page asks for the next frame from inside
+      the last one, so once one was refused nothing ever asked again - and `allowFrames` had
+      nothing to restart. Everything the frame itself is responsible for was untestable, which is
+      why the draw-in test could not see the animation it was written for
+- [x] The stub holds the refused frame and `allowFrames` resumes it. **The seventh gap of this
+      shape**, and the first that closed off a whole class of test rather than one case
+
 ### 11d - The stars, and something for them to fall toward
 
 **Asked for 2026-08-13:** *"especially the sigularity, would that be possible to incorportate in
@@ -144,6 +241,12 @@ the backgroud? not 1 for 1 copy but more to beautify the stars."*
       centre takes them away. Not a copy - the shape rather than the drawing, because what those
       references have that this did not is somewhere for the eye to go
 - [x] A slow sweep around the disc. One uniform a frame, which is the only per-frame work here
+- [x] **The first version was blurry blobs cut off at the edges**, reported by the user and
+      exactly right: the radius was given in radians while the cells were sized by density, and it
+      came out **wider than the cell it was drawn in**. Everything is measured in cells now, and a
+      star cannot reach its own wall by construction rather than by numbers that happen not to
+- [x] Never drawn finer than a pixel. A star the screen cannot resolve does not look fine, it
+      flickers as the camera turns and the sample lands on it or misses
 - [ ] Judge it by eye: how crowded, how bright the ring is, and whether the sweep is noticed on a
       held shot. Every number here was picked by reasoning
 

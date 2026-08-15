@@ -111,23 +111,76 @@ vec3 bendNormal(vec3 n, float x) {
  * a place in the film, and once the world is rolled two places can be near each
  * other in space while being half a story apart.
  */
+/**
+ * How far a piece has been drawn in.
+ *
+ * **The canvas is drawn into mid air before anything stands on it.** Asked for
+ * as: *"when i change steps, I want the canvas box to start from one point, the
+ * middle of the short side of the rectangle, 2 points diverge, making the
+ * corner, longer side, closing corner and coverging back into a point forming
+ * and filling the canvas."*
+ *
+ * **Two numbers do both cases**, which is why there is no second code path:
+ *
+ * - Changing step draws one piece. `uDrawOnly` names it; every other piece is
+ *   already there and stays at 1.
+ * - The overview draws them in order, first to last, so the whole event arrives
+ *   as a sequence rather than all at once. `uDrawOnly` is -1 and the head
+ *   sweeps along the film, so each piece starts as the head reaches it.
+ *
+ * Nothing per frame on the processor and nothing rewritten: a piece works out
+ * its own progress from its own index, which it already has as an attribute.
+ */
+const DRAW = `
+uniform vec2 uDraw;       // where the drawing has reached, and how long a piece takes
+uniform float uDrawOnly;  // the one piece being drawn, or -1 for all of them in order
+
+float drawnAt(float piece) {
+  if (uDraw.y <= 0.0) return 1.0;
+  // A piece nobody is drawing is simply there, which is what makes changing one
+  // step leave the rest of the film alone.
+  if (uDrawOnly >= -0.5 && abs(piece - uDrawOnly) > 0.5) return 1.0;
+  return clamp((uDraw.x - piece) / uDraw.y, 0.0, 1.0);
+}
+`;
+
 const LIGHT = `
 uniform float uRoom;      // 0 the world as lit, 1 a dark room
 uniform vec4 uSpot;       // where the light points: x, z, its radius, and how bright
 
-/** How much of the spotlight reaches a place on the film. */
+/**
+ * How much of the spotlight reaches a place on the film.
+ *
+ * **It comes in from the top right rather than from straight above**, which is
+ * how a stage light is hung and is what the user asked for: *"not from straight
+ * the top. From the top right, as if its coming into a stage."*
+ *
+ * Two things say so. The pool is an **ellipse**, because a cone meeting the
+ * ground at an angle makes one - a circle is what you get only from directly
+ * overhead - and it is stretched along the direction the light travels. And it
+ * is **thrown past** what it is aimed at, because the far side of a tilted cone
+ * reaches further than the near side.
+ */
 float spotAt(vec3 onStrip) {
   if (uSpot.w < 0.001) return 0.0;
-  float away = distance(onStrip.xz, uSpot.xy);
+  // Where the light comes from, on the ground: up and to the right of the
+  // object, so the pool is cast down and to the left of it.
+  const vec2 FROM = vec2(0.55, -0.34);
+  vec2 away = onStrip.xz - (uSpot.xy - FROM * uSpot.z * 0.42);
+  // Squashed across the throw and stretched along it, which is the ellipse.
+  vec2 along = normalize(FROM);
+  vec2 shaped = vec2(dot(away, along) / 1.35, dot(away, vec2(-along.y, along.x)));
+  float reach = length(shaped);
   // Bright in the middle, soft at the rim. A hard circle reads as a decal on
   // the ground; a soft one reads as light falling on it.
-  float pool = 1.0 - smoothstep(uSpot.z * 0.45, uSpot.z, away);
+  float pool = 1.0 - smoothstep(uSpot.z * 0.45, uSpot.z, reach);
   return pool * pool * uSpot.w;
 }
 `;
 
 const CUBE_VS = `#version 300 es
 ${ROLL}
+${DRAW}
 in vec3 aPos;
 in vec3 aNormal;
 in vec3 aOffset;
@@ -137,7 +190,6 @@ in float aSize;
 in float aObject;
 in float aFrom;           // the step this object solidifies at
 in float aUntil;          // the last step it is solid for
-in vec3 aTravel;          // where this object goes: dx, dz, and the step it arrives at
 
 uniform mat4 uViewProj;
 uniform float uTime;
@@ -146,7 +198,6 @@ uniform float uShimmer;
 uniform float uSelected;  // -1 for nothing selected
 uniform float uStep;      // the step being shown
 uniform float uStepT;     // how far into arriving at it, 0 to 1
-uniform float uArrive;    // how far through the flight into it, 0 to 1
 
 out vec3 vColour;
 out vec3 vNormal;
@@ -159,20 +210,25 @@ out vec3 vWorld;
 out vec2 vFinish;
 out float vVeil;
 out vec3 vStrip;
+out float vArrived;
 
-
-// How far along its line this object is.
-//
-// An object never moves in the buffers: it is uploaded once, at the start of
-// its line, and this offset is added here. Before the step it arrives at, it is
-// at the beginning; after, at the end; across the flight into it, part way. So
-// the field stays static, the processor does nothing per frame, and an object
-// can still cross the canvas.
-vec3 travelled(vec3 t, float step, float arrive) {
-  if (t.z < -0.5) return vec3(0.0);
-  float f = step > t.z + 0.5 ? 1.0 : (step > t.z - 0.5 ? arrive : 0.0);
-  return vec3(t.x, 0.0, t.y) * f;
+/**
+ * How much of this object has arrived.
+ *
+ * **A thing standing on a piece cannot be there before the piece is.** The
+ * sheet is drawn into mid air first and what stands on it fades in after a
+ * short delay, which is the whole shape the user asked for. The delay is the
+ * 0.72 below: nothing appears until the sheet is nearly closed.
+ *
+ * Which piece a thing is on is read from **where it stands**, exactly as
+ * everything else in this app reads it - there is no field to keep in step and
+ * nothing to go stale.
+ */
+float arrivedAt(vec3 onStrip) {
+  float piece = floor(onStrip.x / uPitch + 0.5);
+  return smoothstep(0.72, 1.0, drawnAt(piece));
 }
+
 
 // How present this cube is. Unvisited parts of the canvas are ghosts, they
 // solidify as the camera reaches them, and they fade back out once the story
@@ -191,7 +247,7 @@ void main() {
   // reading as a photograph.
   float s = aSeed * 6.2831853;
   vec3 wobble = vec3(sin(uTime * 1.1 + s), sin(uTime * 0.9 + s * 1.7), cos(uTime * 1.3 + s));
-  vec3 world = aOffset + wobble * uShimmer + travelled(aTravel, uStep, uArrive);
+  vec3 world = aOffset + wobble * uShimmer;
 
   // A ghost is smaller as well as fainter, so an unvisited part of the canvas
   // reads as not-yet-arrived rather than as badly lit.
@@ -207,6 +263,7 @@ void main() {
   // ask the spotlight the same question the ground does. See the note on vStrip
   // in the fragment shader for why it is not answered here.
   vStrip = onStrip;
+  vArrived = arrivedAt(onStrip);
   vY = onStrip.y;
   vec3 p = bend(onStrip);
   vWorld = p;
@@ -246,9 +303,23 @@ in float vVeil;
  * interpolates a circle into a diamond exactly as the plate did.
  */
 in vec3 vStrip;
+// How much of this object has arrived, which is nothing until the sheet under
+// it has been drawn.
+in float vArrived;
 
 uniform vec3 uSun;
 uniform vec3 uSky;
+/**
+ * What is actually behind the world.
+ *
+ * **uSky is the weather's own sky colour** - a bright blue for clear - and the
+ * sky shader pulls that most of the way to black, because the film hangs in
+ * space rather than under an atmosphere. So anything fading "into the sky" has
+ * to fade into the colour that is really there: fading into uSky turned a
+ * distant piece blue against a black backdrop, which is what the user saw as
+ * *"a blue fog that shows up when i zoom out too far"*.
+ */
+uniform vec3 uBackdrop;
 uniform float uFogNear;
 uniform float uFogFar;
 uniform float uTint;      // mirrored pass is dimmed
@@ -287,10 +358,16 @@ void main() {
   // after is what makes a spotlight read as the only light in the place rather
   // than as a bright patch laid over a lit world.
   colour *= mix(1.0, 0.12, uRoom);
-  colour += vColour * spotAt(vStrip) * 1.35;
+  // **Lit from where the light is.** A pool on the ground with a flatly
+  // brightened object standing in it reads as a decal; the faces turned toward
+  // the light have to take more of it, which is what says the light is coming
+  // from up and to the right rather than from everywhere.
+  vec3 fromLight = normalize(vec3(0.55, 0.78, -0.34));
+  float facing = 0.45 + 0.55 * max(dot(n, fromLight), 0.0);
+  colour += vColour * spotAt(vStrip) * 1.5 * facing;
 
   float fog = clamp((vDepth - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0);
-  colour = mix(colour, uSky, fog * 0.85);
+  colour = mix(colour, uBackdrop, fog * 0.85);
 
   // **The veil: measured from the piece, not from the camera.**
   //
@@ -300,12 +377,15 @@ void main() {
   // shader from the position on the **flat** strip, because once the world is
   // rolled two pieces can be near each other in space while being half a story
   // apart along the film.
-  colour = mix(uSky, colour, vVeil);
+  // **Fading into the backdrop rather than becoming transparent**, exactly as
+  // the veil does - it reads the same against space and needs no sorting, which
+  // transparency over a hundred thousand cubes would.
+  colour = mix(uBackdrop, colour, vVeil * vArrived);
 
   // A ghost is washed most of the way into the sky rather than made
   // transparent. It reads the same and it needs no sorting, which transparency
   // over a hundred thousand cubes would.
-  vec3 ghost = mix(uSky, colour, 0.22);
+  vec3 ghost = mix(uBackdrop, colour, 0.22);
   colour = mix(ghost, colour, vSolid);
 
   // A selected object lifts out of the scene without changing its own colours,
@@ -320,6 +400,7 @@ void main() {
 // apart in how they are lit, fogged, ghosted or highlighted.
 const MESH_VS = `#version 300 es
 ${ROLL}
+${DRAW}
 in vec3 aPos;
 in vec3 aNormal;
 in vec3 aColour;
@@ -328,7 +409,6 @@ in float aObject;
 in float aFrom;
 in float aUntil;
 in float aAo;
-in vec3 aTravel;
 in vec3 aPivot;
 in vec4 aMotion;   // kind, amplitude in radians, phase, axis
 // How this model wants to be finished, decided from how fine its own triangles
@@ -343,7 +423,6 @@ uniform float uShimmer;
 uniform float uSelected;
 uniform float uStep;
 uniform float uStepT;
-uniform float uArrive;
 
 // Small looped movement about a point. Enough for an arm swaying, a wheel
 // turning, a canopy in the wind and water on a pool; deliberately not enough
@@ -379,6 +458,24 @@ out vec3 vWorld;
 out vec2 vFinish;
 out float vVeil;
 out vec3 vStrip;
+out float vArrived;
+
+/**
+ * How much of this object has arrived.
+ *
+ * **A thing standing on a piece cannot be there before the piece is.** The
+ * sheet is drawn into mid air first and what stands on it fades in after a
+ * short delay, which is the whole shape the user asked for. The delay is the
+ * 0.72 below: nothing appears until the sheet is nearly closed.
+ *
+ * Which piece a thing is on is read from **where it stands**, exactly as
+ * everything else in this app reads it - there is no field to keep in step and
+ * nothing to go stale.
+ */
+float arrivedAt(vec3 onStrip) {
+  float piece = floor(onStrip.x / uPitch + 0.5);
+  return smoothstep(0.72, 1.0, drawnAt(piece));
+}
 
 float solidity(float step, float t, float from, float until) {
   if (step < from - 0.5) return 0.0;
@@ -388,12 +485,6 @@ float solidity(float step, float t, float from, float until) {
   return 0.0;
 }
 
-// See the cube shader: an object never moves in the buffers, it is offset here.
-vec3 travelled(vec3 t, float step, float arrive) {
-  if (t.z < -0.5) return vec3(0.0);
-  float f = step > t.z + 0.5 ? 1.0 : (step > t.z - 0.5 ? arrive : 0.0);
-  return vec3(t.x, 0.0, t.y) * f;
-}
 
 void main() {
   vSolid = solidity(uStep, uStepT, aFrom, aUntil);
@@ -406,13 +497,13 @@ void main() {
   // apart into something that is not the shape any more.
   float breathe = sin(uTime * 1.1 + aSeed * 6.2831853) * uShimmer * 3.0 * aFinish.y;
   float shrink = mix(-0.06, 0.0, vSolid);
-  vec3 p = turned(aPos, aPivot, aMotion, uTime) + aNormal * (breathe + shrink)
-    + travelled(aTravel, uStep, uArrive);
+  vec3 p = turned(aPos, aPivot, aMotion, uTime) + aNormal * (breathe + shrink);
 
   // See the cube shader: the veil and the spotlight are measured on the flat
   // strip, and the spotlight is asked per fragment rather than here.
   vVeil = veilOf(p);
   vStrip = p;
+  vArrived = arrivedAt(p);
   vY = p.y;
   vec3 onStrip = p;
   p = bend(p);
@@ -432,20 +523,22 @@ void main() {
 // a little, and no amount of shading on the object itself fixes that.
 const SHADOW_VS = `#version 300 es
 ${ROLL}
+${DRAW}
 in vec2 aCorner;
 in vec3 aCentre;
 in float aRadius;
 in float aFrom;
 in float aUntil;
-in vec3 aTravel;
 
 uniform mat4 uViewProj;
 uniform float uStep;
 uniform float uStepT;
-uniform float uArrive;
 out vec2 vLocal;
 out float vSolid;
 out float vVeil;
+// A contact shadow before the thing casting it has arrived is a shadow of
+// nothing, so it comes in with its object.
+out float vArrived;
 
 float solidity(float step, float t, float from, float until) {
   if (step < from - 0.5) return 0.0;
@@ -456,12 +549,6 @@ float solidity(float step, float t, float from, float until) {
 }
 
 
-// See the cube shader: an object never moves in the buffers, it is offset here.
-vec3 travelled(vec3 t, float step, float arrive) {
-  if (t.z < -0.5) return vec3(0.0);
-  float f = step > t.z + 0.5 ? 1.0 : (step > t.z - 0.5 ? arrive : 0.0);
-  return vec3(t.x, 0.0, t.y) * f;
-}
 
 void main() {
   vLocal = aCorner;
@@ -469,11 +556,11 @@ void main() {
   // Veiled with the thing casting it. A shadow is multiplied onto the ground,
   // so one left behind past the veil is a dark blot on what should be sky.
   vVeil = veilOf(aCentre);
+  vArrived = smoothstep(0.72, 1.0, drawnAt(floor(aCentre.x / uPitch + 0.5)));
   // Just above the ground, so it never fights the floor for depth. A shadow
   // travels with the object casting it, or it is left standing where the
   // object used to be.
-  vec3 p = aCentre + vec3(aCorner.x * aRadius, 0.01, aCorner.y * aRadius)
-    + travelled(aTravel, uStep, uArrive);
+  vec3 p = aCentre + vec3(aCorner.x * aRadius, 0.01, aCorner.y * aRadius);
   // **Rolled with everything else.** Left flat, a shadow stays where the object
   // used to be while the world turns out from under it.
   gl_Position = uViewProj * vec4(bend(p), 1.0);
@@ -484,11 +571,12 @@ precision highp float;
 in vec2 vLocal;
 in float vSolid;
 in float vVeil;
+in float vArrived;
 uniform float uStrength;
 out vec4 frag;
 void main() {
   float edge = 1.0 - clamp(length(vLocal), 0.0, 1.0);
-  float mask = edge * edge * vSolid * uStrength * vVeil;
+  float mask = edge * edge * vSolid * uStrength * vVeil * vArrived;
   // Multiplied onto the ground rather than drawn over it, so a shadow darkens
   // whatever is beneath it instead of painting a grey disc on top.
   frag = vec4(vec3(1.0 - mask), 1.0);
@@ -503,6 +591,7 @@ void main() {
 // story that happens in it.
 const AREA_VS = `#version 300 es
 ${ROLL}
+${DRAW}
 in vec2 aCorner;
 in vec3 aCentre;
 in vec2 aHalf;
@@ -518,6 +607,7 @@ out vec2 vLocal;
 out vec3 vTint;
 out float vSolid;
 out vec3 vStrip;
+out float vArrived;
 
 float solidity(float step, float t, float from, float until) {
   if (step < from - 0.5) return 0.0;
@@ -538,6 +628,7 @@ void main() {
   // same thing the objects and the plates carry, and per fragment for the same
   // reason: a place is two triangles.
   vStrip = p;
+  vArrived = smoothstep(0.72, 1.0, drawnAt(floor(p.x / uPitch + 0.5)));
   gl_Position = uViewProj * vec4(bend(p), 1.0);
 }`;
 
@@ -548,6 +639,7 @@ in vec2 vLocal;
 in vec3 vTint;
 in float vSolid;
 in vec3 vStrip;
+in float vArrived;
 out vec4 frag;
 void main() {
   // Soft at the edges and stronger at the rim than in the middle, so an area
@@ -556,7 +648,7 @@ void main() {
   vec2 d = abs(vLocal);
   float inside = (1.0 - smoothstep(0.86, 1.0, max(d.x, d.y)));
   float rim = smoothstep(0.62, 0.99, max(d.x, d.y));
-  float alpha = inside * vSolid * (0.16 + 0.30 * rim);
+  float alpha = inside * vSolid * (0.16 + 0.30 * rim) * vArrived;
   if (alpha < 0.004) discard;
 
   // **A place is ground, so the room reaches it.** It is laid into the floor and
@@ -658,6 +750,12 @@ uniform float uTime;
 uniform float uSpace;
 out vec4 frag;
 
+// **Never write a backtick in a shader comment.** These sources are template
+// literals, so a backtick ends the string and the error names a line of GLSL as
+// though it were JavaScript. It has cost five rounds so far, and no test can
+// catch it: a broken template literal stops the module loading, which stops the
+// test file that would have checked it from importing anything at all.
+
 // A stable value per direction, for stars. Nothing is stored and nothing is
 // uploaded: the same direction always hashes to the same number, so the sky
 // holds still while the camera turns through it.
@@ -684,31 +782,52 @@ float hash(vec3 p) {
  * flat sheet of dots; three at different densities, sizes and brightnesses read
  * as near, middle and far.
  */
-vec3 starLayer(vec3 dir, float density, float cut, float radius, float gain, float time) {
+vec3 starLayer(vec3 dir, float density, float cut, float gain, float time) {
   vec3 cell = floor(dir * density);
   float pick = hash(cell);
   // Most cells are empty. This is what sets how crowded the sky is, and it is
   // the first thing to reach for if it ever looks busy.
   if (pick < cut) return vec3(0.0);
 
+  /**
+   * **Everything here is measured in cells, and that is the whole fix.**
+   *
+   * The first version took a radius in *radians* and a density separately, and
+   * at the density it was given the radius came out larger than the cell it was
+   * drawn in. So every star was a soft ball wider than its own box, and the box
+   * cut it off - which is exactly what was reported: *"blurry blubs that are cut
+   * off at the edges."*
+   *
+   * A star is jittered no further than 0.2 of a cell from the middle and is no
+   * wider than 0.28, so the furthest it can reach is 0.48 - inside the 0.5 that
+   * would touch the wall. **It cannot be clipped by construction** rather than
+   * by choosing numbers that happen not to be.
+   */
   vec3 jitter = vec3(hash(cell + 1.7), hash(cell + 5.3), hash(cell + 9.1));
-  vec3 at = normalize((cell + 0.5 + (jitter - 0.5) * 0.85) / density);
-  // Unit vectors, so the distance between them is the angle between them for
-  // anything this small. **Edges in increasing order**: smoothstep is undefined
-  // when the first is not below the second, so the ramp is inverted rather than
-  // written backwards.
-  float point = 1.0 - smoothstep(0.0, radius, length(at - dir));
+  vec3 at = normalize((cell + 0.5 + (jitter - 0.5) * 0.4) / density);
+  float away = length(at - dir) * density;
+
+  // **Never smaller than a pixel.** A star finer than the screen can resolve
+  // does not look fine, it flickers as the camera turns and the sample lands
+  // on it or misses. Widened to about a pixel and left to be dim instead.
+  float pixel = length(fwidth(dir)) * density;
+  float radius = clamp(max(0.15, pixel * 1.1), 0.08, 0.30);
+
+  // Edges in increasing order: smoothstep is undefined the other way round.
+  // Cubed, so a star is a tight point with a soft edge rather than a ball.
+  float point = 1.0 - smoothstep(0.0, radius, away);
+  point = point * point * point;
 
   // **Each star keeps its own phase**, so the field shimmers rather than
   // pulsing as one, which is what an animated starfield usually gets wrong.
   float phase = fract(pick * 17.0) * 6.2831853;
-  float alive = 0.78 + 0.22 * sin(time * 1.3 + phase);
+  float alive = 0.82 + 0.18 * sin(time * 1.3 + phase);
   // Stars are not all white and not all the same brightness. Both come off the
   // same hash, so a star keeps its colour and its size wherever you look from.
   vec3 tint = mix(vec3(0.72, 0.80, 1.00), vec3(1.00, 0.87, 0.70), fract(pick * 31.0));
-  float scale = 0.30 + 0.70 * fract(pick * 53.0);
+  float scale = 0.25 + 0.75 * fract(pick * 53.0);
 
-  return tint * point * point * alive * scale * gain;
+  return tint * point * alive * scale * gain;
 }
 
 void main() {
@@ -794,9 +913,9 @@ void main() {
 
     // Three layers: near and bright, middle, and a fine dust that never quite
     // resolves. One layer at any density is a flat sheet of dots.
-    vec3 field = starLayer(dir, 110.0, 0.9880, 0.0115, 1.00, uTime)
-      + starLayer(dir, 240.0, 0.9930, 0.0060, 0.72, uTime)
-      + starLayer(dir, 520.0, 0.9955, 0.0032, 0.45, uTime);
+    vec3 field = starLayer(dir, 90.0, 0.9820, 1.00, uTime)
+      + starLayer(dir, 190.0, 0.9890, 0.62, uTime)
+      + starLayer(dir, 380.0, 0.9930, 0.34, uTime);
 
     colour += field * below * starlight * pull * swallowed;
   }
@@ -837,6 +956,7 @@ void main() {
  */
 const STRIP_VS = `#version 300 es
 ${ROLL}
+${DRAW}
 in vec2 aCorner;
 in float aPiece;          // which piece of the film this plate is
 
@@ -847,6 +967,9 @@ out vec3 vStrip;
 out vec2 vLocal;
 out vec3 vPos;
 out vec3 vFace;
+// How far this piece has been drawn in. Worked out per piece rather than per
+// fragment, because every fragment of one plate shares the answer.
+out float vDrawn;
 out float vDepth;
 out float vVeil;
 
@@ -863,6 +986,7 @@ void main() {
   );
   vLocal = aCorner;
   vStrip = onStrip;
+  vDrawn = drawnAt(aPiece);
   vVeil = veilOf(onStrip);
 
   vec3 p = bend(onStrip);
@@ -884,11 +1008,16 @@ in vec3 vStrip;
 in vec2 vLocal;
 in vec3 vPos;
 in vec3 vFace;
+in float vDrawn;
 in float vDepth;
 in float vVeil;
 
+uniform vec2 uPlate;      // how big a plate is, so a drawn line is a real width
 uniform vec3 uFloor;
 uniform vec3 uSky;
+// See the note in the object shader: the colour the world recedes into is not
+// the weather's sky colour, because the film hangs in space.
+uniform vec3 uBackdrop;
 uniform vec3 uSun;
 uniform vec3 uEye;
 uniform float uFogNear;
@@ -897,6 +1026,20 @@ uniform sampler2D uScars;
 uniform float uScarExtent;
 // What the ground is made of: 0 the board itself, 1 grass, 2 concrete.
 uniform float uGround;
+
+/**
+ * The blueprint palette.
+ *
+ * Taken from the reference the user settled on - a technical drawing on
+ * parchment, ink lines, a gold accent - so the app and the design it is going
+ * to live inside are the same thing rather than two things that nearly match.
+ * Written here as constants because they are the identity of the app, not a
+ * setting: nothing should be able to reach in and change them by accident.
+ */
+const vec3 PARCHMENT = vec3(0.961, 0.918, 0.839);       // #f5ead6
+const vec3 PARCHMENT_DARK = vec3(0.910, 0.835, 0.706);  // #e8d5b4
+const vec3 INK = vec3(0.173, 0.094, 0.063);             // #2c1810
+const vec3 GOLD = vec3(0.831, 0.659, 0.325);            // #d4a853
 
 out vec4 frag;
 
@@ -964,14 +1107,15 @@ void main() {
    * and it is the one that says "this is being drawn" rather than "this is
    * being projected".
    */
-  vec3 paper = mix(vec3(0.84, 0.82, 0.77), vec3(0.90, 0.88, 0.84), coarse);
+  vec3 paper = mix(PARCHMENT_DARK, PARCHMENT, coarse);
   paper = mix(paper, paper * 0.97, fine * 0.6);
-  // Two rules, like any board: a light one you read the spacing from and a
-  // heavier one every fifth line so the eye has something to count by.
+  // Two rules, like any drawing board: a light one to read the spacing from and
+  // a heavier one every fifth line so the eye has something to count by. The
+  // ratio is the reference's own - a minor grid at 20px and a major at 100.
   float fineRule = ruled(at, 2.0, 1.0);
   float heavyRule = ruled(at, 10.0, 1.2);
-  paper = mix(paper, vec3(0.62, 0.66, 0.72), fineRule * 0.16);
-  paper = mix(paper, vec3(0.50, 0.57, 0.66), heavyRule * 0.22);
+  paper = mix(paper, INK, fineRule * 0.10);
+  paper = mix(paper, INK, heavyRule * 0.20);
 
   // Grass: mown patches running across the piece, with a dry tip on the high
   // ground so it is not one sheet of green.
@@ -1003,13 +1147,6 @@ void main() {
   float lambert = max((dot(n, normalize(uSun)) + 0.45) / 1.45, 0.0);
   vec3 colour = ground * mix(0.72, 1.06, lambert);
 
-  // **A soft edge rather than a lip.** The plate used to end in a dark band with
-  // a lit rim along it, which is what a frame of film has and what a sheet of
-  // paper does not. It fades out instead, so a piece reads as a sheet lying in
-  // the dark rather than as a slab with sides.
-  vec2 edge = 1.0 - abs(vLocal);
-  float sheet = smoothstep(0.0, 0.10, min(edge.x, edge.y));
-
   // **The room, then the light in it**, and the pool is worked out here rather
   // than at the corners: a plate is two triangles, so a circle interpolated
   // across it would be a diamond.
@@ -1017,9 +1154,118 @@ void main() {
   float pool = spotAt(vStrip);
   colour += mix(vec3(1.0, 0.96, 0.88), ground * 3.0, 0.35) * pool * 0.9;
 
+  /**
+   * **Drawn into mid air, from one point.**
+   *
+   * The sheet is measured in the units it is actually drawn at rather than in
+   * local ones, so the pen keeps its width whatever size a plate is set to.
+   *
+   *        start                              end
+   *          v                                 v
+   *          +---------------------------------+
+   *   two points diverge, take the corners, run
+   *   the long sides, and converge on the far side
+   *
+   * The line is one path with two halves running in opposite directions, so a
+   * fragment's place along it is the same on the top edge and the bottom. The
+   * fill follows the pen: it reaches exactly as far along the film as the two
+   * points have, which is what makes the sheet close rather than appear.
+   */
+  // "half" is a reserved word in GLSL, which this file has already been caught
+  // by once - hence "halfPlate".
+  vec2 halfPlate = uPlate * 0.5;
+  vec2 fromEdge = (1.0 - abs(vLocal)) * halfPlate;  // to the nearer long / short side
+  float shortSide = halfPlate.y;                    // half the across-strip side
+  float longSide = uPlate.x;                       // a whole side along the film
+  float total = shortSide + longSide + shortSide;
+  float reached = vDrawn * total;
+
+  // Where this fragment sits along that path, if it is on the border at all.
+  float alongShort = abs(vLocal.y) * halfPlate.y;                    // out from the middle
+  float alongLong = shortSide + (vLocal.x + 1.0) * 0.5 * longSide;
+  bool onNear = fromEdge.x < fromEdge.y && vLocal.x < 0.0;
+  bool onFar = fromEdge.x < fromEdge.y && vLocal.x >= 0.0;
+  float place = onNear ? alongShort
+    : (onFar ? shortSide + longSide + (halfPlate.y - alongShort) : alongLong);
+
+  /**
+   * **The border, measured in pixels.**
+   *
+   * The first version ramped from full brightness *at* the edge down to nothing
+   * across the whole of its width. That is a gradient, not a line, and it is why
+   * it read as undefined however bright it was made: there was no width at which
+   * it was simply solid.
+   *
+   * Working in pixels rather than world units fixes both halves at once.
+   * The distance to the edge divided by the pixel is how many pixels this
+   * fragment is from it, so a line is **solid out to its half-width and then
+   * softened over exactly one pixel** - crisp close up, and still there at the
+   * pull-back, where a line measured in world units is thinner than the screen.
+   *
+   * It also keeps the smoothstep edges increasing by construction, which the
+   * specification requires and which is undefined rather than inverted when it
+   * is got wrong.
+   */
+  float toBorder = min(fromEdge.x, fromEdge.y);
+  float pixel = max(max(fwidth(vStrip.x), fwidth(vStrip.z)), 1e-6);
+  float outPx = toBorder / pixel;
+
+  // Capped in world terms as well, or a plate small on screen is all border -
+  // and floored at a pixel, or it disappears entirely at the far end of the
+  // overview, which is the one place the border is doing the most work.
+  float widest = min(uPlate.x, uPlate.y) * 0.04 / pixel;
+  float ruleW = clamp(widest, 1.0, 2.6);
+  float border = 1.0 - smoothstep(ruleW, ruleW + 1.0, outPx);
+
+  // **A second rule set in from the first**, which is what a border on a
+  // technical drawing actually is and what makes it read as drawn rather than
+  // as the sheet simply stopping. Gold, against an ink outer line.
+  // Never closer than a couple of pixels to the outer rule, or the two merge
+  // into one thick line and the drawing reads as a slab edge again.
+  float innerAt = max(ruleW + 2.5, min(9.0, widest * 3.0));
+  float inner = 1.0 - smoothstep(1.0, 2.0, abs(outPx - innerAt));
+
+  float pen = border * step(place, reached);
+  float trim = inner * step(place, reached);
+
+  // **The two points that are doing the drawing.** A bright head travelling
+  // along the path is what makes it read as being drawn rather than as a line
+  // growing, and it is the whole of what was missing.
+  float head = (1.0 - smoothstep(6.0, 26.0, abs(place - reached) / pixel))
+    * max(border, inner) * step(0.001, vDrawn) * step(vDrawn, 0.999);
+
+  // The fill follows the two points along the film and stops where they are.
+  float front = clamp((reached - shortSide) / longSide, 0.0, 1.0);
+  float filled = step((vLocal.x + 1.0) * 0.5, front);
+  // Once the far side is closed the whole sheet is there, however the sweep
+  // rounded off.
+  filled = max(filled, step(0.999, vDrawn));
+
   float fog = clamp((vDepth - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0);
-  colour = mix(colour, uSky, fog * 0.9);
-  frag = vec4(colour, vVeil * sheet);
+  colour = mix(colour, uBackdrop, fog * 0.9);
+
+  /**
+   * **The outer rule is ink and the inner one is gold.**
+   *
+   * Gold on parchment is two warm light colours a few steps apart, so a gold
+   * border on a parchment sheet has almost nothing to define itself against -
+   * which is most of why it stayed hard to see however bright it was made. Ink
+   * is what a line on a drawing board is, and it is the only thing here with
+   * real contrast against the paper.
+   *
+   * The gold does not go: it moves inward to the second rule, where it reads as
+   * the accent it is rather than as the thing holding the edge.
+   */
+  colour = mix(colour, INK, pen * 0.92);
+  colour = mix(colour, GOLD, trim * 0.85);
+  colour = mix(colour, vec3(1.0, 0.97, 0.88), head);
+
+  // **A hard edge.** The sheet used to fade out over a tenth of its width, so it
+  // had no boundary at all - reported as *"im not a fan of the blurry canvas
+  // edges"*. It ends where the border is, and the border is what says where.
+  // The inner rule is drawn with the outer one rather than waiting for the
+  // fill to reach it, so what you watch is two concentric lines being traced.
+  frag = vec4(colour, vVeil * max(max(filled, pen), trim));
 }`;
 
 // A cube as 24 vertices and 36 indices, so each face gets its own normal.
@@ -1167,7 +1413,7 @@ export function createRenderer(canvas) {
   function uploadMesh(surface) {
     meshIndexCount = surface.indices.length;
     for (const key of ['positions', 'normals', 'colours', 'seeds', 'objects',
-      'fromStep', 'untilStep', 'ao', 'pivots', 'motion', 'finish', 'travel']) {
+      'fromStep', 'untilStep', 'ao', 'pivots', 'motion', 'finish']) {
       if (meshBuffers[key]) gl.deleteBuffer(meshBuffers[key]);
       meshBuffers[key] = buffer(surface[key]);
     }
@@ -1184,7 +1430,6 @@ export function createRenderer(canvas) {
     attribute(mesh.handle, 'aObject', meshBuffers.objects, 1);
     attribute(mesh.handle, 'aFrom', meshBuffers.fromStep, 1);
     attribute(mesh.handle, 'aUntil', meshBuffers.untilStep, 1);
-    attribute(mesh.handle, 'aTravel', meshBuffers.travel, 3);
     attribute(mesh.handle, 'aAo', meshBuffers.ao, 1);
     attribute(mesh.handle, 'aPivot', meshBuffers.pivots, 3);
     attribute(mesh.handle, 'aMotion', meshBuffers.motion, 4);
@@ -1224,7 +1469,7 @@ export function createRenderer(canvas) {
     shadowCount = patches.count;
     for (const [key, data] of Object.entries({
       centres: patches.centres, radii: patches.radii,
-      fromStep: patches.fromStep, untilStep: patches.untilStep, travel: patches.travel,
+      fromStep: patches.fromStep, untilStep: patches.untilStep,
     })) {
       if (shadowBuffers[key]) gl.deleteBuffer(shadowBuffers[key]);
       shadowBuffers[key] = buffer(data);
@@ -1237,7 +1482,6 @@ export function createRenderer(canvas) {
     attribute(shadow.handle, 'aRadius', shadowBuffers.radii, 1, 1);
     attribute(shadow.handle, 'aFrom', shadowBuffers.fromStep, 1, 1);
     attribute(shadow.handle, 'aUntil', shadowBuffers.untilStep, 1, 1);
-    attribute(shadow.handle, 'aTravel', shadowBuffers.travel, 3, 1);
     gl.bindVertexArray(null);
   }
 
@@ -1339,7 +1583,7 @@ export function createRenderer(canvas) {
   function upload(scene) {
     instanceCount = scene.count;
     for (const key of ['positions', 'colours', 'seeds', 'sizes', 'objects',
-      'fromStep', 'untilStep', 'travel']) {
+      'fromStep', 'untilStep']) {
       if (instanceBuffers[key]) gl.deleteBuffer(instanceBuffers[key]);
       // Positions are rewritten while dragging, so they are not static data.
       instanceBuffers[key] = buffer(scene[key],
@@ -1357,7 +1601,6 @@ export function createRenderer(canvas) {
     attribute(cube.handle, 'aObject', instanceBuffers.objects, 1, 1);
     attribute(cube.handle, 'aFrom', instanceBuffers.fromStep, 1, 1);
     attribute(cube.handle, 'aUntil', instanceBuffers.untilStep, 1, 1);
-    attribute(cube.handle, 'aTravel', instanceBuffers.travel, 3, 1);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idxBuf);
     gl.bindVertexArray(null);
   }
@@ -1419,7 +1662,7 @@ export function createRenderer(canvas) {
   /** What the last frame was drawn into, for reporting rather than for drawing. */
   let lastView = { x: 0, y: 0, w: 0, h: 0, fill: 1 };
 
-  function drawCubes(matrix, flip, weather, time, shimmer, selected, step, stepT, arrive) {
+  function drawCubes(matrix, flip, weather, time, shimmer, selected, step, stepT) {
     gl.useProgram(cube.handle);
     veil(cube);
     gl.bindVertexArray(vao);
@@ -1429,7 +1672,6 @@ export function createRenderer(canvas) {
     gl.uniform1f(cube.u.uShimmer, shimmer);
     gl.uniform1f(cube.u.uStep, step);
     gl.uniform1f(cube.u.uStepT, stepT);
-    gl.uniform1f(cube.u.uArrive, arrive);
     // The reflection is not highlighted; only the object itself.
     gl.uniform1f(cube.u.uSelected, flip < 0 ? -1 : selected);
     gl.uniform1f(cube.u.uTint, flip < 0 ? 0.72 : 1.0);
@@ -1437,13 +1679,14 @@ export function createRenderer(canvas) {
     gl.uniform1f(cube.u.uSmooth, smoothing);
     gl.uniform3fv(cube.u.uSun, weather.sun);
     gl.uniform3fv(cube.u.uSky, weather.sky);
+    gl.uniform3fv(cube.u.uBackdrop, backdrop);
     gl.uniform1f(cube.u.uFogNear, weather.fogNear ?? 26);
     gl.uniform1f(cube.u.uFogFar, weather.fogFar ?? 180);
     gl.drawElementsInstanced(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0, instanceCount);
     gl.bindVertexArray(null);
   }
 
-  function drawMesh(matrix, flip, weather, time, shimmer, selected, step, stepT, arrive) {
+  function drawMesh(matrix, flip, weather, time, shimmer, selected, step, stepT) {
     gl.useProgram(mesh.handle);
     veil(mesh);
     gl.bindVertexArray(meshVao);
@@ -1453,13 +1696,13 @@ export function createRenderer(canvas) {
     gl.uniform1f(mesh.u.uShimmer, shimmer);
     gl.uniform1f(mesh.u.uStep, step);
     gl.uniform1f(mesh.u.uStepT, stepT);
-    gl.uniform1f(mesh.u.uArrive, arrive);
     gl.uniform1f(mesh.u.uSelected, flip < 0 ? -1 : selected);
     gl.uniform1f(mesh.u.uTint, flip < 0 ? 0.72 : 1.0);
     gl.uniform1f(mesh.u.uAmbient, weather.ambient ?? 1);
     gl.uniform1f(mesh.u.uSmooth, smoothing);
     gl.uniform3fv(mesh.u.uSun, weather.sun);
     gl.uniform3fv(mesh.u.uSky, weather.sky);
+    gl.uniform3fv(mesh.u.uBackdrop, backdrop);
     gl.uniform1f(mesh.u.uFogNear, weather.fogNear ?? 26);
     gl.uniform1f(mesh.u.uFogFar, weather.fogFar ?? 180);
     gl.drawElements(gl.TRIANGLES, meshIndexCount, gl.UNSIGNED_INT, 0);
@@ -1491,6 +1734,12 @@ export function createRenderer(canvas) {
   let plateCount = 0;
   let plate = [34, 22];
   let platePitch = 64;
+  // What the world fades into. Held here rather than passed, because the cube
+  // and mesh passes are their own functions and every one of them fades.
+  let backdrop = [0, 0, 0];
+  // The drawing in: how far it has reached along the film, how long one piece
+  // takes, and which piece is being drawn (-1 draws them all in order).
+  let drawHead = 1e6, drawSpan = 0, drawOnly = -1;
   // The room the film is in, and where the light in it is pointed.
   let darkRoom = 0;
   let spotAt = [0, 0, 6, 0];
@@ -1503,6 +1752,19 @@ export function createRenderer(canvas) {
    * along the seams between programs. One place to set them is the only way
    * that stays true.
    */
+  /**
+   * The colour the world recedes into.
+   *
+   * The sky shader paints `mix(sky, sky * 0.06, uSpace)`, so in space the
+   * backdrop is very nearly black however blue the weather's own sky colour is.
+   * Worked out once here rather than three times in three shaders, and handed to
+   * everything that fades - which is the veil, the fog and the ghost.
+   */
+  function backdropOf(sky, space) {
+    const dark = Math.min(1, Math.max(0, space));
+    return sky.map((c) => c * (1 - dark) + c * 0.06 * dark);
+  }
+
   function veil({ u }) {
     if (u.uVeilNear) gl.uniform1f(u.uVeilNear, veilFrom);
     if (u.uVeilFar) gl.uniform1f(u.uVeilFar, veilTo);
@@ -1513,6 +1775,11 @@ export function createRenderer(canvas) {
     // belongs to, and therefore which frame it turns with.
     if (u.uPitch) gl.uniform1f(u.uPitch, platePitch);
     if (u.uRoom) gl.uniform1f(u.uRoom, darkRoom);
+    // How far the drawing has got, and which piece is being drawn. Every
+    // program that draws part of a piece has to agree, or the sheet arrives
+    // without what stands on it or the other way round.
+    if (u.uDraw) gl.uniform2f(u.uDraw, drawHead, drawSpan);
+    if (u.uDrawOnly) gl.uniform1f(u.uDrawOnly, drawOnly);
     if (u.uSpot) gl.uniform4f(u.uSpot, spotAt[0], spotAt[1], spotAt[2], spotAt[3]);
   }
 
@@ -1531,12 +1798,19 @@ export function createRenderer(canvas) {
     ground = 0, room = 0, spot = [0, 0, 6, 0],
     // How far the sky is space rather than air.
     space = 1,
-    // How far through the flight into the current step the route is. An object
-    // that travels is part way along its line by exactly this much. Settled on
-    // a step means 1: the move is over and the object is where it ended up.
-    arrive = 1,
+    // The canvas being drawn into mid air: where the pen has reached along the
+    // film, how long one piece takes, and which piece - or -1 for all of them
+    // in order, which is what the overview asks for.
+    draw = null,
   }) {
     smoothing = smooth;
+    // What the world fades into, which is not the weather's sky colour.
+    backdrop = backdropOf(weather.sky, space);
+    // No drawing asked for means everything is already there, which is what a
+    // span of nought says.
+    drawHead = draw?.head ?? 1e6;
+    drawSpan = draw?.span ?? 0;
+    drawOnly = draw?.only ?? -1;
     veilAt = focus; veilFrom = veilNear; veilTo = veilFar;
     rolled = roll; ringRadius = Math.max(1, radius);
     darkRoom = room; spotAt = spot;
@@ -1597,6 +1871,7 @@ export function createRenderer(canvas) {
       gl.uniform2f(strip.u.uPlate, plate[0], plate[1]);
       gl.uniform3fv(strip.u.uFloor, weather.floor);
       gl.uniform3fv(strip.u.uSky, weather.sky);
+      gl.uniform3fv(strip.u.uBackdrop, backdrop);
       gl.uniform3fv(strip.u.uSun, weather.sun);
       gl.uniform3fv(strip.u.uEye, eye);
       gl.uniform1f(strip.u.uGround, ground);
@@ -1641,7 +1916,6 @@ export function createRenderer(canvas) {
       gl.uniformMatrix4fv(shadow.u.uViewProj, false, matrix);
       gl.uniform1f(shadow.u.uStep, step);
       gl.uniform1f(shadow.u.uStepT, stepT);
-      gl.uniform1f(shadow.u.uArrive, arrive);
       gl.uniform1f(shadow.u.uStrength, 0.55);
       gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, shadowCount);
       gl.bindVertexArray(null);
@@ -1651,7 +1925,7 @@ export function createRenderer(canvas) {
 
     // 5. The field itself.
     gl.disable(gl.BLEND);
-    drawField(surface, matrix, 1, weather, time, shimmer, selected, step, stepT, arrive);
+    drawField(surface, matrix, 1, weather, time, shimmer, selected, step, stepT);
 
     // 6. Rain, in front of the world but hidden behind anything solid.
     const falling = weather.rain ?? 0;
