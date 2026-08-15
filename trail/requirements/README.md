@@ -27,7 +27,7 @@ clock turns the ring; and the overview unrolls it flat to read the whole event a
 
     Set-Location "C:\Users\Absol\OneDrive\Documents\GitHub\PortFol\trail"
     npx --yes serve .      # then open the address it prints
-    npm test               # 614 tests, about three minutes
+    npm test               # 615 tests, about three minutes
     npm run clips          # the poses every rigged model can be put into
 
 Four things worth knowing before editing:

@@ -180,8 +180,11 @@ function stubBrowser({ frames = 3, ids = new Set(), tags = new Map() } = {}) {
   glCalls = [];
   let clock = 0;
   let drawn = 0;
-  // The frame that was refused, kept so allowFrames can start the loop again.
-  let pending = null;
+  // **Every** frame that was refused, kept so allowFrames can start them again.
+  // A list rather than one: the page runs more than one loop - the renderer and
+  // the preview queue - and keeping only the last refusal dropped the other for
+  // good, which reads as a feature that stops half way through.
+  let pending = [];
   let closed = false;
 
   const win = {
@@ -233,7 +236,7 @@ function stubBrowser({ frames = 3, ids = new Set(), tags = new Map() } = {}) {
       // one is refused nothing ever asks again and `allowFrames` had nothing to
       // restart. Anything that needs the loop running *after* startup - which is
       // everything the frame itself is responsible for - was untestable.
-      else pending = fn;
+      else pending.push(fn);
       return drawn;
     },
     addEventListener: (type, fn) => {
@@ -296,8 +299,9 @@ function stubBrowser({ frames = 3, ids = new Set(), tags = new Map() } = {}) {
     allowFrames: (n) => {
       drawn = Math.max(0, drawn - n);
       const resume = pending;
-      pending = null;
-      if (resume && !closed) queueMicrotask(() => { clock += 16; resume(clock); });
+      pending = [];
+      if (closed) return;
+      for (const fn of resume) queueMicrotask(() => { clock += 16; fn(clock); });
     },
     close: () => { closed = true; },
   };
@@ -482,9 +486,14 @@ test('the page starts, loads its models, and draws', async () => {
   // what the previews produced rather than the absence of an error.
   const open = stub.element('b-library').listeners.get('click')?.[0];
   assert.ok(open, 'there is no way to open the library');
-  stub.allowFrames(60);
+  stub.allowFrames(300);
   open();
-  for (let i = 0; i < 40; i++) await new Promise((r) => setTimeout(r, 0));
+  // **Previews fill in one at a time now**, because the queue awaits each job -
+  // without that, the whole page was converted in a single frame and arrived as
+  // a wave of stutter. So this waits for them rather than assuming a burst.
+  for (let i = 0; i < 400 && stub.drew('putImageData') <= 5; i++) {
+    await new Promise((r) => setTimeout(r, 0));
+  }
   assert.ok(stub.drew('putImageData') > 5,
     `the library drew ${stub.drew('putImageData')} previews; it would open empty`);
 
@@ -2190,4 +2199,40 @@ test('with every step removed it is still a place at a time of day', async () =>
   assert.equal(route[0].hour, 18, 'the step did not take the time on the clock');
   assert.equal(route[0].weather, 'storm', 'nor the weather on screen');
   assert.deepEqual(stub.failures, [], 'the empty day reported a failure');
+});
+
+test('the library takes one preview a frame, rather than starting the page at once', () => {
+  /**
+   * **Reported by the user:** *"when i throw an object into the canvas, the
+   * entire page starts to slow down and stutter then it comes back to normal."*
+   *
+   * The queue that draws previews was written to spend "a few milliseconds a
+   * frame", and the budget did nothing at all: `drawThumbInto` is async and was
+   * started without being awaited, so the clock never advanced inside the loop
+   * and **the whole page of models went out in one frame**. Each is tens to
+   * hundreds of milliseconds of synchronous work once its fetch lands - 35 ms
+   * for a couch, 224 for a house - so sixty of them arrived as a wave across
+   * the following frames. Placing from the library repaints it, which is what
+   * refills the queue.
+   *
+   * **This is a text check, and that is deliberate.** The stub runs animation
+   * frames as microtasks, so a loop that reschedules itself drains completely
+   * before any timer fires - which means frame *pacing* cannot be observed from
+   * a test here at all. What can be read is the shape: the body of the queue
+   * must take one job, not loop over them. The same reasoning as the check that
+   * `begin` is the only statement that runs at the top of this module.
+   */
+  const source = app();
+  const start = source.indexOf('function runThumbQueue()');
+  assert.ok(start > 0, 'the preview queue is not called runThumbQueue any more');
+  const body = source.slice(start, start + 900);
+
+  assert.ok(!/while\s*\(\s*thumbQueue/.test(body),
+    'the preview queue loops over its jobs inside one frame. Async work makes a'
+    + ' millisecond budget meaningless - the clock cannot advance inside the loop -'
+    + ' so the whole page is converted at once and arrives as a wave of stutter');
+  assert.match(body, /thumbQueue\.shift\(\)/,
+    'the queue no longer takes a job at all');
+  assert.match(body, /requestAnimationFrame\(step\)/,
+    'the queue never asks for another frame, so it would stop after the first job');
 });

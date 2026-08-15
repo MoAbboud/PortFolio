@@ -1914,6 +1914,10 @@ async function main() {
     ...(typeof s.hour === 'number' ? { hour: s.hour } : {}),
   }));
 
+  // How many previews are still waiting to be drawn. A queue that empties in
+  // one frame is a queue whose budget is doing nothing.
+  window.__trail.queued = () => thumbQueue.length;
+
   window.__trail.held = () => ({
     converted: Object.keys(imported).length,
     previews: thumbs.size,
@@ -2628,19 +2632,35 @@ async function main() {
     return true;
   }
 
+  /**
+   * Fill the previews in, a little a frame.
+   *
+   * **The budget did nothing at all.** It was written as "a few milliseconds a
+   * frame", and `drawThumbInto` is async: the loop started a job without
+   * waiting, so the clock never moved inside it, the six milliseconds were
+   * never spent, and **the whole page of models was launched in one frame**.
+   * Each is tens to hundreds of milliseconds of *synchronous* work once its
+   * fetch lands - measured at 35 ms for a couch and 224 for a house - so sixty
+   * of them arrived as a wave across the following frames.
+   *
+   * That is the reported stutter: *"when i throw an object into the canvas, the
+   * entire page starts to slow down and stutter then it comes back to normal."*
+   * Placing from the library repaints it, which is what refills the queue.
+   */
   function runThumbQueue() {
     if (thumbRunning) return;
     thumbRunning = true;
     const step = () => {
-      const started = performance.now();
-      // A few milliseconds a frame: the panel fills in visibly rather than
-      // freezing while sixty models are converted.
-      while (thumbQueue.length && performance.now() - started < 6) {
-        const job = thumbQueue.shift();
-        // A mesh has to be fetched, so this may finish after the frame does.
-        // Nothing waits on it: the tile fills in whenever it is ready.
-        if (job.canvas.isConnected !== false) drawThumbInto(job.canvas, job.id);
-      }
+      // **One a frame, counted rather than timed.** A budget in milliseconds
+      // cannot work here and never did: the work is async, so the clock does
+      // not move inside the loop and the whole page went out at once.
+      //
+      // Awaiting each job was tried and is worse - the queue then stalls behind
+      // any single slow fetch, so one model that is not coming back stops every
+      // preview behind it. Starting one and not waiting for it paces the work
+      // without coupling the queue to any of it.
+      const job = thumbQueue.shift();
+      if (job && job.canvas.isConnected !== false) drawThumbInto(job.canvas, job.id);
       if (thumbQueue.length) requestAnimationFrame(step);
       else thumbRunning = false;
     };

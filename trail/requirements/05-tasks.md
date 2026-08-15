@@ -127,6 +127,29 @@ drawing board... not even a take is a thing. Just steps."* The reasoning is in `
 under "Trail does not play anything". **This is the largest cancellation in the project**, because
 every document here had assumed since the first conversation that the output is a recording.
 
+### 11k - The stutter, and it was not where this file said it was
+
+- [x] **Measured `rebuild` first, and it was innocent.** With every model already converted -
+      which is the case a placement is in - it is 12 ms at ten objects, **65 at sixty**, 114 at a
+      hundred and twenty. A hitch, not the reported few seconds. `assembleMeshes` dominates it and
+      grows with the canvas, which is worth knowing and did not want fixing yet
+- [x] **The preview queue was the stutter.** It looped "for six milliseconds a frame" over an
+      **async** function it never awaited, so the clock could not advance inside the loop and the
+      whole page of models was launched in one frame. Each is 35 to 224 ms of synchronous work
+      once its fetch lands, and sixty of those arrive as a wave
+- [x] **A budget in milliseconds cannot pace asynchronous work.** The comment described behaviour
+      the code could not have had, and had been read several times without anybody noticing -
+      including twice in this session while looking for this exact problem
+- [x] **Awaiting each job was tried and is worse**: the queue then stalls behind any single slow
+      fetch. One job a frame, counted rather than timed, paces it without coupling the queue to
+      any of the work
+- [x] The test is a **text check**, deliberately: the stub runs frames as microtasks, so a loop
+      that reschedules itself drains before any timer fires and pacing cannot be observed at all
+- [x] `allowFrames` kept only the **last** refused frame, and the page runs two loops - the
+      renderer and the preview queue - so resuming one dropped the other for good
+- [ ] `assembleMeshes` is 49 ms at sixty objects and 88 at a hundred and twenty, on every
+      placement. Not worth doing until a canvas is that big, and now measured rather than feared
+
 ### 11j - Objects do not move
 
 **Decided 2026-08-13:** *"Remove the trace where it goes features, i dont want to add motion to my
