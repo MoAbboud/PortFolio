@@ -139,27 +139,47 @@ Deferred deliberately:
 
 ## Stage 2 - First extraction
 
-Ends with: upload a PDF, then `GET /documents/{id}` shows structured fields.
+**Done.** Verified 2026-09-01: a PDF goes in and structured fields come out, with no API
+key and no network call. 79 tests pass. The provider-backed extractor exists and is tested
+against a fake, but nothing depends on it - see the note at the end of this stage.
 
-- [ ] Pydantic model for the invoice shape: header fields, line items, totals
-- [ ] `Decimal` for every amount, currency carried alongside. No float anywhere
-- [ ] Amounts cross the JSON boundary as strings, because that is where a float gets in
-- [ ] Date parsing that records the convention it assumed and flags the ambiguous ones
-- [ ] Extractor protocol, one provider implementation, provider client imported lazily
-- [ ] Call the model with the Pydantic model as the structured output shape
-- [ ] Parse into the model, store the row in `extractions`
-- [ ] Store `raw_response` unmodified alongside `extracted_data`
-- [ ] Record `model_name` and `prompt_version` on every row
-- [ ] Log `latency_ms` and `token_count` from the very first extraction. They cannot be
-      backfilled
-- [ ] Handle malformed JSON explicitly: row written, `extracted_data` null, `error` set,
-      document to `failed`
-- [ ] Handle valid JSON with missing required fields explicitly, and distinguish it from
+- [x] Pydantic model for the invoice shape: header fields, line items, totals
+- [x] `Decimal` for every amount, currency carried alongside. No float anywhere
+- [x] Amounts cross the JSON boundary as strings, in **both** directions - the model returns
+      the characters as printed, and the stored record holds strings
+- [x] Date parsing that records the convention it assumed and flags the ambiguous ones.
+      `03/04/2026` parses, says `day-first`, and is marked ambiguous; `13/04/2026` is not
+- [x] Extractor protocol, one provider implementation, provider client imported lazily
+- [x] Call the model with the Pydantic model as the structured output shape
+      (`messages.parse(output_format=InvoiceRead)`)
+- [x] Parse into the model, store the row in `extractions`
+- [x] Store `raw_response` unmodified alongside `extracted_data`
+- [x] Record `model_name` and `prompt_version` on every row
+- [x] Log `latency_ms` and `token_count` from the very first extraction
+- [x] Handle malformed JSON explicitly. Also covers a response cut off at `max_tokens`,
+      which is the same failure wearing a different hat
+- [x] Handle valid JSON with missing required fields explicitly, and distinguish it from
       malformed
-- [ ] Handle timeout and transport errors: retry with backoff inside the extractor, then
-      `failed`
-- [ ] Record the attempt count on the row
-- [ ] `GET /documents/{id}/extraction`
+- [x] Handle timeout and transport errors, and a refusal, which is a 200 with no answer in it
+- [x] Record the attempt count on the row
+- [x] `GET /documents/{id}/extraction`, returning failed attempts rather than hiding them
+- [x] **Nothing can strand a document in `extracting`.** Any unexpected exception writes a
+      failure row and moves the document to `failed`. This closed a real hole - see
+      [06-context.md](06-context.md)
+
+**Done a different way.** This project does not use hosted-model API keys, so "run it
+against the real provider" was replaced rather than completed. The default extractor is
+`heuristic` - regular expressions and layout rules - which needs no key, no weights, no GPU
+and no network, and runs in about 17ms. Verified end to end on 2026-09-01: upload a PDF, get
+structured fields, on a clean container with nothing configured.
+
+- [x] A keyless `heuristic` extractor, and it is the default
+- [x] A `trained` extractor that loads a locally trained token classifier from disk
+- [x] `notebooks/train_extractor.ipynb` - trains it on Colab's free T4, exports the weights
+- [x] `MAILMAN_EXTRACTOR` selects between `heuristic`, `trained` and `anthropic`; an unknown
+      value is an error rather than a silent default
+- [x] `models/` gitignored - the weights are ~250 MB and rebuildable from the notebook
+- [x] The Anthropic extractor kept as a comparison point for the harness, required by nothing
 
 ## Stage 3 - Ten documents end to end
 

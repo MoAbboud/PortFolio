@@ -126,6 +126,9 @@ The stage exists to produce evidence, and the order matters.
 | Decision | Reason |
 | --- | --- |
 | A running demo is the primary goal | It is what goes on a job application. Every stage ends in something that can be run from PowerShell and looked at |
+| **No hosted-model API keys.** Extraction is a heuristic baseline plus a locally trained model | A project that costs money per request is one nobody can leave running, and a demo nobody can leave running is not a demo. It also makes the project harder to fake: a baseline, a trained model, and a harness saying which wins is a stronger story than one prompt against another |
+| Machine learning is trained in a Colab notebook | Free GPU, nothing to install locally, and the notebook is itself a readable artifact. `notebooks/train_extractor.ipynb` |
+| Trained weights are gitignored and the heuristic is what deploys | ~250 MB is over GitHub's file limit and will not fit a free hosting tier's memory. The trained model is the local and showcase path; the gap between the two is the interesting number |
 | Every stage has a PowerShell check | Testing is done from a terminal on Windows. If a stage cannot be verified that way it is not finished. The commands are in [05-tasks.md](05-tasks.md) |
 | The minimal queue comes before the corpus | It is the demo, and it is the tool for looking at extractions while the corpus is built. Kept bare by a gate rather than by ordering |
 | Unsupported inputs fail loudly | A spreadsheet or a scan with no text layer is rejected with a reason rather than half-processed into a thin extraction that looks real |

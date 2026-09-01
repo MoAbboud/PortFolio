@@ -13,3 +13,6 @@ httpx>=0.28
 
 # Stage 1 - pulling the text layer out of a PDF.
 pdfplumber>=0.11
+
+# Stage 2 - extraction with structured outputs.
+anthropic>=1.0

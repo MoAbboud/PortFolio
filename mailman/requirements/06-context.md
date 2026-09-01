@@ -4,11 +4,18 @@
 
 Nothing is built. As of 2026-08-25 this folder is the entire project.
 
-**Stages 0 and 1 are done.** The scaffold runs, the seven tables exist, and a PDF can be
-uploaded and comes back with an id, its text stored beside it. The current work is **stage 2
-in [00-plan.md](00-plan.md): the first extraction.** A Pydantic invoice model as the
-provider's output schema and the parse target, with malformed JSON, missing required fields
-and timeouts handled as three different things.
+**Stages 0, 1 and 2 are done.** A PDF can be uploaded and comes back with structured
+fields, **with no API key, no network call and no cost** - the default extractor is
+regular expressions and layout rules, and it runs in about 17ms.
+
+**This project does not use hosted-model API keys.** Where machine learning is involved it
+is trained locally, on Colab's free GPU, from `notebooks/train_extractor.ipynb`. Three
+extractors implement one protocol and are selected by `MAILMAN_EXTRACTOR`: `heuristic`
+(default, deployable), `trained` (local weights), `anthropic` (kept as a comparison point,
+never required). See the 2026-09-01 entry on this at the end of the log.
+
+The current work is **stage 3**: ten varied documents end to end, and the written list of
+everywhere it went wrong. That list is what generates the validation rules.
 
 **The goal is a system that runs and can be shown.** It goes on job applications and gets
 walked through in interviews. Working to a certain extent beats designed thoroughly and
@@ -369,3 +376,86 @@ Decisions taken while building:
 One thing that cost time and is worth remembering: the connectivity probe in the test fixture
 autobegins a transaction, so the explicit `connection.begin()` after it raised "this
 connection has already initialized a Transaction". A `rollback()` between them fixes it.
+
+### 2026-09-01 - stage 2 built (not yet run for real)
+
+Extraction is implemented and covered by 70 tests against a fake extractor. **No live API
+call has been made** - `ANTHROPIC_API_KEY` is not set - so stage 2 stays open until an
+invoice has actually been through a model.
+
+New modules: `parsing.py`, `invoice.py`, `prompts.py`, `extractor.py`, `pipeline.py`.
+
+**A real bug, found by running it rather than by testing it.** With no API key, the SDK
+raises `TypeError` at client construction. That was not one of the handled exceptions, so
+the background task died *after* the document had been moved to `extracting` - and the
+document sat there permanently, in a state nothing could move it out of and no operator
+could explain. The specific fix is a credentials check with a readable message. The
+structural fix matters more: `extract_document` now catches **any** exception, writes a
+failure row and moves the document to `failed`. A state machine whose transitions can be
+interrupted by an exception is not a state machine, and this is exactly the hole that
+`status_history` exists to make visible.
+
+| Decision | Rejected alternative | Why |
+| --- | --- | --- |
+| Amounts and dates cross the wire as **strings**, as printed | Asking the model for numbers and dates | Two reasons. A float in JSON is how money loses a cent. And a model forced to emit a number has to invent one when it cannot read the field, which destroys the difference between "could not read this" and "this is zero" - and that difference is one of the signals that sends a document to review |
+| The model is told not to calculate anything | Letting it compute a missing subtotal | A computed value and a read value are indistinguishable afterwards. One of the validation rules is "the total matches the total printed on the document", and it cannot work if the model helpfully does the arithmetic |
+| Structured outputs via `messages.parse(output_format=...)` | A raw JSON schema, or free text plus a parser | One Pydantic definition is the output schema, the parse target and the thing the rules read. Three uses, one definition, so they cannot drift |
+| Server-side refusal fallbacks deliberately **not** enabled | `fallbacks: "default"`, which the SDK guidance suggests by default | Every extraction row records `model_name`, and the harness compares runs by it. A server-side fallback would silently answer with a different model while the row said otherwise, which corrupts the measurement this project exists to produce. A refusal is instead recorded as its own failure kind. Worth revisiting if refusals ever actually happen on invoices |
+| Four failure kinds, kept apart | One `ExtractionError` | `malformed`, `missing_fields`, `refused` and `unavailable` have different causes and different fixes, and the harness needs to count them separately. A fifth, `internal`, covers the unexpected |
+| SDK retries rather than a hand-rolled backoff loop | Writing the retry loop in the extractor | The SDK honours `Retry-After`, which hand-rolled backoff usually gets wrong. The retry policy is still owned by the extractor - it sets `max_retries` and `timeout` explicitly rather than inheriting defaults by accident |
+| A crude `confidence` now, labelled as provisional | Leaving the column null until stage 5 | The column gets exercised and the shape is proven. It is commented as not something to route on, and stage 5 replaces it with a composite whose threshold comes from a measurement |
+| `claude-opus-5` as the default extraction model | A cheaper tier for a high-volume task | It is the baseline. Stage 9 tries other models *with the harness running*, so the choice is made from a measured accuracy-and-cost tradeoff rather than from an assumption about which is good enough |
+
+One consequence worth noting for stage 8: structured outputs make the `malformed` failure
+nearly impossible, because the API constrains the shape. That is right for production and
+awkward for measurement - the harness will report close to zero malformed responses, which
+says more about the constraint than about the model. The sibling project
+`../evaluaters/eval-harness` deliberately does the opposite for exactly this reason.
+
+### 2026-09-01 - no API keys: the extractor becomes something we own
+
+**The premise changed.** No API keys will be used, so the pipeline cannot depend on a hosted
+model. Where machine learning is involved, training happens in a Google Colab notebook.
+
+This is the same call already made on `../fallacysuspect`, and for the same reason: a
+portfolio project that costs money per request is one nobody can leave running.
+
+It is worth being clear that this makes the project **better**, not merely cheaper. The
+original story was "an LLM inside a real system", which is a story thousands of people can
+tell. The story now is: a deterministic baseline, a model trained on data labelled by
+construction, and an evaluation harness that says which one is actually better and by how
+much. That is a harder thing to build and a much harder thing to fake.
+
+**Three extractors, one protocol:**
+
+| Extractor | Needs | Role |
+| --- | --- | --- |
+| `heuristic` | nothing | **The default and the deployable one.** Regular expressions and layout rules. The baseline every other approach has to beat |
+| `trained` | local weights (~250 MB) | A token classifier trained on Colab's free GPU. Free to run, too large for git and for a free hosting tier's memory - so it is the local and showcase path |
+| `anthropic` | a key, and money | Kept as a comparison point, not as a dependency. Not the default and never required |
+
+Switching between them is one setting, `MAILMAN_EXTRACTOR`. Nothing in the pipeline, the
+rules, the review queue or the harness knows which one produced an extraction - they read
+`model_name` on the row. **The Extractor protocol was written in stage 2 for exactly this
+reason, before there was any second implementation to justify it, and it paid for itself
+within a day.**
+
+| Decision | Rejected alternative | Why |
+| --- | --- | --- |
+| A heuristic extractor is the default | Requiring the trained model | It runs on a clean checkout with no key, no weights, no GPU and no network, in about 17ms. "It runs" was the stated goal, and this is what makes that true for anyone who clones the repository |
+| Token classification (BIO tagging) | A local generative model, or Donut-style image-to-JSON | The pipeline already has the text layer, and every field wanted is a span physically printed on the page. A tagger returns *where* it found a value, so a returned value came from the document - it cannot invent an invoice number that was never printed. That removes a class of failure rather than defending against it |
+| DistilBERT, text only | LayoutLMv3 with bounding boxes | Smaller, trains in minutes on a free T4, and serves on CPU in the container - which matters, because there is no GPU in the deployment. LayoutLM is the real upgrade and pdfplumber already provides the bounding boxes it needs; it is written down as the next step rather than done now |
+| Training labels generated, not hand-made | Hand-labelling a training set | The generator knows what it printed, so labels are attached as the text is written. Its weakness is stated in the notebook and belongs in the README: a model trained only on generated invoices has learned one author's idea of a layout |
+| The Anthropic extractor is kept | Deleting it | It is a comparison point, and the harness measuring "what a hosted frontier model gets" against "what my own trained model gets" is a genuinely interesting number. It is not the default and nothing depends on it |
+| Weights are gitignored | Committing them, or Git LFS | ~250 MB, over GitHub's per-file limit, and rebuildable from the notebook in minutes. `models/` is ignored |
+
+**Consequence for stage 8.** The harness now has something much better to compare than two
+prompts: three real extractors on the same corpus, with cost and latency alongside accuracy.
+The heuristic runs in 17ms and costs nothing; that is the bar. If the trained model does not
+clear it by a margin worth the 250 MB, that result is worth reporting honestly rather than
+burying.
+
+**Consequence for stage 10.** Hosting gets easier and cheaper. The deployed system needs no
+key, no GPU and no provider account, so a public link costs whatever the container and the
+database cost and nothing per visitor. The open-upload-box problem from the earlier hosting
+note largely goes away with it.

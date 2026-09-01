@@ -4,6 +4,10 @@
 # Stored document bytes. Never in git, and the corpus lives under corpus/ instead.
 data/
 
+# Trained weights. ~250MB, over GitHub's file limit, and rebuildable from
+# notebooks/train_extractor.ipynb on Colab in a few minutes.
+models/
+
 __pycache__/
 *.py[cod]
 .pytest_cache/

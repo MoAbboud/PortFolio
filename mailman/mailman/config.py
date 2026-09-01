@@ -31,8 +31,23 @@ class Settings(BaseSettings):
     # Shared secret for the API. One reviewer, so one secret. Not enforced until stage 6.
     mailman_api_key: str | None = None
 
-    # Provider credentials. Not needed until stage 2.
+    # Provider credentials.
     anthropic_api_key: str | None = None
+
+    # Which extractor runs. "heuristic" needs nothing at all and is the default and the
+    # deployable one; "trained" loads local weights; "anthropic" needs a key and is kept as
+    # a comparison point rather than as the path this project depends on.
+    extractor: str = "heuristic"
+
+    # Where a locally trained extractor's weights live, when there are any.
+    model_dir: str = "./models/extractor"
+
+    # Only read when extractor == "anthropic". Recorded on every row either way, because two
+    # runs cannot be compared without knowing what produced them.
+    extraction_model: str = "claude-opus-5"
+    extraction_max_tokens: int = 16000
+    extraction_timeout_seconds: float = 120.0
+    extraction_max_retries: int = 3
 
     # A cap on what one upload may be. An invoice is a few hundred kilobytes; anything at
     # this size is a mistake or an attack, and the check is cheaper than the consequences.

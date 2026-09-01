@@ -4,8 +4,9 @@ An intelligent document intake pipeline. Messy documents in - PDF invoices, scan
 spreadsheets - validated structured records out, with a human review step for anything the
 extraction is not confident about.
 
-**Status: stages 0-1 of 12 complete.** A PDF can be uploaded and comes back with an id,
-its text stored beside it. Nothing is extracted yet - the model arrives in stage 2. The full plan is in [requirements/](requirements/), and
+**Status: stages 0-2 of 12 complete.** Upload a PDF and structured fields come back - with
+no API key, no network call and no cost. Nothing is validated yet; the rules arrive in
+stage 4. The full plan is in [requirements/](requirements/), and
 [requirements/06-context.md](requirements/06-context.md) is the file to read first.
 
 ## The problem
@@ -51,6 +52,32 @@ so this goes through `curl.exe`:
 ```powershell
 curl.exe -F "file=@corpus\some-invoice.pdf" http://localhost:8000/documents
 Invoke-RestMethod http://localhost:8000/documents/<the id that came back> | ConvertTo-Json -Depth 10
+Invoke-RestMethod http://localhost:8000/documents/<id>/extraction | ConvertTo-Json -Depth 10
+```
+
+**No API key is needed.** The default extractor is regular expressions and layout rules -
+no keys, no weights, no GPU, no network, about 17ms per document.
+
+## Extractors
+
+Three implementations of one protocol, chosen with `MAILMAN_EXTRACTOR`:
+
+| Value | Needs | Role |
+| --- | --- | --- |
+| `heuristic` (default) | nothing | Regular expressions and layout rules. What deploys, and the baseline the others must beat |
+| `trained` | local weights (~250 MB) | A token classifier trained on Colab's free GPU. Free to run; too large for git and for a free hosting tier |
+| `anthropic` | an API key, and money | Kept as a comparison point for the evaluation harness. Not required by anything |
+
+Because extractions are append-only, the same document can be run through all three and the
+answers compared directly. That comparison is what stage 8 measures across the whole corpus.
+
+To train and use the local model: run [notebooks/train_extractor.ipynb](notebooks/train_extractor.ipynb)
+on Colab (free T4, a few minutes), download the zip, then:
+
+```powershell
+Expand-Archive mailman-extractor.zip -DestinationPath .\models\extractor -Force
+$env:MAILMAN_EXTRACTOR = "trained"
+docker compose up -d --build
 ```
 
 Expect:
