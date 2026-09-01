@@ -157,7 +157,7 @@ The stage exists to produce evidence, and the order matters.
 | Invoices only, at first | `doc_type` is the hook for a second type. The claim that it generalised waits until one runs |
 | Synthetic and public documents only | No employer or client document enters this repository. The constraint outranks realism |
 | Commit as the work happens | The history is part of what is on display and is not squashed at the end |
-| `NOTES.md` is written by hand | It is the record no tool can produce, and it is where the credibility lives |
+| `NOTES.md` is kept by hand, and tooling may append facts to it | The record of what was tried and what the numbers did can be written down by whoever is at the keyboard. The judgement - what was surprising, what it meant, what to do next - stays the author's, because that is the part no tool can produce and it is where the credibility lives |
 | Its own harness rather than reusing `evaluaters/eval-harness` | Different unit of measurement. See [06-context.md](06-context.md) |
 
 ## Open questions

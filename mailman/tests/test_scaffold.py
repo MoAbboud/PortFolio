@@ -31,6 +31,21 @@ def test_schema_is_the_seven_tables() -> None:
     assert set(Base.metadata.tables) == EXPECTED_TABLES
 
 
+def test_root_redirects_rather_than_404s() -> None:
+    """The bare host is the front door.
+
+    Clicking the port in Docker Desktop lands here, and a 404 there reads as "the thing is
+    broken" when the thing is fine. Stage 7 replaces the target with the review queue.
+    """
+    from fastapi.testclient import TestClient
+
+    with TestClient(app) as client:
+        response = client.get("/", follow_redirects=False)
+
+    assert response.status_code in (302, 307)
+    assert response.headers["location"] == "/docs"
+
+
 def test_health_route_is_registered() -> None:
     # Checked through the OpenAPI schema rather than app.routes, because that is the
     # contract a caller actually sees, and because app.routes keeps included routers

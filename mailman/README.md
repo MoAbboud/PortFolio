@@ -4,8 +4,8 @@ An intelligent document intake pipeline. Messy documents in - PDF invoices, scan
 spreadsheets - validated structured records out, with a human review step for anything the
 extraction is not confident about.
 
-**Status: stage 0 of 12 complete.** The scaffold runs and the schema exists. Nothing is
-extracted yet. The full plan is in [requirements/](requirements/), and
+**Status: stages 0-1 of 12 complete.** A PDF can be uploaded and comes back with an id,
+its text stored beside it. Nothing is extracted yet - the model arrives in stage 2. The full plan is in [requirements/](requirements/), and
 [requirements/06-context.md](requirements/06-context.md) is the file to read first.
 
 ## The problem
@@ -45,6 +45,14 @@ docker compose exec api alembic upgrade head
 Invoke-RestMethod http://localhost:8000/health
 ```
 
+Then upload something. `Invoke-RestMethod` in PowerShell 5.1 cannot do a multipart upload,
+so this goes through `curl.exe`:
+
+```powershell
+curl.exe -F "file=@corpus\some-invoice.pdf" http://localhost:8000/documents
+Invoke-RestMethod http://localhost:8000/documents/<the id that came back> | ConvertTo-Json -Depth 10
+```
+
 Expect:
 
 ```
@@ -53,7 +61,9 @@ status version database
 ok     0.1.0   ok
 ```
 
-The interactive API docs are at <http://localhost:8000/docs>.
+<http://localhost:8000/> redirects to the interactive API docs at
+<http://localhost:8000/docs>, which is what the mapped port in Docker Desktop opens. From
+stage 7 the root becomes the review queue instead.
 
 To stop, and to wipe the database and start clean:
 

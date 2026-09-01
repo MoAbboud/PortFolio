@@ -4,10 +4,11 @@
 
 Nothing is built. As of 2026-08-25 this folder is the entire project.
 
-**Stage 0 is done** - the scaffold runs, the seven tables exist, `/health` is green and
-verified to go red. The current work is **stage 1 in [00-plan.md](00-plan.md): ingestion.**
-`POST /documents` takes a PDF, stores the bytes in an S3-shaped path, inserts the row,
-returns the id, and pdfplumber pulls the text.
+**Stages 0 and 1 are done.** The scaffold runs, the seven tables exist, and a PDF can be
+uploaded and comes back with an id, its text stored beside it. The current work is **stage 2
+in [00-plan.md](00-plan.md): the first extraction.** A Pydantic invoice model as the
+provider's output schema and the parse target, with malformed JSON, missing required fields
+and timeouts handled as three different things.
 
 **The goal is a system that runs and can be shown.** It goes on job applications and gets
 walked through in interviews. Working to a certain extent beats designed thoroughly and
@@ -84,9 +85,11 @@ The two places that get probed hardest:
    compared, why field-level and not document-level - these are judgement calls, and the
    defence of them is the interview.
 
-`NOTES.md` is written by hand and never generated. What was tried, what the numbers did,
-what was surprising. It is the record no tool can produce, and it is where the credibility
-lives. It becomes the README's most credible section.
+`NOTES.md` is the third. What was tried, what the numbers did, what was surprising. Tooling
+may append the facts - a run happened, a number moved, something broke - because a fact
+recorded late is usually a fact lost. The judgement is the author's: what it meant, whether
+it was expected, what to do about it. That half is the record no tool can produce, and it is
+where the credibility lives. It becomes the README's most useful section.
 
 ## Decisions, with what was rejected
 
@@ -287,3 +290,82 @@ Decisions taken while building, none of which were in the spec:
 | `/health` checks the database, not just the process | Returning `{"ok": true}` | The thing that actually breaks is the connection. It returns 503 when the database is unreachable, and it reports the exception class rather than the message, because a connection error can carry the connection string and a connection string can carry a password |
 | The provider SDK and pdfplumber are not in `requirements.txt` yet | Installing everything up front | Each stage installs what it uses. An early stage is then never blocked on a dependency it does not need, and the dependency list reads as a history of what the project actually required |
 | Source is bind-mounted in Compose with `--reload` | Rebuilding the image to see a change | An edit is picked up by a restart. The image still builds from scratch cleanly, which is what deployment will use |
+
+### 2026-09-01 - two working rules corrected
+
+Both of these came from the author after stage 0 was already committed, and both change how
+future sessions should behave.
+
+**`NOTES.md` may be appended to by tooling.** The earlier reading of "kept by hand" was too
+strict: it had been taken to mean nothing may write to the file at all. The actual rule is
+softer and more useful - the *facts* can be written down by whoever is at the keyboard,
+because a fact recorded late is usually a fact lost, and the running record of what was tried
+and what the numbers did is worth more complete than pure. The *judgement* stays the author's:
+what was surprising, what it meant, what to do next. That half is the record no tool can
+produce and it is where the credibility lives. Updated in
+[00-plan.md](00-plan.md), [05-tasks.md](05-tasks.md) and this file. A stage 0 entry was
+added to `NOTES.md` recording what was built, what was verified, and the two things that
+broke, with the reflection left open.
+
+**No commits without being asked.** Committing is the author's, always. The instruction
+arrived after two commits had already been made this session - `40b6f83` (the scaffold) and
+`e351c0d` (the plan reorder), both on `main`. They were made on the strength of the project's
+own "commit as the work happens" habit, which was the wrong thing to infer an authorisation
+from: that habit describes how the author works, not a standing permission. The commits stand
+unless the author says otherwise; the rule from here is that work is left in the working tree
+and the author decides what becomes a commit and when.
+
+The "commit as the work happens, with real messages" habit stays in [05-tasks.md](05-tasks.md)
+because it is still the right habit for this project. It is the author's habit to keep, not
+an instruction to anyone else.
+
+### 2026-09-01 - the front door was a 404
+
+Clicking the mapped port in Docker Desktop opens `http://localhost:8000/`, and nothing was
+routed there. `/health`, `/docs`, `/redoc` and `/openapi.json` all worked; the bare host
+returned 404, which reads as a broken build when the build is fine.
+
+| Decision | Rejected alternative | Why |
+| --- | --- | --- |
+| `GET /` redirects to `/docs` | Leaving `/` unrouted; or building a landing page now | One line, no interface built ahead of stage 7, and the port link lands somewhere useful. The generated docs are a real demo surface on their own at this stage. **Stage 7 should repoint `/` at the review queue** - that is the page a visitor should land on |
+
+A test was added asserting `/` returns a redirect to `/docs`, so the front door cannot
+quietly disappear in a later refactor. Seven tests now pass.
+
+The general lesson is worth keeping for a project whose purpose is being shown to someone:
+the system was working and the default landing page said otherwise. The front door is not a
+detail.
+
+### 2026-09-01 - stage 1 built and verified
+
+**Stage 1 is done.** A PDF can be uploaded and comes back with an id. Verified by uploading
+real files rather than only by test:
+
+| Upload | Result |
+| --- | --- |
+| PDF with a text layer | 201, `received`, text stored beside the original |
+| PDF with no text layer | 201, `failed`, reason names the page count and says "probably a scan" |
+| Spreadsheet | 415, nothing stored |
+| PDF renamed `.xlsx` | 201, `application/pdf`, ingested normally |
+| Unknown document id | 404 |
+
+32 tests pass. New modules: `storage.py`, `media.py`, `transitions.py`, `ingest.py`,
+`schemas.py`, `api/documents.py`.
+
+Decisions taken while building:
+
+| Decision | Rejected alternative | Why |
+| --- | --- | --- |
+| A successful document is left at `received` | Moving it to `extracting` | Caught while writing it: there is no extractor until stage 2, so a document parked in `extracting` would sit there forever. A status column that says something is happening when nothing is is a lie, and the state machine is the part of this system that has to be trustworthy |
+| `received -> failed` added to the transition map | Only `extracting -> failed` | A file that cannot be prepared at all - no text layer, a corrupt PDF - fails before extraction is ever attempted. It needed its own edge |
+| An unreadable **type** is refused with 415 and nothing is stored; an unreadable **PDF** is stored and moved to `failed` | Treating both the same way | A spreadsheet is something the sender should be told about now. A PDF that will not parse is a document the pipeline is meant to handle one day, and its bytes are exactly what someone will want to look at. A visible `failed` count is a roadmap; a refused-and-forgotten upload is not |
+| The storage key's extension comes from the **detected type** | Taking it from the uploaded filename | Found by looking at the store after a real upload: a PDF sent as `liar.xlsx` had been written as `original.xlsx`. The store should say what the file is, not repeat what the sender claimed, and it keeps an attacker-controlled string out of the path entirely |
+| Byte signatures rather than `python-magic` | libmagic | Another native dependency on Windows for what is a handful of prefixes here |
+| `status_history` is reassigned, never appended in place | `document.status_history.append(...)` | SQLAlchemy does not track mutation inside a JSONB value. An in-place append writes nothing and the history silently stays empty - a bug only found when someone finally needs the history |
+| Bytes are written before the row is inserted, and before the text is attempted | Row first, or text first | An orphan blob is harmless; a row pointing at bytes that are not there is a broken record. And the document that failed to parse is exactly the one whose bytes will be wanted |
+| Test PDFs are built by hand in `conftest.py` | Adding a PDF-writing library | Two test files are not worth a dependency the running system never uses. The real invoice generator arrives in stage 3, where it is the point |
+| Test sessions roll back, including across commits | A separate test database | The session joins an outer transaction with `join_transaction_mode="create_savepoint"`, so code under test can commit normally and the database is left as it was found. The fixture skips when there is no database, so the suite still runs on a machine with nothing up |
+
+One thing that cost time and is worth remembering: the connectivity probe in the test fixture
+autobegins a transaction, so the explicit `connection.begin()` after it raised "this
+connection has already initialized a Transaction". A `rollback()` between them fixes it.

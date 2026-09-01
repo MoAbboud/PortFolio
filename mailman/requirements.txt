@@ -10,3 +10,6 @@ pydantic-settings>=2.7
 python-multipart>=0.0.20
 pytest>=8.3
 httpx>=0.28
+
+# Stage 1 - pulling the text layer out of a PDF.
+pdfplumber>=0.11

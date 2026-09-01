@@ -34,5 +34,9 @@ class Settings(BaseSettings):
     # Provider credentials. Not needed until stage 2.
     anthropic_api_key: str | None = None
 
+    # A cap on what one upload may be. An invoice is a few hundred kilobytes; anything at
+    # this size is a mistake or an attack, and the check is cheaper than the consequences.
+    max_upload_bytes: int = 20 * 1024 * 1024
+
 
 settings = Settings()

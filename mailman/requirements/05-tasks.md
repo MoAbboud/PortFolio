@@ -12,9 +12,11 @@ Three habits that run through all of them:
 
 - **Commit as the work happens, with real messages.** The history is part of what is on
   display. It is not squashed at the end.
-- **Keep `NOTES.md` by hand.** What was tried, what the numbers did, what was surprising. It
-  is written by the person doing the work, never generated, and it becomes the most credible
-  section of the README.
+- **Keep `NOTES.md` up to date.** What was tried, what the numbers did, what was surprising.
+  Tooling may append the facts - a run, a number, a thing that broke. The judgement stays the
+  author's: what it meant, whether it was expected, what to do about it. That half is what no
+  tool can produce, and it is where the credibility lives. It becomes the most useful section
+  of the README.
 - **The validation rules and the harness get read line by line.** They are the two parts an
   interviewer will probe, and the answers have to be the author's own. See
   [06-context.md](06-context.md).
@@ -105,19 +107,35 @@ is a usable demo surface on its own before the review queue exists.
 
 ## Stage 1 - Ingestion
 
-Ends with: `curl.exe -F` a PDF and get an id back, with a row in the database.
+**Done.** Verified 2026-09-01 by uploading real files: a PDF with text lands at `received`
+with its text stored beside the original, a PDF with no text layer lands at `failed` with a
+reason, a spreadsheet is refused with 415, and a PDF renamed `.xlsx` is still ingested as a
+PDF. 32 tests pass.
 
-- [ ] Document store behind one interface, local files as the first implementation
-- [ ] S3-shaped path layout from the start, so the AWS move is a client swap
-- [ ] `POST /documents` accepting a PDF upload
-- [ ] Detect the media type from the bytes, not the extension
-- [ ] Insert the `documents` row, return the id
-- [ ] One status-transition function that also appends to `status_history`. Nothing else
-      writes `status`
-- [ ] PDF text extraction with pdfplumber, written beside the original in the store
-- [ ] Scans without a text layer and spreadsheets are **not supported yet**: rejected with a
-      reason, never half-processed into a thin extraction that looks real
-- [ ] `GET /documents/{id}` so the upload can be checked from PowerShell
+- [x] Document store behind one interface, local files as the first implementation
+- [x] S3-shaped path layout from the start, so the AWS move is a client swap:
+      `2026/09/01/<document-id>/original.pdf` with `text.txt` beside it
+- [x] `POST /documents` accepting a PDF upload
+- [x] Detect the media type from the bytes, not the extension. Byte signatures rather than
+      libmagic, which is another native dependency on Windows for a handful of prefixes
+- [x] Insert the `documents` row, return the id
+- [x] One status-transition function that also appends to `status_history`. Nothing else
+      writes `status`, an illegal transition raises, and the history is reassigned rather
+      than mutated because SQLAlchemy does not track mutation inside JSONB
+- [x] PDF text extraction with pdfplumber, written beside the original in the store
+- [x] Scans without a text layer and spreadsheets are **not supported yet**. A type the
+      pipeline cannot read is refused with 415 and nothing is stored; a PDF that cannot be
+      read is stored and moved to `failed` with the reason, because it is a document the
+      pipeline should handle later and a visible count of them is a roadmap
+- [x] `GET /documents/{id}` so the upload can be checked from PowerShell
+- [x] A size cap on uploads, and an empty upload is a 400 rather than a document
+- [x] `received -> failed` added to the state machine for a file that cannot be prepared at
+      all. That failure happens before extraction is attempted, so it needed its own edge
+
+Deferred deliberately:
+
+- [ ] DB-backed tests of the state machine and the transaction boundaries - stage 6 owns
+      those. Stage 1 has unit tests plus a rollback-per-test session fixture
 
 ## Stage 2 - First extraction
 
@@ -225,6 +243,8 @@ baseline exists.
 Ends with: open a browser, see the queue, fix a field, approve, and the invoice is in the
 database.
 
+- [ ] Repoint `GET /` at the queue. It currently redirects to `/docs`, which was the right
+      answer before a queue existed and is the wrong one after
 - [ ] Queue page reading `GET /documents?status=needs_review`, oldest first
 - [ ] Show the reason each document is waiting
 - [ ] Review page: the document beside the fields, on one screen
