@@ -4,16 +4,49 @@
 
 Nothing is built. As of 2026-08-25 this folder is the entire project.
 
-The current work is **stage 0 in [00-plan.md](00-plan.md): the scaffold.** FastAPI, Docker
-Compose with PostgreSQL, Alembic migrations for the seven tables, `/health` green, git
-initialised with real commit messages from the first commit.
+**Stage 0 is done** - the scaffold runs, the seven tables exist, `/health` is green and
+verified to go red. The current work is **stage 1 in [00-plan.md](00-plan.md): ingestion.**
+`POST /documents` takes a PDF, stores the bytes in an S3-shaped path, inserts the row,
+returns the id, and pdfplumber pulls the text.
 
-The single most important thing about this project: **stages 7 and 8 are the point.** The
-pipeline is the setting; the recorded baseline and the measured iteration are what make it
-worth building. If effort has to be cut, cut the review UI, cut the deployment, cut the MCP
-server - never cut the measurement.
+**The goal is a system that runs and can be shown.** It goes on job applications and gets
+walked through in interviews. Working to a certain extent beats designed thoroughly and
+half-built, and that is why the plan reaches a demonstrable queue at stage 7 rather than
+saving the interface for the end.
+
+**And the measurement is what makes it worth showing.** Stages 8 and 9 - the recorded
+baseline and the measured iteration - are the part that separates this from every other
+document-AI demo, and the part an interviewer will actually probe. The two goals are not in
+tension in this plan, but they can be in practice, so there is a gate: the stage 7 queue
+stays bare, and nothing gets styled and nothing gets deployed until the baseline exists.
+
+Everything is checked from PowerShell. The commands per stage are in
+[05-tasks.md](05-tasks.md). If a stage cannot be verified that way, it is not finished.
 
 There are no dates anywhere in these documents. Stages are ordered by dependency.
+
+## How this file is maintained
+
+This file is the core of the project's continuity. It is what a new working session reads to
+pick the thread back up, and it is kept to one rule:
+
+**Nothing is erased. Everything is superseded.**
+
+- The session log at the bottom is **append only**. New entries go at the end, dated. An
+  earlier entry is never edited to make it agree with a later one - the disagreement is the
+  history.
+- When a decision is overturned, it does not vanish from the decisions table. It moves into
+  the log with what replaced it and why, and the table row is rewritten to the new decision
+  with the old one named as the rejected alternative. Both survive.
+- When a question is answered, it comes out of "Still open" and the answer goes into the log
+  with the reasoning. The question is not silently dropped.
+- Every working session appends an entry, even a short one. A session that changed nothing
+  says so.
+
+The reason is simple: the value of this project in an interview is being able to explain why
+it is the way it is. A decision record that only ever shows the current answer cannot do
+that, because every hard call in it looks obvious in hindsight. The alternatives that were
+rejected, and the things that turned out to be wrong, are the part worth keeping.
 
 ## Why this project exists
 
@@ -59,6 +92,9 @@ lives. It becomes the README's most credible section.
 
 | Decision | Rejected alternative | Why |
 | --- | --- | --- |
+| A running demo is the primary goal | A thorough system that is not yet demonstrable | It goes on job applications. Working to a certain extent, hosted, with a link, beats a better design that nobody can open |
+| The minimal review queue at stage 7, before the corpus | The queue last, after all measurement | It is the demo, and it is the tool for looking at extractions while the corpus is assembled. The risk it was moved away from - stalling in the interface and never measuring - is handled by a gate instead: the queue stays bare until the baseline is recorded |
+| Every stage verifiable from PowerShell | Verifying through tests alone, or through a client the author has to install | Testing happens in a Windows terminal. A stage that cannot be checked there is not finished. Note that PowerShell 5.1 has no `Invoke-RestMethod -Form`, so uploads go through `curl.exe` |
 | Seven tables | A normalised set with renditions, review tasks and status events as their own tables | The shape carries the design; the extra tables were bookkeeping. The queue became a status filter, the extracted text went into the document store beside the original, and the status history became a jsonb column. Fewer places for the same fact to live |
 | Queue is `GET /documents?status=needs_review` | A `review_tasks` table | A queue table duplicates a fact `documents.status` already holds, and the two can disagree |
 | Extracted PDF text written beside the original in the store | A `renditions` table, or a column on `documents` | Large, regenerable, and only ever read for debugging. Storage already has an S3-shaped layout, so it costs nothing to put it there. Keeping it at all answers the question that otherwise cannot be answered later: did the model read it wrong, or was it handed something unreadable |
@@ -94,9 +130,13 @@ Full list in [00-plan.md](00-plan.md). The ones that will bite first:
 - **Whether `status_history` as jsonb holds.** Seven tables is the target and jsonb keeps the
   line. If querying time-in-status gets awkward, an eighth table is the honest answer and
   should be taken rather than worked around.
-- **Hosting cost.** A container plus hosted PostgreSQL may not be free any more. The public
-  link is worth something to a reader, but not a monthly bill for a portfolio project. Worth
-  checking before stage 10 rather than during it.
+- **Hosting.** Now part of the deliverable rather than a nice-to-have, because the link is
+  what goes on an application. Three separate questions, and only the first is about money:
+  what a container plus a hosted PostgreSQL actually costs now that free database tiers have
+  got worse; whether the hosted database ships seeded, since a link that opens on an empty
+  queue demonstrates nothing; and what a visitor is allowed to do, because an open upload box
+  on a public link is an open invoice for provider tokens. To be discussed once there is
+  something running.
 
 ## Things to hold onto
 
@@ -183,3 +223,67 @@ re-introduced by accident:
   a document quietly kept out of the corpus is a forgotten TODO.
 
 Still no code. Next: stage 0, the scaffold.
+
+### 2026-08-25 - reordered around a running demo
+
+The stated goal was made explicit: **a system that runs, hosted, with a link that can go on
+a job application.** Working to a certain extent beats designed thoroughly and half-built.
+Testing happens in PowerShell. Hosting gets discussed once there is something running.
+
+What changed:
+
+- **The review queue moved from stage 9 to stage 7**, ahead of the corpus and the baseline.
+  It is the demo, and it is also the tool for looking at extractions while the corpus is
+  assembled - doing that against jsonb in a database client is miserable work, and miserable
+  work gets cut short.
+- **A gate replaced the ordering that used to protect the measurement.** The old plan kept
+  the UI last so it could not eat the project. The new plan keeps it bare: no styling, no
+  second screen, no deployment, until the stage 8 baseline is recorded. The risk is the same
+  and it is now handled explicitly rather than structurally.
+- **Stages renumbered.** Measurement is now 8 (corpus and baseline) and 9 (iteration).
+  Hosting and the README are 10. MCP and AWS stay optional at 11 and 12.
+- **Every stage now states what it ends in and how to check it from PowerShell.**
+  [05-tasks.md](05-tasks.md) opens with the commands. Two PowerShell 5.1 facts are written
+  down there because they will otherwise waste an evening: `Invoke-RestMethod` has no `-Form`
+  parameter, so uploads go through `curl.exe`; and `ConvertTo-Json` defaults to a depth of 2
+  and will silently flatten an extraction, so it always needs `-Depth 10`.
+- **Hosting was promoted from a nice-to-have to part of the definition of done**, and split
+  into the three questions it actually is: what it costs, whether the demo database ships
+  seeded, and what a visitor is allowed to do. An open upload box on a public link is an open
+  invoice for provider tokens.
+- **`/docs` noted as a free demo surface.** FastAPI generates it, and it is something that
+  can be shown from stage 2 onward, well before the queue exists.
+
+Nothing was dropped from the measurement work. Stage 8 is unchanged and stage 9 is
+unchanged; they simply come after something demonstrable rather than before it.
+
+Still no code. Next: stage 0, the scaffold.
+
+### 2026-09-01 - stage 0 built and verified
+
+**Stage 0 is done.** The scaffold runs. Verified end to end, not just written:
+
+- `docker compose up -d --build` brings up PostgreSQL 16 and the API.
+- `alembic upgrade head` creates all seven tables plus `alembic_version`.
+- `GET /health` returns 200 with `{"status":"ok","database":"ok"}`.
+- Stopping the database makes `/health` return **503** with `database: unreachable`, then it
+  returns to 200 when the database comes back. The health check was deliberately tested in
+  its failing direction, because one that only proves the web server started is worth very
+  little.
+- `pytest -q`: 6 passed, in the container and on the host.
+
+Standing instruction recorded this session, and now written into this file as **How this
+file is maintained**: nothing here is erased, everything is superseded, the session log is
+append only, and every session appends an entry even if it changed nothing. This file is the
+core of the project's continuity.
+
+Decisions taken while building, none of which were in the spec:
+
+| Decision | Rejected alternative | Why |
+| --- | --- | --- |
+| The migration is hand-written | `alembic revision --autogenerate` | The constraints that carry the design - the status CHECK, the duplicate-invoice unique key, the index behind the queue query - are visible in the migration rather than implied by the models. It is also the difference between knowing Alembic and knowing the autogenerate button |
+| `status` is `text` with a CHECK constraint | A native PostgreSQL ENUM type | An ENUM is a migration to add a value to. A CHECK lists the legal statuses in one readable place and still makes the database reject an unknown one. The list lives in `mailman/status.py` and the constraint is generated from it, so they cannot drift |
+| The API waits on a database healthcheck | `depends_on` alone | `depends_on` waits for the container to start, not for PostgreSQL to accept connections. Without the healthcheck the first run races and looks like a broken build |
+| `/health` checks the database, not just the process | Returning `{"ok": true}` | The thing that actually breaks is the connection. It returns 503 when the database is unreachable, and it reports the exception class rather than the message, because a connection error can carry the connection string and a connection string can carry a password |
+| The provider SDK and pdfplumber are not in `requirements.txt` yet | Installing everything up front | Each stage installs what it uses. An early stage is then never blocked on a dependency it does not need, and the dependency list reads as a history of what the project actually required |
+| Source is bind-mounted in Compose with `--reload` | Rebuilding the image to see a change | An edit is picked up by a restart. The image still builds from scratch cleanly, which is what deployment will use |

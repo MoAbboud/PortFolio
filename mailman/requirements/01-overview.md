@@ -91,6 +91,7 @@ hard rule and it is not negotiable for the sake of a more realistic demonstratio
 
 ## Requirements to run it
 
-Python, PostgreSQL, and credentials for a language model provider supplied through the
-environment. It runs from a terminal on Windows. The review queue is served by the same
-process that runs the API, so there is no separate front-end build step.
+Python, PostgreSQL and credentials for a language model provider supplied through the
+environment. Everything comes up with one Docker Compose command and is driven from a
+PowerShell terminal on Windows. The review queue is served by the same process as the API,
+so there is no separate front-end build step and nothing to install beyond Docker.

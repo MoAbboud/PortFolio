@@ -193,9 +193,10 @@ wrong is the failure this system exists to survive. The stored `confidence` is a
 - what the validation rules said,
 - and the model's own confidence, contributing least.
 
-The exact formula and the threshold are stage 2 work, set from a harness measurement rather
-than a feeling. Whatever they end up being, the reasoning gets written down - it is the
-first thing an interviewer will push on.
+A first version lands in stage 5 with a threshold chosen by hand; the defensible version
+comes out of stage 8, once the harness can say what the threshold costs in reviewer time and
+what it buys in bad records caught. Whatever it ends up being, the reasoning gets written
+down - it is the first thing an interviewer will push on.
 
 ## invoices and line_items
 
