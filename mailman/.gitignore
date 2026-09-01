@@ -1,0 +1,12 @@
+# Secrets. In before the first commit, not after.
+.env
+
+# Stored document bytes. Never in git, and the corpus lives under corpus/ instead.
+data/
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/

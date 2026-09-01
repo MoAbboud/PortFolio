@@ -1,0 +1,42 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: mailman
+      POSTGRES_PASSWORD: mailman
+      POSTGRES_DB: mailman
+    ports:
+      # Exposed so psql and a GUI client can reach it from Windows directly.
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mailman -d mailman"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: .
+    depends_on:
+      db:
+        # The API waits for a database that actually answers, not just a container that
+        # started. Without this the first run races and looks like a broken build.
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://mailman:mailman@db:5432/mailman
+      STORAGE_ROOT: /data/documents
+      # Passed through from the host shell. Never baked into the image.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      MAILMAN_API_KEY: ${MAILMAN_API_KEY:-}
+    ports:
+      - "8000:8000"
+    volumes:
+      # Source mounted so an edit is picked up by a restart without a rebuild.
+      - .:/app
+      # Document bytes live outside the image and outside git.
+      - ./data:/data
+    command: uvicorn mailman.main:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  pgdata:
