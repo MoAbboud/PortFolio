@@ -201,3 +201,200 @@ output finds what was not.
 are free and correct - but the model has learned one author's idea of what an invoice looks
 like. Public sample sets (SROIE, CORD, FUNSD) mixed in are what would make the number mean
 something. Until that happens, any F1 quoted has to carry that caveat with it.
+
+## The notebook hands over more than weights
+
+Extended the export so a training run produces something self-describing rather than a bare
+directory of tensors. It writes `mailman_model.json` beside the weights: label set, base
+model, training set size, whether any real documents were in it, epochs, overall F1, the
+full per-field table, and the caveats. `mailman/trained.py` reads it on load.
+
+**Worth being able to explain: why the label set is checked at load.** If the notebook is
+rerun with a changed label set and the new weights are dropped in place, an extractor that
+quietly tags the wrong fields is the result - and nothing downstream would notice, because
+every field would still be populated with something. `TrainedExtractor` refuses to load
+weights whose `field_labels` disagree with the code. It is the failure that would have been
+hardest to spot and was cheapest to prevent.
+
+**The export verifies itself before zipping.** It reloads the saved directory from disk, on
+CPU, the way the container will, and confirms it still tags a document. A 250 MB download
+that turns out to be missing a tokenizer file is 250 MB of wasted time and a confusing error
+on the other machine. The check costs seconds.
+
+**Metrics travel with the model.** They used to live only in a notebook output, which is a
+thing that gets closed. Numbers that cannot be cited later are not evidence, and the weights
+are what actually moves between machines.
+
+The last cell prints two blocks to copy: the PowerShell commands, and a formatted per-field
+table for this file. The reminder in it is the important part - the F1 on its own only says
+the model learned the generator. The number worth reporting is the **gap** between the
+trained model and the heuristic on the same corpus.
+
+## Real training data: the Kaggle invoice set
+
+The notebook now has a section 1b that pulls
+`osamahosamabdellatif/high-quality-invoice-images-for-ocr` from Kaggle (ODbL, 1,489
+annotated synthetic invoices with OCR text), converts it to BIO tags, and mixes it with the
+generated invoices. `USE_KAGGLE = False` turns the whole thing off.
+
+**Worth being able to explain: why not the HuggingFace mirror.** The same dataset is
+mirrored there, and it looked like the easier route - no Kaggle token. Checking the schema
+first showed the mirror has exactly one column: `image`. It was published in FiftyOne
+format, and the hub's automatic conversion to Parquet kept the pictures and silently dropped
+the annotations. A mirror is not the dataset. That check cost one request; finding it after
+writing the loader would have cost an evening.
+
+**Worth being able to explain: why the converter reports an alignment rate.** For generated
+invoices the labels are attached as the text is written, so they are right by construction.
+For someone else's data there is no choice but to match values back into the text - exactly
+the labelling method the generator exists to avoid. A value that cannot be found leaves its
+tokens tagged `O`, which teaches the model the field is *absent*. So the converter reports
+its own hit rate per field. Near-zero on one field means the mapping names a key that does
+not exist; near-zero everywhere means the OCR text is not being read. Documents whose
+required fields did not align are dropped rather than trained on, because a wrong label is
+worse than one fewer example.
+
+**A bug found by running it, not by reading it.** Wrote a harness that executes the
+notebook's own cells against a mock annotation with deliberate traps in it. One trap: a line
+reading `Freight 1 25.00 25.00`, where the unit price and the amount are the same number.
+The unit price claimed the first `25.00`; the amount matched the same position, found it
+already taken, and gave up. It went untagged. The model would have learned that a line
+amount equal to its unit price is not an amount - on every such line in the dataset.
+`find_span` now returns all occurrences and the tagger falls through to the next unclaimed
+one.
+
+That is four bugs now found by running rather than by testing - the invoice-number regex,
+the currency in the description, the stranded `extracting` document, and this. The rule is
+consistent enough to write down: **tests confirm what I thought of; running the thing on
+realistic input finds what I did not.**
+
+## Colab: torch upgrade broke torchvision
+
+First real run of the notebook died at the training cell with
+`RuntimeError: operator torchvision::nms does not exist`, surfacing as
+`Could not import module 'Trainer'`.
+
+My install cell had `torch --upgrade` in it. Colab ships torch, torchvision and torchaudio
+built against each other; upgrading torch alone strands torchvision on a version that no
+longer exists, and its operators fail to register. transformers imports torchvision lazily,
+so nothing complained until something reached for `Trainer` - dozens of cells later, blaming
+the wrong thing entirely.
+
+**Worth being able to explain: the error was nowhere near its cause.** That is the second
+time on this project - the HuggingFace mirror silently dropping its annotations was the
+same shape of problem. The response both times was to add a check at the point of failure
+rather than to remember the gotcha: the notebook now verifies torch and torchvision agree,
+by actually calling `torchvision.ops.nms`, immediately after installing. Three seconds, and
+the next failure of this kind announces itself where it happens.
+
+Also removed a dependency on `TrainingArguments` accepting `eval_strategy`, which
+transformers renamed from `evaluation_strategy`. It now reads `inspect.signature` and uses
+whichever the installed version accepts, so the notebook survives Colab's image moving on
+without a pin that goes stale.
+
+## F1 1.000 twice, and what it actually meant
+
+Trained, got F1 1.000 on every field. Fixed the word-piece labelling bug, retrained, got
+F1 1.000 again with validation loss at 0.0005.
+
+**It was never a metric bug. The benchmark was trivial.** Six vendors, four buyers, eight
+goods descriptions, a few fixed label phrasings - and the test split drawn from the same
+generator. "The token after 'Invoice Number:' is the invoice number" is learnable in one
+epoch, and an in-distribution split has no way to notice that memorisation is all that
+happened.
+
+Two things had already contradicted the score before I understood why: the "perfect" model
+returned `"in"` for `INV-2026-0042`, and it failed completely on an invoice written in a
+layout the generator never produces.
+
+**Worth being able to explain: why a random train/test split proved nothing here.** The
+split held out rows, not *anything about the documents*. Same vendors, same wording, same
+formats on both sides. The only honest test is data the generator did not produce - so the
+notebook now builds a shifted set with a disjoint vocabulary and different label phrasing,
+runs the real serving path over both, and reports the gap. The gap is the result; either
+number alone is close to meaningless.
+
+**A perfect score is a bug report, not an achievement.** Twice now on this project the
+suspicious result was the correct one to chase: the health check that had never been seen
+fail, and this. Something that cannot fail has usually not been tested.
+
+## The first honest comparison
+
+Retrained with the labelling fix. Manifest still says F1 1.000, still `real_examples: 0`.
+The useful results came from running the thing, not from the metric.
+
+**Two serving bugs, both invisible to every score.** The pipeline's reassembled `word` is
+lossy - the model is uncased and detokenization puts spaces around punctuation, so
+`INV-2026-0042` came back as `inv - 2026 - 0042`. Spans carry character offsets, so the fix
+is to slice the original text: that substring is what the document actually says. And model
+load was inside the latency measurement, reporting 17.7 seconds for the first document and
+milliseconds after. Load is once per process; the real number is 101 ms.
+
+**Document A**, a layout resembling the training data: both extractors get everything right,
+except the trained model also finds `buyer_name`, which the heuristic deliberately does not
+attempt because no reliable rule finds it. That is the first thing the model does that the
+rules cannot, and it is worth noting.
+
+**Document B**, a layout the generator never produced - different labels, European
+separators, a discount line: the heuristic returns a record with several fields wrong. The
+trained model **fails outright**, never tagging `total` or `currency`.
+
+**Worth being able to explain, and this is the line for the README:** a model reporting F1
+1.000 could not find the total on an invoice written in an unfamiliar layout, while eleven
+lines of regular expressions degraded gracefully and still produced something. The heuristic
+is wrong in ways you can see. The model is simply absent. Neither is good enough, and that
+is the honest state of it.
+
+It also says exactly what to do next, which a good measurement should: the model needs data
+that did not come from this generator. Nothing about prompts or architecture matters until
+that changes.
+
+### Trained extractor - 2026-09-02
+
+Base model      distilbert-base-uncased
+Training set    3400 examples (generated only - the Kaggle set had no labels, see below)
+Epochs          6
+
+    token-level F1        1.000     <- meaningless, same generator both sides
+    serving in-distribution 100.0%
+    serving SHIFTED         40.7%   <- the honest number
+    generalisation gap      59.3%
+
+Per field on the shifted set:
+
+    INVOICE_NUMBER    18.0%      LINE_QUANTITY     99.0%
+    VENDOR_NAME       20.5%      LINE_AMOUNT       98.0%
+    ISSUE_DATE        14.5%      LINE_UNIT_PRICE   94.0%
+    CURRENCY          33.0%      BUYER_NAME        93.0%
+    DUE_DATE          58.5%
+    SUBTOTAL           0.0%
+    TAX                0.0%
+    TOTAL              0.0%
+    LINE_DESCRIPTION   0.0%
+
+**This is the first result that told me something I did not already know.** The pattern is
+not random. Everything that survived is identified by *position* - the second, third and
+fourth number in a table row. Everything that hit zero is keyed to a *label word*: training
+printed `Subtotal`, `VAT`, `Total Due`; the shifted set printed `Goods value`, `Duty`,
+`Balance now due`. The model learned a keyword lookup, not what an invoice is.
+
+**Worth being able to explain: why 100% and 40.7% are the same model.** Nothing changed
+between those two numbers except the wording on the page. That gap is the entire value of
+having built a held-out set that shares no vocabulary, and it is the number that goes in the
+README - not the 1.000.
+
+**The Kaggle dataset has no annotations.** `0 json files, 8181 jpgs, 0 txt`. The "1,489
+annotated samples" claim came from the Voxel51 HuggingFace card describing the FiftyOne copy
+they built, not from the Kaggle artifact. So the labels exist only inside the FiftyOne copy -
+which is the same copy whose Parquet conversion dropped them.
+
+Third time on this project that a description has been wrong about an artifact: the mirror's
+schema, the export's file list, and now this. And my inspector cell was complicit - it
+counted `.json`, `.jpg` and `.txt`, reported "0 json files", and said nothing about the 8,181
+other files. **An inspector that only looks for what it expects is not an inspector.**
+
+**Fix being tried:** the generator's label vocabulary was tiny - four ways to say "total",
+three to say "date". That is a lookup table. It is now 13 and 11, with 20 vendors, 22 goods,
+5 table-header layouts and 6 date formats. If label diversity was the problem, the gap
+should narrow sharply. If it does not, the problem is deeper than vocabulary and real
+documents are the only answer.

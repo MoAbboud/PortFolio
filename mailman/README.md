@@ -71,8 +71,22 @@ Three implementations of one protocol, chosen with `MAILMAN_EXTRACTOR`:
 Because extractions are append-only, the same document can be run through all three and the
 answers compared directly. That comparison is what stage 8 measures across the whole corpus.
 
+Training data: the notebook trains on invoices from its own generator. It also contains a
+loader for external datasets which reports its per-field alignment rate and drops documents
+whose required fields cannot be matched, rather than training on a missing label.
+
+The Kaggle set that loader was written against turned out to ship images with **no
+annotations** - the labels described on its HuggingFace mirror live only in that mirror's
+FiftyOne copy, which is the same copy whose Parquet conversion dropped them. Finding real
+labelled invoices with a licence that permits a public demo is an open problem, and the
+current accuracy figures carry that caveat.
+
 To train and use the local model: run [notebooks/train_extractor.ipynb](notebooks/train_extractor.ipynb)
-on Colab (free T4, a few minutes), download the zip, then:
+on Colab (free T4, a few minutes). It verifies the export by reloading it on CPU before
+zipping, downloads it automatically, and prints both the commands to run and a per-field
+results table to record. The weights ship with a `mailman_model.json` manifest - label set,
+training set size, per-field scores - and the extractor refuses to load weights whose label
+set disagrees with the code.
 
 ```powershell
 Expand-Archive mailman-extractor.zip -DestinationPath .\models\extractor -Force

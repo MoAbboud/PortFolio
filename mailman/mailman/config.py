@@ -6,6 +6,7 @@ Everything here comes from the environment or from a gitignored .env file.
 
 from __future__ import annotations
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -37,10 +38,20 @@ class Settings(BaseSettings):
     # Which extractor runs. "heuristic" needs nothing at all and is the default and the
     # deployable one; "trained" loads local weights; "anthropic" needs a key and is kept as
     # a comparison point rather than as the path this project depends on.
-    extractor: str = "heuristic"
+    # Both spellings are accepted. The field is named `extractor`, so pydantic-settings
+    # would read plain EXTRACTOR - but every document in this project says
+    # MAILMAN_EXTRACTOR, which is the more obvious name and the one someone will type.
+    # Accepting both is cheaper than an environment variable that silently does nothing.
+    extractor: str = Field(
+        default="heuristic",
+        validation_alias=AliasChoices("MAILMAN_EXTRACTOR", "EXTRACTOR", "extractor"),
+    )
 
     # Where a locally trained extractor's weights live, when there are any.
-    model_dir: str = "./models/extractor"
+    model_dir: str = Field(
+        default="./models/extractor",
+        validation_alias=AliasChoices("MAILMAN_MODEL_DIR", "MODEL_DIR", "model_dir"),
+    )
 
     # Only read when extractor == "anthropic". Recorded on every row either way, because two
     # runs cannot be compared without knowing what produced them.

@@ -17,6 +17,8 @@ tier's memory. This is the local and showcase path. `heuristic` is what deploys.
 
 from __future__ import annotations
 
+import json
+import logging
 import time
 from pathlib import Path
 
@@ -57,8 +59,17 @@ _HEADER_FIELDS = {
 }
 
 
+log = logging.getLogger(__name__)
+
+MANIFEST_NAME = "mailman_model.json"
+
+
 class ModelNotAvailable(RuntimeError):
     """No weights on disk. Expected on a clean checkout - the weights are not in git."""
+
+
+class ModelMismatch(RuntimeError):
+    """The weights were trained against a different label set than this code expects."""
 
 
 class TrainedExtractor:
@@ -69,6 +80,7 @@ class TrainedExtractor:
     def __init__(self, model_dir: str = "./models/extractor") -> None:
         self.model_dir = Path(model_dir)
         self.model_name = f"trained:{self.model_dir.name}"
+        self.manifest: dict | None = None
         self._pipeline = None
 
     def _load(self):
@@ -82,6 +94,8 @@ class TrainedExtractor:
                 "or set MAILMAN_EXTRACTOR=heuristic."
             )
 
+        self.manifest = self._read_manifest()
+
         # Imported lazily. transformers and torch are a large install and the default path
         # never touches them, so a checkout that only runs the heuristic never pays for it.
         from transformers import pipeline as hf_pipeline
@@ -89,31 +103,96 @@ class TrainedExtractor:
         self._pipeline = hf_pipeline(
             "token-classification",
             model=str(self.model_dir),
-            aggregation_strategy="simple",
+            # "first", not "simple". Training labels only the FIRST word-piece of each word
+            # and masks the rest with -100, so the model never learns to label a
+            # continuation piece. "simple" trusts every piece's own prediction and so breaks
+            # a span at the first continuation it meets - which returned "in" for
+            # INV-2026-0042 and "##dget assembly" for a description. "first" takes the
+            # leading piece's label for the whole word, which is the labelling scheme the
+            # model was actually trained under.
+            aggregation_strategy="first",
+            # CPU. There is no GPU in the container, and saying so explicitly beats
+            # discovering it through a slow first request.
+            device=-1,
         )
         return self._pipeline
+
+    def _read_manifest(self) -> dict | None:
+        """Read what the notebook recorded about these weights, and check they fit.
+
+        The manifest carries the label set, the base model, the training set size and the
+        scores. It exists so a set of weights is self-describing: numbers that live only in
+        a notebook output someone closed are numbers nobody can cite.
+
+        The label check is the load-bearing part. Retraining with a changed label set and
+        dropping the weights in place would otherwise produce an extractor that quietly
+        tags the wrong fields, and nothing downstream would notice.
+        """
+        path = self.model_dir / MANIFEST_NAME
+        if not path.exists():
+            log.warning(
+                "%s has no %s - it was not exported by notebooks/train_extractor.ipynb, "
+                "so its label set and its scores are unknown",
+                self.model_dir,
+                MANIFEST_NAME,
+            )
+            return None
+
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+
+        trained_fields = tuple(manifest.get("field_labels") or ())
+        if trained_fields and trained_fields != FIELD_LABELS:
+            missing = sorted(set(FIELD_LABELS) - set(trained_fields))
+            extra = sorted(set(trained_fields) - set(FIELD_LABELS))
+            raise ModelMismatch(
+                f"the weights in {self.model_dir} were trained on a different label set. "
+                f"Missing here: {missing or 'none'}. Unexpected: {extra or 'none'}. "
+                "Retrain with the current notebook, or update FIELD_LABELS to match."
+            )
+
+        # Recorded on the extraction row, so a stored extraction says which training run
+        # produced it rather than only which directory it was loaded from.
+        trained_at = (manifest.get("trained_at") or "")[:10]
+        if trained_at:
+            self.model_name = f"trained:{self.model_dir.name}@{trained_at}"
+
+        log.info(
+            "loaded %s trained %s on %s examples, overall F1 %s",
+            self.model_dir,
+            trained_at or "at an unknown date",
+            manifest.get("training_examples", "?"),
+            manifest.get("overall_entity_f1", "?"),
+        )
+        return manifest
 
     def extract(self, document_text: str):
         from mailman.extractor import ExtractionError, ExtractionResult
 
-        started = time.monotonic()
         try:
             tagger = self._load()
-        except ModelNotAvailable as exc:
+        except (ModelNotAvailable, ModelMismatch) as exc:
             raise ExtractionError("unavailable", str(exc)) from exc
 
+        # The load is not part of the measurement. It happens once per process and would
+        # otherwise report seventeen seconds for every first document and milliseconds after.
+        started = time.monotonic()
         spans = tagger(document_text)
-        read = self._assemble(spans)
+        read = self._assemble(spans, document_text)
         fields = InvoiceFields(read)
         latency_ms = int((time.monotonic() - started) * 1000)
 
         raw = {
             "extractor": "trained",
             "model_dir": str(self.model_dir),
+            # Kept on the row so an extraction can be traced to the training run behind it,
+            # not just to a directory whose contents may since have been replaced.
+            "trained_at": (self.manifest or {}).get("trained_at"),
+            "training_examples": (self.manifest or {}).get("training_examples"),
+            "overall_entity_f1": (self.manifest or {}).get("overall_entity_f1"),
             "spans": [
                 {
                     "label": span.get("entity_group"),
-                    "text": span.get("word"),
+                    "text": self._text_of(span, document_text),
                     "score": float(span.get("score", 0.0)),
                     "start": span.get("start"),
                     "end": span.get("end"),
@@ -138,7 +217,23 @@ class TrainedExtractor:
             token_count=0,
         )
 
-    def _assemble(self, spans: list[dict]) -> InvoiceRead:
+    @staticmethod
+    def _text_of(span: dict, document_text: str) -> str:
+        """Return what the document actually says at this span.
+
+        The pipeline's `word` is detokenized from word-pieces, which lowercases (this is an
+        uncased model) and inserts spaces around punctuation - INV-2026-0042 comes back as
+        "inv - 2026 - 0042". The span also carries character offsets into the original text,
+        so the source substring is available and is what the document really said. Use that.
+        """
+        start, end = span.get("start"), span.get("end")
+        if start is not None and end is not None:
+            surface = document_text[start:end].strip()
+            if surface:
+                return surface
+        return (span.get("word") or "").strip()
+
+    def _assemble(self, spans: list[dict], document_text: str = "") -> InvoiceRead:
         """Turn tagged spans back into the invoice shape.
 
         Header fields take the highest-scoring span for their label. Line item parts are
@@ -157,7 +252,7 @@ class TrainedExtractor:
 
         for span in spans:
             label = span.get("entity_group")
-            text = (span.get("word") or "").strip()
+            text = self._text_of(span, document_text)
             score = float(span.get("score", 0.0))
             if not label or not text:
                 continue

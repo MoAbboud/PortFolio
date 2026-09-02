@@ -459,3 +459,642 @@ burying.
 key, no GPU and no provider account, so a public link costs whatever the container and the
 database cost and nothing per visitor. The open-upload-box problem from the earlier hosting
 note largely goes away with it.
+
+### 2026-09-01 - the notebook now hands over a self-describing model
+
+The export section of `notebooks/train_extractor.ipynb` was extended so a training run
+produces everything needed at the other end rather than just weights.
+
+What the export now does:
+
+1. Saves the model and tokenizer to `models/extractor/`.
+2. Writes `mailman_model.json` beside them - the label set, the base model, the training set
+   size, whether any real documents were in it, the epoch count, the overall F1 and the full
+   per-field table, plus the caveats that have to travel with those numbers.
+3. **Verifies before zipping.** It asserts the required files are present, then reloads the
+   model from disk on CPU - the way the container will - and confirms it still tags a
+   document. A 250 MB download that turns out to be missing a tokenizer file is 250 MB of
+   wasted time and a confusing failure on the other machine.
+4. Zips, prints the size, and starts the download automatically, with a Google Drive
+   fallback for when a browser blocks a large transfer or the connection drops.
+5. Prints two blocks to copy: the PowerShell commands for the machine running mailman, and
+   a formatted per-field table for `NOTES.md`.
+
+| Decision | Rejected alternative | Why |
+| --- | --- | --- |
+| A `mailman_model.json` manifest ships with the weights | Recording the metrics in the notebook output only | A notebook output is closed and lost. Numbers that cannot be cited later are not evidence, and the weights are the thing that gets moved between machines |
+| `TrainedExtractor` **refuses** to load weights whose label set disagrees with the code | Loading them and hoping | Retraining with a changed label set and dropping the weights in place would give an extractor that quietly tags the wrong fields, with nothing downstream noticing. This is the failure that would be hardest to spot and easiest to prevent |
+| A missing manifest logs a warning but still loads | Refusing without one | Weights from elsewhere are still usable; their provenance is simply unknown, and saying so in the log is proportionate |
+| `model_name` becomes `trained:extractor@2026-09-14` | `trained:extractor` | A stored extraction should point at the training run behind it, not just at a directory whose contents may since have been replaced |
+| Verification reloads on CPU specifically | Trusting the in-memory model | The container has no GPU. Testing the path the deployment actually uses is the only test worth running here |
+| Forward slashes in the printed PowerShell commands | Backslashes | PowerShell and `curl.exe` both accept them on Windows, and it keeps the cell free of escaping that would have to survive an f-string, a notebook file and a copy-paste. It had already been got wrong twice |
+
+Five tests cover the handover without needing any weights: the BIO label set matches the
+field list, a missing model explains how to get one, a mismatched label set is refused, a
+matching manifest names the training run, and weights with no manifest still load. 84 tests
+pass.
+
+### 2026-09-01 - public training data: what is actually available
+
+Looked into replacing generated-only training data with real documents. Findings, so this
+does not have to be researched again:
+
+| Dataset | What it is | Fit for mailman |
+| --- | --- | --- |
+| **DocILE** (Rossum/CTU) | 6.7k annotated real business documents, 100k synthetic, ~1M unlabeled. 55 annotation classes. Two tracks: KILE (field extraction) and **LIR (line item recognition)**. Ships pre-computed DocTR OCR with word boxes in relative coordinates | **The best fit by a distance.** It is invoices rather than receipts, and it is the only one with real line-item grouping - which is the part of this pipeline that is hardest and most valuable |
+| **CORD** (NAVER CLOVA) | ~11k Indonesian receipts with line-item annotations - name, quantity, unit price, price, discount | Good for line items, easy to get from HuggingFace. Receipts, not invoices, and a single regional layout |
+| **SROIE** (ICDAR 2019) | ~1k scanned receipts | Only four fields - company, date, address, total. No line items. Thin for this |
+| **FUNSD / XFUND** | 199 scanned forms, question/answer/header linking | Form understanding, not invoices. Wrong task |
+| Kaggle invoice sets | Various | Mostly synthetic themselves, often unlabelled, provenance usually unclear. The primary sources above are better precisely because their terms and origins are knowable |
+
+**Licence caution, and it matters here.** The MIT badge on the DocILE repository covers the
+**code**. The dataset is obtained with a registration token and carries its own terms, which
+have to be read before anything derived from it goes into a public repository. Given this
+project already has a hard rule about whose documents may exist in it, the same care applies
+to a public dataset: cite it, do not redistribute it, and keep the download out of git.
+
+**Two pieces of work this implies, and they are the same piece of work.** These datasets are
+images with word boxes, not a PDF text layer. Using them means consuming their OCR output -
+which is exactly the input LayoutLMv3 needs. So "train on real documents" and "upgrade from
+DistilBERT to a layout-aware model" collapse into one change rather than two.
+
+**The discipline that protects the numbers:** the stage 8 evaluation corpus must contain no
+document the model was trained on. Public data makes that easy to get wrong, because the
+same set is the obvious source for both. Split first, then train.
+
+Not started. The notebook still trains on generated invoices only, and says so.
+
+### 2026-09-01 - correction and recommendation on training data
+
+**Correction to the entry above: CORD's public release is 1,000 examples, not ~11k.** The
+11k figure is from the paper; what is actually downloadable as `naver-clova-ix/cord-v2` is
+800 train / 100 validation / 100 test. Licence **CC-BY-4.0** - the cleanest of any set here,
+commercial use permitted with attribution. Each example carries the receipt image, a
+ground-truth JSON with menu lines (name, count, unit price, price) plus subtotal/tax/total,
+and word-level OCR with bounding boxes.
+
+That changes the balance. Set against DocILE's 6.7k annotated real business documents, CORD
+is roughly an eighth the size and in the wrong genre - Indonesian restaurant receipts rather
+than business invoices.
+
+**Recommendation: submit the DocILE form.** The reasoning:
+
+- It is the only public set that is actually **invoices**. CORD is receipts, and a model
+  trained on restaurant receipts is being asked to transfer across both layout and language.
+- 6.7k real annotated documents against CORD's 800.
+- It has line-item **grouping** (the LIR track), which is the hardest part of this pipeline
+  and the part with the most value in it.
+- The form is a one-time cost of a couple of minutes. **The conversion work - 55 classes
+  down to 13, boxes to words, split discipline - is the same either way**, so avoiding the
+  form saves the two minutes and costs the better dataset. That is a bad trade.
+
+**Use CORD while waiting, and treat it as a pipeline test rather than as final training
+data.** It is one `load_dataset` call and a permissive licence, so it is the cheapest way to
+prove the whole path works - label mapping, box handling, train/eval separation - before the
+DocILE token arrives. Whether receipt data actually helps invoice extraction is a question
+for the harness, not an assumption; it may well be that generated invoices plus DocILE beats
+generated plus CORD, and that is a measurable claim rather than a guess.
+
+Still not started, and still behind stage 3 in the queue.
+
+### 2026-09-01 - DocILE's terms, and a reversal
+
+The DocILE access form was read in full. **It substantially reverses the recommendation in
+the entry above**, which was made before the terms were seen.
+
+The terms, in the parts that bite:
+
+- **Non-commercial research purposes only.**
+- **"You must not provide or otherwise allow access to the content to any third party."**
+- A declaration to **not distribute it**, and to **delete the content** if and when
+  permission ends.
+- Permission can be withdrawn for non-compliance.
+
+Set that against what this project is for. The definition of done in
+[00-plan.md](00-plan.md) includes **a public link that goes on a job application**. A hosted
+demo seeded with DocILE documents would be allowing third-party access to the content, which
+the terms forbid outright. Publishing weights trained on it is at best unclear - weights are
+arguably not "the content", but "all rights not expressly granted are reserved" is broad
+enough that it is not a question to be confident about. And "non-commercial research" sits
+awkwardly against a portfolio whose honest purpose is getting hired.
+
+**Revised recommendation: train on what can be shipped, and treat DocILE as a private
+benchmark rather than as training data.**
+
+| Use | Dataset | Why it is clean |
+| --- | --- | --- |
+| **Training** | Generated invoices + **CORD** (CC-BY-4.0) | CC-BY-4.0 permits commercial use and redistribution with attribution. Weights can be published, a demo can be public, nothing has to be deleted later |
+| **Evaluation only, locally** | DocILE, if the form is submitted | Reporting a measured number is not distributing content. The documents never leave the machine, no model trained on them is published, and nothing derived from them is hosted |
+
+That split also has a virtue beyond compliance: **evaluating against a recognised public
+benchmark is exactly what makes a README number checkable.** "89% on invoices I generated" is
+weak. "89% on the DocILE evaluation set" is a claim someone else can reproduce.
+
+**If the form is submitted, the answers have to be true**, which means accepting up front
+that nothing derived from DocILE gets published or hosted. If that constraint is unwelcome,
+the honest thing is not to submit it - CORD plus generated data is a perfectly respectable
+training set, and the caveat about genre is one the README can simply state.
+
+The competition question on the form refers to ICDAR 2023 and CLEF 2023, both long past, so
+the answer is No. Affiliation is "personal".
+
+**Consequence if DocILE is not used at all:** nothing breaks. The trained extractor is the
+showcase path, not the deployed one, and CORD plus generated invoices trains it perfectly
+well. The gap between the heuristic and the trained model - the number this project actually
+reports - does not depend on DocILE existing.
+
+### 2026-09-01 - the full dataset landscape, sorted by licence
+
+Searched further for sets whose terms survive the public-demo constraint. The licence is the
+sorting key, not the size - a dataset that cannot be trained on and shipped is only useful
+as a private benchmark.
+
+**Usable for training, publishing weights, and hosting a demo:**
+
+| Dataset | Licence | Size | Genre | Notes |
+| --- | --- | --- | --- | --- |
+| **Kaggle "High-Quality Invoice Images for OCR"** (mirrored as `Voxel51/high-quality-invoice-images-for-ocr`) | ODbL | **1,489 annotated** + 6,692 unannotated | **Invoices** | Annotations cover invoice number, dates, seller and client, **line items**, subtotal, tax, discount, total, payment details. **Synthetic** - but from a different generator than ours, which is exactly the layout diversity that matters |
+| **CORD** (`naver-clova-ix/cord-v2`) | CC-BY-4.0 | 800 / 100 / 100 | Receipts | Real documents, real OCR noise, line items with quantity and unit price. Cleanest licence of the lot |
+
+**Non-commercial - private benchmark only, never shipped:**
+
+| Dataset | Licence | Size | Genre | Friction |
+| --- | --- | --- | --- | --- |
+| **DocILE** | Non-commercial, no distribution, delete on request | 6.7k real annotated | Invoices | Form and token, and permission can be withdrawn |
+| **RealKIE - FCC Invoices** | CC-BY-NC 4.0 | 370 real | Political ad-buy invoices | **Direct download, no form, no delete-on-request clause.** 11 fields including line items |
+
+RealKIE is one of five sets from Indico; the other four are contracts, filings and charity
+reports, and are the wrong domain. DeepForm covers the same FCC ad-buy documents from the
+journalism side; the underlying filings are US public records, but the useful annotations
+are the ones RealKIE and DocILE added.
+
+Rejected on fit rather than licence: SROIE (four fields, no line items), FUNSD and XFUND
+(form understanding, wrong task), RVL-CDIP (classification only, no field labels).
+
+**Revised recommendation, replacing the two entries above:**
+
+- **Train on the Kaggle invoice set plus CORD, alongside our own generated invoices.** All
+  three are shippable. That is three independent sources of layout - two synthesisers and
+  one set of real photographed receipts - which is a materially better training mix than one
+  generator, and none of it constrains the demo.
+- **If a real-document benchmark is wanted, prefer RealKIE FCC Invoices over DocILE.** It is
+  far smaller, but it is a direct download with no form, no token and no clause allowing
+  permission to be withdrawn later. For a number quoted in a README, 370 real invoices is
+  enough to be worth citing, and the reduced obligation is worth more here than the extra
+  volume.
+
+**Honest caveat that does not go away:** the Kaggle set is synthetic. Adding it does not let
+the README claim the model was trained on real invoices - it lets it claim two independent
+generators plus real receipts, which is a weaker but true statement. Only the non-commercial
+sets are real invoices, and those cannot be trained on and shipped.
+
+**ODbL note:** it permits commercial use and requires attribution; its share-alike clause
+applies to derived *databases*. Model weights are very unlikely to count as one, but the
+attribution requirement is real and belongs in the README.
+
+### 2026-09-01 - what kind of invoice this system is for (PROPOSED, not yet confirmed)
+
+Asked directly: what kind of invoices are we looking for. The answer determines the field
+schema, the validation rules, the generator, the corpus and which dataset is worth having,
+so it is written down here rather than left implicit.
+
+**Proposed target: business-to-business accounts-payable supplier invoices.** A supplier
+sends a bill to a company that has to pay it. That is the document the EDI work this project
+grew out of was moving, it is the document the seven-table schema already assumes, and it is
+the only genre where the existing validation rules mean anything - a vendor to resolve, a
+buyer, an invoice number that must not repeat for that vendor, and arithmetic that has to
+reconcile.
+
+**The core profile - what should work:**
+
+| Property | Core case |
+| --- | --- |
+| Origin | Digital-born PDF with a text layer |
+| Parties | One vendor, one buyer, both named |
+| Identifier | An invoice number, and often a PO or reference |
+| Dates | Issue date, usually a due date |
+| Currency | One currency per document, as a code or a symbol |
+| Line items | 1 to 20, on one page, each with a description and an amount |
+| Tax | A single rate applied once, or none at all |
+| Arithmetic | Line items sum to a subtotal; subtotal plus tax equals a printed total |
+
+**The variation that has to be covered, because it is where extraction breaks:**
+
+- Label wording: "Invoice No." against "Inv #" against "Reference".
+- Date formats, including the genuinely ambiguous `03/04/2026`.
+- Decimal and thousands separators - `1,234.56` against `1.234,56`.
+- A discount line, a freight or shipping line, a rounding line.
+- Tax as a percentage of the subtotal, versus tax stated per line.
+- A credit note: negative amounts, printed in parentheses or with a trailing minus.
+- A table continuing across a page break.
+- A second currency mentioned but not used - "prices in USD, payable in GBP".
+- A document that is not an invoice at all.
+
+**Explicitly out of scope, and it should stay that way until the core is measured:**
+
+- Retail and restaurant **receipts**. No vendor-buyer relationship, no invoice number in the
+  accounts-payable sense, no due date. A different document that happens to have line items.
+- Utility bills, statements of account, purchase orders, bills of lading.
+- Handwritten documents, and scans with no text layer - already rejected with a reason.
+- Multi-page documents beyond a continuing line-item table.
+
+**This changes the dataset assessment, and it is worth being explicit about why.** Measured
+against the profile above:
+
+- The **Kaggle invoice set** is a direct match. Its annotations carry invoice number, issue
+  and due dates, seller *and* client, line items, subtotal, tax, discount and total - very
+  nearly the field list this project already settled on.
+- **CORD** is not. It is restaurant receipts: no invoice number, no buyer, no due date, no
+  vendor-buyer relationship. It would teach a model line items and totals and nothing at all
+  about half the fields, and its layouts are receipts rather than invoices.
+
+So CORD's value is narrower than its licence made it look. It is worth including only for
+line-item and total extraction, and possibly not worth the mapping work at all. **The Kaggle
+invoice set plus our own generator is the stronger pairing**, and that is a change from the
+recommendation in the entry above.
+
+Status: proposed. Needs confirming before the generator in stage 3 is built against it,
+because the generator is what encodes this profile in code.
+
+### 2026-09-01 - correction: the HuggingFace mirror has lost the annotations
+
+Checked the actual schema of `Voxel51/high-quality-invoice-images-for-ocr` through the
+HuggingFace datasets-server before writing a loader against it. One config, one split, and
+**one column: `image`.**
+
+The annotations and the OCR text are not there. Voxel51 published it in FiftyOne format,
+where labels live as FiftyOne sample fields, and the hub's automatic conversion to Parquet
+kept the images and dropped everything else. `load_dataset("Voxel51/...")` therefore returns
+invoice pictures and nothing to train against.
+
+**This reverses the "use the HuggingFace mirror, it is easier" advice in the entry above.**
+The mirror is the lossy copy. The annotations live in the original Kaggle download.
+
+| Route | Gets the labels | Cost |
+| --- | --- | --- |
+| **Kaggle original** | **Yes** - JSON annotations and OCR text as files | A free Kaggle API token in Colab. One-time, about two minutes |
+| FiftyOne `load_from_hub` | Probably - it is the format the labels were published in | Pulls FiftyOne, a large dependency, for one dataset |
+| `datasets.load_dataset` on the mirror | **No** | Nothing, and it is worth nothing |
+
+**Worth generalising from:** a mirror is not the dataset. Format conversions between
+ecosystems drop what the target format has no place for, silently and without warning. The
+schema check that caught this cost one request; discovering it after writing a loader and a
+label mapping would have cost an evening.
+
+**Where the data actually needs to be:** nowhere local. Colab downloads it, trains, and
+returns a weights zip. The dataset is never committed, never redistributed, and never
+touches the machine running mailman. The repository references it by identifier and carries
+the ODbL attribution to the original author.
+
+### 2026-09-01 - the Kaggle loader is in the notebook, and it was run before shipping
+
+`notebooks/train_extractor.ipynb` is now 34 cells and has a section 1b that downloads the
+Kaggle invoice set, inspects it, converts it and reports how much of it actually aligned.
+
+The shape of it:
+
+1. `USE_KAGGLE` toggle. Off, the notebook trains on generated invoices exactly as before.
+2. Kaggle API token upload, then a download of
+   `osamahosamabdellatif/high-quality-invoice-images-for-ocr`. The token is a one-time,
+   two-minute setup and Colab does the downloading - the dataset never touches the machine
+   running mailman, and never enters the repository.
+3. **An inspection cell that prints the directory tree and one full annotation before
+   anything is mapped.** Field names in someone else's dataset are not knowable in advance,
+   and a mapping written from a guess fails silently: it trains, the loss falls, and the
+   model learns nothing.
+4. `FIELD_MAP`, a plain dictionary at the top of a cell, edited once against what step 3
+   printed.
+5. The converter, and **an alignment report per field**.
+
+**Why the alignment report is the important part.** For generated invoices, labels are
+attached as the text is written and are correct by construction. For external data there is
+no choice but to match values back into the text, which is precisely the labelling method
+the generator was designed to avoid. A value that cannot be found leaves its tokens tagged
+`O`, which actively teaches the model that the field is absent. So the converter reports its
+own hit rate per field, near-zero flags a broken mapping, and any document whose required
+fields could not be aligned is **dropped rather than included with a missing label**.
+
+**A real bug, found by running it rather than reading it.** A test harness executed the
+notebook's own cells against a mock annotation with deliberate traps. On a line reading
+`Freight 1 25.00 25.00`, the unit price and the amount are the same value: the unit price
+claimed the first occurrence, the amount matched the same position, found it taken, and gave
+up - so it went untagged. The model would have been taught that a line amount equal to its
+unit price is not an amount. `find_span` now returns every occurrence and the tagger falls
+through to the next unclaimed one. Verified: `LINE_AMOUNT` went from 1 to 2 on that document.
+
+That is the fourth bug this project has found by running code rather than by testing it. The
+pattern is consistent enough to be worth stating as a rule: **tests confirm what was thought
+of; running the thing on realistic input finds what was not.**
+
+| Decision | Rejected alternative | Why |
+| --- | --- | --- |
+| Inspect the annotation before mapping it | Writing `FIELD_MAP` from the dataset description | The description says what fields exist, not what the keys are called. A guessed mapping produces a 0% alignment rate that looks like bad data rather than a bad guess |
+| Report alignment per field | Trusting the conversion | It is the only signal that distinguishes "this dataset does not have that field" from "the mapping names the wrong key" |
+| Drop documents whose required fields did not align | Keeping them with the field untagged | A wrong label is worse than one fewer example. An untagged required field is a lesson that the field is not there |
+| Match money loosely | Exact string comparison | The annotation says `1234.56` where the document prints `$1,234.56`. Exact matching would fail on every money field and read as a broken mapping |
+| Header money fields matched from the end of the document | First occurrence | A grand total is usually also a line amount somewhere above it. The totals block is at the bottom |
+
+### 2026-09-01 - the notebook broke on Colab: torch upgrade
+
+First real run of the notebook failed at the training cell:
+
+    RuntimeError: operator torchvision::nms does not exist
+    ModuleNotFoundError: Could not import module 'Trainer'
+
+**Cause: the install cell passed `torch --upgrade`.** Colab ships torch, torchvision and
+torchaudio built against one another. Upgrading torch alone leaves torchvision bound to a
+version that no longer exists, so its custom operators fail to register. transformers
+imports torchvision lazily for image models, so nothing complains until something reaches
+for `Trainer` - dozens of cells later, pointing at entirely the wrong thing.
+
+Fixes applied:
+
+| Change | Why |
+| --- | --- |
+| **`torch` removed from the install line.** Now `%pip install -q -U transformers datasets accelerate seqeval` | Colab's torch already has CUDA and is the one to use. Upgrading it is what broke this |
+| **A version-check cell added immediately after the install** | Prints torch, torchvision and transformers versions, actually calls `torchvision.ops.nms`, and stops with a readable message if the two disagree. Three seconds, and it turns a confusing failure forty cells away into an obvious one here |
+| **`TrainingArguments` asks the signature which keyword it wants** | transformers renamed `evaluation_strategy` to `eval_strategy`. Reading `inspect.signature` keeps the notebook working as Colab's images move on, without pinning a version that goes stale |
+| **The Kaggle cell split, magics moved to the top level** | `%pip` and `!command` inside an indented block depend on IPython transforming a magic at depth. It usually works and is not worth depending on |
+
+**A restart is required after this fix, not just a rerun.** The broken torchvision is already
+loaded into the running session, so the fixed cell cannot help until Runtime -> Restart
+session.
+
+**The general point, and it is the same one as the mirror that lost its annotations:** the
+error surfaced a long way from its cause. `Trainer` failing to import says nothing about a
+torch upgrade eleven cells earlier. The version check exists so the next failure of this
+shape announces itself where it happens.
+
+Notebook is now 37 cells. The converter test was re-run afterwards and still passes.
+
+### 2026-09-01 - the export check rejected a good export
+
+The verification cell asserted on `special_tokens_map.json` and `vocab.txt` and failed on a
+perfectly complete export. DistilBERT's **fast** tokenizer writes `tokenizer.json`, which
+carries the vocabulary and the special tokens, so neither of those files is necessarily
+written at all; recent transformers also folds `special_tokens_map.json` into
+`tokenizer_config.json`.
+
+The shallow fix is a better file list - either tokenizer flavour accepted, weights matched
+against `.safetensors` or `.bin`.
+
+**The real error was one of reasoning, and it is worth keeping.** The file list was a
+**proxy** for "does this load", and the actual test - reload it from disk on CPU and see if
+it still tags a document - was already three lines further down the same cell. A proxy check
+placed in front of a real one can only do harm: it cannot pass anything the real check would
+fail, and it can fail things the real check would pass. So the presence check is now a
+warning that produces a readable message, and **the reload is the gate.**
+
+Same failure mode as guessing `FIELD_MAP` without looking at the annotation, and as
+asserting on a mirror's schema without reading it: **asserting on what a thing should look
+like instead of testing what it does.**
+
+### 2026-09-01 - the trained model arrived, scored 1.000, and does not work
+
+First trained extractor is on disk: DistilBERT, 3,400 generated training documents, 600
+held out, 6 epochs, **overall entity F1 1.000 - every field, precision and recall both
+1.000**. `real_examples: 0`.
+
+**A perfect score is not a result. It is a broken benchmark**, and here it was hiding a
+model that does not work. Two separate causes, and both are worth keeping.
+
+**Cause 1: train and test came from the same generator.** 3,400 and 600 documents drawn from
+one generator with six vendors, four buyers and eight goods descriptions. The held-out split
+is the same distribution, the same vocabulary and the same label wording. Nothing was
+measured except memorisation.
+
+**Cause 2, and the serious one: the metric scored a task the serving code does not
+perform.** Training masked every continuation word-piece with -100, so the model was
+supervised only on a word's first piece. Evaluation used the same masking and scored only
+first pieces. Serving does something else - it reassembles pieces into spans - and a
+continuation the model never learned to label predicts `O`, which ends the span.
+
+Run against a document, the "perfect" model returned:
+
+    invoice_number   "in"          (from INV-2026-0042)
+    currency         "GB"          (from GBP)
+    description      "##dget assembly"
+
+**The project already had a rule against this** and it was not applied inside the notebook:
+*the harness drives the real pipeline, because a harness that measures a copy measures the
+copy.* The notebook measured the model; mailman serves the pipeline. Fixes:
+
+| Fix | Where |
+| --- | --- |
+| Continuation pieces are **labelled**, not masked. `B-X` continues as `I-X` | notebook `encode()` |
+| `aggregation_strategy="first"`, matching the labelling scheme the model is trained under | `mailman/trained.py` |
+| **A serving-path cell** that runs the real aggregation pipeline over held-out documents and scores reassembled field values | notebook, directly after the per-field table |
+
+`aggregation_strategy="first"` alone recovered `GBP`, `acme corp ltd` and `widget assembly`.
+`invoice_number` stayed `"inv"` - that needs the retraining, because the model has to be
+supervised on continuation pieces before a hyphenated identifier can survive reassembly.
+
+**Document B is the number that matters.** An invoice in a layout the generator never
+produced - different labels, European separators, a discount line, a currency code beside
+the total:
+
+| | Heuristic | Trained |
+| --- | --- | --- |
+| Result | Returns a record, several fields wrong (`invoice_number` = "Ref", subtotal misread) | **Fails outright** - `invoice_number` and `currency` not tagged at all |
+
+A model reporting F1 1.000 cannot extract an invoice number from an invoice that does not
+look like its training set. That sentence is the honest summary of this training run, and it
+is worth far more in the README than the 1.000 would have been.
+
+**Also fixed, found by the same comparison:** the heuristic read `Widget assembly 2 100.00
+200.00` and returned a unit price of `2100.00`. Its money pattern allowed a space as a
+thousands separator, so it merged the quantity and the unit price into one plausible-looking
+wrong number. Space removed from the separator class when *finding* an amount on a line;
+`parse_money` still handles spaces when parsing a value that has already been identified.
+Finding is the ambiguous case, parsing is not.
+
+**Two smaller things:** the export unzipped to `models/mailman-extractor` rather than
+`models/extractor`, and `MAILMAN_EXTRACTOR` did not work at all - the settings field is
+`extractor`, so pydantic-settings was reading plain `EXTRACTOR` while every document in the
+project said otherwise. Both spellings are now accepted through `AliasChoices`, along with
+`MAILMAN_MODEL_DIR`.
+
+### 2026-09-01 - F1 stayed at 1.000 after the alignment fix, and that is not a metric bug
+
+Retrained with continuation pieces labelled. Every epoch still reports F1 1.000, validation
+loss down to 0.0005.
+
+**The metric is not broken. The benchmark is trivial.** The generator draws from six
+vendors, four buyers, eight goods descriptions and a handful of fixed label phrasings, and
+the evaluation split is drawn from the same generator. The rule "the token after 'Invoice
+Number:' is the invoice number" is learnable in one epoch, and an in-distribution split
+cannot detect that memorisation is all that happened. A validation loss of 0.0005 on real
+extraction would be extraordinary; on this data it is the expected outcome.
+
+Two independent signals already said so before the retrain: the model returned `"in"` for
+`INV-2026-0042` while scoring 1.000, and it failed outright on document B.
+
+**Added: a shifted evaluation set (section 4b).** A second generator with a **disjoint
+vocabulary** - no vendor, buyer, product or label phrase shared with training - plus date
+and money formats the model has not seen. Same document type, nothing else in common. It
+then runs the **real serving path** over both sets and prints:
+
+    in-distribution X%   shifted Y%   gap X-Y%
+
+**The gap is the result.** A small gap means the model learned the structure of an invoice.
+A large gap means it learned this notebook, and the per-field F1 is noise.
+
+| Decision | Rejected alternative | Why |
+| --- | --- | --- |
+| A shifted generator with disjoint vocabulary | Trusting the random train/test split | A random split of one generator's output measures memorisation and calls it accuracy. Nothing about the split is held out except the specific rows |
+| Shifted set built from the generator, not from external data | Waiting for the Kaggle set to be wired in | It costs nothing, needs no download and no licence, and it isolates one variable - vocabulary and wording - rather than changing the document source entirely. External data is still the better test and is still worth doing |
+| Report the **gap**, not either number alone | Reporting the headline F1 | Neither number means much by itself. The distance between them is what says whether the model generalises |
+
+Expect the shifted number to be far below 1.000. That is the point of measuring it, and a
+low number here is a finding rather than a failure - it is the first honest thing this
+training run will have produced.
+
+### 2026-09-02 - retrained model, and the first honest comparison
+
+Second trained extractor, with continuation word-pieces labelled. Manifest still reports
+F1 1.000 and `real_examples: 0` - the Kaggle section did not run, and the token-level score
+remains the trivial one. The interesting results came from running it.
+
+**Two serving bugs fixed, both invisible to every metric:**
+
+| Bug | Symptom | Fix |
+| --- | --- | --- |
+| The pipeline's reassembled `word` is lossy | `INV-2026-0042` came back as `inv - 2026 - 0042`, `Acme Corp Ltd` as `acme corp ltd`. The model is **uncased**, and detokenization inserts spaces around punctuation | Spans carry character offsets into the original text. Slice the source substring instead - it is what the document actually says |
+| Model load was inside the latency measurement | 17,708 ms reported for every first document, milliseconds thereafter | Load happens once per process and is now outside the timer. 101 ms |
+
+**Document A - a layout resembling the training data:**
+
+| Field | Heuristic | Trained |
+| --- | --- | --- |
+| invoice_number | INV-2026-0042 | INV-2026-0042 |
+| vendor_name | Acme Corp Ltd | Acme Corp Ltd |
+| **buyer_name** | **None** - not attempted | **Orchard Foods** |
+| dates, currency, totals, line items | correct | correct |
+| latency | 9 ms | 101 ms |
+
+The trained model wins on `buyer_name`, which the heuristic deliberately does not attempt
+because no reliable rule finds it. That is a real result: it is the first thing the model
+does that the rules cannot.
+
+**Document B - a layout the generator never produced:**
+
+| | Heuristic | Trained |
+| --- | --- | --- |
+| Outcome | Returns a record. `invoice_number` wrong ("Ref"), subtotal and tax misread | **Fails outright** - `total` and `currency` never tagged |
+
+**This is the finding, and it should go in the README as it stands.** A model scoring F1
+1.000 on its own generator's held-out split cannot find a total on an invoice written in an
+unfamiliar layout, while eleven lines of regular expressions degrade gracefully and still
+produce something. The heuristic is wrong in visible ways; the model is absent.
+
+Neither is good enough yet, and that is the honest state. What it points at is unambiguous:
+the model needs training data that is not from this generator. The Kaggle section exists,
+was not run, and is now the highest-value next step - ahead of any further prompt or
+architecture work.
+
+Three tests added for offset slicing, including the fallback when a strategy omits offsets.
+87 tests pass.
+
+### 2026-09-02 - the shifted set worked, and said exactly what was wrong
+
+Full run with the shifted evaluation in place. **This is the first genuinely informative
+result the project has produced.**
+
+    in-distribution 100.0%   shifted 40.7%   gap 59.3%
+
+The per-field breakdown is the valuable part, because it says *what* was memorised:
+
+| Collapsed on the shifted set | Survived |
+| --- | --- |
+| SUBTOTAL 0%, TAX 0%, TOTAL 0%, LINE_DESCRIPTION 0% | LINE_QUANTITY 99%, LINE_AMOUNT 98%, LINE_UNIT_PRICE 94%, BUYER_NAME 93% |
+| INVOICE_NUMBER 18%, VENDOR_NAME 20.5%, ISSUE_DATE 14.5%, CURRENCY 33% | |
+
+**The fields that survived are the ones identified by position** - the second, third and
+fourth number in a table row. **The fields that hit zero are the ones keyed to a label
+word.** Training printed `Subtotal`, `VAT` and `Total Due`; the shifted set printed
+`Goods value`, `Duty` and `Balance now due`. The model learned a keyword lookup, not the
+structure of a document.
+
+That is a precise, actionable diagnosis, and it came from a measurement rather than a
+suspicion. It is exactly what the harness is for.
+
+**The Kaggle dataset has no annotations.** The download produced `0 json files, 8181 jpgs,
+0 txt`. The "1,489 fully annotated samples with structured JSON metadata and raw OCR text"
+came from the Voxel51 HuggingFace card, describing the FiftyOne dataset they built - not the
+Kaggle artifact. So the annotations exist only inside the FiftyOne copy, which is the same
+copy whose Parquet conversion dropped them.
+
+**That is the third time this project has been misled by a description rather than the
+artifact** - the mirror's schema, the export's file list, and now this. The inspector cell
+was itself part of the problem: it counted `.json`, `.jpg` and `.txt` and reported "0 json
+files" while saying nothing about what the 8,181 other files were. An inspector that only
+looks for what it expects is not an inspector. It now counts every extension present and
+says plainly when a download contains no labels at all.
+
+The licence line printed at download time is **DbCL-1.0**, not ODbL as recorded earlier.
+
+**Fixes applied:**
+
+| Fix | Detail |
+| --- | --- |
+| Training vocabulary greatly enlarged | 6 vendors to 20, 8 goods to 22, 4 total-labels to 13, 3 date-labels to 11, plus subtotal and tax label lists, 5 table-header variants and 6 date formats. Four phrasings for a total is a lookup table; thirteen is something a model has to generalise over |
+| Manifest carries the honest numbers | `serving_in_distribution`, `serving_shifted` and `generalisation_gap` now travel with the weights, not just the token-level F1 |
+| Inspector counts every file type | And says explicitly when there are no annotations to map |
+
+**A mistake made and caught while doing this.** The patch that enlarged the training
+vocabulary also matched the shifted generator cell - `SHIFT_VENDORS` contains the substring
+`VENDORS` - and overwrote it. Worse, the words added to training were taken *from the
+shifted set*: `Our reference`, `Balance now due` and `Scaffold hire` had been shifted-only
+vocabulary minutes earlier. Both errors have the same effect, which is that the held-out set
+stops being held out and the measurement silently becomes worthless.
+
+The shifted generator has been rewritten with vocabulary that appears nowhere else, and
+there is now an **assertion** that the two phrase sets are disjoint rather than a comment
+hoping they are. Both generators were executed to confirm it passes: 374 tokens overlap, of
+which 42 contain a letter, all month names, currency codes and unavoidable words like
+"Invoice".
+
+**Next, in order:** retrain on the enlarged vocabulary and read the new gap - that single
+number says whether label diversity was the problem. Real documents remain the better fix
+and the Kaggle route is now closed; CORD and RealKIE are the remaining candidates.
+
+### 2026-09-02 - the notebook validated as a program
+
+Checked the notebook properly rather than by reading it. A notebook is a sequence of cells
+sharing one namespace, so a name used in cell N must be bound by an earlier cell, and nothing
+enforces that - losing or reordering a cell breaks it silently until someone runs the whole
+thing top to bottom.
+
+Written a validator that parses every cell, tracks what each one binds and reads, and reports
+any name used before it is defined. It found one real bug, introduced by the inspector
+rewrite two entries above:
+
+**`json_files` no longer existed.** The old inspector defined it; the rewritten one built a
+`candidates` list instead, and the converter cell still said `for json_path in json_files:`.
+With `USE_KAGGLE = True` and annotations actually present, that is a `NameError` in the
+middle of a run - and it would not have appeared on the last run, because the download had no
+annotations and the loop never executed. A latent failure waiting for the dataset problem to
+be solved.
+
+Renamed to `annotation_files`, bound unconditionally at the top of the inspector so the
+converter can reference it whether or not the download ran.
+
+**Then ran the data pipeline for real**, everything short of the GPU work: both generators,
+the disjointness assertion, the real tokenizer, and the label alignment. The alignment fix is
+confirmed working on actual tokenized output -
+
+    hal      B-VENDOR_NAME      in       B-INVOICE_NUMBER
+    ##vor    I-VENDOR_NAME      ##v      I-INVOICE_NUMBER
+    ##sen    I-VENDOR_NAME      -        I-INVOICE_NUMBER
+                                202      I-INVOICE_NUMBER
+                                ##6      I-INVOICE_NUMBER
+
+25 labelled continuation pieces in one document, all carrying `I-` labels. Under the old
+masking every one of those would have been `-100`, which is precisely why `INV-2026-0042`
+came back as `inv`.
+
+Final state: 42 cells, no syntax errors, every name bound before use, pure ASCII, data
+pipeline runs end to end.
+
+**Worth keeping as a habit:** the validator is twenty lines of `ast` and it found a bug that
+three careful readings had missed. Reading a notebook is not checking it.

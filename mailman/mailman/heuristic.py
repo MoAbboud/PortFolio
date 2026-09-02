@@ -22,7 +22,12 @@ PROMPT_VERSION = "heuristic-v1"
 _MONEY = re.compile(
     r"(?<![\w.])"
     r"(?:[$\u00a3\u20ac]\s?)?"
-    r"\(?-?\d{1,3}(?:[ ,.]\d{3})*(?:[.,]\d{2})?\)?-?"
+    # No space in the thousands-separator class. A space-separated group is real in some
+    # locales ("1 234,56"), but on an invoice line "Widget 2 100.00 200.00" it swallows the
+    # quantity and the unit price into one number - 2100.00 - which is a wrong answer that
+    # looks entirely plausible. parse_money() still handles spaces when parsing a value that
+    # has already been identified; finding a value on a crowded line is the ambiguous case.
+    r"\(?-?\d{1,3}(?:[,.]\d{3})*(?:[.,]\d{2})?\)?-?"
     r"(?![\w])"
 )
 
