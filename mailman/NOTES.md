@@ -818,3 +818,59 @@ this project is actually for.
 Next: vary the invoice-number format the way the labels now vary. Print wanted-vs-got for
 INVOICE_NUMBER and ISSUE_DATE on ten shifted documents first, to confirm merging rather than
 assume it - that is how I found it last time and it costs one cell.
+
+## Run 5 prepared: every remaining constant, behind a flag
+
+Run 4 taught me that a constant in my generator becomes a lookup rule in the model, and that
+the constant does not have to be the field's own text - TOTAL gained 74.5 points because its
+*neighbours* stopped being constant. So I went looking for the rest. Three left:
+
+    one invoice-number shape, INV-{year}-{4 digits}, in every document ever generated
+    one field order, in every document ever generated
+    twenty-two fixed strings for line descriptions, an open-vocabulary field
+
+    distinct field orderings         1 -> 127
+    distinct invoice-number shapes   1 ->  17
+    distinct line descriptions      22 -> 778
+
+All four changes sit behind independent flags in a `GENERATOR` dict rather than one switch,
+because changing four things at once is how run 2 produced a number I could not attribute.
+All on is the model; turning one off and rerunning is the attribution, seeded identically. All
+four off reproduces run 1's generator. The dict goes into the manifest, so a set of weights can
+finally say which experiment produced it.
+
+Filler lines are in there on purpose and are labelled O - `PO Number PO-4471`, `Sort code
+20-00-00`, `Order ref ORD-99120`. Identifier-shaped and money-shaped text that is NOT the
+invoice number and NOT a total, so "a token that looks like a reference" stops being a usable
+rule. Subtotal now absent 10% of the time, tax 15%: a field that is always present is a field
+whose absence has never been seen.
+
+**The shifted set is frozen and marked as such.** Runs 1-4 were scored against it. Two new
+assertions guard the two new ways to leak, because the phrase-level check cannot see either:
+all 1056 reachable description combinations against SHIFT_GOODS, and 20000 generated invoice
+numbers against the shifted set's `\d{3}/\d{4}/\d{2}` shape. Last time I enlarged the
+training vocabulary I took words *from* the shifted set and quietly stopped holding it out.
+
+**The guard caught me within the hour.** I added BUYER_LABELS and STREETS to the vocabulary
+and then drew them with `rng.choice` instead of `pick`, so they were never recorded as drawn -
+exactly the bug the guard exists for, committed by me, after I wrote the guard. It failed the
+run by name. That is the second time this week a check has been worth more than the code it
+checks.
+
+Also found a metric of mine that was lying: the description-variety print joined every
+description in a document and counted those, reporting document uniqueness as vocabulary size.
+It said 428 with composition off, which sounds like variety and is not. Counts spans now.
+
+**New diagnostic cell (Colab 20): wanted vs got on the four weakest fields**, and for each
+miss it checks whether the wanted string turns up *inside* another field's span and names the
+field that swallowed it. That is the check I did by hand in run 2 that produced the merging
+diagnosis, and run 4 proved the diagnosis right. Worth keeping rather than rebuilding.
+
+Verified by running it - all 45 cells compile, and the generator plus shifted-set cells were
+executed at 4000 documents in every flag configuration, all on, each one off, and all off. No
+GPU needed for any of that.
+
+Still not done: model selection. `save_strategy` is "no", so I ship whatever the last epoch
+left, and runs 2 vs 3 swung seventy points per field between epochs. Doing it honestly needs a
+dev set I can select on without spending the test set. Next methodological change, separate
+from this one.

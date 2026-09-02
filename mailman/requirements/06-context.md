@@ -2634,3 +2634,186 @@ what the project is actually for.
 4. Stage 4 remains the plan's current work. The model has now run four stages ahead of it.
 
 **Uncommitted.** Everything remains in the working tree by request.
+
+### 2026-09-02 - run 5 prepared: the remaining constants, behind flags
+
+**What was asked.** "Fix the cell or whatever is needed to get a good model." An open mandate,
+so this pass takes the three levers the log has been naming and does not stop at the one bug.
+
+**The principle applied.** Run 4's finding was that a constant in the generator becomes a
+lookup rule in the model, and that the constant does not have to be the field's own text -
+`TOTAL` gained 74.5 points because its *neighbours* stopped being constant. So the work was to
+find every remaining constant and remove it. There were three.
+
+| Constant | Field it was pinning | Was |
+| --- | --- | --- |
+| One invoice-number shape, `INV-{year}-{4 digits}`, in every document of every run | INVOICE_NUMBER 13.0% | The values were the constant where the labels used to be |
+| One field order, in every document of every run | the whole header | Position was a perfect cue in training and none at all elsewhere |
+| Twenty-two fixed strings for an open-vocabulary field | LINE_DESCRIPTION 34.0% | A lookup table for something unbounded |
+
+**Everything is behind a flag, and that is the design decision.** Four changes at once is how
+run 2 produced a number nobody could attribute, and the log has recorded that mistake twice.
+So `GENERATOR` is a dict of four independent booleans rather than one switch:
+
+    GENERATOR = {"vary_labels": True,        # the run 4 fix
+                 "vary_identifiers": True,   # NEW
+                 "vary_structure": True,     # NEW
+                 "vary_descriptions": True}  # NEW
+
+All on is the good model. Turning one off and rerunning is the attribution, and everything
+else is seeded identically, so each ablation is genuinely one variable. With all four off the
+generator reproduces run 1's. The dict is written into `mailman_model.json`, so a set of
+weights can say which experiment produced it - which is exactly what three sets of weights
+described as "enlarged vocabulary" could not do.
+
+**What varies now.** Measured over 500 generated documents:
+
+    distinct field orderings           1  ->  127
+    distinct invoice-number shapes     1  ->   17
+    distinct line descriptions        22  ->  778   (1056 combinations reachable)
+    vocabulary lists drawn from       11  ->   15
+
+Field order shuffles the number, issue-date, due-date, buyer and currency blocks; the vendor
+stays first because it is first on real invoices and the heuristic's `_vendor_name` depends on
+it, and the table always precedes the totals because the arithmetic does. Filler lines
+labelled `O` are inserted between blocks - `PO Number PO-4471`, `Sort code 20-00-00`, `Order
+ref ORD-99120` - deliberately identifier-shaped and money-shaped, so that "a token that looks
+like a reference" stops being a usable rule. The subtotal line is now absent 10% of the time
+and the tax line 15%, because a field that is always present is a field whose absence has
+never been seen.
+
+**The held-out set was not touched, and is now marked FROZEN in the cell.** Runs 1 to 4 were
+scored against it; changing it would void the run table. Every change belongs in the training
+generator.
+
+**Two new assertions, because two new ways to leak.** The phrase-level disjointness check
+cannot see either of the new mechanisms - composed descriptions are not in any list, and
+invoice numbers are generated rather than drawn. So:
+
+- all 1056 reachable description combinations are checked against `SHIFT_GOODS`;
+- 20000 generated invoice numbers are checked against `^\d{3}/\d{4}/\d{2}$`, the shifted
+  set's shape. If training could produce it, `INVOICE_NUMBER` would stop being held out and
+  the field this run exists to fix would be the one field it cannot measure.
+
+Both pass. This matters more than it looks: the last time the training vocabulary was enlarged,
+words were taken *from* the shifted set and the held-out set quietly stopped being held out.
+
+**The guard caught me, which is the first useful thing it has done.** `BUYER_LABELS` and
+`STREETS` were added to `VOCABULARY` and then drawn with `rng.choice` instead of `pick`, so
+they were never recorded as drawn - the same class of mistake the guard was written for,
+committed by the person who wrote the guard, within an hour. It failed the run by name. Both
+now go through `pick`, and the assertion is flag-aware: with `vary_structure` off there is no
+title, no filler, one street and one buyer label, so expecting those lists to be drawn would
+make the ablation impossible to run.
+
+**A metric that was lying, found while reading the output.** The description-variety print
+joined every description in a document into one string and counted those, so it was reporting
+document uniqueness as vocabulary size - 428 with composition off, which sounds like variety
+and is not. It counts individual description spans now: 22 off, 778 on.
+
+**New diagnostic cell, Colab 20.** Wanted-versus-got for the four weakest fields, and for each
+miss it checks whether the wanted string appears *inside* another field's predicted span and
+names the field that swallowed it. That is the check that produced the run 2 merging diagnosis
+by hand, and run 4 confirmed the diagnosis was right, so it is worth having permanently rather
+than reconstructing it each time. The cell prints how to read itself:
+
+    got is EMPTY and wanted appears inside another field  -> spans are merging;
+        fix the neighbouring labels or values, not this field
+    got is a PREFIX or fragment of wanted                 -> reassembly, not tagging
+    got is a different plausible value from the document  -> genuinely mislabelled, and the
+        only case where more examples of THIS field is the right answer
+
+**Cell numbering has changed** - the diagnostic insert makes 26 code cells. Colab 19 is still
+the scores; Colab 20 is the new diagnostic; the manifest is now Colab 22 and the NOTES.md
+block Colab 26.
+
+**Verified by executing, not by reading.** All 45 cells compile. The generator and the
+shifted-set cell were run at the full 4000 documents in every flag configuration - all on,
+each of the four turned off in turn, and all off - and the assertions hold in each. The new
+diagnostic cell was run against a stub tagger to prove the plumbing works. No GPU involved in
+any of that.
+
+**Not done, and deliberately.** Model selection on a shifted dev set is still absent:
+`save_strategy` is `"no"`, so the exported weights are whatever the last epoch produced, and
+run 2 against run 3 showed per-field scores swinging seventy points between epochs. Doing it
+honestly needs a third disjoint vocabulary, or a dev/test split of the shifted set with the
+limitation stated. That is the next methodological change and it is separate from this one.
+The cased base model is also untried.
+
+**Every change made this pass.**
+
+| Cell (Colab) | Change |
+| --- | --- |
+| 5 | `an_invoice_number` with seven shapes and 25 prefixes; `FILLER_LINES`, `TITLES`, `BUYER_LABELS`, `STREETS`, `GOODS_PREFIXES`, `GOODS_SUFFIXES` |
+| 6 | `GENERATOR` flags; block-based `generate_invoice` with shuffled header blocks, filler, optional subtotal and tax; `a_description`; flag-aware never-drawn assertion; ordering, shape and description-variety checks |
+| 18 | Shifted generator marked FROZEN; disjointness now covers every list in `VOCABULARY`; composed-description and invoice-number-shape collision assertions |
+| 20 | New: the wanted-versus-got diagnostic |
+| 22 | Manifest records `generator` |
+
+**Next.** Run 5 on a T4, all flags on, and compare against run 4 (shifted 70.7%, gap 29.3%).
+Then read Colab 20 before deciding anything. If run 5 is good, the ablations are worth three
+more runs at six minutes each, because "field order was worth N points" is a README line and
+"we changed four things and it got better" is not.
+
+**Uncommitted.** Everything remains in the working tree by request.
+
+### 2026-09-02 - "run 5" explained, and a stale baseline caught by the question
+
+**What was asked.** "What does run 5 mean, am i running the latest notebook and that will be
+run 5?" A clarifying question, and it found a bug.
+
+**The answer.** "Run N" is this file's bookkeeping, not anything in the notebook. Each
+execution of the training notebook that produces a measured result gets the next number and a
+row in the table, so results can be compared across sessions. Runs 1 to 4 have happened; the
+next execution is run 5. Nothing in the notebook was ever called that.
+
+**What the question exposed: the notebook was still comparing against run 3.** `BASELINE` was
+written before run 4 existed and never updated, so a run 5 launched today would have printed
+its improvement against `shifted 47.4% / gap 52.6%` instead of run 4's `70.7% / 29.3%` - and
+overstated itself by 23.3 points. `RUN3_PER_FIELD` carried eight fields transcribed from the
+log, four of them absent.
+
+Fixed, and the fix is better than a corrected number: run 4's paste carried **all thirteen**
+per-field shifted scores, so `BASELINE_PER_FIELD` is now complete rather than partial, and the
+comparison table no longer has blank rows.
+
+    BASELINE = {"run": 4, "epochs": 6, "shifted": 0.707, "gap": 0.293}
+
+    INVOICE_NUMBER 13.0   VENDOR_NAME 91.0   BUYER_NAME 64.0   ISSUE_DATE 12.5
+    DUE_DATE 92.5   CURRENCY 100.0   SUBTOTAL 73.0   TAX 71.5   TOTAL 80.5
+    LINE_DESCRIPTION 34.0   LINE_QUANTITY 88.0   LINE_UNIT_PRICE 98.5   LINE_AMOUNT 100.0
+
+The full run table is now a comment beside `BASELINE`, with the instruction to update it after
+every run, because a stale baseline is silent: the run completes, the arithmetic is right, and
+the number flatters itself.
+
+**`NEVER_WIRED_IN` became `WATCH`.** It marked SUBTOTAL and TAX as "wired in for the first
+time", which was run 4's story and would have been wrong on run 5's output. It now marks
+INVOICE_NUMBER, ISSUE_DATE and LINE_DESCRIPTION - what run 5 actually targets.
+
+**And the "how to read it" block was rewritten**, because the old one asked run 4's question.
+It now states the three outcomes in advance, including the one that matters most: if a targeted
+field stays flat, read the diagnostic cell before doing anything, because a value swallowed by
+a neighbouring span is a boundary problem and more variety in that field is the wrong fix. A
+noise floor is quoted too - 6 points per field over 100 documents, measured in the run 3
+session - so a movement under about 5 points is read as nothing.
+
+**Also flagged to the author, and not a code change:** his Colab session is running the
+notebook as it was when he last uploaded it, which is the run 4 version. The file has changed
+substantially since - a new diagnostic cell, the generator rewrite, and the baseline above -
+so Run all in the existing tab would re-run run 4. The updated file has to reach Colab first.
+
+**Every change made this pass.**
+
+| Cell (Colab) | Change |
+| --- | --- |
+| 4 | `BASELINE` is run 4; the whole run table as a comment; instruction to update it after each run; the "one variable" message no longer names the vocabulary specifically |
+| 19 | `BASELINE_PER_FIELD` with all thirteen of run 4's fields; `WATCH` replaces `NEVER_WIRED_IN`; table iterates `FIELD_LABELS` so nothing is dropped; column header and "how to read it" rewritten |
+| 26 | Same rename, and the header names the baseline run rather than hardcoding 3 |
+
+Verified: 45 cells, no syntax errors, no surviving `RUN3_PER_FIELD` or `NEVER_WIRED_IN`
+reference; Colab 4 rendered on the GPU path; Colab 19 rendered against a fabricated run 5
+result to check every format string and the marker logic; the generator and shifted-set cells
+re-run at 4000 documents with the assertions holding.
+
+**Uncommitted.** Everything remains in the working tree by request.
