@@ -1,0 +1,41 @@
+{
+  "name": "11-totals-words-in-description",
+  "tests": "Line descriptions containing the six words the totals block is recognised by. A total station is a surveying instrument; 'Overdue' contains 'due'.",
+  "should_fail": false,
+  "expected": {
+    "invoice_number": "SS-2026-0143",
+    "vendor_name": "STANWICK SURVEYORS",
+    "issue_date": "2026-04-17",
+    "due_date": "2026-05-17",
+    "currency": "GBP",
+    "subtotal": "830.00",
+    "tax": "166.00",
+    "total": "996.00",
+    "line_items": [
+      {
+        "description": "Total station hire",
+        "quantity": "3",
+        "unit_price": "90.00",
+        "amount": "270.00"
+      },
+      {
+        "description": "Overdue account fee",
+        "quantity": "1",
+        "unit_price": "40.00",
+        "amount": "40.00"
+      },
+      {
+        "description": "Tax advisory services",
+        "quantity": "2",
+        "unit_price": "100.00",
+        "amount": "200.00"
+      },
+      {
+        "description": "Site survey",
+        "quantity": "1",
+        "unit_price": "320.00",
+        "amount": "320.00"
+      }
+    ]
+  }
+}

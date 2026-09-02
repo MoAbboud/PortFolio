@@ -1,0 +1,12 @@
+{
+  "name": "06-ambiguous-date",
+  "tests": "03/04/2026 is two real dates and the document does not say which. The parser must flag it rather than pick one quietly.",
+  "should_fail": false,
+  "expected": {
+    "invoice_number": "MPW-3310",
+    "vendor_name": "MERIDIAN PRINT WORKS",
+    "currency": "GBP",
+    "total": "540.00",
+    "issue_date_is_ambiguous": true
+  }
+}

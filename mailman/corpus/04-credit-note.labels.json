@@ -1,0 +1,15 @@
+{
+  "name": "04-credit-note",
+  "tests": "Every amount negative, printed in parentheses. Accountants' convention.",
+  "should_fail": false,
+  "expected": {
+    "invoice_number": "CN-2026-0019",
+    "vendor_name": "HARROW AND FINCH",
+    "issue_date": "2026-08-21",
+    "currency": "GBP",
+    "subtotal": "-100.00",
+    "tax": "-20.00",
+    "total": "-120.00",
+    "line_item_count": 1
+  }
+}

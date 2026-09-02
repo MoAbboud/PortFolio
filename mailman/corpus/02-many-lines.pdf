@@ -1,0 +1,82 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 5 0 R /Resources << /Font << /F1 3 0 R >> >> >>
+endobj
+5 0 obj
+<< /Length 1285 >>
+stream
+BT
+/F1 11 Tf
+15 TL
+1 0 0 1 56 780 Tm
+(NORTHGATE SUPPLIES) Tj
+T*
+(INVOICE) Tj
+T*
+(Invoice No. NS-88213) Tj
+T*
+(Date: 2026-07-02) Tj
+T*
+(Due: 2026-08-01) Tj
+T*
+(Bill To: Pelham Group plc) Tj
+T*
+() Tj
+T*
+(Description               Qty    Unit Price     Amount) Tj
+T*
+(Component A-100            1       GBP 10.00     GBP 10.00) Tj
+T*
+(Component B-101            2       GBP 11.00     GBP 22.00) Tj
+T*
+(Component C-102            3       GBP 12.00     GBP 36.00) Tj
+T*
+(Component D-103            4       GBP 13.00     GBP 52.00) Tj
+T*
+(Component E-104            5       GBP 14.00     GBP 70.00) Tj
+T*
+(Component F-105            6       GBP 15.00     GBP 90.00) Tj
+T*
+(Component G-106            7       GBP 16.00     GBP 112.00) Tj
+T*
+(Component H-107            8       GBP 17.00     GBP 136.00) Tj
+T*
+(Component I-108            9       GBP 18.00     GBP 162.00) Tj
+T*
+(Component J-109            10       GBP 19.00     GBP 190.00) Tj
+T*
+(Component K-110            11       GBP 20.00     GBP 220.00) Tj
+T*
+(Component L-111            12       GBP 21.00     GBP 252.00) Tj
+T*
+(Subtotal                                         GBP 1352.00) Tj
+T*
+(VAT 20%                                          GBP 270.40) Tj
+T*
+(Total Due                                        GBP 1622.40) Tj
+T*
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000185 00000 n 
+0000000311 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1648
+%%EOF

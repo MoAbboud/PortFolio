@@ -1,0 +1,68 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 5 0 R /Resources << /Font << /F1 3 0 R >> >> >>
+endobj
+5 0 obj
+<< /Length 771 >>
+stream
+BT
+/F1 11 Tf
+15 TL
+1 0 0 1 56 780 Tm
+(STANWICK SURVEYORS) Tj
+T*
+(INVOICE) Tj
+T*
+(Invoice Number: SS-2026-0143) Tj
+T*
+(Invoice Date: 2026-04-17) Tj
+T*
+(Due Date: 2026-05-17) Tj
+T*
+(Bill To: Halden Construction) Tj
+T*
+() Tj
+T*
+(Description               Qty    Unit Price     Amount) Tj
+T*
+(Total station hire          3       GBP 90.00   GBP 270.00) Tj
+T*
+(Overdue account fee         1       GBP 40.00    GBP 40.00) Tj
+T*
+(Tax advisory services       2      GBP 100.00   GBP 200.00) Tj
+T*
+(Site survey                 1      GBP 320.00   GBP 320.00) Tj
+T*
+() Tj
+T*
+(Subtotal                                         GBP 830.00) Tj
+T*
+(VAT 20%                                          GBP 166.00) Tj
+T*
+(Total Due                                        GBP 996.00) Tj
+T*
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000185 00000 n 
+0000000311 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1133
+%%EOF

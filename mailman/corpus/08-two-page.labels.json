@@ -1,0 +1,13 @@
+{
+  "name": "08-two-page",
+  "tests": "A line-item table crossing a page break. pdfplumber returns the pages concatenated, so the header block appears once and the table twice.",
+  "should_fail": false,
+  "expected": {
+    "invoice_number": "AP-2026-5120",
+    "vendor_name": "ASHLAND PAPER CO",
+    "currency": "GBP",
+    "total": "29520.00",
+    "line_item_count": 40,
+    "spans_pages": true
+  }
+}

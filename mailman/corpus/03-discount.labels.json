@@ -1,0 +1,16 @@
+{
+  "name": "03-discount",
+  "tests": "A negative discount line. It is a line item and it must not be read as a total.",
+  "should_fail": false,
+  "expected": {
+    "invoice_number": "BW-2026-771",
+    "vendor_name": "BLUEWATER LOGISTICS",
+    "issue_date": "2026-09-03",
+    "currency": "GBP",
+    "subtotal": "414.00",
+    "tax": "82.80",
+    "total": "496.80",
+    "line_item_count": 3,
+    "has_negative_line": true
+  }
+}

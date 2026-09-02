@@ -72,7 +72,14 @@ flowchart LR
 | 11 | MCP server | Optional. Extraction exposed as MCP tools over the API that already exists |
 | 12 | AWS | Optional. Lambda, S3, RDS |
 
-Nothing is built. Stage 0 is the current work.
+Stages 0 to 3 are done. **Stage 4 is the current work.** Stage 3 produced what it was meant
+to: four extraction bugs, every one of them silent, and a list of rules written from those
+failures rather than from imagination.
+
+The trained extractor still runs ahead of the plan - it exists, it is measured, and it has
+produced the project's most interesting result - but stage 3 found in one afternoon a bug
+that would have made every accuracy figure meaningless, and that is the ordering lesson worth
+keeping.
 
 ### Why the queue comes before the corpus
 
@@ -151,6 +158,14 @@ The stage exists to produce evidence, and the order matters.
 | `failed` and `rejected` are different statuses | One is the system's fault, one is a person's decision. Collapsing them hides operational problems inside business outcomes |
 | Unique on (`vendor_id`, `invoice_number`) in the database | Duplicate invoices are the expensive mistake here, and a reviewer can override a rule but not a constraint |
 | Validation rules come from the first ten documents | Rules written in advance catch imagined failures |
+| Generator variety is the largest measured lever on the trained model, not a dead end | Recorded as a dead end after run 3 ("+6.7 points, marginal"). That measurement was of a **half-applied** change: four of the eight label lists were defined and never drawn from by the generator, and they governed exactly the fields that had not moved. Wired in, at the same 6 epochs, run 3 to run 4 is 47.4% to 70.7% shifted and the gap halves from 52.6% to 29.3%. SUBTOTAL 0->73%, TAX 0->71.5%, TOTAL 6->80.5% |
+| Constant labels were manufacturing the structural failure | TOTAL gained 74.5 points without its own vocabulary changing - its neighbours' changed. A constant delimiter can only be learned as a literal string, so an unseen label yields no boundary, no `B-` is emitted, and aggregation merges subtotal, tax and total into one span. Vocabulary and structure were never competing explanations |
+| The generator asserts it drew from every vocabulary list it defines | A list defined and not drawn from is silent: the run completes, the manifest reports numbers, and the numbers describe the old distribution. Checking the emitted text is not enough - two versions of that guard passed on the bug, because the hardcoded constants were themselves members of their own lists. The check records the draw at the call site |
+| Credit notes are invoices, with the signs reversed | One arrives in the same post as an invoice, and refusing it means a real document the system cannot file. Nothing downstream needs a special case: -100.00 plus -20.00 is still -120.00, so the arithmetic rules hold unchanged |
+| The corpus is compared field by field, and the amounts are added up | `08-two-page` was counted clean with the right number of line items and seven wrong amounts among them. A corpus checked by counting agrees with whoever wrote the fix |
+| The corpus reader lives in `tests/test_corpus.py`, not in a script written for the occasion | Every corpus figure in the log - 5 of 10, 8 of 10, 9 of 10 - came from a throwaway, and three sessions each wrote their own. A number nobody can reproduce is not a measurement. It is a regression test over eleven known documents, and it stays when stage 8's harness arrives to measure thirty to forty |
+| An `expected` key the reader cannot evaluate is a test failure | `has_negative_line`, `issue_date_is_ambiguous` and `spans_pages` named nothing on `InvoiceFields`, so every comparison silently skipped them - including the only assertion that `06-ambiguous-date` flags its date rather than guessing, which is the entire reason that document exists. A count is a weak assertion; an unevaluable key is not one at all |
+| Totals rows are told from priced rows by shape, not by wording | Every label test was a substring search, so `Overdue account fee`, `Tax advisory services` and `Total station hire` were all read as totals rows and dropped. Word boundaries fix the first; the other two contain the whole word. A totals row carries one or two amounts, a priced row carries three - that is the difference a rule can key on |
 | The harness drives the real pipeline through the command line | A harness that reimplements extraction measures the reimplementation |
 | Field-level accuracy, not document-level | One wrong field in twelve is not a failed document, and a document pass rate cannot be broken down afterwards |
 | FastAPI, Docker Compose, Alembic from the first commit | A schema hand-built once cannot be rebuilt on another machine. The OpenAPI page is a free artifact and a free demo surface |

@@ -1,0 +1,16 @@
+{
+  "name": "02-many-lines",
+  "tests": "Twelve line items. Does line extraction degrade as the table grows.",
+  "should_fail": false,
+  "expected": {
+    "invoice_number": "NS-88213",
+    "vendor_name": "NORTHGATE SUPPLIES",
+    "issue_date": "2026-07-02",
+    "due_date": "2026-08-01",
+    "currency": "GBP",
+    "subtotal": "1352.00",
+    "tax": "270.40",
+    "total": "1622.40",
+    "line_item_count": 12
+  }
+}

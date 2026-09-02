@@ -13,15 +13,15 @@ is wrong and it gets fixed rather than worked around.
 | [05-tasks.md](05-tasks.md) | The working task list |
 | [06-context.md](06-context.md) | Handoff between working sessions. Decisions with their rejected alternatives |
 
-Nothing is built yet. These documents are the whole of the project as of 2026-08-25, and
-[06-context.md](06-context.md) is the one to read first when picking the work back up.
+[06-context.md](06-context.md) is the one to read first when picking the work back up. It is
+appended to, never rewritten, so the bottom of it is where the current session starts.
 
 There is a sibling project at `../evaluaters/eval-harness`. It measures a language model on
 a support-ticket extraction task and is deliberately not reused here - see
 [06-context.md](06-context.md) for why, and for what is worth copying from it anyway.
 
-The current work is stage 0, the scaffold. See [00-plan.md](00-plan.md) for the stage order
-and [05-tasks.md](05-tasks.md) for the task list.
+The current work is stage 4, the validation layer. See [00-plan.md](00-plan.md) for the stage
+order and [05-tasks.md](05-tasks.md) for the task list.
 
 Two habits that are part of the project rather than incidental to it: commit as the work
 happens with real messages, because the history is on display; and keep `NOTES.md` in the

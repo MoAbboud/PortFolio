@@ -14,38 +14,66 @@ from __future__ import annotations
 import re
 import time
 from dataclasses import dataclass
+from functools import lru_cache
 
 from mailman.invoice import REQUIRED_FIELDS, InvoiceFields, InvoiceRead, LineItemRead
 
 PROMPT_VERSION = "heuristic-v1"
 
+# Two alternatives, and the second one is the fix. `\d{1,3}(?:[,.]\d{3})*` alone requires a
+# separator before any further digits, so "1404.00" matched nothing at all - every amount of
+# a thousand or more written without a comma was invisible to the extractor. Found by the
+# stage 3 corpus on its second document; 87 tests had missed it because every fixture used
+# an amount under a thousand or one with a comma in it.
+#
+#   grouped:   1,404  or  1.404  (a separator every three digits)
+#   ungrouped: 1404   or  270    (a plain run of digits)
 _MONEY = re.compile(
-    r"(?<![\w.])"
-    r"(?:[$\u00a3\u20ac]\s?)?"
-    # No space in the thousands-separator class. A space-separated group is real in some
-    # locales ("1 234,56"), but on an invoice line "Widget 2 100.00 200.00" it swallows the
-    # quantity and the unit price into one number - 2100.00 - which is a wrong answer that
-    # looks entirely plausible. parse_money() still handles spaces when parsing a value that
-    # has already been identified; finding a value on a crowded line is the ambiguous case.
-    r"\(?-?\d{1,3}(?:[,.]\d{3})*(?:[.,]\d{2})?\)?-?"
+    # The hyphen in the lookbehind matters. Allowing bare digit runs (the fix above)
+    # made the parts of an identifier visible as amounts: INV-2026-0042 offered up
+    # "2026" and "0042", two amounts on a line is the rule for a priced row, and every
+    # document grew a phantom line item. A digit group preceded by a hyphen belongs to
+    # something larger. A genuine negative is still matched, because the match starts at
+    # the minus sign and the lookbehind sees the space before it.
+    r"(?<![\w.\-])"
+    r"(?:[$£€]\s?)?"
+    r"\(?-?(?:\d{1,3}(?:[,.]\d{3})+|\d+)(?:[.,]\d{2})?\)?-?"
     r"(?![\w])"
 )
 
+# The word in a written date has to be a month. `[A-Za-z]{3,9}` was any word at all, and
+# `\b` let a match start inside a number, so "GBP 30.00 GBP 1020.00" contained "00 GBP 1020"
+# - a date, by that pattern. Dates are masked out before amounts are looked for, so the
+# 1020.00 then became invisible: a wrong line amount on a document that otherwise extracted
+# cleanly. Found by summing the corpus line items against their own subtotal rather than
+# counting them, which is the check the earlier corpus run did not make.
+_MONTH = r"(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*"
+
 _DATE = re.compile(
-    r"\b("
+    # Not `\b`. There is a word boundary between the "." and the "00" of "30.00", which is
+    # exactly how a match came to start in the middle of an amount.
+    r"(?<![\w.])("
     r"\d{4}[-/]\d{1,2}[-/]\d{1,2}"
     r"|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}"
-    r"|\d{1,2}\s+[A-Za-z]{3,9}\s+\d{4}"
-    r"|[A-Za-z]{3,9}\s+\d{1,2},\s*\d{4}"
-    r"|\d{1,2}-[A-Za-z]{3}-\d{4}"
-    r")\b"
+    r"|\d{1,2}\s+" + _MONTH + r"\s+\d{4}"
+    r"|" + _MONTH + r"\s+\d{1,2},\s*\d{4}"
+    r"|\d{1,2}-" + _MONTH + r"-\d{4}"
+    r")(?![\w])",
+    re.IGNORECASE,
 )
 
 # `inv\b` rather than `inv` so the word INVOICE cannot match its own first three letters
 # and hand back "OICE" as the invoice number. Found by running it on a realistic layout,
 # where a bare "INVOICE" heading sits on its own line above the real number.
+#
+# "credit note" is here because credit notes are in scope: a credit note is an invoice with
+# the signs reversed, it arrives in the same post, and refusing one means a real document
+# the system cannot file. The arithmetic rules handle it unchanged - a subtotal of -100.00
+# plus tax of -20.00 still has to equal a total of -120.00. It comes first in the
+# alternation so that "Credit Note Number" is not read by the `invoice` branch.
 _INVOICE_NUMBER = re.compile(
-    r"(?:invoice|inv\b)\s*(?:number|no\.?|num|#)?\s*[:#]?\s*([A-Za-z0-9][A-Za-z0-9\-_/]{2,})",
+    r"(?:credit\s+note|invoice|inv\b)"
+    r"\s*(?:number|no\.?|num|#)?\s*[:#]?\s*([A-Za-z0-9][A-Za-z0-9\-_/]{2,})",
     re.IGNORECASE,
 )
 
@@ -59,8 +87,8 @@ _CURRENCY_CODE = re.compile(r"\b(GBP|USD|EUR|CAD|AUD|CHF|JPY|SEK|NOK|DKK|PLN)\b"
 _SYMBOL_TO_CODE = {"\u00a3": "GBP", "$": "USD", "\u20ac": "EUR"}
 
 _NOT_A_NAME = re.compile(
-    r"invoice|receipt|bill|statement|date|due|total|subtotal|tax|vat|page|"
-    r"description|quantity|amount|price|qty|terms|number",
+    r"\b(?:invoice|receipt|bill|statement|date|due|total|subtotal|tax|vat|page|"
+    r"description|quantity|amount|price|qty|terms|number)\b",
     re.IGNORECASE,
 )
 
@@ -73,8 +101,32 @@ class _Line:
     lower: str
 
 
+@lru_cache(maxsize=None)
+def _label_pattern(labels: tuple[str, ...]) -> re.Pattern[str]:
+    return re.compile(r"\b(?:" + "|".join(re.escape(word) for word in labels) + r")\b")
+
+
+def _has_label(line: _Line, labels: tuple[str, ...]) -> bool:
+    """Does this line carry one of these label words, as a word rather than as letters.
+
+    Every label test in this module used `word in line.lower`, which is a substring search
+    over the whole line. "Overdue account fee" contains "due", so it was read as a totals
+    row and dropped before its amounts were looked at; "Duesenberg Motors" is not a vendor
+    name for the same reason. The bug is silent in the way all four before it were - no
+    exception, and a record that looks complete with three quarters of the invoice missing.
+    """
+    return _label_pattern(labels).search(line.lower) is not None
+
+
 def _money_tokens(text: str) -> list[str]:
-    return [m.group(0).strip() for m in _MONEY.finditer(text)]
+    """Amounts on a line, with dates masked out first.
+
+    A slash or dashed date is several small numbers to a money pattern - "03/09/2026" reads
+    as 03 and 09 - and two amounts on a line is the rule for "this is a priced row", so a
+    date line became a phantom line item. Masking dates before looking for money is cheaper
+    and more honest than trying to teach the money pattern what a date looks like.
+    """
+    return [m.group(0).strip() for m in _MONEY.finditer(_DATE.sub(" ", text))]
 
 
 def _last_money(text: str) -> str | None:
@@ -181,7 +233,7 @@ class HeuristicExtractor:
         if labelled:
             return labelled
         for line in lines:
-            if "date" in line.lower and "due" not in line.lower:
+            if _has_label(line, ("date",)) and not _has_label(line, ("due",)):
                 found = _first_date(line.text)
                 if found:
                     return found
@@ -194,7 +246,7 @@ class HeuristicExtractor:
 
     def _labelled_date(self, lines: list[_Line], labels: tuple[str, ...]) -> str | None:
         for line in lines:
-            if any(label in line.lower for label in labels):
+            if _has_label(line, labels):
                 found = _first_date(line.text)
                 if found:
                     return found
@@ -202,12 +254,16 @@ class HeuristicExtractor:
 
     def _labelled_amount(self, lines: list[_Line], labels: tuple[str, ...]) -> str | None:
         for line in lines:
-            if not any(label in line.lower for label in labels):
+            if not _has_label(line, labels):
                 continue
-            is_subtotal_line = any(
-                word in line.lower for word in ("subtotal", "sub total", "net")
-            )
-            if "total" in line.lower and not is_subtotal_line:
+            # A line with three amounts is a priced row, whatever its description says.
+            # Without this, "Tax advisory services  2  GBP 100.00  GBP 200.00" is the first
+            # line matching "tax" and the document's tax becomes 200.00 instead of 166.00 -
+            # a wrong number rather than a missing one, and one that still looks like tax.
+            if len(_money_tokens(line.text)) >= 3:
+                continue
+            is_subtotal_line = _has_label(line, ("subtotal", "sub total", "net"))
+            if _has_label(line, ("total",)) and not is_subtotal_line:
                 continue
             amount = _last_money(line.text)
             if amount:
@@ -218,9 +274,11 @@ class HeuristicExtractor:
         # The most specific label wins, so a subtotal is never mistaken for the total.
         for labels in (("grand total", "amount due", "total due", "balance due"), ("total",)):
             for line in reversed(lines):
-                if not any(label in line.lower for label in labels):
+                if not _has_label(line, labels):
                     continue
-                if "subtotal" in line.lower or "sub total" in line.lower:
+                if _has_label(line, ("subtotal", "sub total")):
+                    continue
+                if len(_money_tokens(line.text)) >= 3:
                     continue
                 amount = _last_money(line.text)
                 if amount:
@@ -244,10 +302,16 @@ class HeuristicExtractor:
         """
         items: list[LineItemRead] = []
         for line in lines:
-            if any(word in line.lower for word in _TOTALS_WORDS):
-                continue
             amounts = _money_tokens(line.text)
             if len(amounts) < 2:
+                continue
+            # The totals words only disqualify a line that is shaped like a totals row.
+            # A totals row carries a label and one number, or two when the rate is printed
+            # beside it ("VAT 20%   GBP 45.00"); a priced row carries three - quantity,
+            # unit price, amount. Keying off the shape rather than the wording is what lets
+            # "Total station hire  3  GBP 90.00  GBP 270.00" through, and a total station
+            # is a real surveying instrument that really does get hired by the day.
+            if len(amounts) < 3 and _has_label(line, _TOTALS_WORDS):
                 continue
             description = _MONEY.sub("", line.text)
             # Stripping the amounts leaves the currency code behind: "Widget GBP".

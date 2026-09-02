@@ -50,6 +50,12 @@ pick the thread back up, and it is kept to one rule:
   with the reasoning. The question is not silently dropped.
 - Every working session appends an entry, even a short one. A session that changed nothing
   says so.
+- **An entry per exchange, not per session.** Stated 2026-09-02: this file is what makes the
+  work survive across many separate assistant instances, so it is updated after every prompt
+  rather than at the end of a sitting. An instance that is interrupted between the work and
+  the write-up has lost the work. Record what was asked, the reasoning, the alternatives that
+  were turned down, and the exact changes - in as much detail as can be written down. A later
+  reader with none of the context has to be able to reconstruct why, not just what.
 
 The reason is simple: the value of this project in an interview is being able to explain why
 it is the way it is. A decision record that only ever shows the current answer cannot do
@@ -112,6 +118,9 @@ where the credibility lives. It becomes the README's most useful section.
 | Amounts as `numeric` in PostgreSQL and `Decimal` in Python | Integer minor units | Both are correct - the actual rule is never float. `numeric` is exact decimal, reads naturally, and matches the column names. The place a float really gets in is JSON transport, so amounts cross that boundary as strings |
 | Its own harness | Reuse `evaluaters/eval-harness` | That harness measures a model on cases, scored by pluggable scorers over raw text. This one measures a whole pipeline, field by field, with line-item set matching that has no meaning there. Reusing it would bend both and couple two portfolio projects so a reader of either README needs the other. What is worth copying is its shape: append-only runs, raw output preserved, detail on every result, the model recorded on the run |
 | Validation rules written after the first ten documents | Rules designed up front | Rules written in advance catch imagined failures. Ten documents through a pipeline with no rules produces a list of how this model actually fails on these documents, and the rules that come out of that list catch something |
+| Credit notes are invoices with the signs reversed | Marking `04-credit-note` as `should_fail` and treating credit notes as out of scope; or deferring the call to stage 4 | One arrives in the same post, from the same vendor, against the same purchase order. Refusing it means a real document the system cannot file. Nothing downstream needed a special case, which is the argument rather than a lucky outcome: `parse_money` already read both negative conventions, and -100.00 plus -20.00 is still -120.00. The only new fact is that `total` can be negative, and no rule may assume otherwise |
+| The corpus is compared field by field, and every document's own arithmetic is checked | Comparing the fields the run happens to print, and asserting counts where writing out the values is tedious | `08-two-page` was counted clean with the right number of line items and seven wrong amounts among them, because `line_item_count: 40` is a label that cannot fail on the content of a line. A corpus checked by counting agrees with whoever wrote the fix. The arithmetic check is the cheaper half - it needs no labels at all, and it found both of this session's problems in one pass |
+| Corpus totals are computed from the corpus line items | Typing the totals block beside generated lines, as `02-many-lines` originally did | "Ground truth by construction" only covers the parts actually constructed. Twelve computed lines under three hand-typed totals is a hand-written answer key wearing a generator's clothes, and it put a document in the corpus that failed the first rule on the stage 4 list |
 | Server-rendered templates for the review queue | React, Angular | It has to run from PowerShell with no Node build step and deploy as one process. A queue, a viewer and a form do not need a framework. The API exists either way, so it can be rebuilt against one later |
 | Background task, no broker | Celery or similar from the start | `POST /documents` returns immediately and `status` is how a caller finds out. A broker earns its place when retry needs to survive a restart, and saying that in an interview is better than having one nobody can justify |
 | PostgreSQL | SQLite | The schema work is part of what this demonstrates, and the deployment story assumes a real database |
@@ -163,7 +172,15 @@ Full list in [00-plan.md](00-plan.md). The ones that will bite first:
   answer produced by work that had to happen anyway, and `field_path` uses the same dotted
   paths the harness uses, on purpose, so it can become an expected value without translation.
 - The generator emits the labels file with the document. Ground truth by construction is what
-  makes it safe to build the corpus after the pipeline instead of before it.
+  makes it safe to build the corpus after the pipeline instead of before it - **but only for
+  the parts genuinely constructed.** `02-many-lines` shipped with computed line items under a
+  hand-typed totals block that disagreed with them by 182.00. Anything a label asserts should
+  be derived from the same values the document is rendered from.
+- **Compare the corpus field by field, and add the amounts up.** A count is a label that
+  cannot fail on the content of a line: `08-two-page` was called clean with forty line items
+  of which seven carried the wrong amount. The arithmetic self-check - lines to subtotal,
+  subtotal plus tax to total, quantity times unit price to amount - needs no labels at all and
+  catches the silent class of bug that every extraction fix so far has belonged to.
 - Commit as the work happens, with real messages. The history is on display.
 - No employer or client document, in the repository or through the pipeline. Not a
   preference.
@@ -1155,3 +1172,1465 @@ before use, pure ASCII, and the data pipeline runs end to end locally short of t
 
 **Uncommitted.** Everything from stage 1 onward is in the working tree by request - the
 author commits.
+
+### 2026-09-02 - second measured run, and a methodology mistake of mine
+
+Retrained on CPU with the enlarged vocabulary. Manifest now carries the honest numbers.
+
+    in-distribution 100.0%   shifted 46.4%   gap 53.6%
+    previous run:            shifted 40.7%   gap 59.3%
+
+**+5.7 points. And the comparison is not valid, because I changed two things at once.**
+
+The previous run was 6 epochs on the small vocabulary; this one is 2 epochs on the large
+one. Both variables moved, so the net cannot be attributed to either. [00-plan.md](00-plan.md)
+already says, under stage 9, *"One change at a time. Measure."* - and the person who wrote
+that then changed two. The CPU fallback made the epoch reduction feel like an environmental
+detail rather than an experimental variable, which is exactly how this mistake happens.
+
+**Per field, against the previous run:**
+
+| Field | Before | After | |
+| --- | --- | --- | --- |
+| CURRENCY | 33.0% | **100.0%** | more currency-label variants clearly worked |
+| TOTAL | 0.0% | **44.0%** | thirteen total-labels instead of four |
+| DUE_DATE | 58.5% | 76.0% | |
+| LINE_DESCRIPTION | 0.0% | 15.0% | |
+| VENDOR_NAME | 20.5% | 27.0% | |
+| **LINE_AMOUNT** | **98.0%** | **32.0%** | a large regression, and 2 epochs is the likely cause |
+| SUBTOTAL | 0.0% | 0.0% | unmoved |
+| TAX | 0.0% | 0.0% | unmoved |
+| INVOICE_NUMBER | 18.0% | 16.0% | unmoved |
+| ISSUE_DATE | 14.5% | 14.0% | unmoved |
+
+**The real diagnosis, which is sharper than "it memorised label words".** Looking at what it
+actually returns on shifted documents:
+
+    ISSUE_DATE   wanted '01/02/2026'
+                 got    '117/2026/1701/02/202602/05/2026'
+    TAX          wanted 'gbp3,410.29'
+                 got    'gbpgbp3,410.29gbp20,461.75'
+    SUBTOTAL     wanted 'gbp17,051.46'      got nothing
+    TOTAL        wanted 'gbp20,461.75'      got nothing
+    VENDOR_NAME  wanted 'nakamuraopticsgmbh'
+                 got    'nakamuraopticsgmbhregisteredleeds'
+
+**Adjacent fields are merging into one span.** The invoice number, issue date and due date
+become a single ISSUE_DATE. The subtotal, tax and total become a single TAX. The vendor name
+runs on into the address.
+
+That is not a vocabulary problem. **The model has learned label words as delimiters, not
+fields as things.** On familiar text the known labels tell it where each field stops; on
+unfamiliar text it cannot find a boundary, fails to emit `B-` at the start of the next
+field, and the aggregation step - which correctly splits only on `B-` - merges them.
+
+It explains the pattern exactly. `SUBTOTAL` and `TOTAL` report 0% not because they are
+untagged but because they are swallowed into a neighbouring span. `LINE_QUANTITY` and
+`LINE_UNIT_PRICE` survive because a number surrounded by other numbers in a table row has a
+positional identity that does not depend on any label.
+
+**What follows from it:**
+
+1. **Rerun at 6 epochs on the new vocabulary** when a GPU is available, changing nothing
+   else. That isolates the variable and settles whether `LINE_AMOUNT` regressed because of
+   undertraining. It is one number and it costs six minutes.
+2. Vocabulary alone will not fix boundaries. The generator needs **structural** variety -
+   different field orders, different filler between fields, fields sometimes absent - so
+   that position and neighbouring words stop being reliable cues.
+3. Real documents remain the strongest fix and are still unsolved.
+
+### 2026-09-02 - run 3 on GPU: the controlled comparison, and two measured dead ends
+
+Third run, 6 epochs on the enlarged vocabulary. This is the controlled version of the
+comparison I botched last time.
+
+| Run | Epochs | Vocabulary | Shifted | Gap |
+| --- | --- | --- | --- | --- |
+| 1 | 6 | small | 40.7% | 59.3% |
+| 2 | 2 | large | 46.4% | 53.6% |
+| 3 | 6 | large | **47.4%** | **52.6%** |
+
+Now the variables separate:
+
+- **Vocabulary** (run 1 against run 3, both 6 epochs): **+6.7 points.**
+- **Epochs** (run 2 against run 3, both large vocabulary): **+1.0 point.**
+
+**Both levers are marginal, and the gap is still 52.6%.** Tripling the label vocabulary -
+four ways of saying "total" becoming thirteen - bought under seven points. Tripling the
+training time bought one. Neither touches the structural failure.
+
+**Before reading the per-field table, its noise was measured.** The same model was run over
+two disjoint samples of 100 shifted documents: largest per-field spread **6 points**, overall
+spread **0.5 points**. So the per-field movements between runs are real, not sampling.
+
+That makes the next observation solid rather than speculative. Run 2 against run 3 - same
+data, same vocabulary, only the epoch count differing:
+
+| Field | 2 epochs | 6 epochs | |
+| --- | --- | --- | --- |
+| VENDOR_NAME | 27% | **100%** | +73 |
+| LINE_AMOUNT | 32% | 72% | +40 |
+| TOTAL | 44% | **6%** | -38 |
+| BUYER_NAME | 86% | 67% | -19 |
+| CURRENCY | 100% | 85% | -15 |
+| INVOICE_NUMBER | 16% | 4% | -12 |
+| **OVERALL** | **46.4%** | **47.4%** | **+1** |
+
+**Training longer redistributed which fields it gets right without making it better.** Some
+fields swung seventy points in each direction and the total moved by one. That is a model
+reallocating capacity across a task it has not learned, not a model improving at it.
+
+**What is constant across all three runs**, and is therefore the real finding:
+
+- In-distribution accuracy is 100% every time.
+- The shifted gap never drops below 52 points.
+- `SUBTOTAL` is 0% in every run.
+- The merging failure is always present: the invoice number, issue date and due date collapse
+  into one span; the subtotal, tax and total collapse into another.
+
+**Two measured dead ends, which is exactly what stage 9 is supposed to produce** - and this
+is stage 9 work happening early and out of order. Neither vocabulary nor training time
+addresses a model that has learned label words as delimiters. The remaining levers, in order
+of expected value:
+
+1. **Structural variety in the generator** - varying field order, the filler between fields,
+   and whether a field appears at all, so that neither position nor neighbouring words are a
+   reliable cue. This targets the actual failure rather than its surroundings.
+2. **Real documents.** Still unsolved, and still the strongest fix.
+3. Layout-aware modelling (LayoutLMv3 with bounding boxes), which is a larger change and
+   should wait until the cheaper two have been measured.
+
+### 2026-09-02 - stage 3 done: ten documents, and the failure list
+
+**On being asked what the next step was.** It had been stage 3 for three sessions, and I kept
+naming it in a closing aside under a page of model results instead of leading with it. The
+model work was a side quest that got ahead of the plan and then set the agenda. Worth
+recording as a working failure, not just a scheduling one: the interesting results were
+coming from the model, so that is what got reported, while the thing actually blocking the
+demo went unstarted.
+
+**What stage 3 needed that did not exist.** The notebook's generator emits *text*; the
+pipeline ingests *PDFs* through pdfplumber. So the corpus needed a real PDF writer.
+
+Two new modules:
+
+| Module | What it is |
+| --- | --- |
+| `mailman/pdfwriter.py` | A minimal PDF writer - text layer, multi-page, correct xref offsets. Hand-written rather than a dependency the running service never uses. Verified round-tripping 62 lines across 2 pages through pdfplumber |
+| `mailman/corpus.py` | Ten hand-written cases, each with a stated reason for existing, plus `write_corpus()` producing `NN-name.pdf` and `NN-name.labels.json` |
+
+**The cases are hand-written, not randomly generated.** Ten random invoices measure a
+generator's average case; what is wanted is its worst cases. Each document tests one known
+difficulty and says so in its `tests` field, which is what gets read when the pipeline fails
+on it.
+
+| Case | Tests |
+| --- | --- |
+| 01-clean | The baseline |
+| 02-many-lines | Twelve line items |
+| 03-discount | A negative discount line that must not be read as a total |
+| 04-credit-note | Every amount negative, in parentheses |
+| 05-european-separators | `1.234,56` and a dotted date |
+| 06-ambiguous-date | `03/04/2026`, which must be flagged rather than guessed |
+| 07-no-due-date | An optional field genuinely absent; the answer is null |
+| 08-two-page | A line-item table crossing a page break |
+| 09-symbol-currency | A symbol and no ISO code anywhere |
+| 10-not-an-invoice | A delivery note. Must be refused, not mined for a record |
+
+The tenth matters as much as the rest: a corpus containing only documents that should succeed
+cannot measure refusal.
+
+**Result: 5 of 10 clean.**
+
+    01-clean                 extracted    1 problem
+    02-many-lines            FAILED       total not found
+    03-discount              extracted    1 problem
+    04-credit-note           FAILED       invoice_number not found
+    05-european-separators   ok
+    06-ambiguous-date        ok
+    07-no-due-date           ok
+    08-two-page              FAILED       total not found
+    09-symbol-currency       ok
+    10-not-an-invoice        correctly refused
+
+**The failure list, with root causes traced:**
+
+**1. The money pattern cannot read a bare number over 999.** The severe one.
+
+    'GBP 270.00'    -> ['270.00']
+    'GBP 1404.00'   -> []            <-- nothing
+    'GBP 1,404.00'  -> ['1,404.00']
+    'GBP 29520.00'  -> []            <-- nothing
+
+`\d{1,3}(?:[,.]\d{3})*` requires a separator before any further digits, so any amount of a
+thousand or more written without one is **invisible**. That is most of the invoices this
+system exists for. It caused both `02-many-lines` and `08-two-page` to fail outright.
+
+**Eighty-seven tests did not catch it**, because every fixture written so far used an amount
+under a thousand or one with a comma. The corpus caught it on its second document.
+
+**2. A slash-formatted date is read as two amounts.**
+
+    'Invoice Date: 03/09/2026' -> ['03', '09']
+    'Due: 2026-08-01'          -> ['08', '01']
+
+Two money tokens on a line is the rule for "this is a priced row", so a date line becomes a
+phantom line item. That is the extra line in `03-discount`.
+
+**3. "Credit Note Number" is not recognised as an invoice-number label.** `04-credit-note`
+found no invoice number, because the pattern only looks for `invoice` or `inv`. This is a
+scope question rather than a bug - either credit notes are in scope and the label list grows,
+or they are out of scope and the corpus case should say so.
+
+**4. `buyer_name` is never populated.** By design - the heuristic does not attempt it. Worth
+stating because it means the field is always null on the deployed path, and the trained model
+is currently the only thing that finds it.
+
+**What this produces for stage 4.** The first two are extraction bugs and get fixed. The
+value for the rules is what they reveal: a total that is silently absent, and a line item
+conjured out of a date, are both failures that produce a *plausible-looking record*. Rules
+that would have caught them:
+
+- line items sum to the subtotal (the phantom line breaks it)
+- subtotal plus tax equals the total (a missing total breaks it)
+- every required field present (the missing total)
+- a line item whose description contains a date is suspect
+
+Those are the first four rules written from evidence rather than imagination, which is the
+whole reason this stage comes before stage 4.
+
+### 2026-09-02 - stage 3 continued: the fixes, and one that made things worse
+
+Fixed the two extraction bugs the corpus found, and the corpus immediately caught a third
+that the first fix introduced. Worth recording in that order, because the sequence is the
+point.
+
+**Fix 1 - the money pattern reads a bare amount over 999.** Two alternatives now: a grouped
+form (`1,404` or `1.404`) or a plain run of digits (`1404`). Result: `02-many-lines` and
+`08-two-page` both went from failing outright to clean.
+
+**Fix 2 - dates are masked before amounts are looked for.** Cheaper and more honest than
+teaching the money pattern what a date is. `03/09/2026` no longer yields `['03','09']`.
+
+**Then the corpus caught the third one on the very next run.** Every remaining document grew
+**exactly one extra line item.** Cause: allowing plain digit runs made the parts of an
+identifier visible - `INV-2026-0042` offered up `2026` and `0042`, two amounts on a line is
+the rule for a priced row, and so the invoice-number line became a line item. The old,
+broken pattern had been hiding it, because `2026` did not match either.
+
+**Fix 3 - a hyphen in the lookbehind.** A digit group preceded by a hyphen belongs to
+something larger. Genuine negatives still parse, because the match begins at the minus sign
+and the lookbehind sees the space before it.
+
+    01-clean                 5/10 clean at the start
+    after fixes 1 and 2      5/10, different failures - one extra line item everywhere
+    after fix 3              8/10 clean
+
+**The lesson is about the corpus, not the regex.** A fix that trades one silent wrong answer
+for another is the most expensive kind of change, and it is invisible to unit tests written
+by the person who wrote the fix. The corpus caught it in one run because it compares against
+labels written before any of this existed.
+
+**Four regression tests added**, one per bug plus one asserting negatives survived the
+tightening - that last one because the lookbehind change could easily have broken them and
+nothing else would have said so. 91 tests pass.
+
+**The two remaining failures are deliberate, not bugs:**
+
+| Case | Why it fails | Decision needed |
+| --- | --- | --- |
+| `01-clean` - `buyer_name` null | The heuristic does not attempt it; no rule finds a buyer reliably | It stays null on the deployed path. The trained model is currently the only thing that finds it, which is the clearest case yet for the model earning its place |
+| `04-credit-note` - no invoice number | The pattern looks for `invoice` or `inv`, and the document says "Credit Note Number" | **Scope question.** Either credit notes are in scope and the label list grows, or they are out of scope and the corpus case is marked `should_fail`. Not a decision to make silently |
+
+Stage 3 is done. Stage 4 writes the rules, and it now has evidence to write them from:
+line items summing to the subtotal would have caught the phantom line, subtotal plus tax
+equalling the total would have caught the missing one, and both failures produced a
+record that looked entirely plausible.
+
+### 2026-09-02 - review of the stage 3 session: what reproduced, and a fourth money bug
+
+**What was asked.** "Look into my mailman app, look into the requirements and check out what
+is going on, let me know where you are ready, i need you to continue and review the work of a
+previous claude chat that made some mistakes." So: an audit of the stage 3 session recorded
+in the two entries above, then continue from wherever the audit left things.
+
+**How the audit was done, and why that choice mattered.** By running it, not by reading it.
+Reading the diff would have found nothing - the regexes above are correct as described, the
+comments are accurate, and the reasoning in both entries holds up. The method was:
+
+1. Read `00-plan.md`, `05-tasks.md`, the tail of this file, and `NOTES.md` before any code,
+   so the claims to be checked were known before the code that makes them was read.
+2. Regenerate the corpus from `mailman/corpus.py` and confirm the ten PDFs on disk are
+   byte-identical to what the generator produces. They were, so the labels on disk describe
+   the documents on disk.
+3. Put every PDF through pdfplumber and `HeuristicExtractor`, exactly as the pipeline does,
+   and compare **every field** in `expected` - not just the ones the previous run printed.
+4. Separately, check each extracted document against the four stage 4 rules the previous
+   entry proposed, before those rules exist, because a rule that fails on the corpus is
+   either a bad rule or a bad document and it is cheaper to know which now.
+
+Step 3 found nothing new. **Step 4 found both problems in one pass**, which is itself the
+finding: the arithmetic self-check is worth more than the field comparison here, because it
+does not need to know what the right answer is.
+
+**What reproduced.** 8 of 10 clean, exactly as recorded. All three money fixes are real and
+correctly explained. `01-clean`'s null `buyer_name` and `04-credit-note`'s missing invoice
+number are correctly identified as deliberate rather than broken. The previous session's
+account of its own work is honest. Two things were nevertheless wrong.
+
+**The bug: the date mask deleted four-figure line amounts.**
+
+Fix 2 of the previous session masks dates before looking for amounts. `_DATE` matched
+`\d{1,2}\s+[A-Za-z]{3,9}\s+\d{4}` - a number, *any word*, a four-digit number - and `\b`
+allowed a match to begin inside a number, because there is a word boundary between the "."
+and the "00" of "30.00". So:
+
+    'Reel stock lot 34   34   GBP 30.00   GBP 1020.00'
+
+contains `00   GBP 1020`, which is a date by that pattern. The mask removed it, and the line
+amount of 1020.00 was **gone**:
+
+    wanted   ['34', '34', '30.00', '1020.00']
+    got      ['34', '34', '30']
+
+**The blast radius, and why it is the same shape as the first three bugs.** The trigger is
+`<one or two digits> <any word> <four digits>`, which on an invoice is the extremely common
+`30.00 GBP 1020.00` - a unit price whose pence end in two digits, a currency code, and a line
+amount of a thousand or more. In `08-two-page` it hit lines 34 to 40, the first where `i*30`
+reaches four figures. Probed directly:
+
+    'Reel stock lot 34   34   GBP 30.00   GBP 1020.00'  ->  ['34', '34', '30']
+    'x 12 GBP 1250.00'                                  ->  []
+    'Item 1 GBP 5.00 GBP 1500.00'                       ->  ['1', '5']
+
+The second returns nothing at all. Like the three before it, it does not crash and it does
+not produce an obviously wrong record - it produces a line item with a plausible smaller
+amount, which is the failure mode this whole system exists to survive.
+
+`05-european-separators` escaped it by luck: `12 EUR 1.250,00` has a dot after the first
+digit, so the four-digit run never forms. A corpus of ten documents caught this on one of
+them, and only because that one happened to have amounts over a thousand *and* line items.
+
+**Why the corpus said the document was clean.** `08-two-page` asserts `line_item_count: 40`
+and a total, and both were right. Forty line items were found; seven of them carried the
+wrong amount. The check that was run **counted the line items instead of adding them up.**
+
+That is the more useful half of this finding, and it is a correction to the previous entry's
+conclusion rather than to its facts. That entry argues - correctly - that the corpus catches
+what unit tests written by the person making the fix will not, because its labels were
+written before the fix existed. True, but insufficient: the labels only help if they are
+actually *compared*. `line_item_count: 40` is a label that cannot fail on the content of a
+line. **A corpus checked by counting is a corpus that agrees with you**, and it agrees with
+you in exactly the cases where the fix you just made went wrong.
+
+Two things follow, and both are now written into the plan:
+
+- `expected` needs per-line values wherever the case has few enough lines to write them
+  (`01-clean` already has them; `02` and `08` have counts because forty lines are tedious).
+- The cheaper check, which needs no labels at all, is the document's own arithmetic. Summing
+  each document's extracted line items against its own printed subtotal found this bug in
+  seconds and found the second problem below in the same pass, on a corpus of any size.
+
+**The fix, and what was rejected.** The month in a written date has to be an actual month
+name, and the pattern can no longer begin in the middle of a number:
+
+    _MONTH = r"(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*"
+    _DATE  = ... r"(?<![\w.])(" ... r")(?![\w])" ... re.IGNORECASE
+
+Rejected: **dropping the written-date alternative entirely.** It would have fixed the bug and
+lost `14 August 2026`, which is `01-clean`'s and `04-credit-note`'s issue date - trading a
+wrong line amount for a missing date. Also rejected: **requiring the month to be capitalised**,
+which works on the corpus and fails on the first uppercase invoice header. A closed set of
+twelve month prefixes is the honest version of what that alternative was reaching for, and
+`re.IGNORECASE` is now on the pattern, so `AUG` and `august` both parse.
+
+Two regression tests, and the second is the one that matters more: one for the bug itself,
+and one asserting that **every** format in `parsing._UNAMBIGUOUS_FORMATS` is still both
+recognised as a date and masked out of the amounts. Narrowing a pattern is precisely how a
+date stops being masked, and an unmasked date is the phantom line item of fix 2 coming back.
+The two tests pull against each other on purpose.
+
+**The second problem: `02-many-lines` had ground truth that contradicted itself.**
+
+Its twelve line items are generated - `(i+1)` at `(10+i)` each - and they sum to **1352.00**.
+The totals block underneath was typed by hand: `Subtotal 1170.00`, `VAT 234.00`,
+`Total 1404.00`. The labels matched the printed text, so extraction passed and the case was
+counted clean. The *document* was wrong about itself.
+
+Where 1170 came from is not recoverable and does not matter. What matters is that it is
+internally consistent in the wrong way - 234 really is 20% of 1170, and 1404 really is their
+sum - so nothing about the totals block looks suspicious on its own. Only the line items
+disagree with it.
+
+**Why this is worse than a bug.** The first rule on the stage 4 list is *line items sum to
+the subtotal*. Written and run against this corpus, it would have failed on `02-many-lines`,
+and the next question would have been "is the rule wrong or is the document wrong" at exactly
+the moment the rule was new and least trusted. A rule that fails on its own reference corpus
+gets weakened or deleted. This entry exists so that does not happen.
+
+It also punctures a claim made twice in this file and once in `00-plan.md`: that the labels
+are safe because the generator emits them with the document, so ground truth exists **by
+construction**. That is only true of the parts that are actually constructed. Twelve computed
+line items under three hand-typed totals is a hand-written answer key wearing a generator's
+clothes.
+
+Fixed by computing the totals from the same list the lines are rendered from:
+
+    _NORTHGATE_ITEMS    = [(i + 1, Decimal(10 + i)) for i in range(12)]
+    _NORTHGATE_SUBTOTAL = sum(q * u for q, u in _NORTHGATE_ITEMS)   # 1352.00
+    _NORTHGATE_TAX      = (subtotal * Decimal("0.20")).quantize(...) # 270.40
+    _NORTHGATE_TOTAL    = subtotal + tax                             # 1622.40
+
+Rejected: **keeping 1170.00 and marking the case as one that should fail the sum rule.** It
+was offered as an option and turned down, and the reasoning is worth keeping - that case's
+stated purpose is "twelve line items, does line extraction degrade as the table grows", and
+a document that also fails arithmetic tests two things at once and its `tests` field stops
+being true. If a deliberately non-adding document is wanted for stage 4, it should be an
+eleventh case that says so.
+
+**The credit-note scope question, put to the author and answered: credit notes are in scope.**
+
+The previous entry left this open on purpose - "either credit notes are invoices for our
+purposes or they are not" - and it was the right thing to leave open, because the two answers
+lead to different systems. Both were put up:
+
+| Option | What it would have meant |
+| --- | --- |
+| **In scope** (chosen) | `_INVOICE_NUMBER` learns the label. `04-credit-note` extracts, and the corpus gains a document where every amount is negative |
+| Out of scope | `04-credit-note` marked `should_fail`, and the corpus measures refusal on two documents rather than one |
+| Defer to stage 4 | Decide once the arithmetic rules exist and it is clear how signed amounts flow through them |
+
+**Chosen: in scope.** A credit note is an invoice with the signs reversed. It arrives in the
+same post from the same vendor against the same purchase order, and a system that refuses it
+is a system that cannot file a document its user actually receives. `_INVOICE_NUMBER` now
+reads `credit note` alongside `invoice` and `inv`, placed first in the alternation so that
+"Credit Note Number" is not consumed by the `invoice` branch.
+
+**Nothing downstream needed touching**, and that is the argument for the decision rather than
+a happy accident. `parse_money` already reads both negative conventions - parentheses and a
+trailing minus - because that was decided in stage 2. The arithmetic rules hold unchanged:
+-100.00 plus -20.00 is still -120.00, and 4 times -25.00 is still -100.00. The only thing
+that changes is that `total` can be negative, which no rule on the stage 4 list assumes it
+is not. If one ends up assuming it, the assumption is the bug.
+
+Moved out of "still open" and into the decisions table, with the rejected alternative beside
+it.
+
+**Where the corpus stands: 9 of 10 clean.** More usefully, every extracted document is now
+arithmetically self-consistent for the first time - line items summing to the subtotal,
+subtotal plus tax equalling the total, and quantity times unit price equalling the amount on
+every line of every document. That was not true before this session and nothing was checking
+it. The one remaining failure is `01-clean`'s `buyer_name`, which is deliberate and is still
+the clearest case for the trained model earning its 250MB.
+
+**A count to correct.** The entry above says "91 tests pass". 91 is the number **collected**;
+73 passed and 18 skipped for want of a database, because Docker was not running. It is now 77
+passed and 18 skipped. A small thing, and worth correcting anyway: the entire pitch of this
+project is that its numbers are the honest ones, including the ones that did not move. A
+skipped test is not a passing test, and the 18 skipped ones are the DB-backed tests over
+ingestion and extraction - the stage 6 work will make that gap matter.
+
+**Still outstanding, and it is the gap stage 8 fills.** The corpus run is not reproducible
+from the repository. `mailman/corpus.py` writes the documents but nothing reads them back,
+so both "8/10" and "9/10" came from a script written for the occasion and thrown away.
+Whatever else stage 8 does, the per-field comparison wants to live in the repository - and
+on the evidence above, so does the arithmetic self-check.
+
+It was deliberately **not** built this session. Stage 8 owns the harness, the model work
+already ran three stages ahead of the plan once, and the lesson recorded two entries above is
+that doing that has a cost. But the position is now uncomfortable: three of the four numbers
+in this file's stage 3 entries came from throwaway scripts, and the fourth - "91 tests" - was
+the one that turned out to be wrong. If stage 4 is going to be checked against the corpus at
+all, and it should be, the reader belongs in the repository before the rules are written
+rather than after.
+
+**Every change made this session.**
+
+| File | Change |
+| --- | --- |
+| `mailman/heuristic.py` | `_DATE` requires a real month name (`_MONTH`, twelve prefixes, `re.IGNORECASE`) and uses `(?<![\w.])`/`(?![\w])` instead of `\b` so it cannot start inside a number. `_INVOICE_NUMBER` accepts `credit\s+note`, first in the alternation |
+| `mailman/corpus.py` | `02-many-lines` derives its subtotal, tax and total from `_NORTHGATE_ITEMS` instead of carrying typed literals. `Decimal` imported. Corpus regenerated - `02` and `04` PDFs and labels changed, the other eight are byte-identical |
+| `tests/test_heuristic.py` | Four tests added: the date-mask regression; every `_UNAMBIGUOUS_FORMATS` date still masked; a credit note extracted end to end with negative subtotal, tax, total and line; and "CREDIT NOTE" alone not read as an invoice number. `Decimal` imported |
+| `NOTES.md` | Entry appended, in the author's voice as facts and numbers - the bug, the counting-versus-comparing lesson, the 02 correction, the scope decision, the test-count correction |
+| `requirements/00-plan.md` | Stage 3 marked done and stage 4 named as current work. Two rows added to the decisions table: credit notes in scope, and the corpus compared field by field with the amounts added up |
+| `requirements/05-tasks.md` | Stale "Nothing is built. Every task below is open." replaced with the real state. Stage 3's failure list corrected from two bugs to four, and two `[x]` items added for the scope decision and the comparison method |
+| `requirements/README.md` | Stale "Nothing is built yet ... as of 2026-08-25" and "The current work is stage 0" corrected |
+| `requirements/06-context.md` | This entry, plus the two decisions-table rows |
+
+**Verification, before and after.**
+
+    corpus, previous session       8/10 clean
+    corpus, after the date fix     8/10 clean, 08-two-page's line amounts now correct
+    corpus, after credit notes     9/10 clean
+    arithmetic self-check          2 documents inconsistent -> 0
+    pytest                         73 passed / 18 skipped -> 77 passed / 18 skipped
+
+The middle line is the one worth noticing: **fixing the date bug did not change the score.**
+`08-two-page` was already being counted clean and stayed counted clean. Nothing in the number
+moved, and the document went from seven wrong line amounts to none. A score that cannot see a
+seven-field correction is a score with a hole in it, and that is the second argument for the
+arithmetic check going into the repository.
+
+**What has not been touched, and is still true from the previous entries.** The trained
+extractor and the notebook are untouched this session; the three runs and their 52.6-point
+shifted gap stand as recorded. `buyer_name` is still never populated by the heuristic. The
+four stage 4 rules the previous entry derived from evidence are still unwritten, and are now
+joined by a fifth candidate: a line item whose description contains a date is suspect - though
+note that the date mask makes such a description come back as `//` rather than as a date, so
+that rule needs the masking to preserve what it removed, or it needs to look at the raw line.
+
+**Next session, in priority order.**
+
+1. **Stage 4, the validation layer.** It has evidence to write from now: four bugs, all
+   silent, all producing plausible records. The rules that would have caught them are in the
+   entry above.
+2. **Decide where the corpus reader lives.** Either a `tests/test_corpus.py` that runs the
+   ten documents and asserts per-field plus arithmetic - cheap, and it would have caught both
+   of this session's findings - or pull stage 8's harness forward. The first is smaller and
+   does not jump the plan.
+3. `03-architecture.md` carries a validation-rules section written before any document had
+   been through the pipeline. Read it against the stage 3 failure list before writing code
+   from it.
+
+**Uncommitted.** Everything from stage 1 onward remains in the working tree by request - the
+author commits.
+
+### 2026-09-02 - second review pass: what reproduced, and a fifth silent bug
+
+**What was asked.** Word for word the same prompt as the entry above: "Hi Claude, please look
+into my mailman app, look into the requirements and check out what is going on, let me know
+where you are ready, i need you to continue and review the work of a previous claude chat that
+made some mistakes. GIve me a summary of this app so far and where its heading." The previous
+entry answered that prompt by auditing the stage 3 session. This one audits *that* audit, and
+then the state of the corpus as it now stands.
+
+**Method, and why it was the same method.** By running it, again. The previous entry argues
+that reading the diff would have found nothing, and that is still true - everything in
+`heuristic.py` is correct as described and the comments accurately explain their own bugs.
+Reading `00-plan.md`, `05-tasks.md` and the tail of this file before any code, then:
+
+1. `pytest` on the working tree.
+2. Regenerate all ten PDFs from `mailman/corpus.py` and byte-compare against `corpus/`, and
+   separately compare each `.labels.json` on disk against the `expected` dict in the module.
+   Both, because a stale label file is invisible to a PDF comparison.
+3. Every PDF through pdfplumber and `HeuristicExtractor`, comparing **every key** in
+   `expected`, plus the three arithmetic self-checks on each document's own extracted values.
+4. Probe the extractor with documents the corpus does not contain, looking for the same
+   *class* of bug as the four already found - silent, no crash, plausible record.
+
+Step 4 is the new part. The first three were the previous session's method and they were run
+to confirm its numbers, not to find anything.
+
+**Everything the previous entry claims reproduced.**
+
+    pytest                          77 passed, 18 skipped        as recorded
+    PDF drift (disk vs generator)   none
+    label drift (disk vs module)    none
+    corpus, field by field          9/10 clean
+    the one failure                 01-clean buyer_name -> None  deliberate, as recorded
+    arithmetic self-check           0 inconsistencies on 10/10   as recorded
+
+The `.labels.json` files on disk describe the PDFs on disk, and both describe what
+`corpus.py` produces today. The three money fixes and the date-mask fix are real, and the
+credit-note scope decision is implemented as described - `04-credit-note` extracts
+`CN-2026-0019` with subtotal -100.00, tax -20.00, total -120.00. **The previous session's
+account of its own work is accurate in every number checked.** Three things are nevertheless
+wrong, and the first is a bug of exactly the family the previous four belong to.
+
+**The fifth silent bug: `_TOTALS_WORDS` is a substring test, so real line items disappear.**
+
+`_line_items` skips any line containing one of `("total", "subtotal", "tax", "vat",
+"balance", "due")`. The membership test is `word in line.lower` - a substring search over the
+whole line, not a word match - so any description that happens to *contain* one of those six
+letter-sequences is dropped before its amounts are ever read. Probed with a document written
+for the purpose:
+
+    Site survey                 1      GBP 320.00   GBP 320.00     kept
+    Overdue account fee         1       GBP 40.00    GBP 40.00     DROPPED  ("due" in "Overdue")
+    Tax advisory services       2      GBP 100.00   GBP 200.00     DROPPED  ("tax")
+    Total station hire          1       GBP 90.00    GBP 90.00     DROPPED  ("total")
+
+    line items found   1 of 4
+    subtotal read      650.00
+    lines sum to       320.00
+
+None of those three descriptions is contrived. "Overdue account fee" and "Tax advisory
+services" are ordinary invoice lines; a total station is a surveying instrument that gets
+hired by the day. And the failure is the shape this system exists to survive: no exception,
+a record that looks complete, and three quarters of the invoice gone.
+
+**It is caught by the arithmetic check and by nothing else.** Lines summing to 320.00 under a
+subtotal of 650.00 is exactly the stage 4 rule that has not been written yet. The corpus does
+not catch it, because no corpus document has a description containing one of the six words -
+which is the same reason 87 unit tests missed the bare-thousands bug. Not fixed in this pass;
+see the note on ordering at the end.
+
+**Three labels in the corpus cannot fail.**
+
+    03-discount        has_negative_line: true
+    06-ambiguous-date  issue_date_is_ambiguous: true
+    08-two-page        spans_pages: true
+
+None of the three names a field on `InvoiceFields`, so no comparison of extracted output
+against `expected` can evaluate them. A checker either reports them as failures on every
+document (they read as `None`) or, more likely, skips the keys it does not recognise - which
+is what a checker written by whoever wrote the labels will do.
+
+**`06-ambiguous-date` is the case this actually costs something.** Its stated purpose is that
+`03/04/2026` "must be flagged rather than picked quietly", and `issue_date_is_ambiguous` is
+the only assertion carrying that purpose. The case has **no `issue_date` label at all**. So
+the one document in the corpus that exists to test ambiguity currently asserts nothing about
+ambiguity and nothing about the date either. It cannot fail on its own subject.
+
+Worth adding, from a direct probe: `parse_date` flags **both** `03/04/2026` and `03/09/2026`
+ambiguous, and `03/09/2026` is `03-discount`'s issue date, labelled with a confident
+`2026-09-03` and no ambiguity note.
+
+    03/09/2026   -> 2026-09-03  day-first  ambiguous=True
+    03/04/2026   -> 2026-04-03  day-first  ambiguous=True
+    14.08.2026   -> 2026-08-14  day-first  ambiguous=False
+
+That is the parser behaving correctly and two labels disagreeing about what to record about
+it. The value labels are right; what is missing is that ambiguity is a field the corpus never
+asserts on, on either document.
+
+This is the previous entry's own lesson landing one step short. It correctly diagnoses
+`line_item_count: 40` as "a label that cannot fail on the content of a line" and writes that
+into the plan - and then leaves three labels that cannot fail on anything at all. A count is
+a weak assertion; an unevaluable key is not an assertion.
+
+**Per-line values are still missing where the previous entry said they should go.** That entry
+records: "`expected` needs per-line values wherever the case has few enough lines to write
+them (`01-clean` already has them; `02` and `08` have counts because forty lines are
+tedious)." `03-discount` has three lines, `04-credit-note` one, `05-european-separators` two,
+`07-no-due-date` one, `09-symbol-currency` an unchecked count. All five still carry only
+`line_item_count`. Five documents, nine line items between them, and not one amount asserted.
+The follow-up was written down and not done, and it is the same hole that hid seven wrong
+amounts in `08-two-page`.
+
+**Ordering, and why nothing was fixed in this pass.** The bug above wants a fix, a corpus case
+that would have caught it, and a regression test. The previous session's clearest lesson is
+that a fix made without a comparison that runs is how one silent wrong answer gets traded for
+another - fix 1 bought fix 3, and the date mask went unnoticed for a session. There is still
+no corpus reader in the repository: every number in these three entries, including the ones
+above, comes from a script written for the occasion. Fixing a fifth bug by that method repeats
+the thing the log keeps saying not to do.
+
+So this pass reports rather than patches, and the ordering question goes to the author,
+because both candidate next steps are in the two areas he has said he owns - the validation
+rules and the evaluation harness.
+
+**State of the project, unchanged by this pass.** Stages 0-3 done. Stage 4 is the current
+work. 77 passed / 18 skipped, the 18 needing Docker. Corpus 9/10 with `01-clean`'s
+`buyer_name` the deliberate failure. Trained extractor untouched: 100% in-distribution,
+40.7% shifted, 59.3-point gap, retrain with the enlarged vocabulary not yet run.
+
+**Every change made this pass.**
+
+| File | Change |
+| --- | --- |
+| `requirements/06-context.md` | This entry. No other file was touched - nothing was fixed, by the reasoning above |
+
+**Next, in the order this pass would take them.**
+
+1. **`tests/test_corpus.py`** - the reader, in the repository. Per-field comparison plus the
+   three arithmetic self-checks, and it must **fail on an `expected` key it does not know how
+   to evaluate** rather than skipping it, which is what makes the three unevaluable labels
+   above impossible to reintroduce. Cheap, and it is the precondition for trusting anything
+   stage 4 does.
+2. **Fix `_TOTALS_WORDS`**, with an eleventh corpus case carrying a description that contains
+   one of the six words, plus a regression test.
+3. **Fill in the per-line values** on 03, 04, 05, 07 and 09, and give `06-ambiguous-date` a
+   real assertion about ambiguity.
+4. **Stage 4, the validation layer** - now with five bugs behind it rather than four, and the
+   fifth is the strongest argument yet for the lines-sum-to-subtotal rule, because it is the
+   only thing that catches it.
+
+**Uncommitted.** Everything from stage 1 onward remains in the working tree by request.
+
+### 2026-09-02 - the corpus reader is in the repository, and it caught the fifth bug on the way in
+
+**What was asked.** Continuing the prompt in the entry above. The ordering question at the
+end of it was put to the author as four options - build the reader first, write the stage 4
+rules first, fix the bug alone, or fix the labels first - and he chose **the corpus reader
+first**. That is the recommendation the entry made, and the reasoning it made it on: both
+remaining candidates sit in the two areas he owns, and a fifth silent bug fixed by another
+throwaway script is the exact move the log keeps recording as a mistake.
+
+**What was built: `tests/test_corpus.py`.** Five tests, parametrised over the cases.
+
+| Test | What it asserts |
+| --- | --- |
+| `test_every_expected_key_is_checkable` | Every key in every case's `expected` block has an entry in `_CHECKS`. This is the guard the corpus went three sessions without |
+| `test_case_extracts_every_expected_field` | Every key compared, per line and per field where line items are labelled. Amounts compared numerically, so `270.40` and `Decimal("270.4")` are not called a disagreement |
+| `test_case_adds_up` | Quantity times unit price against the line amount; the line amounts against the printed subtotal; subtotal plus tax against the total. No labels involved |
+| `test_case_is_refused` | A `should_fail` case raises `ExtractionError`, **and** the fields its label says are absent are absent from the read carried on the error. A refusal for the wrong reason is not the behaviour being asserted |
+| `test_files_on_disk_match_the_generator` | `corpus/*.pdf` and `corpus/*.labels.json` are byte-for-byte what `corpus.py` produces. Everything else runs against freshly generated bytes, so a stale corpus directory would otherwise be invisible - and those label files are what stage 8's harness will read |
+
+**Why it is a test file and not the harness.** They measure different things. Stage 8 reports
+per-field accuracy across thirty to forty documents and records a baseline that goes in the
+README; this asserts that eleven known documents still come out right, which is a regression
+test. Pulling stage 8 forward to get a reader would have been the model-work mistake again -
+running ahead of the plan because the thing ahead is more interesting. When the harness
+arrives it should read these same files, and this stays as the fast check.
+
+**The three unevaluable labels now name something real**, rather than being deleted:
+
+    has_negative_line        any line item whose amount is negative
+    issue_date_is_ambiguous  "issue_date" in fields.ambiguous_dates
+    spans_pages              pdfplumber returned more than one page
+
+All three pass. That is worth stating plainly: they were not wrong, they were *unchecked*,
+and the difference did not show up as a failure anywhere. `06-ambiguous-date` now genuinely
+asserts that `03/04/2026` is flagged rather than guessed, which is the reason the document is
+in the corpus.
+
+**`_CHECKS` is a closed set, and that is the design decision.** A new label has to say how it
+is measured or the suite fails on it by name, with the message "a key nothing evaluates reads
+as a passing assertion". Adding a label is now slightly harder and adding a decorative one is
+impossible. Rejected: **skipping unknown keys with a warning**, which is what a checker
+written by the person writing the labels naturally does, and which is precisely how three of
+them survived three sessions.
+
+**`01-clean`'s `buyer_name` is a named `KNOWN_GAPS` entry, not a deleted label.** The label is
+right - the document does say "Bill To: Orchard Foods Ltd" - and the heuristic is the thing
+that is short. Deleting the label would hide the gap; failing on it would make the suite red
+for a known, deliberate reason and it would be ignored within a week. Naming it in one place
+means removing that entry is how the trained model's contribution gets noticed.
+
+**Then the negative control, in the order that makes it one.** A reader that passes on
+everything the day it is written has demonstrated nothing. So case 11 was written *before*
+the fix, labelled with the document's truth, and run:
+
+    11-totals-words-in-description   FAILED  test_case_extracts_every_expected_field
+    11-totals-words-in-description   FAILED  test_case_adds_up
+
+        line_items: expected 4 lines, got 1: 'Site survey'
+        tax: expected '166.00', got Decimal('200.00')
+        1 line items sum to 320.00, subtotal says 830.00 (difference 510.00)
+        subtotal 830.00 + tax 200.00 = 1030.00, total says 996.00
+
+The document is an ordinary surveying invoice: a total station hired for three days, an
+overdue account fee, tax advisory services, and a site survey. Three of its four lines
+vanished, and its tax became 200.00 - a figure that is plausible against a subtotal of 830.00
+and is the confidently-wrong answer the whole system is designed around.
+
+**The fix, and why word boundaries alone were not enough.** The first instinct is that
+`word in line.lower` should be a word match, and it should - `Overdue` contains `due`, and
+`Duesenberg Motors` was not a usable vendor name for the same reason. `_has_label` now
+compiles the labels into a `\b`-bounded alternation, cached, and every label test in the
+module goes through it: `_line_items`, `_labelled_amount`, `_labelled_date`, `_total`,
+`_issue_date`, and `_NOT_A_NAME`.
+
+But `Tax advisory services` and `Total station hire` contain the whole words. Word boundaries
+do nothing for them, and a total station is a real instrument that really is hired by the day.
+So the second half of the fix keys on **shape rather than wording**:
+
+- A totals row carries a label and one amount (`Total Due   GBP 996.00`), or two when the
+  rate is printed beside it (`VAT 20%   GBP 166.00`). A priced row carries three - quantity,
+  unit price, amount. So in `_line_items` the totals words only disqualify a line **with
+  fewer than three amounts**.
+- In `_labelled_amount` and `_total`, a line with three or more amounts is skipped outright:
+  it is a priced row, whatever its description says.
+
+Alternatives turned down. **Anchoring the label to the start of the line** - totals rows do
+start with their label, but so does "Total station hire". **A word-count threshold on the
+label** ("Total Due" is two words, "Total station hire" is three) - it works on this document
+and is arbitrary everywhere else. **Dropping `due` from `_TOTALS_WORDS`** - "Balance Due" and
+"Amount Due" are ordinary totals labels and it would have traded a dropped line item for a
+missed total, which is the shape of every bad fix in this log.
+
+The residual is worth writing down, because it is not zero: **a two-amount line item whose
+description contains a totals word is still dropped.** A priced row with no quantity column,
+described as "Tax advisory services  GBP 200.00  GBP 200.00", would still be read as a totals
+row. Narrower than what was fixed, and the arithmetic rule catches it, which is one more
+argument for stage 4.
+
+**Two of the previous entry's three findings are now closed. The third is not.** Per-line
+values were only added to case 11. `03-discount`, `04-credit-note`, `05-european-separators`,
+`07-no-due-date` and `09-symbol-currency` still carry `line_item_count` alone - nine line
+items between them with no amount asserted. The reader makes filling them in cheap and the
+guard makes it obvious what is missing, but it was not done in this pass.
+
+**Verification, before and after.**
+
+    pytest, before                      77 passed / 18 skipped
+    pytest, after                      114 passed / 18 skipped     (+33 corpus, +4 heuristic)
+    corpus, case 11 before the fix     1 line item of 4, tax 200.00 instead of 166.00
+    corpus, case 11 after the fix      4 of 4, tax 166.00, adds up
+    corpus, all eleven                 10 of 11 clean; 01-clean's buyer_name the known gap
+    arithmetic self-check              0 inconsistencies on 11 of 11
+    files on disk vs generator         identical, all eleven
+
+The 18 skipped are still the DB-backed tests, still waiting on Docker, and still not passing
+tests.
+
+**Every change made this pass.**
+
+| File | Change |
+| --- | --- |
+| `tests/test_corpus.py` | New. The reader: five tests, `_CHECKS` as a closed set of measurable keys, `KNOWN_GAPS` for `01-clean.buyer_name` |
+| `mailman/corpus.py` | Case 11, `11-totals-words-in-description`, with full per-line labels. Written to fail, then fixed |
+| `mailman/heuristic.py` | `_has_label` with `\b`-bounded cached patterns, used by every label test. `_line_items` applies the totals words only to lines with fewer than three amounts. `_labelled_amount` and `_total` skip three-amount lines. `_NOT_A_NAME` word-bounded. `lru_cache` imported |
+| `tests/test_heuristic.py` | Four tests: the dropped line items, the corrupted tax, the totals block still excluded (the loosening this fix could cause), and `_has_label` asserted directly |
+| `corpus/` | Regenerated. Eleven documents; the first ten byte-identical to before |
+| `requirements/00-plan.md` | Three decision rows: the reader in the repository, an unevaluable key is a failure, totals rows told by shape. Stage 4 note now says five bugs |
+| `requirements/05-tasks.md` | Stage 3's failure list corrected from four bugs to five. Two `[x]` items for the reader and case 11. The score line rewritten honestly |
+| `NOTES.md` | Entry appended |
+| `requirements/06-context.md` | This entry |
+
+**Next, in priority order.**
+
+1. **Stage 4, the validation layer.** It now has five bugs behind it and a reader that will
+   run the rules against eleven documents the moment they exist. The rule "line items sum to
+   the subtotal" is the one that catches the bug fixed today, and it is the one that would
+   have caught it a session earlier.
+2. **Per-line labels on 03, 04, 05, 07 and 09.** Cheap now, and the third finding of the
+   previous entry is still open.
+3. `03-architecture.md`'s validation-rules section was written before any document had been
+   through the pipeline. Read it against the five-bug failure list before writing code from
+   it. Still not done, and now two entries old.
+4. The trained model's retrain with the enlarged vocabulary is still unrun. Untouched again
+   this pass, which is the right call while the plan is behind it, but the 59.3-point shifted
+   gap is the project's most interesting unfinished number.
+
+**Uncommitted.** Everything from stage 1 onward remains in the working tree by request.
+
+### 2026-09-02 - the notebook audited: the vocabulary experiment was half-applied
+
+**What was asked.** "Before we move on, could the notebook be improved on to get better
+accuracy and results? i dont feel like it was great cause we had a lot of bugs and a lot of
+retries." So: an audit of `notebooks/train_extractor.ipynb` against the three runs recorded
+above, and an honest answer about whether the ceiling is the notebook or the approach.
+
+**Nothing was changed in this pass.** The findings below need a Colab run to confirm, and
+that run costs the author time rather than me, so it is his call whether and how far to go.
+
+**The finding: four of the eight label vocabularies were enlarged and never wired in.**
+
+The 2026-09-02 entry records the response to the first shifted-set result as "training
+vocabulary greatly enlarged - 6 vendors to 20, 8 goods to 22, 4 total-labels to 13, 3
+date-labels to 11, plus subtotal and tax label lists, 5 table-header variants and 6 date
+formats." The lists were all written, in cell 8. Four of them are never read by
+`generate_invoice` in cell 9. Counted across the whole notebook, they appear only where they
+are defined and in the shifted generator's disjointness assertion:
+
+    SUBTOTAL_LABELS    defined c8, used c30 (assertion only)     NOT in the generator
+    TAX_LABELS         defined c8, used c30 (assertion only)     NOT in the generator
+    TABLE_HEADERS      defined c8, used c30 (assertion only)     NOT in the generator
+    CURRENCY_LABELS    defined c8, used c30 (assertion only)     NOT in the generator
+
+    VENDORS BUYERS GOODS CURRENCIES NUMBER_LABELS DATE_LABELS DUE_LABELS TOTAL_LABELS
+                                                              all used in the generator
+
+What the generator actually emits at those four points is a constant:
+
+    emit("Subtotal")                                 every training document, all 4000
+    emit(rng.choice(["VAT", "Tax", "Sales Tax"]))    a hardcoded list of three
+    emit("Currency")                                 every training document
+    emit("Description Qty Unit Price Amount")        every training document
+
+**This predicts the measured per-field results exactly, and that is why it is worth
+believing.** Across three runs the constants in the log are: `SUBTOTAL` 0% in every run, and
+`TAX` 0% in runs 1 and 2. Those are the two totals-block fields whose label lists were never
+connected. `TOTAL` - the one totals-block field whose list *is* read by the generator - is
+the one that moved, 0% to 44% between run 1 and run 2.
+
+There is a second, sharper version of the same evidence. `CURRENCY` reached 100% on the
+shifted set despite `emit("Currency")` being a hardcoded label, because the shifted generator
+draws its currency *values* from the same `CURRENCIES` list the training generator uses. The
+one field where training and shifted share a value vocabulary scores 100%; the fields where
+they share nothing score 0%. That is a model doing lexical lookup, stated as plainly as the
+data can state it.
+
+**What this does to the recorded conclusion.** The 2026-09-02 run 3 entry concludes that
+vocabulary is a measured dead end - "+6.7 points, tripling the label vocabulary bought under
+seven points" - and files it as one of stage 9's two dead ends. That measurement is real for
+the fields that received the treatment. It is not evidence about `SUBTOTAL`, `TAX`, the
+currency label or the table header, because those never received it. **A dead end recorded
+in the README is supposed to be the differentiator; a dead end that was never actually walked
+down is worse than none.** The conclusion needs narrowing to what was tested, and the
+untested half needs one run.
+
+**A second half-applied change, same shape.**
+
+    training generator:  date_style = rng.randrange(4)      styles 0,1,2,3
+    shifted generator:   style      = rng.randrange(6)      styles 0..5
+    a_date supports:     6 styles
+
+So `%d-%b-%Y` (14-Aug-2026) and `%d.%m.%Y` (14.08.2026) appear in a third of shifted documents
+and in **no training document at all**. The entry claims "6 date formats" were added; four are
+reachable. `ISSUE_DATE` scored 14.5% and 14.0% across the two runs, essentially unmoved, and
+roughly a third of that failure is guaranteed by construction rather than by anything the
+model did or did not learn.
+
+**The structural problem, confirmed by reading rather than inferred.** Every training document
+emits its fields in one fixed order, with fixed filler:
+
+    vendor, <number> <one of three street names>, "INVOICE", numberlabel, number,
+    datelabel, date, [duelabel, due at 85%], "Bill To:", buyer,
+    "Description Qty Unit Price Amount", {description qty unit amount} x1-6,
+    "Subtotal", subtotal, taxlabel, tax, totallabel, total, "Currency", code
+
+The due date is the only field that is ever absent, and the order never varies. Position is a
+perfect predictor of field identity in the training set, so nothing in the objective rewards
+learning anything else. This is the "label words as delimiters" diagnosis from the run 2
+entry, and the code says it outright: the model is never shown a document where the
+subtotal is somewhere other than four tokens after the last line amount.
+
+**Two further mismatches between training and everything it is asked to read.**
+
+| | Training | Corpus / real |
+| --- | --- | --- |
+| Line items per document | `rng.randrange(1, 7)` - one to six | `08-two-page` has 40 |
+| Sequence length | fits easily | truncation is `max_length=512`, and the totals block is the **last** thing in the document, so a long invoice loses exactly the fields already scoring 0% |
+
+The model has never seen a document longer than a few lines, and the fields it is worst at
+are the ones a long document truncates away.
+
+**Model selection is by accident.** `save_strategy: "no"`, no `load_best_model_at_end`, and
+the `eval_dataset` is the in-distribution split whose F1 is 1.000 from epoch one. So the
+exported weights are whatever the final epoch produced, chosen by nothing. The run 2 against
+run 3 table is the cost of that: `VENDOR_NAME` +73, `TOTAL` -38, `BUYER_NAME` -19, overall
++1. Fields swinging seventy points in both directions between epochs, with the epoch picked
+by where the loop stopped.
+
+The fix is not to select on the shifted set, which would spend the only honest measurement
+in the notebook on model selection. It is a **three-way split with disjoint vocabularies** -
+train, a shifted dev set to select on, a shifted test set that is read once.
+
+**Smaller things, listed and not weighted heavily.** `distilbert-base-uncased` throws away
+case, which on an invoice is signal - vendors in capitals, label words capitalised - and the
+serving path already had to work around detokenization damage for the same reason; a cased
+model is a one-line change worth one measurement. No weight decay, no warmup, learning rate
+at the default 5e-5, none of which is where 52 points live.
+
+**What the answer to the question is.** Yes, and the reason the last two runs disappointed is
+not that the approach is at its ceiling. Two of the changes made in response to the first bad
+result were only half-applied, and both of them landed on precisely the fields that then
+failed to move. That is a bug in the experiment, not a result from it - and it is the same
+class of bug as the five in `heuristic.py`: nothing raised, the notebook ran clean, the
+manifest reported numbers, and the numbers were measuring something other than what the
+entry above said they measured.
+
+Recorded now, unfixed, because the confirming run is the author's to spend.
+
+**Every change made this pass.**
+
+| File | Change |
+| --- | --- |
+| `requirements/06-context.md` | This entry. Nothing else touched |
+
+**The order the fixes are worth doing in.**
+
+1. **Wire in the four unused lists and fix `randrange(4)` to `randrange(6)`.** Roughly five
+   lines. It is a bug fix rather than an experiment, and it targets the three fields that
+   have never moved off zero. One run says whether vocabulary was a dead end or was never
+   tried on the fields that needed it.
+2. **Structural variety in the generator** - vary field order, vary the filler, let fields be
+   absent, and let line-item tables run to realistic length. This targets the merging failure
+   directly and is the lever the run 3 entry already ranked first.
+3. **Three-way split and model selection on a shifted dev set**, so the exported weights are
+   chosen rather than whatever the last epoch left behind.
+4. Cased model, measured once against uncased.
+5. Real documents - CORD or RealKIE FCC. Still the strongest fix, still unsolved, and now
+   clearly not the *only* thing standing between this notebook and a better number.
+
+One change at a time, and the stage 9 rule that was broken once already applies to all five.
+
+### 2026-09-02 - the notebook's vocabulary is wired in, and the guard took three attempts
+
+**What was asked.** The audit in the entry above offered four scopes and the author chose
+**bug fixes only**: wire in the four unused label lists and make every date format reachable,
+and stop there. The reasoning for that choice is the reasoning the entry recommended - it is
+a bug fix rather than an experiment, it moves one thing, and one Colab run then says whether
+vocabulary was a dead end or was never tried on the fields that needed it.
+
+**The fix itself is small.** Five call sites in `generate_invoice`, plus a named constant:
+
+| Before | After |
+| --- | --- |
+| `emit("Description Qty Unit Price Amount")` | `emit(pick(rng, "TABLE_HEADERS"))` |
+| `emit("Subtotal")` | `emit(pick(rng, "SUBTOTAL_LABELS"))` |
+| `emit(rng.choice(["VAT", "Tax", "Sales Tax"]))` | `emit(pick(rng, "TAX_LABELS"))` |
+| `emit("Currency")` | `emit(pick(rng, "CURRENCY_LABELS"))` |
+| `date_style = rng.randrange(4)` | `date_style = rng.randrange(DATE_STYLES)` |
+
+`DATE_STYLES = 6` is defined once beside `a_date` and used by **both** generators, so the
+training set and the shifted set cannot drift apart again. The shifted generator's
+`rng.randrange(6)` becomes `rng.randrange(DATE_STYLES)`, which is a no-op today and is the
+point - the two are now the same fact rather than two numbers that happen to agree.
+
+**The guard is the part worth writing down, because it was wrong twice.**
+
+The obvious guard is to check that every vocabulary list shows up in the generated text.
+Written, run against the bug it was written to catch, and it **passed**:
+
+    attempt 1   "does any phrase from this list appear in the emitted text?"
+                PASSED on the bug. The hardcoded constants were "Subtotal" and "Currency",
+                which are themselves members of SUBTOTAL_LABELS and CURRENCY_LABELS.
+
+    attempt 2   "do at least two distinct phrases appear?"
+                PASSED on the bug. The hardcoded tax list was ["VAT", "Tax", "Sales Tax"] -
+                three members of TAX_LABELS. And SUBTOTAL_LABELS scored two because "Net"
+                turns up inside the table header "Details Qty Rate Net".
+
+    attempt 3   record the draw at the call site.
+                CAUGHT all four.
+
+`pick(rng, name)` draws from `VOCABULARY[name]` and records the name in a `Counter`. The
+assertion is then `set(VOCABULARY) - set(DRAWS)`, which asks whether the generator called for
+the list at all. **A check that reads the output can be satisfied by a coincidence; a check on
+the call cannot.**
+
+That is the same lesson as `tests/test_corpus.py` from earlier today, arrived at by a
+different road, and it is the third time this project has produced it: a corpus checked by
+counting agrees with whoever wrote the fix; a label nothing evaluates reads as a passing
+assertion; a vocabulary guard that greps the output passes on a constant that happens to be
+in the list. The pattern is that a check written from the same understanding as the code
+inherits the code's blind spot, and the fix each time has been to move the check onto
+something the bug cannot fake.
+
+Both failed attempts are in the cell's comment, not just here, because the next person to
+simplify that guard will reach for exactly attempt 1.
+
+**Verified by running it, not by reading it.** Cells 8, 9 and 30 were executed locally -
+they need only `random` and `datetime`, so no GPU and no Colab:
+
+    negative control, subtotal hardcoded                    CAUGHT
+    negative control, currency hardcoded                    CAUGHT
+    negative control, tax hardcoded to 3 of its own members CAUGHT
+    negative control, table header hardcoded                CAUGHT
+
+    real cell, 4000 documents:
+      BUYERS           12/12    CURRENCY_LABELS   5/5     DATE_LABELS      11/11
+      DUE_LABELS        9/9     GOODS            22/22    NUMBER_LABELS    15/15
+      SUBTOTAL_LABELS  10/10    TABLE_HEADERS     5/5     TAX_LABELS        9/9
+      TOTAL_LABELS     13/13    VENDORS          20/20
+      date formats     6, all reachable
+      shifted-set disjointness assertion   PASSED  (522 tokens overlap, no shared phrases)
+
+Every phrase in every list now appears in the training data. Before this change, four of
+those eleven rows would have read 1/10, 3/9, 1/5 and 1/5.
+
+The disjointness assertion in cell 30 was re-run deliberately: enlarging what training
+actually emits is exactly the change that could make the held-out set stop being held out,
+and that has happened here once before. It passes.
+
+All 44 code cells still compile.
+
+**What was NOT changed, and why.** Structural variety, the three-way split with model
+selection, the cased model and real documents are all still open - they were offered and
+turned down for this pass. The single most valuable of them remains structural variety: the
+field order in `generate_invoice` is still identical in every document, which is what the
+merging failure is made of. This change cannot fix that and is not expected to.
+
+**What the next run will say.** One number, and it is a genuine test rather than a hope.
+`SUBTOTAL` has been 0% in all three runs and `TAX` 0% in two of three, and both have now been
+given the treatment that moved `TOTAL` from 0% to 44%. If they move, the "vocabulary is a
+dead end" conclusion in the run 3 entry needs narrowing to the fields it was actually
+measured on. If they stay at zero with a properly varied label vocabulary, that conclusion
+becomes much stronger than it currently is - it would then be evidence that the problem is
+structural, which is what the merging diagnosis predicts.
+
+Either result is worth having. The run to compare against is **run 3: 6 epochs, shifted
+47.4%, gap 52.6%** - same epochs, same seed, only the emitted vocabulary differing.
+
+**Every change made this pass.**
+
+| File | Change |
+| --- | --- |
+| `notebooks/train_extractor.ipynb` cell 8 | `DATE_STYLES = 6` named beside `a_date`, with the reason |
+| `notebooks/train_extractor.ipynb` cell 9 | `VOCABULARY`, `DRAWS`, `pick()`; five call sites wired to the lists; the never-drawn assertion; the date-style assertion; a per-list draw report |
+| `notebooks/train_extractor.ipynb` cell 30 | `rng.randrange(6)` becomes `rng.randrange(DATE_STYLES)` so the two generators share one fact |
+| `NOTES.md` | Entry appended |
+| `requirements/06-context.md` | This entry |
+
+**Next.** Stage 4 is still the plan's current work and this was a detour taken on request.
+When the retrain happens it is one variable against run 3, and the result goes in the table
+in the run 3 entry rather than replacing it.
+
+**Uncommitted.** Everything remains in the working tree by request.
+
+### 2026-09-02 - next steps, and two rules that will fail on our own corpus
+
+**What was asked.** "What should i do now, always give me some steps." A planning exchange;
+no code changed. Recorded because the log is per-prompt and because two things came out of
+reading `03-architecture.md`'s validation section against the stage 3 failure list - which
+the last two entries both listed as an open item and neither did.
+
+**Two rules on the architecture's list will fail against this corpus if written as stated.**
+
+**1. "Invoice number matches the expected format" (error).** The corpus already carries at
+least three shapes:
+
+    INV-2026-0042  BW-2026-771  CN-2026-0019  TS-2026-4417
+    CE-2026-0088   AP-2026-5120 SS-2026-0143       <- prefix-year-serial
+    NS-88213                                       <- prefix-serial, no year
+    MPW-3310                                       <- three-letter prefix, short serial
+
+and the shifted generator produces `123/2026/45`, a fourth. A single format regex marks two
+of eleven corpus documents as errors on documents that are perfectly well formed. This is the
+`02-many-lines` trap exactly: a new rule failing on its own reference corpus, at the moment
+the rule is least trusted, with "is the rule wrong or is the document wrong" the next
+question. The honest versions are per-vendor (which makes it a `vendors` column and a rule
+that only fires on the second invoice from a vendor) or a much weaker shape check. The open
+question in "Still open" above already anticipated this; it now has evidence and a count.
+
+**2. "Total matches the total printed on the document" (error).** On the heuristic path this
+catches nothing, because the heuristic *reads* the total and never computes one - the rule is
+guarding against a model that computes rather than reads. It is a real rule for the `trained`
+and `anthropic` extractors and a no-op for the default one. Worth keeping and worth knowing
+it will report a 100% pass rate on every deployed document, otherwise that pass rate reads as
+evidence of correctness later.
+
+Neither is a reason to change the architecture document. Both are reasons to write those two
+rules last, and to expect the rule set to shrink.
+
+**The state everything is in.** 114 passed / 18 skipped. Corpus 10 of 11 with `01-clean`'s
+`buyer_name` the known gap. Notebook fixed and locally verified but **not rerun** - `run 3:
+shifted 47.4%, gap 52.6%` is still the number to beat, and the rerun is one variable. Nothing
+committed; the tree carries three distinct pieces of work.
+
+**Steps handed over, in order.**
+
+1. Commit, in three commits rather than one - the corpus reader, the `_TOTALS_WORDS` fix, the
+   notebook vocabulary fix. The history is on display and these are three different stories.
+2. Start the Colab retrain before anything else, because it runs unattended. **Set
+   `USE_KAGGLE = False` in cell 11 first** - it currently defaults to `True`, and the Kaggle
+   route is closed (8181 jpgs, zero annotations), so leaving it on downloads a gigabyte and
+   asks for a token to no purpose.
+3. Stage 4, the validation layer, while the model trains.
+
+**Every change made this pass.**
+
+| File | Change |
+| --- | --- |
+| `requirements/06-context.md` | This entry. No code touched |
+
+**Uncommitted.** Everything remains in the working tree by request.
+
+### 2026-09-02 - the notebook made ready to run, not merely correct
+
+**What was asked.** "make sure to update the notebook then ill take it to collab." The
+previous pass fixed the vocabulary bug in the generator; this pass makes the rest of the
+notebook fit to be run by someone who is not going to reread this file first.
+
+**Five changes, and each one is a trap that was going to cost a run.**
+
+**1. `USE_KAGGLE` was still `True`.** The route has been closed since the download was
+inspected - 8181 jpgs, zero annotations - and the flag has sat at `True` through three
+sessions of writing that down. Running the notebook as it stood would have prompted for a
+Kaggle token upload and pulled roughly a gigabyte of unlabelled images before training on
+exactly the generated data it would have used anyway. Now `False`, with the reason on the
+line itself, and the `else` branch says which state it is in rather than staying silent.
+
+**2. The markdown above it still advertised the dataset.** It described "1,489 annotated
+invoices with invoice number, dates, seller and client, line items, subtotal, tax, discount
+and total" and told the reader to get it from Kaggle rather than the HuggingFace mirror. That
+is the claim that turned out to be about the Voxel51 FiftyOne copy rather than the Kaggle
+artifact, and it is the most persuasive text in the notebook arguing for the thing that does
+not work. Rewritten as **THIS ROUTE IS CLOSED**, with the file counts, the corrected licence
+(DbCL-1.0, not ODbL), what turning it on actually costs, and the two remaining candidates -
+CORD and RealKIE - in a table. The converter cells below are left intact and correct; they
+simply have nothing to read.
+
+**3. The run would have silently stopped being a comparison.** The whole point of the next
+run is one variable against run 3: 6 epochs, large vocabulary, shifted 47.4%, gap 52.6%. But
+`EPOCHS` is set from `torch.cuda.is_available()`, and on a CPU runtime it drops to 2 - which
+is *exactly* the confound run 2 introduced, where a vocabulary change and an epoch change
+moved together and the +5.7 points could not be attributed to either. Colab hands out CPU
+runtimes when the GPU quota is gone, so this was not a remote possibility.
+
+`BASELINE = {"run": 3, "epochs": 6, "shifted": 0.474, "gap": 0.526}` is now declared in the
+run-size cell, before the run, and the cell compares against it and says which case it is in:
+
+    epochs match the baseline - this is a one-variable comparison, and the only
+    thing that differs is the label vocabulary the generator now actually emits.
+
+or, on CPU:
+
+    WARNING: 2 epochs against the baseline's 6.
+    Two variables will have moved - vocabulary AND training time - and the result
+    cannot be attributed to either. This is exactly the mistake run 2 made.
+
+Both branches were executed to confirm the wording, the second by forcing `ON_GPU = True`
+rather than by trusting that it reads correctly.
+
+**4. The markdown claiming epochs do nothing was stale and wrong.** It said the previous run
+"settles the epoch count: F1 hit 1.000 at epoch 1 and epochs 2 to 6 changed nothing
+measurable" - and that was the saturated in-distribution F1 talking. Run 3 against run 2, same
+data, only epochs differing: `VENDOR_NAME` 27% to 100%, `LINE_AMOUNT` 32% to 72%, `TOTAL` 44%
+down to 6%. Training longer redistributes which fields it gets right, and a metric pinned at
+1.000 cannot see any of it. Corrected in place, with the reason it was wrong, because that
+claim is what made the CPU fallback feel harmless.
+
+**5. The result cell now prints the verdict rather than a number to go and look up.** It
+carries run 3's per-field shifted scores and prints, beside each, this run's figure and the
+movement - with `SUBTOTAL` and `TAX` marked `<-- wired in for the first time`, and both
+readings of the outcome spelled out underneath:
+
+    SUBTOTAL and TAX move       -> vocabulary was never the dead end it was recorded as
+    SUBTOTAL and TAX stay at 0  -> that finding gets much stronger, and the failure is
+                                   structural. Next lever is field order, not more words.
+
+Writing down what each outcome would mean *before* the run is the cheap defence against
+reading whichever result arrives as confirmation. It cost four lines.
+
+**The manifest now describes the run's data, not just its scores.** `mailman_model.json`
+gains `vocabulary_phrases_emitted` (distinct phrases drawn per list, over the list size),
+`date_formats`, `baseline`, `comparable_to_baseline`, and `per_field_shifted`. The reason is
+this session's whole finding: three sets of weights were exported carrying a note about a
+"greatly enlarged vocabulary" describing a change that had half happened, and nothing in the
+manifest could have contradicted it. A run's data is now described by the run. A fourth
+caveat is added always - field order is identical in every training document - and a fifth
+appears automatically when the epoch count does not match the baseline.
+
+**Verified by executing it, not by reading it.** All 44 code cells compile. Then a dry run
+with a stub tagger and no torch, no GPU and no download, exercising every changed cell: the
+run-size warning on both branches, both generators, the vocabulary guard, the Kaggle skip
+path, `all_examples` with zero real documents, the shifted set's disjointness assertion, and
+the scoring and comparison cell. No `NameError`, no format error. The stub returns no spans,
+so the printed accuracies are all 0.0% - that is the stub, not a finding.
+
+`serving_accuracy` now returns `(overall, rates)` rather than a bare float; cell 31 is its
+only caller and was updated with it.
+
+**Every change made this pass.**
+
+| Cell | Change |
+| --- | --- |
+| 5 (markdown) | Rewritten: the run is a controlled comparison, needs 6 epochs, and the old "epochs do nothing" claim corrected with the run 2 / run 3 per-field evidence |
+| 6 | `BASELINE` declared; prints whether this run is a valid one-variable comparison, with a loud warning when it is not |
+| 10 (markdown) | Rewritten as THIS ROUTE IS CLOSED, with file counts, corrected licence, and the CORD / RealKIE alternatives |
+| 11 | `USE_KAGGLE = False`, with the reason inline and an `else` branch that says so |
+| 31 | Returns per-field rates; prints the run 3 comparison, the movement, and what each outcome would mean |
+| 35 | Manifest carries `vocabulary_phrases_emitted`, `date_formats`, `baseline`, `comparable_to_baseline`, `per_field_shifted`, and two more caveats |
+
+**What was deliberately not done.** Structural variety in the generator, the three-way split
+with model selection, and the cased model are all still open and were declined for this round
+of work. Field order is still identical in every training document, and that remains the
+biggest single lever on the 52.6-point gap.
+
+**Next.** The author runs it on Colab with a T4. The number to read is the three-line block at
+the end of cell 31, and the two rows to read are `SUBTOTAL` and `TAX`. Whatever it says goes
+into the run table in the run 3 entry as run 4, rather than replacing anything. Then stage 4.
+
+**Uncommitted.** Everything remains in the working tree by request.
+
+### 2026-09-02 - the NOTES.md cell was pasting the meaningless number
+
+**What was asked.** "There is no 31, it goes up to 25, is it this one?" - with the source and
+output of the cell the author was looking at.
+
+**My error first: I referred to cells by their index in the notebook JSON, which counts
+markdown cells. Colab numbers only code cells.** There are 44 cells in the file and 25 of them
+are code, so every cell number I gave was wrong from the author's side of the screen. The
+mapping for the ones that matter:
+
+| Colab | File index | What it is |
+| --- | --- | --- |
+| 4 | 6 | Run size, `BASELINE`, the epoch warning |
+| 5 | 8 | Vocabulary lists, `DATE_STYLES` |
+| 6 | 9 | Generator, `pick()`, the vocabulary guard |
+| 7 | 11 | `USE_KAGGLE = False` |
+| 15 | 24 | Train |
+| 17 | 28 | Serving pipeline |
+| 18 | 30 | Shifted set |
+| **19** | **31** | **in-distribution / shifted / gap, and the run 3 comparison** |
+| 21 | 35 | Manifest and export |
+| 25 | 42 | PowerShell commands and the NOTES.md block |
+
+Cell numbers in this log should be Colab numbers from here on, because that is the only
+numbering the person running it can see.
+
+**What the paste revealed, which is worth more than the numbering.** The output carried the
+`Field order is identical in every training document` caveat, which was added earlier today.
+It also showed 3400 training examples and 6 epochs - `TRAINING_DOCUMENTS = 4000` at a 0.15
+split, and the GPU branch. **So the retrain has already been run, on a GPU, with the fixed
+generator.** The result exists in the author's session at Colab 19 and has not been read yet.
+
+**And it exposed a real bug in Colab 25.** That cell exists to print a block to paste into
+`NOTES.md`. It printed:
+
+    Overall F1      1.000
+
+    INVOICE_NUMBER       P 1.000  R 1.000  F1 1.000  (n=600)
+    VENDOR_NAME          P 1.000  R 1.000  F1 1.000  (n=600)
+    ... thirteen rows, every one 1.000
+
+and **nothing else numeric**. No `serving_in_distribution`, no `serving_shifted`, no
+`generalisation_gap` - all three of which the manifest has carried since the run 1 post-mortem.
+
+That is the single number this project has spent four entries establishing is meaningless:
+train and test are drawn from the same generator, it has been 1.000 on every run including the
+one that could not find a total on an unfamiliar invoice, and the log already records "a
+perfect score is not a result, it is a broken benchmark". The cell whose entire job is to
+produce the record was handing over the broken benchmark and dropping the honest numbers.
+
+Nobody would have noticed from inside the notebook. The manifest was right, the export was
+right, and the human-facing summary was wrong - which is the same shape as the four silent
+extraction bugs and the half-applied vocabulary change: the machinery was correct and the
+thing a person actually reads was not.
+
+**Colab 25 rewritten.** The serving scores now come first under a heading that says they are
+the ones that mean something, followed by the run 3 comparison and the movement, whether it
+was a valid one-variable comparison, the per-field shifted table with `SUBTOTAL` and `TAX`
+marked, and the vocabulary draw counts. The token-level F1 appears last, on its own, with the
+sentence that has to travel with it. Caveats unchanged.
+
+Dry-run with a fabricated manifest to check every format string and both branches of
+`comparable_to_baseline`. The numbers in that test output are invented and must not be
+mistaken for a result.
+
+**Every change made this pass.**
+
+| File | Change |
+| --- | --- |
+| `notebooks/train_extractor.ipynb` Colab 25 (index 42) | Serving scores first, run 3 comparison, per-field table, vocabulary evidence; token F1 demoted to last with its caveat attached. Sample upload path fixed to a corpus file that exists |
+| `requirements/06-context.md` | This entry |
+
+**Next.** Read Colab 19's output, which already exists. The two rows that answer the
+question are `SUBTOTAL` and `TAX`, both 0.0% in every run so far and both given a real label
+vocabulary for the first time in this run. Then it goes in the run table as run 4.
+
+**Uncommitted.** Everything remains in the working tree by request.
+
+### 2026-09-02 - run 4: the dead end was a bug, and the gap halved
+
+**What was asked.** The author ran the fixed notebook on a Colab GPU and pasted Colab 19's
+output. This entry records run 4 and corrects a conclusion that has been in this file, in
+`00-plan.md` and in `NOTES.md` since the run 3 entry.
+
+**The result.**
+
+    in-distribution 100.0%   shifted 70.7%   gap 29.3%
+    run 3 baseline           shifted 47.4%   gap 52.6%
+    movement                        +23.3%        -23.3%
+
+| Run | Epochs | Generator variety | Shifted | Gap |
+| --- | --- | --- | --- | --- |
+| 1 | 6 | small vocabulary | 40.7% | 59.3% |
+| 2 | 2 | enlarged, **half-applied** | 46.4% | 53.6% |
+| 3 | 6 | enlarged, **half-applied** | 47.4% | 52.6% |
+| 4 | 6 | enlarged, **fully applied** | **70.7%** | **29.3%** |
+
+Run 3 against run 4 is a controlled comparison - same seed, same 4000 documents, same 6
+epochs, GPU both times - and the notebook asserted that before printing the number.
+
+**The conclusion that has to be withdrawn.** The run 3 entry says: *"Both levers are marginal,
+and the gap is still 52.6%. Tripling the label vocabulary - four ways of saying 'total'
+becoming thirteen - bought under seven points."* It files vocabulary as one of stage 9's two
+measured dead ends.
+
+**That was wrong, and it was wrong because the experiment had never been run.** Four of the
+eight label lists were defined and never drawn from, and they governed exactly the fields that
+had not moved. The +6.7 points attributed to "tripling the vocabulary" was the effect of
+tripling *half* of it. With all of it wired in, at the same 6 epochs:
+
+| Field | run 3 | run 4 | move | |
+| --- | --- | --- | --- | --- |
+| SUBTOTAL | 0.0% | **73.0%** | +73.0 | label list wired in for the first time |
+| TAX | 0.0% | **71.5%** | +71.5 | label list wired in for the first time |
+| TOTAL | 6.0% | **80.5%** | +74.5 | list was already wired in - see below |
+| LINE_AMOUNT | 72.0% | 100.0% | +28.0 | |
+| CURRENCY | 85.0% | 100.0% | +15.0 | |
+| INVOICE_NUMBER | 4.0% | 13.0% | +9.0 | still the second worst field |
+| BUYER_NAME | 67.0% | 64.0% | -3.0 | within noise |
+| VENDOR_NAME | 100.0% | 91.0% | -9.0 | outside the 6-point noise band |
+
+Vocabulary is not a dead end. Measured end to end at constant epochs, **run 1 to run 4 is
+40.7% to 70.7% - thirty points, and the gap halved from 59.3 to 29.3.** It is the largest
+single improvement this project has produced, and it came from five call sites.
+
+**The mechanism, which is the part worth understanding.** `TOTAL` moved +74.5 even though
+`TOTAL_LABELS` was already wired in and unchanged. Its own vocabulary did not change; its
+*neighbours'* did.
+
+That is the span-merging diagnosis from the run 2 entry being confirmed and explained. That
+entry observed that on shifted documents the subtotal, tax and total collapse into a single
+span, and concluded the model had "learned label words as delimiters, not fields as things".
+Correct - and the reason it could only learn them as delimiters is that two of the three
+delimiters were *constants*. Every training document said `Subtotal`, so the only rule
+available was the literal string. On a document saying `Chargeable value` no boundary is
+found, the model fails to emit `B-` at the start of the next field, and aggregation - which
+splits only on `B-` - merges all three.
+
+Give the subtotal and tax labels ten and nine phrasings and the model has to learn something
+shaped like "a label-ish phrase followed by an amount". That generalises to `Chargeable value`,
+the boundary appears, and the total stops being swallowed. **Vocabulary and structure were not
+competing explanations. The constant labels were manufacturing the structural failure.**
+
+The same reading explains `LINE_AMOUNT` reaching 100%: the table header was also a constant
+(`Description Qty Unit Price Amount`) and now has five variants, so the row structure has to
+be learned rather than looked up.
+
+**An honest limit on the attribution.** The intervention bundled two changes - four label
+lists wired in, and the date formats going from four reachable to six. The totals-block moves
+cannot be explained by date formats and belong to the label lists. The date-field moves cannot
+be cleanly separated: `DUE_DATE` is 92.5% in run 4, and part of that may be the two new
+formats rather than the labels. One edit, two kinds of change. Better than runs 1-3, not
+perfect, and worth saying rather than glossing.
+
+Also: run 3's `TAX` figure of 0.0% used in the comparison table was **inferred, not recorded**.
+The run 3 entry states `SUBTOTAL` was 0% in every run and does not list `TAX`. `TAX` was 0% in
+runs 1 and 2 and its label was hardcoded to three phrasings through run 3, so 0% is very
+likely - but the +71.5 for `TAX` rests on an inference and the +73.0 for `SUBTOTAL` does not.
+
+**What is still broken, and the next lever is the same bug in a different costume.**
+
+    INVOICE_NUMBER   13.0%      the worst two, and their numbers are nearly identical
+    ISSUE_DATE       12.5%
+    LINE_DESCRIPTION 34.0%
+
+`INVOICE_NUMBER` and `ISSUE_DATE` sitting within half a point of each other is the merging
+signature again, and the run 2 entry recorded exactly this pair merging:
+
+    ISSUE_DATE   wanted '01/02/2026'
+                 got    '117/2026/1701/02/202602/05/2026'
+
+which is an invoice number, an issue date and a due date in one span. `DUE_DATE` has now
+escaped to 92.5%, so the tail has separated; the head has not.
+
+**And the cause is a constant of exactly the kind just fixed.** The training generator emits
+one invoice-number format, every time:
+
+    emit(f"INV-{issued.year}-{rng.randrange(1000, 9999)}", "INVOICE_NUMBER")
+
+So `INVOICE_NUMBER` is learnable as "the token beginning `INV-`". The shifted generator emits
+`123/2026/45`, which shares nothing with that and is additionally date-shaped, so it merges
+with the issue date that follows it. The **values** are now the constant, where the **labels**
+used to be. It is the same bug class, one layer down, and the real corpus already proves the
+constant is wrong: `INV-2026-0042`, `NS-88213`, `BW-2026-771`, `MPW-3310`, `AP-2026-5120` -
+at least three shapes across eleven documents, with the prefix varying by vendor.
+
+**Decisions table updated**: the row recording vocabulary as a marginal lever is rewritten,
+with the half-applied experiment named as what actually produced the 6.7-point figure.
+
+**The README line this produces is better than the one it replaces.** "Vocabulary did not
+help" would have been a dead end honestly reported. "We recorded vocabulary as a dead end, and
+it was not - the experiment had only half run, and finding that took a guard that asserts the
+generator drew from every list it defines" is a story about measurement discipline, which is
+what the project is actually for.
+
+**Every change made this pass.**
+
+| File | Change |
+| --- | --- |
+| `requirements/06-context.md` | This entry; run 4 in the table |
+| `requirements/00-plan.md` | Decisions row on vocabulary rewritten from dead end to largest single lever, with the half-applied experiment named |
+| `NOTES.md` | Run 4 recorded, with the withdrawal of the earlier claim |
+
+**Next, in order.**
+
+1. **Vary the invoice-number format in the generator**, the way the label words now vary -
+   several prefixes, several shapes, some with a year and some without. Same bug class,
+   targeted at the worst field, and the corpus says what the shapes should be.
+2. **Confirm the merging before fixing it.** One cell printing wanted-versus-got for
+   `INVOICE_NUMBER` and `ISSUE_DATE` on ten shifted documents settles whether they are merging
+   or simply wrong. That is how the run 2 diagnosis was made and it cost nothing.
+3. Structural variety - field order, filler, optional fields - is still untouched and is still
+   the lever nothing has tested.
+4. Stage 4 remains the plan's current work. The model has now run four stages ahead of it.
+
+**Uncommitted.** Everything remains in the working tree by request.

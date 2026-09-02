@@ -1,0 +1,16 @@
+{
+  "name": "09-symbol-currency",
+  "tests": "A currency symbol and no ISO code anywhere. The code has to be inferred from the symbol or the field is a null that sends the document to review.",
+  "should_fail": false,
+  "expected": {
+    "invoice_number": "PT-2026-0451",
+    "vendor_name": "PEREGRINE TOOLING",
+    "issue_date": "2026-03-12",
+    "due_date": "2026-04-11",
+    "currency": "USD",
+    "subtotal": "645.00",
+    "tax": "54.83",
+    "total": "699.83",
+    "line_item_count": 2
+  }
+}

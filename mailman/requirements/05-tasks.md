@@ -2,7 +2,8 @@
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
 
-Nothing is built. Every task below is open.
+Stages 0 to 3 are done. **Stage 4 - the validation layer - is the current work**, and it now
+has a failure list to write its rules from.
 
 Stages are ordered by dependency, not by calendar. **Each one ends in something that runs
 and can be checked from PowerShell.** If a stage cannot be verified that way, it is not
@@ -183,17 +184,43 @@ structured fields, on a clean container with nothing configured.
 
 ## Stage 3 - Ten documents end to end
 
-The stage that generates the validation rules. Do not write rules before it.
+**Done.** 2026-09-02. Eleven hand-written invoices as real PDFs with labels beside them, all
+uploaded through the running API. **5 of 10 clean on the first run; 10 of 11 now.** The one
+remaining gap is `01-clean`'s `buyer_name`, which the heuristic does not attempt - recorded
+as a known gap in the reader rather than dropped from the labels, because the label is right
+and the extractor is the thing that is short. The failure list is in
+[06-context.md](06-context.md).
 
-Ends with: ten documents uploaded, ten rows of structured data, and a written failure list.
-
-- [ ] Synthetic invoice generator with controllable vendor, layout, currency and dates
-- [ ] The generator emits the labels file at the same time as the document
-- [ ] Ten documents with genuine variety: several vendors, one with many line items, one
-      with a discount line, one with an unusual date format, one two-page
-- [ ] Run all ten through the pipeline
-- [ ] **Write down every place it got something wrong.** That list is the input to stage 4
-- [ ] Put that list in `NOTES.md`, by hand
+- [x] Synthetic invoice generator - `mailman/corpus.py`, ten hand-written cases rather than
+      random ones, because random invoices measure the average case and the worst cases are
+      what matter
+- [x] A PDF writer - `mailman/pdfwriter.py`. The pipeline ingests PDFs and the notebook's
+      generator only made text. Multi-page, real text layer, verified through pdfplumber
+- [x] The generator emits the labels file at the same time as the document
+- [x] Ten documents with genuine variety: many line items, a discount line, a credit note in
+      parentheses, European separators, an ambiguous date, a missing optional field, a
+      two-page table, a symbol-only currency, and one document that is not an invoice at all
+- [x] Run all ten through the pipeline
+- [x] **The failure list.** Five extraction bugs in the end - a money pattern blind to any
+      bare amount over 999, a slash date read as two amounts producing a phantom line item,
+      an identifier read as two amounts once that was fixed, a date mask that deleted
+      four-figure line amounts, and every label test being a substring search, so a line
+      described as `Overdue account fee` or `Tax advisory services` was read as part of the
+      totals block. Every one of the five was silent: no exception, and a record that looked
+      complete
+- [x] Confirm: upload a PDF, get structured data in PostgreSQL
+- [x] **Credit notes are in scope.** Settled, not deferred. A credit note is an invoice with
+      the signs reversed and it arrives in the same post. `_INVOICE_NUMBER` accepts the
+      label; nothing downstream changes, because -100.00 plus -20.00 is still -120.00
+- [x] Compare the corpus **field by field**, not by counting. `08-two-page` was called clean
+      with the right number of line items and seven wrong amounts among them. Adding the
+      line items up found it in one run
+- [x] **The corpus reader, in the repository** - `tests/test_corpus.py`. Per-field
+      comparison, the three arithmetic self-checks, a disk-versus-generator check, and it
+      **fails on an `expected` key it does not know how to evaluate** rather than skipping
+      it. That last part is what makes a label that cannot fail impossible to add again
+- [x] An eleventh case, `11-totals-words-in-description`, written before the fix and failing
+      on it: it returned one line item of four and a tax of 200.00 instead of 166.00
 
 ## Stage 4 - Validation layer
 

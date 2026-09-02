@@ -1,0 +1,16 @@
+{
+  "name": "05-european-separators",
+  "tests": "1.234,56 rather than 1,234.56, and a dotted date. Wrong reading gives a plausible number a thousand times too large.",
+  "should_fail": false,
+  "expected": {
+    "invoice_number": "TS-2026-4417",
+    "vendor_name": "TESSELLATE SYSTEMS GmbH",
+    "issue_date": "2026-08-14",
+    "due_date": "2026-09-13",
+    "currency": "EUR",
+    "subtotal": "15850.50",
+    "tax": "3011.60",
+    "total": "18862.10",
+    "line_item_count": 2
+  }
+}

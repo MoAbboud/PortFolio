@@ -1,0 +1,13 @@
+{
+  "name": "07-no-due-date",
+  "tests": "An optional field genuinely absent. The correct answer is null, not a guess and not the issue date repeated.",
+  "should_fail": false,
+  "expected": {
+    "invoice_number": "CE-2026-0088",
+    "vendor_name": "CORVID ENGINEERING",
+    "issue_date": "2026-06-11",
+    "due_date": null,
+    "currency": "GBP",
+    "total": "384.00"
+  }
+}
