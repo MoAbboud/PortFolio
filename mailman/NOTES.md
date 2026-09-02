@@ -398,3 +398,23 @@ three to say "date". That is a lookup table. It is now 13 and 11, with 20 vendor
 5 table-header layouts and 6 date formats. If label diversity was the problem, the gap
 should narrow sharply. If it does not, the problem is deeper than vocabulary and real
 documents are the only answer.
+
+## Session close - 2026-09-02
+
+Colab GPU quota ran out. Not blocking: the notebook now detects the runtime and sizes itself,
+and dropping to 2 epochs is removing waste rather than accepting less - the previous run hit
+F1 1.000 at epoch 1 and the other five epochs changed nothing.
+
+Checked whether shortening `max_length` would help a CPU run. It would not: median document
+is 132 word-pieces, longest 197, nothing near the 512 cap, and the collator pads per batch
+rather than to the cap. Left at 512 with the reasoning written down, because it looks like an
+obvious optimisation and isn't one.
+
+One more bug of the same family as the rest: cell 1 called `nvidia-smi` and used
+`or "No GPU..."` as the fallback. On a CPU runtime the binary does not exist, so
+`subprocess.run` raises instead of returning empty output and the fallback never runs. The
+first cell of the notebook crashed. Guarded with `shutil.which`.
+
+**Standing back:** the model work has run well ahead of the plan. Stage 3 - ten documents
+through the pipeline and a written list of what broke - still has not happened, and it is
+what produces the validation rules. Worth doing next. It needs no GPU and no dataset.

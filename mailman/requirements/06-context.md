@@ -1098,3 +1098,60 @@ pipeline runs end to end.
 
 **Worth keeping as a habit:** the validator is twenty lines of `ast` and it found a bug that
 three careful readings had missed. Reading a notebook is not checking it.
+
+### 2026-09-02 - session close: state, and what to pick up next
+
+Colab's GPU quota ran out mid-session. Nothing is blocked by it; the notebook now sizes
+itself for whatever runtime it gets.
+
+**Where the project actually is.**
+
+| Stage | State |
+| --- | --- |
+| 0 Scaffold | Done |
+| 1 Ingestion | Done |
+| 2 Extraction | Done, keyless. `heuristic` is the default and needs nothing |
+| 3 Ten documents end to end | **Not started.** Still the next stage, and still the thing that generates the validation rules |
+
+The trained extractor is a side quest that ran ahead of the plan. It works, it is measured,
+and it has produced the project's most interesting result so far - but stage 3 has still not
+happened, and the validation rules it is supposed to produce do not exist.
+
+**The state of the model, honestly.** Trained on 3,400 generated invoices. Token-level F1
+1.000, which means nothing. Serving-path accuracy 100% in-distribution and **40.7% on a
+shifted set**, a 59.3-point gap. Per field, everything positional survived and everything
+keyed to a label word collapsed. Running against an invoice in an unfamiliar layout, the
+heuristic returns a flawed record and the model returns nothing at all.
+
+**Changes made this session that are waiting on a run:**
+
+- Training vocabulary greatly enlarged, aimed directly at the label-word memorisation the
+  shifted set exposed. **Untested** - the next run's gap is the test.
+- Shifted generator rewritten with disjoint vocabulary, plus an assertion enforcing it.
+- Run size now adapts: GPU gets 6 epochs and batch 16, CPU gets 2 epochs and batch 8. Two
+  epochs is not a compromise - the last run reached F1 1.000 at epoch 1 and the remaining
+  five changed nothing.
+- `max_length` deliberately left at 512. Measured: median 132 word-pieces, p99 188, longest
+  197, and the collator pads per batch rather than to the cap. Lowering it would save
+  nothing, and the reasoning is in the notebook so it does not get "optimised" later.
+- Cell 1 crashed on a CPU runtime: `subprocess.run(["nvidia-smi", ...])` raises
+  `FileNotFoundError` when the binary is absent, so the `or "No GPU"` fallback never ran.
+  Guarded with `shutil.which` now.
+
+**Notebook state:** 44 cells, validated as a program - no syntax errors, every name bound
+before use, pure ASCII, and the data pipeline runs end to end locally short of the GPU work.
+
+**Next session, in priority order:**
+
+1. **Stage 3.** Ten documents through the real pipeline and the written list of what went
+   wrong. It is what generates the validation rules, it needs no GPU, and it has been queued
+   behind model work for two sessions.
+2. Rerun the notebook and read one number: the shifted gap. If the enlarged vocabulary
+   narrowed it, label diversity was the problem. If it did not, only real documents will fix
+   it.
+3. Real labelled invoices remain unsolved. The Kaggle set has no annotations; CORD is
+   receipts under CC-BY-4.0; RealKIE FCC Invoices is 370 real invoices under CC-BY-NC, direct
+   download, no form.
+
+**Uncommitted.** Everything from stage 1 onward is in the working tree by request - the
+author commits.
