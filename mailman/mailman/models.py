@@ -28,6 +28,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -48,6 +49,17 @@ def _status_check(column: str, values: tuple[str, ...], name: str) -> CheckConst
     allowed = ", ".join(f"'{v}'" for v in values)
     return CheckConstraint(f"{column} IN ({allowed})", name=name)
 
+
+# `clock_timestamp()`, not `now()`.
+#
+# Postgres `now()` is TRANSACTION start time, so every row written in one transaction shares
+# it to the microsecond. Two extractions in one transaction - which is exactly what applying
+# a correction does - then have identical `created_at`, and "the latest extraction" is decided
+# arbitrarily by the planner. Validation picked the uncorrected answer roughly half the time.
+#
+# It surfaced as a review-queue test that passed alone and failed in the suite, which is the
+# shape this class of bug always has. `clock_timestamp()` advances within a transaction.
+_ROW_TIME = text("clock_timestamp()")
 
 class Document(Base):
     """The spine. Every other table hangs off it, and status is what the system operates on."""
@@ -139,7 +151,7 @@ class Extraction(Base):
     error: Mapped[str | None] = mapped_column(Text)
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        DateTime(timezone=True), nullable=False, server_default=_ROW_TIME
     )
 
     document: Mapped["Document"] = relationship(back_populates="extractions")
@@ -281,7 +293,7 @@ class ValidationResult(Base):
     message: Mapped[str | None] = mapped_column(Text)
 
     checked_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        DateTime(timezone=True), nullable=False, server_default=_ROW_TIME
     )
 
     __table_args__ = (

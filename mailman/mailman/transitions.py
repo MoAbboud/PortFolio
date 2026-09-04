@@ -36,9 +36,16 @@ LEGAL_TRANSITIONS: dict[str, frozenset[str]] = {
     RECEIVED: frozenset({EXTRACTING, FAILED}),
     EXTRACTING: frozenset({EXTRACTED, FAILED}),
     EXTRACTED: frozenset({VALIDATED, FAILED}),
+    # `validated` is transient: validate_document moves through it to one side or the other
+    # in the same call, so nothing is ever found sitting here. It exists as a status because
+    # "the rules have run" and "the rules said this is fine" are different facts.
     VALIDATED: frozenset({AUTO_APPROVED, NEEDS_REVIEW}),
-    AUTO_APPROVED: frozenset({APPROVED}),
-    NEEDS_REVIEW: frozenset({APPROVED, REJECTED}),
+    # Both judged states can go back to `extracted` for a correction, and back to `received`
+    # for a reprocess. A correction re-opens the judgement rather than editing it: the
+    # corrected answer goes through exactly the same rules a fresh document does, which is
+    # only true if it re-enters the pipeline at the same point.
+    AUTO_APPROVED: frozenset({APPROVED, EXTRACTED, RECEIVED}),
+    NEEDS_REVIEW: frozenset({APPROVED, REJECTED, EXTRACTED, RECEIVED}),
     # Reprocessing sends a failed document back to the start. The extractions it already
     # has are not deleted - they are the record of what went wrong.
     FAILED: frozenset({RECEIVED}),

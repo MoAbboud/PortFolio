@@ -91,8 +91,17 @@ class AnthropicExtractor:
         )
 
     def extract(self, document_text: str) -> ExtractionResult:
-        import anthropic
-
+        # The key is checked BEFORE the SDK is imported, and the order is the whole point.
+        #
+        # With the import first, a checkout that has no key and no `anthropic` installed -
+        # which is every checkout of this project, since the provider path is a comparison
+        # point and nothing depends on it - failed with `ModuleNotFoundError: No module
+        # named 'anthropic'`. That is a true statement and the wrong one: the user's problem
+        # is a missing environment variable, and the message named a missing library.
+        #
+        # The test below this behaviour was written from the start and could not see it,
+        # because it needs a database session and was skipped on the host for a completely
+        # unrelated reason - the default DATABASE_URL naming the container.
         if not self.api_key:
             # Caught here rather than left to the SDK, which raises a TypeError about
             # resolving an authentication method - true, but it reads like a bug in this
@@ -101,6 +110,16 @@ class AnthropicExtractor:
                 "unavailable",
                 "no ANTHROPIC_API_KEY is configured, so no extraction can be attempted",
             )
+
+        try:
+            import anthropic
+        except ModuleNotFoundError as exc:
+            # A key but no SDK is a different configuration problem, and it says so.
+            raise ExtractionError(
+                "unavailable",
+                "the anthropic SDK is not installed; pip install anthropic, or use "
+                "MAILMAN_EXTRACTOR=hybrid which needs no provider at all",
+            ) from exc
 
         started = time.monotonic()
         try:

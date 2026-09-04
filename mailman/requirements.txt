@@ -16,3 +16,7 @@ pdfplumber>=0.11
 
 # Stage 2 - extraction with structured outputs.
 anthropic>=1.0
+
+# Stage 7 - the review queue. Server-rendered templates, so there is no Node
+# build step and the whole thing deploys as one process.
+jinja2>=3.1

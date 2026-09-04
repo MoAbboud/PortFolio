@@ -3629,3 +3629,330 @@ labelled a placeholder and says so; stage 5 replaces it with something defensibl
 down why the threshold is where it is.
 
 **Uncommitted.** Everything remains in the working tree by request.
+
+### 2026-09-04 - stage 5: a composite confidence, and a threshold that admits what it is
+
+**What was asked.** "go for stage 5."
+
+**The four terms, and why the weights are what they are.** `mailman/confidence.py`:
+
+| Term | Weight | What it is |
+| --- | --- | --- |
+| `required_fields` | 0.40 | Fraction of the required set populated |
+| `values_parsed` | 0.30 | Fraction of the values found that actually parsed |
+| `rule_warnings` | 0.20 | 1.0 with no failed warnings, 0.5 with one, 0.0 with two or more |
+| `model_self_report` | 0.10 | What the extractor said about itself |
+
+Everything above the last term is a **fact about the record**; the last is an **opinion about
+it**, and confidently wrong is the failure this whole system is designed around, so it is the
+smallest.
+
+**Only warnings feed the score, not errors**, and that is a real decision rather than an
+oversight. A failed error already routes the document, so scoring it here would count the same
+fact twice and produce a document sitting in the queue carrying a score that also says it
+belongs in the queue. It also gives warnings the only job they have: they do not route, so
+without this they would be recorded and ignored - which is precisely what happened to
+`ambiguous_dates` for three stages.
+
+**A wrinkle found by testing the term rather than assuming it.** `rule_warnings` was first
+written as the fraction of applicable warning rules that passed, which is the obvious
+implementation and is unstable in a way that matters: a document whose only applicable warning
+fails scores 0.0, while one that fails one of two scores 0.5. **The same single problem is
+worth a different amount depending on how many other rules happened to apply** - a property of
+the registry, not of the document - so adding a warning rule would silently re-rank every
+document already in the system. Counting failures instead makes the term mean one thing, and
+it is what makes the threshold statable in words. A test asserts the invariance.
+
+**On the heuristic path the self-report is not an independent signal, and that is written into
+the module.** `HeuristicExtractor` sets `read.confidence` to the fraction of required fields it
+found - exactly what `required_fields` measures. So on the deployed extractor that term is a
+duplicate carrying a tenth of the weight. It stays because a provider-backed extractor returns
+something genuinely its own, and it stays small partly because of this.
+
+**The breakdown is recomputed, not stored.** Only the scalar goes on the row. The terms derive
+from `extracted_data` and `validation_results`, both already stored, so a third copy would be a
+third place for the same fact to disagree - the same argument that made the review queue a
+status filter rather than a table. `explain()` reconstructs it and the pipeline writes it into
+the status history, so "why is this in the queue" is answerable a week later without rerunning
+anything.
+
+**`confidence` is the one column on `extractions` written after the row is created**, because
+it depends on rules that run later. The record of what happened - `raw_response`,
+`extracted_data` - is still immutable, which is what "append only" was protecting.
+
+## The threshold: 0.90, and what it is not
+
+**It is a policy statement.** Clean scores 1.00, one failed warning 0.90, two 0.80, and routing
+is `< threshold` - so 0.90 says exactly "one warning is tolerable, two compound and warrant a
+person", and nothing more. In configuration, never a literal in the pipeline.
+
+**The corpus cannot set it and the entry says so.** Ten of eleven documents score 1.00 or 0.90 -
+two distinct values, no distribution to fit against. Anything in (0, 0.90] auto-approves
+everything the rules pass; anything above sends the two ambiguous-date documents to review. The
+choice is therefore not "where does the data separate" but "does an ambiguous date warrant a
+person", answered no.
+
+**And the trap, recorded because it was tempting.** Scoring the trained extractor's output:
+
+    rules pass (hybrid)     n=10   min 0.9000   max 1.0000
+    error-routed (trained)  n=10   min 0.7896   max 0.8999
+
+Good minimum 0.9000 against bad maximum 0.8999. A threshold of 0.90 separates them perfectly,
+and presenting that as the justification would have been the most impressive-looking sentence
+in the stage and entirely bogus. The gap is 0.0001, on ten documents, **every one of which was
+already routed by a failed error rule and so never reached the threshold at all.** A separation
+that only appears on documents the previous stage already caught is not a separation. Stage 8's
+larger corpus is where this gets something real to fit against.
+
+## What stage 5 does not demonstrate
+
+Its stated end is "some documents auto-approve and some do not, and the split is explainable".
+Explainable: yes. Split: not on this corpus.
+
+    auto-approved 10   needs review 0   refused 1   threshold 0.9
+
+Every corpus document is clean under the deployed extractor, so nothing reaches the queue. The
+review path is demonstrated instead by the trained extractor's known-bad output, where 10 of 10
+route and none slips through - a real demonstration, and it is worth saying plainly that the
+good corpus cannot exercise the other side. **Stage 7's queue will open empty unless it is fed
+that**, which is a thing to know before building a review interface and finding it has nothing
+to review.
+
+**Verification.** 163 passed, 18 skipped. Up from 155.
+
+**Every change made this pass.**
+
+| File | Change |
+| --- | --- |
+| `mailman/confidence.py` | New. Four terms, count-based warnings, `explain()`, the reasoning |
+| `mailman/config.py` | `confidence_threshold`, default 0.90, with why it is not fitted |
+| `mailman/pipeline.py` | Computes and stores the composite, routes on errors OR below-threshold, keeps the two reasons apart in the detail |
+| `tests/test_validation.py` | 10 stage 5 tests, including the invariance one and "confidence never rescues" |
+| `NOTES.md`, `requirements/05-tasks.md` | The threshold justification and the stage marked |
+
+**Next.** Stage 6: promotion in one transaction, corrections, and the state machine tests. It
+needs Docker up - the 18 skipped tests are the DB-backed ones and stage 6 is mostly about
+transaction boundaries, so they stop being optional there.
+
+**Uncommitted.** Everything remains in the working tree by request.
+
+### 2026-09-04 - stage 6, and the eighteen tests that had never run
+
+**What was asked.** "go for it" - stage 6.
+
+**Before any of it: the eighteen skipped tests were a hostname.** `DATABASE_URL` defaulted to
+`postgresql+psycopg://mailman:mailman@db:5432/mailman` - the container's own hostname. Compose
+sets that variable explicitly, so the container never read the default; everything else did,
+which meant pytest on the host skipped every DB-backed test **with the database up and healthy
+on an exposed port**. Eighteen tests that had looked like a deliberate gap for the whole
+project.
+
+The default now names `localhost`, on the principle that a default belongs to the case with no
+other configuration - and that case is the host, not the container that overrides it anyway.
+Same shape as the `MAILMAN_EXTRACTOR` correction: do not make a person set something to get the
+behaviour they already expect.
+
+**Running them immediately found a bug the suite was written to catch.**
+`test_a_missing_api_key_says_so` says in its own docstring that "a configuration problem should
+read as one, not as a bug in this code", and the message was `ModuleNotFoundError: No module
+named 'anthropic'`. `AnthropicExtractor.extract` imported the SDK before checking the key, so a
+checkout with neither - which is every checkout of this project, since the provider path is a
+comparison point nothing depends on - reported a missing library when the real problem was a
+missing environment variable. The key is checked first now, and a missing SDK gets its own
+message naming `hybrid` as the way out. **The test was right for months and could not say so.**
+
+## Promotion
+
+`mailman/promotion.py`. `promote()` writes `invoices` and `line_items` and moves the document to
+`approved` in **one transaction** - a half-promoted document is a state no status describes, and
+an `invoices` row with the document still sitting in `needs_review` is a support call nobody can
+answer.
+
+**Vendors are created on approval, never on extraction.** A reviewer approving is the human
+judgement that says this vendor is real; creating them from extractions would fill the table
+with every misread name the model ever produced - and the duplicate check reads that table.
+
+**Vendor normalisation** strips punctuation and company forms, so `ACME CORP LTD`, `Acme Corp
+Ltd.` and `Acme Corp` resolve to one key. Without it the duplicate check is defeated by a full
+stop. It keeps the words when a name is *only* a company form, because an empty key would
+collide every such vendor into a single row.
+
+**The two rules that needed a session now exist**, in `promotion.py` rather than `validation.py`
+because one set is testable with no database and the other is not: `vendor_is_known` (warning -
+an unknown vendor is usually just a new vendor) and `invoice_number_is_not_a_duplicate` (error -
+the expensive mistake this system exists to prevent). The rule and the unique constraint both
+stay, and that is not redundancy: the rule gives a reviewer a sentence, the constraint is what
+holds when two requests arrive at once.
+
+**Transitions gained four edges**, each with its reason written down. Both judged states can go
+back to `extracted` for a correction and to `received` for a reprocess. A correction re-opens
+the judgement rather than editing it, so the corrected answer goes through exactly the rules a
+fresh document does - which is only true if it re-enters the pipeline at the same point.
+`promote()` no longer accepts `validated`, which is transient and never sat in.
+
+## Corrections
+
+**The original extraction is never touched.** A correction writes a `corrections` row per
+changed field plus a *new* extraction carrying the corrected answer, because a correction that
+overwrites the model's answer destroys the measurement and destroys the labelled example the
+correction just created. Field paths are the dotted ones the harness uses - `total`,
+`line_items[2].amount` - so a correction becomes an expected value without translation. A field
+submitted unchanged is not logged, or the corrections log stops being a clean source of
+labelled examples.
+
+## The second bug, and it was in my own stage 5 work
+
+`test_a_correction_can_move_a_document_out_of_review` breaks a total, checks the document is
+routed, fixes it, and expects it back in `auto_approved`. It stayed in review.
+
+`to_json` stores the extractor's self-report as `model_confidence`; `_read_from` fabricated
+`confidence = 0.0` instead of renaming it back. **So the self-report term of the composite
+scored zero on every document that went through validation** - because validation always reads
+the *stored* extraction, never the live object. Every routing decision in the real pipeline was
+made on a score up to a tenth too low, quietly, and the corpus runs never showed it because
+those score the live fields directly.
+
+Fixed, and the round-trip test in `test_validation.py` now asserts the confidence and the whole
+composite survive the round trip rather than only the rule names - which is what it should have
+asserted from the start, since rule names were never going to notice a change in a weight.
+
+**Stage 5's conclusions stand** - every corpus document scores 1.00 or 0.90 on the live path and
+the direction of the threshold comparison was unaffected - but the stored path was wrong and
+would have started mattering the moment anything sat near the line.
+
+**Both bugs came from the same place**: tests that could not run. One was a test that had been
+correct and silent for months; the other was a test written this session that could only work
+against a real database. The eighteen skips were not a gap in coverage, they were a gap in
+*execution*, and those are much harder to see because the suite reports green.
+
+**Verification.** 204 passed, 0 skipped. Up from 163 passed / 18 skipped.
+
+**Every change made this pass.**
+
+| File | Change |
+| --- | --- |
+| `mailman/config.py` | `DATABASE_URL` defaults to localhost, with the reasoning |
+| `mailman/extractor.py` | Key checked before the SDK import; a missing SDK gets its own message |
+| `mailman/promotion.py` | New. Normalisation, resolution, the two DB rules, `promote`, `apply_corrections` |
+| `mailman/transitions.py` | Correction and reprocess edges |
+| `mailman/pipeline.py` | DB rules joined to the pure ones; `_read_from` renames instead of fabricating |
+| `mailman/api/documents.py` | `approve`, `corrections`, `reprocess`; upload now validates as well as extracts |
+| `tests/test_promotion.py` | New, 23 tests over the state machine and the transaction boundaries |
+| `tests/test_validation.py` | Round trip asserts the composite, not just the rule names |
+
+**Next.** Stage 7, the minimal review queue - and the plan's gate applies: it stays bare, with
+nothing styled and nothing deployed, until stage 8's baseline is recorded. Worth remembering the
+stage 5 finding before building it: on this corpus nothing reaches the queue, so it will open
+empty unless it is fed the trained extractor's output or a deliberately broken document.
+
+**Uncommitted.** Everything remains in the working tree by request.
+
+### 2026-09-04 - stage 7: the queue, and an ordering that was never total
+
+**What was asked.** "go for it" - stage 7.
+
+## The queue
+
+Server-rendered Jinja templates in `mailman/templates`, routes in `mailman/api/review.py`. No
+build step, one process, and `jinja2` added to `requirements.txt` under the stage that needs it
+rather than assumed because Starlette happens to ship it.
+
+- **`GET /` is the queue now.** It redirected to `/docs`, which was right while there was
+  nothing to show and wrong the moment there was: a visitor should land on what the system
+  does, not on its API reference.
+- **The queue is `documents.status == needs_review`, oldest first.** A queue table would
+  duplicate a fact `documents.status` already holds and the two could disagree. Oldest first
+  because newest-first leaves the hardest document at the bottom forever.
+- **Each row says why it is waiting**, with the rule name and the message that names the
+  numbers. A queue of filenames makes a reviewer open every one to find out what it wants.
+- **The review page puts the document beside its fields on one screen** - the stored *text
+  layer*, not the PDF, because if the two disagree the text is what explains the extraction.
+- **Failed rules mark the fields they implicate**, driven by an explicit rule-name-to-fields
+  map rather than by parsing the messages. A message is written for a person and its wording
+  will change; highlighting that silently stopped working would be worse than none.
+- **One form does correct-and-approve.** Two passes over the same document is what makes a
+  review queue miserable, and this queue is also the tool for building stage 8's corpus.
+  Separate `save` and `approve` buttons, because "I fixed a field and want to see what the
+  rules say now" and "file this" are different intentions and conflating them makes people
+  guess.
+- **Reject needs a reason**, and files nothing.
+
+**The empty state is the one piece of copy that earns its place before the styling gate
+lifts.** On this corpus the queue is empty - every document passes every error rule and scores
+at or above the threshold - and an empty page reads as a broken page. So it says the state is
+expected, and says how to put something in it. A test asserts that, because it is the
+difference between "this works" and "this is broken" to anyone opening the demo cold.
+
+**It stays bare.** No styling pass, no second screen, until stage 8's baseline is recorded.
+
+## The bug: "the latest extraction" was a coin flip
+
+Nine review tests passed alone and three failed in the full suite, which is the shape this
+class of bug always has - nothing is wrong with either run, only with the assumption that an
+ordering is total when it is not.
+
+**Postgres `now()` is transaction start time.** Every row written in one transaction shares it
+to the microsecond. Applying a correction writes a second extraction while the first is being
+read, so both carried an identical `created_at`, and `ORDER BY created_at DESC LIMIT 1` was
+resolved arbitrarily by the planner.
+
+    extractions, newest first by created_at:
+      2026-09-04 18:54:31.990808+00:00  correction:reviewer   total=999.00
+      2026-09-04 18:54:31.990808+00:00  heuristic             total=270.00
+      timestamps identical: True
+
+So **validation ran against the uncorrected answer roughly half the time, silently.** A
+reviewer fixes a field, the rules re-run over the answer from before the fix, and the verdict
+is whatever the planner felt like. `validate_document`, `promote`, `apply_corrections` and the
+review page all read "the latest extraction", so all four were affected.
+
+`validation_results.checked_at` had the same defect. The review page shows only the newest set
+of verdicts by comparing `checked_at`; with a shared timestamp it showed every verdict the
+document had ever had, stacked.
+
+**Migration `0002_row_time`** switches those two columns to `clock_timestamp()`, which advances
+within a transaction. Only those two: the other `now()` defaults record when something
+happened and nothing sorts on them to pick a winner. Run against the live database, and the
+suite is stable over three consecutive runs.
+
+**Two regression tests**, and the second is the one that matters. One asserts the timestamps
+are distinct; the other asserts the *behaviour* - break a total, and the document must land in
+`needs_review` - because a test on timestamps would pass against any future implementation
+that got the ordering right by accident, and this is about which answer gets judged.
+
+**Worth noticing about how it was found.** It did not come from reading the code, and no test
+written against the correction path caught it directly. It came from a test that passed in
+isolation and failed in company, which is the only signal a non-total ordering ever gives.
+This is now the third bug this week that existed because something could not be observed -
+after the eighteen tests that never ran, and the self-report term that scored zero on the
+stored path.
+
+**And one that was expected**: `test_root_redirects_rather_than_404s` failed because `/` no
+longer redirects. Its own docstring said "stage 7 replaces the target with the review queue",
+so it was rewritten to assert the front door is the queue rather than that it is a redirect.
+
+**Verification.** 215 passed, 0 skipped, stable across three consecutive runs. Up from 204.
+
+**Every change made this pass.**
+
+| File | Change |
+| --- | --- |
+| `mailman/templates/` | New. `base.html`, `queue.html`, `review.html` |
+| `mailman/api/review.py` | New. Queue, review page, and the one form that corrects, approves or rejects |
+| `mailman/api/documents.py` | `GET /documents?status_filter=` - the queue as a status filter |
+| `mailman/promotion.py` | `reject()`, which requires a reason and files nothing |
+| `mailman/main.py` | `/` is the queue |
+| `mailman/models.py` | The two ordering columns use `clock_timestamp()` |
+| `migrations/versions/0002_row_time.py` | New |
+| `requirements.txt` | `jinja2` under stage 7 |
+| `tests/test_review.py` | New, 9 tests through the real routes and templates |
+| `tests/test_promotion.py` | Two ordering regression tests |
+| `tests/test_scaffold.py` | Front-door test rewritten for the queue |
+
+**Next.** Stage 8: the corpus grown to thirty to forty documents, a harness reporting per-field
+accuracy, and **a recorded baseline**. That is the stage the styling gate is waiting on, and
+the one the whole project is for. `mailman/corpus_check.py` already has the per-field
+comparison and the arithmetic self-check; what stage 8 adds is scale, run history in the
+repository, and the baseline written down before anything is improved.
+
+**Uncommitted.** Everything remains in the working tree by request.

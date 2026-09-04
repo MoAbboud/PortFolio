@@ -31,19 +31,23 @@ def test_schema_is_the_seven_tables() -> None:
     assert set(Base.metadata.tables) == EXPECTED_TABLES
 
 
-def test_root_redirects_rather_than_404s() -> None:
+def test_the_front_door_is_the_queue() -> None:
     """The bare host is the front door.
 
     Clicking the port in Docker Desktop lands here, and a 404 there reads as "the thing is
-    broken" when the thing is fine. Stage 7 replaces the target with the review queue.
+    broken" when the thing is fine. It redirected to /docs until stage 7, which was the right
+    answer while there was nothing to show and the wrong one once there was: a visitor should
+    land on what the system does, not on its API reference.
     """
     from fastapi.testclient import TestClient
+
+    from mailman.main import app
 
     with TestClient(app) as client:
         response = client.get("/", follow_redirects=False)
 
-    assert response.status_code in (302, 307)
-    assert response.headers["location"] == "/docs"
+    assert response.status_code == 200
+    assert "Review queue" in response.text
 
 
 def test_health_route_is_registered() -> None:

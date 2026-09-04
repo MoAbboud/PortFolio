@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}review queue - mailman{% endblock %}
+{% block body %}
+<h1>Review queue</h1>
+
+{% if not documents %}
+  <p><strong>Nothing is waiting.</strong></p>
+  <p class="muted">
+    That is the expected state on the corpus, not a bug: every corpus document passes every
+    error rule, so nothing routes here. A document reaches this queue when an error rule fails
+    or its confidence falls under {{ threshold }}.
+  </p>
+  <p class="muted">
+    To see the queue working, upload a document the extractor gets wrong, or correct a good one
+    into a broken one - <code>POST /documents/{id}/corrections</code> with
+    <code>{"total": "999.00"}</code> breaks the arithmetic rule and puts it here.
+  </p>
+{% else %}
+  <p>{{ documents|length }} waiting, oldest first.</p>
+  <table>
+    <tr><th>document</th><th>uploaded</th><th>why it is here</th><th></th></tr>
+    {% for entry in documents %}
+      <tr>
+        <td>{{ entry.document.filename }}</td>
+        <td class="muted">{{ entry.document.uploaded_at.strftime("%Y-%m-%d %H:%M") }}</td>
+        <td>
+          {% for outcome in entry.failed %}
+            <span class="{{ 'error' if outcome.severity == 'error' else 'warn' }}">
+              {{ outcome.rule_name }}</span>: {{ outcome.message }}<br>
+          {% else %}
+            <span class="muted">below the confidence threshold</span>
+          {% endfor %}
+        </td>
+        <td><a href="/review/{{ entry.document.id }}">review</a></td>
+      </tr>
+    {% endfor %}
+  </table>
+{% endif %}
+
+<h2>Everything else</h2>
+<table>
+  <tr><th>status</th><th class="num">documents</th></tr>
+  {% for name, count in counts %}
+    <tr><td>{{ name }}</td><td class="num">{{ count }}</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

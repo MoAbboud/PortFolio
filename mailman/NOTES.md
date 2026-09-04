@@ -1238,3 +1238,69 @@ Worth being able to explain: why I stopped trying to make the tagger do the whol
 the measurement told me which half it was good at, and composing two components each doing what
 it is good at beat both. That is an engineering answer, not a modelling one, and it is the
 answer this project is supposed to be demonstrating.
+
+## Why the confidence threshold is 0.90
+
+Stage 5 asks me to pick a threshold and write down why. The honest version has three parts and
+only the first is the answer.
+
+**It is a policy statement, not a fitted number.** The arithmetic in `mailman/confidence.py` is
+what makes it statable at all:
+
+    clean document                1.00
+    one failed warning            0.90
+    two or more failed warnings   0.80
+
+so a threshold of 0.90 says exactly one thing: **one warning is tolerable, two compound and
+warrant a person.** Routing is `< threshold`, so a single warning does not route. That is a
+sentence I can defend in an interview, and it is the whole content of the number.
+
+**My corpus cannot set it, and I should not pretend otherwise.** Ten of eleven documents
+extract perfectly and score 1.00 or 0.90 - two distinct values. There is no distribution to fit
+a threshold against. Anything in (0, 0.90] auto-approves everything the rules pass; anything
+above 0.90 sends the two ambiguous-date documents to review. So the choice is not "where does
+the data separate", it is "does an ambiguous date warrant a person", and I have answered no:
+day-first is right far more often than not on these documents, and the cost of being wrong is
+a payment chased on the wrong day rather than a bad record.
+
+**And a trap I nearly walked into.** Scoring the trained extractor's output for comparison:
+
+    rules pass (hybrid)     n=10   min 0.9000   max 1.0000
+    error-routed (trained)  n=10   min 0.7896   max 0.8999
+
+Good minimum 0.9000, bad maximum 0.8999. A threshold of 0.90 separates them perfectly, and
+writing that down as the justification would have been the most impressive-looking sentence in
+this file and completely bogus. The gap is 0.0001 - a coincidence of my own weights, on ten
+documents, all of which were **already routed by a failed error rule** and so never needed the
+threshold at all. A separation that only appears on documents the previous stage already caught
+is not a separation. Recording it because the temptation was real.
+
+Revisit at stage 8, where thirty to forty documents and a deliberate spread of quality would
+give this something to actually be fitted to.
+
+## Stage 5, and the thing it does not yet demonstrate
+
+`ends with: some documents auto-approve and some do not, and the split is explainable`.
+
+Half met. The split is explainable - `confidence.explain()` names every term and its weight and
+goes into the status history, so "why is this in the queue" is answerable a week later without
+rerunning anything. But on my corpus **nothing goes to review**: 10 auto-approved, 1 refused,
+0 in the queue, because every corpus document is clean under the deployed extractor.
+
+Where the other side of the split does show up is the trained extractor's output, which is
+known-bad: **10 of 10 route to review, none slips through.** That is a real demonstration and
+it is the one to walk through, but it is worth saying plainly that my *good* corpus cannot
+exercise the review path, and stage 7's queue will therefore be empty unless I feed it that.
+
+Worth being able to explain: why only warnings feed the score and errors do not. A failed
+error already routes the document, so scoring it too would count the same fact twice - and
+produce a document sitting in the queue with a score that also says it should be in the queue.
+It also gives warnings the only job they have. They do not route, so without this they would be
+recorded and ignored, which is what happened to `ambiguous_dates` for three stages.
+
+And one I want to be honest about rather than have someone find: **on the heuristic path the
+model's self-report is not an independent term.** `HeuristicExtractor` sets `read.confidence` to
+the fraction of required fields it found, which is exactly what `required_fields` already
+measures. So for my deployed extractor that term is a duplicate carrying a tenth of the weight.
+It stays because a provider-backed extractor returns something genuinely its own, and it stays
+*small* partly because of this.

@@ -273,28 +273,46 @@ returns it.
 
 ## Stage 5 - Confidence and routing
 
-Ends with: some documents auto-approve and some do not, and the split is explainable.
+**Done.** 2026-09-04. `mailman/confidence.py`, four weighted terms, threshold in configuration,
+routing wired. 10 more tests.
 
-- [ ] Decide what composite confidence is made of, and be able to defend it
-- [ ] Required fields populated, fields parsing as their types, validation outcomes, and the
-      model's own confidence contributing least
-- [ ] Store it on the extraction row
-- [ ] Pick a threshold. **Write down why that threshold** in `NOTES.md`
-- [ ] Route: any failed error rule, or confidence under threshold, goes to `needs_review`
-- [ ] Confidence can send a document to review and never rescue one
-- [ ] Threshold from configuration, not a literal in the pipeline
+Ends with: some documents auto-approve and some do not, and the split is explainable.
+**Half demonstrated.** The split is explainable - `explain()` names every term and goes into the
+status history. But the corpus cannot show the other side: all ten extractable documents are
+clean and auto-approve. The demonstration of the review path comes from the trained extractor's
+known-bad output, where 10 of 10 route and none slips through.
+
+- [x] Decide what composite confidence is made of, and be able to defend it
+- [x] Required fields 0.40, values parsed 0.30, warning outcomes 0.20, the model's own
+      confidence 0.10. **Only warnings feed it, not errors** - an error already routes the
+      document, so scoring it too would count the same fact twice and put a document in the
+      queue with a score that also says it belongs there. It also gives warnings their only
+      job. Note on the heuristic path the self-report is not independent: it is the required
+      field fraction again, which is an argument for the weight being small
+- [x] Stored on the extraction row - the scalar only. The breakdown is recomputed from
+      `extracted_data` and `validation_results`, both already stored, rather than kept a third
+      time where it could disagree with them. It is the one column written after the row is
+      created, because it depends on rules that run later
+- [x] Pick a threshold. **Write down why that threshold** in `NOTES.md`
+- [x] Route: any failed error rule, or confidence under threshold, goes to `needs_review`
+- [x] Confidence can send a document to review and never rescue one
+- [x] Threshold from configuration, not a literal in the pipeline
 
 ## Stage 6 - Promotion, corrections, tests
 
+**Done.** 2026-09-04. `mailman/promotion.py`, three endpoints, 23 tests. **204 passed, 0
+skipped** - the eighteen DB-backed tests that had been skipping for the whole project now run,
+and running them found two real bugs.
+
 Ends with: `POST /approve` puts a real invoice row in the database, and `pytest -q` is green.
 
-- [ ] `POST /documents/{id}/approve` promotes the extraction into `invoices` and `line_items`
-- [ ] Promotion and the status change to `approved` in **one transaction**
-- [ ] Unique constraint on (`vendor_id`, `invoice_number`) enforced in the database
-- [ ] `POST /documents/{id}/corrections` logs one row per changed field
-- [ ] Corrections re-run validation and write a new set of results rather than updating
-- [ ] `field_path` uses the same dotted paths the harness will use
-- [ ] `POST /documents/{id}/reprocess`, optionally with a `prompt_version`
+- [x] `POST /documents/{id}/approve` promotes the extraction into `invoices` and `line_items`
+- [x] Promotion and the status change to `approved` in **one transaction**
+- [x] Unique constraint on (`vendor_id`, `invoice_number`) enforced in the database
+- [x] `POST /documents/{id}/corrections` logs one row per changed field
+- [x] Corrections re-run validation and write a new set of results rather than updating
+- [x] `field_path` uses the same dotted paths the harness will use
+- [x] `POST /documents/{id}/reprocess`, optionally with a `prompt_version`
 - [ ] `GET /documents?status=...&limit=...`
 - [ ] `GET /vendors`
 - [ ] `GET /metrics`: counts by status, auto-approval rate
@@ -305,6 +323,10 @@ Ends with: `POST /approve` puts a real invoice row in the database, and `pytest 
 
 ## Stage 7 - Minimal review queue
 
+**Done.** 2026-09-04. Server-rendered templates, no build step. 9 tests through the real
+routes. Building it surfaced an ordering bug that made "the latest extraction" a coin flip -
+see 06-context.md and migration 0002.
+
 **This is the demo.** It is also the tool for looking at extractions while stage 8's corpus
 is built. It stays bare: a list, a viewer, a form. No styling pass until the stage 8
 baseline exists.
@@ -312,16 +334,19 @@ baseline exists.
 Ends with: open a browser, see the queue, fix a field, approve, and the invoice is in the
 database.
 
-- [ ] Repoint `GET /` at the queue. It currently redirects to `/docs`, which was the right
+- [x] Repoint `GET /` at the queue. It currently redirects to `/docs`, which was the right
       answer before a queue existed and is the wrong one after
-- [ ] Queue page reading `GET /documents?status=needs_review`, oldest first
-- [ ] Show the reason each document is waiting
-- [ ] Review page: the document beside the fields, on one screen
-- [ ] Failed rules highlighted on the fields they implicate
-- [ ] Edit a field and approve in one pass
-- [ ] Reject with a reason, filing nothing
-- [ ] Time one full pass through a queue of ten and see whether it is actually usable
-- [ ] Stop here. No styling, no second screen, until the baseline is recorded
+- [x] Queue page reading `GET /documents?status=needs_review`, oldest first
+- [x] Show the reason each document is waiting
+- [x] Review page: the document beside the fields, on one screen
+- [x] Failed rules highlighted on the fields they implicate
+- [x] Edit a field and approve in one pass
+- [x] Reject with a reason, filing nothing
+- [>] Time one full pass through a queue of ten and see whether it is actually usable. Needs
+      ten queued documents, and on this corpus nothing routes to the queue at all - every
+      document passes every error rule. Do it in stage 8, where a corpus of thirty to forty
+      with deliberate failures will actually fill it
+- [x] Stop here. No styling, no second screen, until the baseline is recorded
 
 ## Stage 8 - Corpus and baseline
 

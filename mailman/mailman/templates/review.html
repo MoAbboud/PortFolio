@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}{{ document.filename }} - mailman{% endblock %}
+{% block body %}
+<h1>{{ document.filename }}</h1>
+<p class="muted">
+  {{ document.status }} · confidence {{ "%.4f"|format(confidence.score) }}
+  {% if confidence.score < threshold %}<span class="error">(under {{ threshold }})</span>{% endif %}
+  · {{ extraction.model_name }}
+</p>
+
+{% if message %}<p class="{{ message_class }}"><strong>{{ message }}</strong></p>{% endif %}
+
+<h2>Rules</h2>
+<table>
+  <tr><th>rule</th><th>severity</th><th>result</th><th>detail</th></tr>
+  {% for result in results %}
+    <tr class="{{ 'bad' if not result.passed and result.severity == 'error' else '' }}">
+      <td>{{ result.rule_name }}</td>
+      <td>{{ result.severity }}</td>
+      <td class="{{ 'pass' if result.passed else ('error' if result.severity == 'error' else 'warn') }}">
+        {{ "pass" if result.passed else "FAIL" }}</td>
+      <td>{{ result.message }}</td>
+    </tr>
+  {% endfor %}
+</table>
+
+<div class="row">
+  <div>
+    <h2>Fields</h2>
+    {# One form does correct-and-approve. Two passes over the same document is the thing that
+       makes a review queue miserable, and the queue is the tool for building the corpus. #}
+    <form method="post" action="/review/{{ document.id }}">
+      <table>
+        <tr><th>field</th><th>value</th></tr>
+        {% for name, value in scalars %}
+          <tr class="{{ 'bad' if name in implicated else '' }}">
+            <td>{{ name }}</td>
+            <td><input type="text" name="f:{{ name }}" value="{{ value if value is not none else '' }}"></td>
+          </tr>
+        {% endfor %}
+      </table>
+
+      <h3>Line items</h3>
+      <table>
+        <tr><th>#</th><th>description</th><th>qty</th><th>unit</th><th>amount</th></tr>
+        {% for item in line_items %}
+          <tr>
+            <td>{{ loop.index0 }}</td>
+            <td><input type="text" name="f:line_items[{{ loop.index0 }}].description" value="{{ item.description or '' }}"></td>
+            <td><input type="text" name="f:line_items[{{ loop.index0 }}].quantity" value="{{ item.quantity or '' }}"></td>
+            <td><input type="text" name="f:line_items[{{ loop.index0 }}].unit_price" value="{{ item.unit_price or '' }}"></td>
+            <td><input type="text" name="f:line_items[{{ loop.index0 }}].amount" value="{{ item.amount or '' }}"></td>
+          </tr>
+        {% endfor %}
+      </table>
+
+      <p>
+        reviewer <input type="text" name="reviewed_by" value="{{ reviewer }}" style="width:12rem">
+      </p>
+      <p>
+        {# Save re-runs the rules over the edit; approve promotes. Separate buttons because
+           "I fixed a field and want to see what the rules say now" and "file this" are
+           different intentions, and a queue that conflates them makes people guess. #}
+        <button name="action" value="save">Save and re-check</button>
+        <button name="action" value="approve">Save and approve</button>
+      </p>
+      <p>
+        reject instead, with a reason:
+        <input type="text" name="reason" placeholder="why this should not be filed">
+        <button name="action" value="reject">Reject</button>
+      </p>
+    </form>
+  </div>
+
+  <div>
+    <h2>The document</h2>
+    {# The text layer, which is what the extractor actually saw. Not the PDF: if the two
+       disagree, the text is the one that explains the extraction. #}
+    <pre>{{ document_text }}</pre>
+  </div>
+</div>
+
+<h2>History</h2>
+<table>
+  <tr><th>at</th><th>to</th><th>actor</th><th>detail</th></tr>
+  {% for event in document.status_history|reverse %}
+    <tr>
+      <td class="muted">{{ event.at[:19] }}</td>
+      <td>{{ event.to }}</td>
+      <td>{{ event.actor }}</td>
+      <td class="muted">{{ event.detail }}</td>
+    </tr>
+  {% endfor %}
+</table>
+{% endblock %}

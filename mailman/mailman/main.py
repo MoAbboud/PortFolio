@@ -7,10 +7,9 @@ front-end build step and nothing to install beyond Docker.
 from __future__ import annotations
 
 from fastapi import FastAPI
-from fastapi.responses import RedirectResponse
 
 from mailman import __version__
-from mailman.api import documents, health
+from mailman.api import documents, health, review
 
 app = FastAPI(
     title="mailman",
@@ -25,15 +24,7 @@ app = FastAPI(
 app.include_router(health.router)
 app.include_router(documents.router)
 
-
-@app.get("/", include_in_schema=False)
-def root() -> RedirectResponse:
-    """Send the front door somewhere useful.
-
-    Clicking the port in Docker Desktop, or typing the bare host, lands here. Without this
-    it is a 404, which reads as "the thing is broken" when the thing is fine.
-
-    Redirects to the generated API docs for now. From stage 7 this becomes the review queue,
-    which is the page a visitor should actually land on.
-    """
-    return RedirectResponse(url="/docs")
+# The review queue owns `/`. It redirected to `/docs` before there was a queue, which was the
+# right answer then and the wrong one now: a visitor should land on the thing the system does,
+# not on its API reference.
+app.include_router(review.router)

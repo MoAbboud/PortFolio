@@ -317,6 +317,15 @@ def test_a_stored_extraction_revalidates_through_the_same_parser() -> None:
     assert len(restored.line_items) == len(original.line_items)
     assert [o.rule_name for o in validate(restored)] == [o.rule_name for o in validate(original)]
 
+    # The self-report has to survive the round trip too. `to_json` stores it under a different
+    # name, and the first version of `_read_from` fabricated 0.0 rather than renaming it back -
+    # so every document that went through validation scored zero on that term of the composite,
+    # quietly, because validation always reads the stored extraction and never the live object.
+    from mailman.confidence import score
+
+    assert restored.read.confidence == original.read.confidence
+    assert score(restored, validate(restored)).score == score(original, validate(original)).score
+
 
 def test_the_rules_catch_a_record_that_looks_complete_and_is_wrong() -> None:
     """The failure mode this whole stage exists for.
@@ -340,3 +349,105 @@ def test_the_rules_catch_a_record_that_looks_complete_and_is_wrong() -> None:
     errors = {o.rule_name for o in failed_errors(outcomes)}
     assert "line_items_sum_to_subtotal" in errors
     assert needs_review(outcomes), "a plausible wrong answer must reach a person"
+
+
+# --- stage 5: confidence and routing ---------------------------------------------------
+
+
+def test_a_clean_document_scores_one() -> None:
+    from mailman.confidence import score
+
+    assert score(fields(), validate(fields())).score == 1.0
+
+
+def test_one_failed_warning_sits_exactly_on_the_threshold() -> None:
+    """The threshold is a policy statement and this is the arithmetic that makes it statable.
+
+    Clean is 1.00, one failed warning is 0.90, two are 0.80. A threshold of 0.90 therefore
+    says "one warning is tolerable, two compound and warrant a person" - and routing is
+    `< threshold`, so a single warning does not route.
+    """
+    from mailman.config import settings
+    from mailman.confidence import score
+
+    ambiguous = fields(issue_date="03/04/2026")
+    confidence = score(ambiguous, validate(ambiguous))
+
+    assert confidence.score == 0.9
+    assert not confidence.score < settings.confidence_threshold
+
+
+def test_two_failed_warnings_fall_below_the_threshold() -> None:
+    from mailman.config import settings
+    from mailman.confidence import score
+
+    both = fields(issue_date="03/04/2026", due_date="2026-01-01")
+    outcomes = validate(both)
+
+    assert len(failed_warnings(outcomes)) == 2
+    assert not failed_errors(outcomes), "warnings only - the errors must not be what routes it"
+    assert score(both, outcomes).score < settings.confidence_threshold
+
+
+def test_the_warnings_term_does_not_depend_on_how_many_rules_applied() -> None:
+    """One failed warning must be worth the same whatever else happened to be applicable.
+
+    Scored as a fraction, adding a warning rule to the registry would silently re-rank every
+    document already in the system.
+    """
+    from mailman.confidence import score
+    from mailman.validation import RuleOutcome
+
+    scores = {
+        total: score(
+            fields(),
+            [RuleOutcome(f"w{i}", SEVERITY_WARNING, i != 0) for i in range(total)],
+        ).score
+        for total in (1, 2, 5)
+    }
+    assert len(set(scores.values())) == 1, scores
+
+
+def test_confidence_can_send_a_document_to_review_and_never_rescue_one() -> None:
+    """The rule that makes this a system of rules rather than of suggestions.
+
+    A document with a broken total scores well on every confidence term - all four required
+    fields present, everything parsed, no warnings, the extractor happy with itself - and it
+    still has to reach a person.
+    """
+    from mailman.confidence import score
+
+    broken = fields(total="999.00")
+    outcomes = validate(broken)
+    confidence = score(broken, outcomes)
+
+    assert confidence.score >= 0.9, "nothing in the composite notices a wrong total"
+    assert failed_errors(outcomes)
+    assert needs_review(outcomes), "the rule routes it regardless of the score"
+
+
+def test_the_model_self_report_is_the_smallest_term() -> None:
+    """Confidently wrong is the failure being designed around, so the model's opinion of
+    itself is the least of four terms and cannot carry a document on its own."""
+    from mailman.confidence import WEIGHTS
+
+    assert WEIGHTS["model_self_report"] == min(WEIGHTS.values())
+    assert WEIGHTS["model_self_report"] < WEIGHTS["required_fields"]
+
+
+def test_a_term_that_does_not_apply_is_dropped_not_scored_zero() -> None:
+    """Punishing a document for something it was never asked about is how a score stops
+    meaning anything. With no warning rules applicable, the remaining weights renormalise."""
+    from mailman.confidence import score
+
+    assert "rule_warnings" not in score(fields(), []).components
+    assert score(fields(), []).score == 1.0
+
+
+def test_the_explanation_names_every_term() -> None:
+    """"Why is this in the queue" has to be answerable from the status history alone."""
+    from mailman.confidence import score
+
+    explanation = score(fields(), validate(fields())).explain()
+    for term in ("required_fields", "values_parsed", "rule_warnings", "model_self_report"):
+        assert term in explanation

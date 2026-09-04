@@ -165,10 +165,13 @@ def validate_document(
     Routing is one line: any failed error goes to a person, warnings do not. Confidence
     arrives in stage 5 and can only add documents to the queue, never remove one.
     """
+    from mailman.confidence import as_decimal, score
+    from mailman.promotion import database_rules
+    from mailman.config import settings
     from mailman.invoice import InvoiceFields, InvoiceRead
     from mailman.models import ValidationResult
     from mailman.status import AUTO_APPROVED, NEEDS_REVIEW, VALIDATED
-    from mailman.validation import failed_errors, needs_review, summarise, validate
+    from mailman.validation import failed_errors, summarise, validate
 
     document = session.get(Document, document_id)
     if document is None:
@@ -191,7 +194,10 @@ def validate_document(
         return []
 
     fields = InvoiceFields(InvoiceRead(**_read_from(extraction.extracted_data)))
-    outcomes = validate(fields)
+    # The pure rules, then the two that need a session. Kept in separate modules because one
+    # set is testable with no database at all and the other is not, but they are one list by
+    # the time anything routes on them.
+    outcomes = validate(fields) + database_rules(session, fields, document_id)
 
     for outcome in outcomes:
         session.add(
@@ -205,13 +211,39 @@ def validate_document(
             )
         )
 
+    # The composite needs the rule outcomes, so it is computed here rather than at extraction
+    # time and written back to the row. That is the only column on `extractions` written after
+    # the row is created: `raw_response` and `extracted_data` are the record of what happened
+    # and never change, while `confidence` is a score over that record and the rules in force,
+    # and the rules run at this point and not before. Re-validating after a correction writes
+    # a fresh set of `validation_results` and a fresh score for the same reason.
+    confidence = score(fields, outcomes)
+    extraction.confidence = as_decimal(confidence)
+
     move(document, VALIDATED, actor="pipeline", detail=summarise(outcomes))
 
-    if needs_review(outcomes):
-        reasons = ", ".join(o.rule_name for o in failed_errors(outcomes))
-        move(document, NEEDS_REVIEW, actor="pipeline", detail=f"failed: {reasons}")
+    # Two independent reasons to want a person, and they are kept apart in the detail so the
+    # queue can say which one applied. Confidence can only ADD a document to the queue: a
+    # failed error routes on its own and no score overrides it.
+    errors = failed_errors(outcomes)
+    below = confidence.score < settings.confidence_threshold
+
+    if errors or below:
+        reasons = []
+        if errors:
+            reasons.append("failed: " + ", ".join(o.rule_name for o in errors))
+        if below:
+            reasons.append(
+                f"{confidence.explain()} < threshold {settings.confidence_threshold}"
+            )
+        move(document, NEEDS_REVIEW, actor="pipeline", detail=" | ".join(reasons))
     else:
-        move(document, AUTO_APPROVED, actor="pipeline", detail=summarise(outcomes))
+        move(
+            document,
+            AUTO_APPROVED,
+            actor="pipeline",
+            detail=f"{summarise(outcomes)} | {confidence.explain()}",
+        )
 
     session.commit()
     return outcomes
@@ -227,9 +259,24 @@ def _read_from(extracted_data: dict) -> dict:
     pipeline produced.
     """
     data = dict(extracted_data)
-    data.pop("problems", None)
-    data.pop("ambiguous_dates", None)
-    data.pop("date_conventions", None)
-    data.setdefault("confidence", 0.0)
-    data.setdefault("unreadable", [])
+
+    # `to_json` renames two fields on the way out - `confidence` is stored as
+    # `model_confidence` and `unreadable` as `model_says_unreadable` - so they have to be
+    # renamed back. The first version of this fabricated `confidence = 0.0` instead, and the
+    # effect was quiet and wrong: the self-report term of the composite scored zero on every
+    # document that went through validation, because validation always reads the stored
+    # extraction rather than the live object. It dragged real routing decisions below the
+    # threshold and nothing said so.
+    #
+    # Found by a stage 6 test asserting that correcting a broken total moves a document back
+    # out of review. It did not, and the reason was here rather than in corrections.
+    data["confidence"] = data.pop("model_confidence", 0.0)
+    data["unreadable"] = data.pop("model_says_unreadable", [])
+
+    # Derived, not stored input. `InvoiceFields` recomputes all of these from the values
+    # above, and passing them to `InvoiceRead` would be passing an answer to the thing whose
+    # job is to work the answer out.
+    for derived in ("parse_problems", "ambiguous_dates", "date_conventions", "missing_required",
+                    "problems"):
+        data.pop(derived, None)
     return data

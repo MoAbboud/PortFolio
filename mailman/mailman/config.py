@@ -23,7 +23,16 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    database_url: str = "postgresql+psycopg://mailman:mailman@db:5432/mailman"
+    # localhost, not the container hostname `db`.
+    #
+    # docker-compose sets DATABASE_URL explicitly, so the container never reads this default.
+    # Everything else does: pytest on Windows, `python -m mailman.corpus_check`, a psql
+    # session. With `db` as the default, the eighteen DB-backed tests skipped on the host
+    # machine even with the database up and healthy on an exposed port - eighteen tests that
+    # looked like a deliberate gap and were a hostname.
+    #
+    # The default belongs to the case that has no other configuration, and that is the host.
+    database_url: str = "postgresql+psycopg://mailman:mailman@localhost:5432/mailman"
 
     # Where document bytes are written. An S3-shaped path layout lives under this root,
     # so moving to object storage later is a different client rather than a new schema.
@@ -53,6 +62,23 @@ class Settings(BaseSettings):
     extractor: str = Field(
         default="hybrid",
         validation_alias=AliasChoices("MAILMAN_EXTRACTOR", "EXTRACTOR", "extractor"),
+    )
+
+    # Below this, a document goes to a person even when every error rule passed.
+    #
+    # 0.90 is not fitted to anything - it is a policy stated as a number, and the arithmetic
+    # in mailman/confidence.py is what makes it statable: a clean document scores 1.00, one
+    # failed warning scores 0.90, two score 0.80. So this threshold says exactly "one warning
+    # is tolerable, two compound and warrant a person" and nothing more.
+    #
+    # It is NOT set from the corpus. Ten of eleven documents extract perfectly and score 1.00
+    # or 0.90, so there is no distribution to fit against - see NOTES.md. Stage 8's larger
+    # corpus is where this gets revisited, and it should be.
+    confidence_threshold: float = Field(
+        default=0.90,
+        validation_alias=AliasChoices(
+            "MAILMAN_CONFIDENCE_THRESHOLD", "CONFIDENCE_THRESHOLD", "confidence_threshold"
+        ),
     )
 
     # Where a locally trained extractor's weights live, when there are any.
