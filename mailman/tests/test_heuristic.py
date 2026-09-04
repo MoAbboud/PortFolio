@@ -86,7 +86,28 @@ def test_the_buyer_is_not_attempted() -> None:
 
 
 def test_the_default_extractor_needs_no_key_and_no_weights() -> None:
-    assert isinstance(build_extractor(), HeuristicExtractor)
+    """The contract is in the name, and the class is an implementation detail.
+
+    The default was `heuristic` and is now `hybrid`, because the corpus comparison scored
+    hybrid 92/92 against the heuristic's 82/92 - it is the heuristic's reading with
+    `buyer_name` taken from the trained model when weights happen to be present. It is safe
+    as a default precisely because it degrades to exactly the heuristic when they are not,
+    which is what this test protects: a fresh checkout has no key and no 250MB of weights and
+    still has to extract.
+    """
+    from mailman.hybrid import HybridExtractor
+
+    extractor = build_extractor()
+    assert isinstance(extractor, (HeuristicExtractor, HybridExtractor))
+
+    fields = extractor.extract(INVOICE).fields
+    assert fields.total == Decimal("270.00")
+    assert fields.invoice_number == "INV-2026-0042"
+
+
+def test_the_heuristic_can_still_be_selected_explicitly() -> None:
+    """Rules only, with nothing else in the process. The comparison baseline depends on it."""
+    assert isinstance(build_extractor("heuristic"), HeuristicExtractor)
 
 
 def test_an_unknown_extractor_is_an_error_not_a_silent_default() -> None:

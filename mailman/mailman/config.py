@@ -35,15 +35,23 @@ class Settings(BaseSettings):
     # Provider credentials.
     anthropic_api_key: str | None = None
 
-    # Which extractor runs. "heuristic" needs nothing at all and is the default and the
-    # deployable one; "trained" loads local weights; "anthropic" needs a key and is kept as
-    # a comparison point rather than as the path this project depends on.
+    # Which extractor runs. "hybrid" is the default because it is strictly better than the
+    # alternatives and needs nothing: it is the heuristic's reading with buyer_name taken
+    # from the trained model when the weights happen to be on disk, and it degrades to
+    # exactly the heuristic when they are not. On the corpus it scores 92/92 against the
+    # heuristic's 82/92 and the trained model's 74/92.
+    #
+    # It is the default rather than something to switch on because an environment variable
+    # that has to be set for the better behaviour is an environment variable somebody
+    # forgets. "heuristic" forces rules only; "trained" is the model alone, kept because the
+    # comparison is what says whether the weights earn their 250MB; "anthropic" needs a key
+    # and is a comparison point rather than a path this project depends on.
     # Both spellings are accepted. The field is named `extractor`, so pydantic-settings
     # would read plain EXTRACTOR - but every document in this project says
     # MAILMAN_EXTRACTOR, which is the more obvious name and the one someone will type.
     # Accepting both is cheaper than an environment variable that silently does nothing.
     extractor: str = Field(
-        default="heuristic",
+        default="hybrid",
         validation_alias=AliasChoices("MAILMAN_EXTRACTOR", "EXTRACTOR", "extractor"),
     )
 

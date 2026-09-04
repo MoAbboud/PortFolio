@@ -29,6 +29,10 @@ services:
       # Passed through from the host shell. Never baked into the image.
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       MAILMAN_API_KEY: ${MAILMAN_API_KEY:-}
+      # hybrid falls back to the heuristic when no weights are mounted, so the
+      # container runs the same either way and nothing has to be set for it.
+      MAILMAN_EXTRACTOR: ${MAILMAN_EXTRACTOR:-hybrid}
+      MAILMAN_MODEL_DIR: ${MAILMAN_MODEL_DIR:-./models/extractor}
     ports:
       - "8000:8000"
     volumes:

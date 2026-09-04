@@ -3530,3 +3530,102 @@ and reproduces the heuristic exactly.
 question is now closed with a defensible answer rather than abandoned.
 
 **Uncommitted.** Everything remains in the working tree by request.
+
+### 2026-09-04 - hybrid becomes the default, and stage 4 is built
+
+**What was asked.** "where am i setting mailman_extractor to hybrid? if you can do it, do it.
+a step like that is extremely confusing. go for stage 4."
+
+**The instruction was bad and the correction is the better design.** Handing over "set
+`MAILMAN_EXTRACTOR=hybrid`" as a step was wrong twice: it did not say where, and it should not
+have been a step at all. An environment variable that has to be set for the better behaviour
+is an environment variable somebody forgets, and the whole reason the hybrid degrades to the
+heuristic is that it is safe to run everywhere. So it is the **default**, in three places:
+`config.py`, `.env.example` (documented as "you do not need to set this"), and
+`docker-compose.yml`.
+
+`test_the_default_extractor_needs_no_key_and_no_weights` asserted `isinstance(...,
+HeuristicExtractor)` and failed. The test name is the contract and the class was an
+implementation detail, so it now asserts the contract - the default extracts with no key and
+no weights - and a second test keeps `heuristic` explicitly selectable, because the comparison
+baseline depends on it.
+
+## Stage 4
+
+**Ten rules in `mailman/validation.py`, a registry, one row per rule per document, and 36 unit
+tests.** A rule is a function taking `InvoiceFields` and returning one `RuleOutcome`, or
+`None` for not-applicable - which is deliberately distinct from a pass, because recording a
+rule that never looked as passing inflates the pass rate with documents it did not examine.
+
+**The rules, and where each came from:**
+
+| Rule | Severity | Origin |
+| --- | --- | --- |
+| `required_fields_present` | error | `02-many-lines` and `08-two-page` both lost their total to the bare-thousands bug |
+| `amounts_parsed` | error | **Not on the architecture's list.** `InvoiceFields` has recorded parse failures since stage 2 and nothing read them |
+| `currency_is_known` | error | The trained extractor scored 1/11 here on the corpus |
+| `line_items_sum_to_subtotal` | error | Catches three of the five stage 3 bugs, and needs no labels |
+| `subtotal_plus_tax_equals_total` | error | Holds for credit notes unchanged, which is the argument for the scope decision |
+| `line_arithmetic` | error | Seven of `08-two-page`'s forty lines were wrong this way while the document read clean |
+| `issue_date_is_plausible` | error | A misparsed year is a well-formed date nobody notices |
+| `dates_are_ordered` | warning | Usually a swapped pair; the record is still filable |
+| `dates_are_unambiguous` | warning | **Not on the list.** `06-ambiguous-date` exists to prove a two-way date is flagged; `parse_date` flagged it and nothing acted on it |
+| `invoice_number_is_plausible` | warning | Downgraded from the architecture's error - see below |
+
+**Two rules from `03-architecture.md` were rejected, with reasons, and that is what stage 3
+coming first bought.**
+
+- **"Total matches the total printed on the document"** is unimplementable as stated. It
+  guards against a model computing a total rather than reading one, but `fields.total` *is*
+  what was read - there is no second signal to compare it against. The check it was reaching
+  for is `subtotal_plus_tax_equals_total`. It becomes real if an extractor ever reports what
+  it read and what it computed separately.
+- **"Invoice number matches the expected format"** as an error fails on two of eleven perfectly
+  good corpus documents. The corpus carries `INV-2026-0042`, `NS-88213` and `MPW-3310`; the
+  evaluation generator adds a fourth shape. That is the `02-many-lines` trap - a new rule
+  failing against its own reference corpus at the moment it is least trusted. Implemented as a
+  warning testing only length, a digit and no whitespace. Per-vendor formats are the honest
+  version and need a `vendors` column, so stage 6 at the earliest.
+
+Two more - vendor resolution and the duplicate check - need a database session and a populated
+table, so they move to stage 6 beside promotion, where the unique constraint already lives.
+
+**Verified against the corpus rather than asserted.** Every rule was run over all eleven
+documents through the default extractor: **no error rule fires on a good document.** The only
+failures are the ambiguity warning on `03-discount` and `06-ambiguous-date`, both of which
+genuinely carry a date that reads two ways - the rule doing its job, as a warning, routing
+nothing to review.
+
+**Then the same rules over the trained extractor's output, which is known-bad from the
+comparison:**
+
+    routed to review: 10/10    slipped through: 0/10
+
+Every document the trained model got wrong reaches a person. That is the stage's stated
+purpose met on evidence rather than on a fixture.
+
+**Wired into the pipeline.** `validate_document` writes one `ValidationResult` per applicable
+rule, passes included, then moves the document `extracted -> validated -> auto_approved` or
+`needs_review`. Routing is one line: any failed error goes to a person, warnings do not.
+
+`_read_from` turns a stored extraction back into `InvoiceRead` so re-validation goes through
+the same parser as the original run. Amounts cross JSON as strings and come back as strings on
+purpose; a shortcut reading the numbers directly would validate a different value from the one
+the pipeline produced. Stage 6's corrections endpoint re-validates on every fix, so this is
+the path most likely to drift and least likely to be noticed drifting - it has its own test.
+
+**A test asserts `RULES` and the tests agree**, so a rule cannot be added without one.
+
+**Verification.** 155 passed, 18 skipped. Up from 116.
+
+**What is left in stage 4 for the author**, and it is the part that was always his: reading the
+ten rules and their severities and deciding whether they match his judgement. The two calls
+most worth arguing with are `dates_are_unambiguous` as a warning rather than an error - day-first
+is right far more often than not on these documents - and `issue_date_is_plausible`'s ten-year
+window.
+
+**Next.** Stage 5, confidence and routing. `_provisional_confidence` in the pipeline is
+labelled a placeholder and says so; stage 5 replaces it with something defensible and writes
+down why the threshold is where it is.
+
+**Uncommitted.** Everything remains in the working tree by request.

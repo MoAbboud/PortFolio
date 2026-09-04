@@ -148,3 +148,88 @@ def _provisional_confidence(result) -> float:
     # The model's own opinion counts, and counts least.
     score = 0.8 * score + 0.2 * float(fields.read.confidence)
     return round(max(0.0, min(1.0, score)), 4)
+
+
+def validate_document(
+    session: Session,
+    document_id: uuid.UUID,
+    extraction: "Extraction | None" = None,
+) -> list:
+    """Run the rules over an extraction, write a row per rule, and route the document.
+
+    Returns the outcomes. Called after `extract_document` in the same background task, and
+    again by the corrections endpoint in stage 6 - re-validating writes a fresh set of rows
+    with a later `checked_at` rather than updating the old ones, because a correction that
+    overwrites the previous verdict destroys the record of what the model originally said.
+
+    Routing is one line: any failed error goes to a person, warnings do not. Confidence
+    arrives in stage 5 and can only add documents to the queue, never remove one.
+    """
+    from mailman.invoice import InvoiceFields, InvoiceRead
+    from mailman.models import ValidationResult
+    from mailman.status import AUTO_APPROVED, NEEDS_REVIEW, VALIDATED
+    from mailman.validation import failed_errors, needs_review, summarise, validate
+
+    document = session.get(Document, document_id)
+    if document is None:
+        log.warning("validate_document called for a document that does not exist: %s", document_id)
+        return []
+
+    if document.status != EXTRACTED:
+        log.info("document %s is %s, not %s - not validating", document_id, document.status, EXTRACTED)
+        return []
+
+    if extraction is None:
+        extraction = (
+            session.query(Extraction)
+            .filter(Extraction.document_id == document_id, Extraction.error.is_(None))
+            .order_by(Extraction.created_at.desc())
+            .first()
+        )
+    if extraction is None or not extraction.extracted_data:
+        log.warning("document %s has no usable extraction to validate", document_id)
+        return []
+
+    fields = InvoiceFields(InvoiceRead(**_read_from(extraction.extracted_data)))
+    outcomes = validate(fields)
+
+    for outcome in outcomes:
+        session.add(
+            ValidationResult(
+                document_id=document.id,
+                extraction_id=extraction.id,
+                rule_name=outcome.rule_name,
+                severity=outcome.severity,
+                passed=outcome.passed,
+                message=outcome.message,
+            )
+        )
+
+    move(document, VALIDATED, actor="pipeline", detail=summarise(outcomes))
+
+    if needs_review(outcomes):
+        reasons = ", ".join(o.rule_name for o in failed_errors(outcomes))
+        move(document, NEEDS_REVIEW, actor="pipeline", detail=f"failed: {reasons}")
+    else:
+        move(document, AUTO_APPROVED, actor="pipeline", detail=summarise(outcomes))
+
+    session.commit()
+    return outcomes
+
+
+def _read_from(extracted_data: dict) -> dict:
+    """Turn a stored extraction back into `InvoiceRead` keyword arguments.
+
+    Amounts cross JSON as strings and come back as strings, which is the point - `InvoiceRead`
+    holds what the document said and `InvoiceFields` does the parsing, so re-validating a
+    stored extraction goes through exactly the same parser as the original run. A shortcut
+    here that read the numbers directly would validate a different value from the one the
+    pipeline produced.
+    """
+    data = dict(extracted_data)
+    data.pop("problems", None)
+    data.pop("ambiguous_dates", None)
+    data.pop("date_conventions", None)
+    data.setdefault("confidence", 0.0)
+    data.setdefault("unreadable", [])
+    return data

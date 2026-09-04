@@ -224,30 +224,52 @@ and the extractor is the thing that is short. The failure list is in
 
 ## Stage 4 - Validation layer
 
+**Mostly done.** 2026-09-04. Ten rules in `mailman/validation.py`, wired into the pipeline,
+36 unit tests. Two rules from the architecture were rejected with reasons; two more need a
+database session and move to stage 6.
+
 One of the two parts that has to reflect the author's own judgement. Read every rule.
 
 Ends with: a document that fails arithmetic lands at `needs_review` and the queue query
 returns it.
 
-- [ ] Rule as a small, individually testable function with a name and a severity
-- [ ] Registry the pipeline runs over
-- [ ] One row written to `validation_results` per rule per document, passes included
-- [ ] Messages that name the numbers, so a reviewer knows what to look at
-- [ ] Required fields present (error)
-- [ ] Line items sum to subtotal (error)
-- [ ] Subtotal plus tax equals total (error)
-- [ ] Line arithmetic: quantity times unit price equals amount (error)
-- [ ] Total matches the total printed on the document (error)
-- [ ] Currency consistent across all amounts (error)
-- [ ] Invoice number matches the expected format (error)
-- [ ] Issue date plausible (error)
-- [ ] Due date not before issue date (warning)
-- [ ] Vendor resolves against `vendors`, with normalisation and the alias list (warning)
-- [ ] Invoice number not already recorded for this vendor (error)
-- [ ] Add the rules that came out of stage 3 that are not on this list
-- [ ] Remove any rule from this list that stage 3 showed catches nothing
-- [ ] Errors route to `needs_review`. Warnings do not
-- [ ] A unit test per rule, including the case where it should pass
+- [x] Rule as a small, individually testable function with a name and a severity
+- [x] Registry the pipeline runs over
+- [x] One row written to `validation_results` per rule per document, passes included
+- [x] Messages that name the numbers, so a reviewer knows what to look at
+- [x] Required fields present (error)
+- [x] Line items sum to subtotal (error)
+- [x] Subtotal plus tax equals total (error)
+- [x] Line arithmetic: quantity times unit price equals amount (error)
+- [~] Total matches the total printed on the document (error). **Not implemented, and
+      unimplementable as stated.** It guards against a model computing a total rather
+      than reading one, but `total` IS what was read - there is no second signal to
+      compare against. `subtotal_plus_tax_equals_total` is the check it was reaching
+      for. Becomes real if an extractor ever reports read and computed separately
+- [x] Currency found and recognised (error). Renamed from "consistent across all
+      amounts": amounts carry no per-amount currency once parsed, so there is nothing
+      to be inconsistent with. The real failure is a missing or invented currency, and
+      the trained extractor scored 1/11 on exactly that
+- [~] Invoice number matches the expected format (error). **Downgraded to a weak
+      warning.** The corpus carries at least three shapes - INV-2026-0042, NS-88213,
+      MPW-3310 - so a single format marks two of eleven good documents as errors: the
+      02-many-lines trap, a new rule failing against its own reference corpus. Checks
+      only length, a digit, and no whitespace. Per-vendor formats are the honest
+      version and need a vendors column, so stage 6 at the earliest
+- [x] Issue date plausible (error)
+- [x] Due date not before issue date (warning)
+- [>] Vendor resolves against `vendors` (warning). Needs a session and a populated
+      table - moved to stage 6 with the promotion work
+- [>] Invoice number not already recorded for this vendor (error). Same reason; it is
+      also the rule the database constraint enforces, so it belongs beside promotion
+- [x] Added from stage 3, not on the architecture's list: `amounts_parsed` (a value the
+      parser could not read is a reason to see a person, and InvoiceFields has recorded
+      them since stage 2 with nothing reading it) and `dates_are_unambiguous` (06-
+      ambiguous-date exists to prove a two-way date is flagged rather than guessed;
+      `parse_date` flagged it and nothing acted on it)
+- [x] Removed: see the two `[~]` entries above
+- [x] Errors route to `needs_review`. Warnings do not
+- [x] A unit test per rule, including the case where it should pass
 
 ## Stage 5 - Confidence and routing
 
