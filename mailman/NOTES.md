@@ -874,3 +874,173 @@ Still not done: model selection. `save_strategy` is "no", so I ship whatever the
 left, and runs 2 vs 3 swung seventy points per field between epochs. Doing it honestly needs a
 dev set I can select on without spending the test set. Next methodological change, separate
 from this one.
+
+## Run 5: 84.1% shifted, gap 15.9% - and the regression is the finding
+
+    Run  Generator                                 Shifted  Gap
+    1    small vocabulary                           40.7%   59.3%
+    2    vocabulary half-applied (2 epochs)         46.4%   53.6%
+    3    vocabulary half-applied                    47.4%   52.6%
+    4    vocabulary fully applied                   70.7%   29.3%
+    5    + identifiers, structure, descriptions     84.1%   15.9%
+
+Run 1 to run 5 at constant epochs: **40.7% to 84.1%, gap 59.3 -> 15.9.** Every point of that
+came out of removing constants from my own training data. Not one came from the model, the
+optimiser, the architecture or the training length. That is the headline of this project and I
+should say it exactly that way.
+
+    INVOICE_NUMBER   13.0% -> 99.0%   +86.0   one constant removed, prediction written first
+    ISSUE_DATE       12.5% -> 68.0%   +55.5
+    TOTAL            80.5% -> 99.5%   +19.0
+    LINE_DESCRIPTION 34.0% -> 46.0%   +12.0
+    DUE_DATE         92.5% -> 68.0%   -24.5   <-- regressed
+
+**The regression reinterprets run 4, and it is the thing worth being able to explain.**
+
+Until run 5 my generator always put the issue date before the due date. So does my shifted
+set. So a model that learned nothing beyond "first date is the issue date, second is the due
+date" scored 92.5% - not because it generalised, but because my held-out set happened to share
+my training set's field order. Shuffling the order took the crutch away, and both dates fell to
+68% because the only thing left to distinguish them is a label word the model has never seen.
+
+So run 4's 92.5% was partly an artifact of my test set, run 5's 68% is the honest number, and
+**my overall 84.1% is understated against runs 1-4**, which were collecting free points I have
+now given up. Third time in this project a number has looked better than the thing it measured,
+second time the cause was the evaluation rather than the model.
+
+What that does NOT license: changing the shifted generator. Runs 1-5 are scored against it and
+varying its order now would void the table. The right answer is a *second* held-out set that
+varies structure as well as wording, reported alongside. New measurement, not an edited one.
+
+**Two pairs are sitting on identical numbers, and that is not coincidence:**
+
+    ISSUE_DATE 68.0% (136/200)    DUE_DATE 68.0% (136/200)
+    SUBTOTAL   73.0% (146/200)    TAX      73.0% (146/200)
+
+Adjacent, same shape, same failure count. When it gets one right it gets both right. That is
+within-pair confusion, not a vocabulary gap.
+
+**Next hypothesis, and the first lever in this project that is not the data.** `Discharge by`
+is a payment deadline to anyone who reads English, and DistilBERT knows that before I start
+fine-tuning. I think six epochs at 5e-5 on a narrow generated task is destroying the pretrained
+semantics the unseen label words depend on - the model is at 100% in-distribution from epoch
+one, so everything after that is memorising my generator at the cost of the language model
+underneath. Cheap to test: 2, 4, 6 epochs on run 5 data, nothing else moved.
+
+But diagnose first. I have not read the diagnostic cell on this model. Swapping the two labels,
+merging them into one span, and emitting nothing for one of them are three different faults
+with three different fixes, and my own rule in this file is diagnose then fix.
+
+## Run 6: I re-ran the same config and got a 24-point swing
+
+Re-ran the notebook to recover the model files. Same code, same generator, same data seed,
+same 6 epochs. Different numbers:
+
+    field              run 5     run 6    move
+    SUBTOTAL           73.0%     49.0%   -24.0
+    TAX                73.0%     50.0%   -23.0
+    ISSUE_DATE         68.0%     56.5%   -11.5
+    LINE_DESCRIPTION   46.0%     55.0%    +9.0
+
+**Run-to-run training variance is at least 24 points on a field.** That is bigger than most of
+the per-field movements I have been explaining for the last four entries, and I have to take
+some of them back.
+
+The 6-point noise floor I have been quoting since the run 3 session is a SAMPLING floor - the
+same model over two different sets of documents. It says nothing about training variance and I
+have been using it as though it did.
+
+So: **the DUE_DATE regression story is a hypothesis, not a result.** The reasoning still looks
+right to me - runs 1-4 could read the due date positionally because my training set and my
+shifted set share a field order, and shuffling took that away - and the identical pair counts
+still point at within-pair confusion. But a 24.5-point move cannot be told apart from a
+24-point noise band on one pair of runs. Same for every small claim: TAX +1.5, BUYER_NAME +5.0,
+LINE_UNIT_PRICE +1.5. Those mean nothing.
+
+What survives is the large stuff, which is far outside any plausible band and moved
+monotonically over five runs: INVOICE_NUMBER 13->99, SUBTOTAL and TAX 0->70s, overall
+40.7->84.1. The headline is untouched. The fine-grained attribution is gone.
+
+Cause found: `TrainingArguments` defaults to seed=42 and Trainer calls set_seed with it, but
+that happens AFTER I construct the model, so my classifier head was initialised from whatever
+state the process was in. `set_seed` now runs first. That is one source removed, not
+determinism - cuDNN kernel choice and GPU reduction order are still free and Colab gives me a
+different GPU between sessions, so the manifest now records the GPU and the seed.
+
+**The real handling is to repeat a configuration and quote a range.** Three runs, nothing
+changed, eighteen minutes. Until I do that I cannot read an ablation, and running ablations
+before it would be spending an hour to produce numbers I would then have to disown.
+
+## And the diagnostic - three faults, not one
+
+**SUBTOTAL and TAX merge into one span, both directions.** Confirmed, not inferred:
+
+    wanted  €9,623.69     got  €9,623.69€1,684.15    subtotal swallowed the tax
+    wanted  $13,247.54    got  (nothing)             swallowed by TAX
+    wanted  eur1,817.65   got  eureur                swallowed by TOTAL
+
+Boundary failure, not a vocabulary gap. On the shifted set the label between the two amounts is
+unseen - `Chargeable value`, `Levy` - so no B- is emitted and the subtotal span runs through it.
+**More SUBTOTAL or TAX examples is the wrong fix**, which is exactly what I would have done
+without this cell.
+
+**LINE_DESCRIPTION is eating the table header.** The shifted header is `Narrative Count Tariff
+Extension` and `Extension` keeps arriving on the front of the first description. Five training
+headers are not enough for an unseen header row to read as O.
+
+Also a measurement artifact I should have noticed earlier: `serving_accuracy` joins every line
+value in a document into one string, so one bad boundary fails the whole document for that
+field. LINE_DESCRIPTION is scored document-level, not per line. Partly explains why it sits in
+the forties while LINE_AMOUNT is at 100%.
+
+**ISSUE_DATE has two faults, and only one is the boundary.**
+
+    wanted  2026-08-27    got  2026-08-272026-09-17   merged with the due date
+    wanted  03/08/2026    got  03/08                  truncated
+    wanted  14june2026    got  14                     truncated, lost two thirds
+
+The truncation is new and is not a boundary problem - the span just ends early, worst on
+written dates. Third fault, third fix, and nothing in my plan addresses it yet.
+
+### Full variance table, off the manifest
+
+    FIELD              run 5    run 6   swing        FIELD             run 5   run 6  swing
+    INVOICE_NUMBER     99.0%    99.0%    +0.0        SUBTOTAL          73.0%   49.0%  -24.0
+    VENDOR_NAME        99.5%    69.5%   -30.0        TAX               73.0%   50.0%  -23.0
+    BUYER_NAME         69.0%    77.5%    +8.5        TOTAL             99.5%   99.0%   -0.5
+    ISSUE_DATE         68.0%    56.5%   -11.5        LINE_DESCRIPTION  46.0%   55.0%   +9.0
+    DUE_DATE           68.0%    56.5%   -11.5        LINE_QUANTITY     98.5%   99.0%   +0.5
+    CURRENCY          100.0%   100.0%    +0.0        LINE_UNIT_PRICE  100.0%   99.5%   -0.5
+                                                     LINE_AMOUNT      100.0%  100.0%   +0.0
+    OVERALL            84.1%    77.7%    -6.4
+
+Largest swing is 30 points, not the 24 I first wrote. VENDOR_NAME 99.5 -> 69.5 with nothing
+changed.
+
+**But the variance is not uniform, and that is the finding.** Two clean groups:
+
+  stable to within a point   INVOICE_NUMBER CURRENCY TOTAL LINE_AMOUNT LINE_QUANTITY
+                             LINE_UNIT_PRICE - all 99-100% in both runs
+  unstable by 8-30 points    VENDOR_NAME BUYER_NAME both dates SUBTOTAL TAX
+                             LINE_DESCRIPTION
+
+Every unstable one is a field my diagnostic shows failing on a BOUNDARY. That is not a
+coincidence: a field I have genuinely taught scores the same every time, and a field whose
+answer depends on finding a span edge in text it has never seen is decided by where the weights
+happened to land. **The variance is a symptom of the boundary problem, not a separate issue.**
+
+Two things reproduce across both runs and are therefore real:
+  ISSUE_DATE and DUE_DATE identical in both (68.0/68.0, then 56.5/56.5)
+  SUBTOTAL and TAX within a point in both (73.0/73.0, then 49.0/50.0)
+
+Within-pair confusion survives independent training runs even as the level swings 24 points.
+The pairs finding holds. The levels do not.
+
+**models/extractor is run 6, not run 5** - manifest says serving_shifted 0.7773. My re-run to
+recover the files gave me a worse model and run 5's weights are gone. Which is fine, and the
+honest reading is that run 5's model was never a thing to preserve: it was one sample from a
+spread I had not measured.
+
+Workflow: Colab 22 prints the manifest, which carries the serving scores, all thirteen shifted
+per-field numbers, the generator flags, epochs, seed and GPU. A few kilobytes. **Paste that
+instead of Colab 19, and stop downloading 250MB for runs that only exist to be measured.**

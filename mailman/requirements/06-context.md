@@ -2817,3 +2817,318 @@ result to check every format string and the marker logic; the generator and shif
 re-run at 4000 documents with the assertions holding.
 
 **Uncommitted.** Everything remains in the working tree by request.
+
+### 2026-09-02 - run 5: 84.1% shifted, and a regression that explains run 4
+
+**The result.**
+
+    in-distribution 100.0%   shifted 84.1%   gap 15.9%
+    run 4 baseline           shifted 70.7%   gap 29.3%
+    movement                        +13.4%        -13.4%
+
+| Run | Epochs | Generator | Shifted | Gap |
+| --- | --- | --- | --- | --- |
+| 1 | 6 | small vocabulary | 40.7% | 59.3% |
+| 2 | 2 | vocabulary half-applied | 46.4% | 53.6% |
+| 3 | 6 | vocabulary half-applied | 47.4% | 52.6% |
+| 4 | 6 | vocabulary fully applied | 70.7% | 29.3% |
+| 5 | 6 | + identifiers, structure, descriptions | **84.1%** | **15.9%** |
+
+Run 1 to run 5, at constant epochs and constant everything except what the generator emits:
+**40.7% to 84.1%, and the gap from 59.3 points to 15.9.** Every point of that came from
+removing constants from the training data. Not one came from the model, the optimiser, the
+architecture or the training length.
+
+**Per field, against run 4.**
+
+| Field | run 4 | run 5 | move |
+| --- | --- | --- | --- |
+| INVOICE_NUMBER | 13.0% | **99.0%** | +86.0 |
+| ISSUE_DATE | 12.5% | 68.0% | +55.5 |
+| TOTAL | 80.5% | 99.5% | +19.0 |
+| LINE_DESCRIPTION | 34.0% | 46.0% | +12.0 |
+| LINE_QUANTITY | 88.0% | 98.5% | +10.5 |
+| VENDOR_NAME | 91.0% | 99.5% | +8.5 |
+| BUYER_NAME | 64.0% | 69.0% | +5.0 |
+| TAX | 71.5% | 73.0% | +1.5 |
+| LINE_UNIT_PRICE | 98.5% | 100.0% | +1.5 |
+| CURRENCY, SUBTOTAL, LINE_AMOUNT | | unchanged | 0.0 |
+| **DUE_DATE** | 92.5% | **68.0%** | **-24.5** |
+
+The invoice-number fix is the cleanest result the project has produced: one constant removed,
+one field from 13% to 99%, and the prediction was written down before the run.
+
+**The regression is the interesting part, and it reinterprets run 4.**
+
+`DUE_DATE` fell 24.5 points, far outside the 6-point noise floor. And `ISSUE_DATE` and
+`DUE_DATE` now sit on **exactly** the same number - 136/200 each. So do `SUBTOTAL` and `TAX`,
+at 146/200 each. Two adjacent same-type pairs, each landing on an identical count, is not
+coincidence: it is what within-pair confusion looks like. When it gets one right it gets both
+right, and when it fails it fails both.
+
+**Why the due date got worse when everything else got better.** Until run 5 the training
+generator always emitted the issue date before the due date. **So does the shifted generator.**
+So a model that learned nothing more than "the first date is the issue date, the second is the
+due date" scored 92.5% on the held-out set - not because it had generalised, but because the
+held-out set happened to share training's field order.
+
+Run 5 shuffles the header blocks, so position stops being a rule. What is left is the label
+word, and on the shifted set the label words are unseen - `Rendered`, `Supply date` against
+`Discharge by`, `Clearance required`. The model cannot tell them apart, and both dates land at
+68%.
+
+**That means run 4's 92.5% was partly an artifact of the test set, and run 5's 68% is the more
+honest number.** The shifted generator varies vocabulary but has exactly one field order, so
+it has never tested structural generalisation at all - a positional cue transferred for free
+in runs 1 to 4. This is the third time a number in this project has looked better than the
+thing it was measuring, and the second time the cause was the evaluation rather than the model.
+
+It also means **the overall 84.1% is understated relative to runs 1-4**, which were collecting
+free points from a coincidence that run 5 gives up.
+
+**What this does not license.** The shifted generator is frozen and must stay frozen - runs 1
+to 5 are scored against it and varying its order now would make the table meaningless. The
+right move is a *second* held-out set that varies structure as well as wording, reported
+alongside rather than instead. That is a new measurement, not an edit to an old one.
+
+**The remaining failures, and what they are not.** Three things are now weak, and none of them
+looks like a vocabulary problem:
+
+    ISSUE_DATE / DUE_DATE   68.0% each   the two are not distinguished
+    SUBTOTAL   / TAX        73.0% each   the two are not distinguished
+    LINE_DESCRIPTION        46.0%        open vocabulary, improved but still the worst
+
+The pairs are the story. Both are adjacent, both are the same shape (a label then a value),
+and in both cases the only thing separating them is the meaning of an unseen label word.
+`Discharge by` is a payment deadline to anyone who reads English, and DistilBERT knows that
+before fine-tuning ever starts. **The hypothesis worth testing next is that six epochs at
+5e-5 on a narrow generated task destroys the pretrained semantics that would carry it.** The
+model is at 100% in-distribution from epoch one; everything after that is memorising a
+generator at the cost of the language model underneath.
+
+That is cheap to test and it is the first lever in this project that is not the data.
+
+**Not yet confirmed, and it should be before anything is changed.** The diagnostic cell
+(Colab 20) was not read. The identical pair counts are strong evidence of confusion, but
+whether the model is swapping the two labels, merging them into one span, or emitting nothing
+for one of them are three different faults with three different fixes. The cell prints exactly
+that, and the standing rule in this file is diagnose then fix.
+
+**Every change made this pass.**
+
+| File | Change |
+| --- | --- |
+| `notebooks/train_extractor.ipynb` Colab 4 | `BASELINE` is run 5; run table extended |
+| `notebooks/train_extractor.ipynb` Colab 19 | `BASELINE_PER_FIELD` is run 5's thirteen; `WATCH` is now the two pairs plus descriptions; the identical-pair finding written into the comment |
+| `requirements/06-context.md` | This entry, run 5 in the table |
+| `NOTES.md` | Run 5 recorded |
+
+**Next, in order.**
+
+1. **Read Colab 20** on the run 5 model. Swap, merge or silence - three faults, three fixes.
+2. **An epoch and learning-rate sweep.** 2, 4 and 6 epochs on run 5's data, nothing else
+   changed. The claim being tested is that the fine-tune is destroying the pretrained
+   semantics the unseen label words depend on. First non-data lever in the project.
+3. **The three ablations** - identifiers, structure, descriptions - one flag off each, six
+   minutes apiece. "Varying the invoice number was worth 86 points on that field" is a README
+   line; "we changed three things" is not.
+4. **A structurally shifted evaluation set**, reported alongside the frozen one, because the
+   frozen one cannot see field order and has been handing out free points for five runs.
+5. Heuristic against trained on the eleven-document corpus. Still the comparison that decides
+   whether the model ships at all.
+
+**Uncommitted.** Everything remains in the working tree by request.
+
+### 2026-09-02 - run 6: the diagnostic read, and a variance finding that outranks it
+
+**What was asked.** The author re-ran the notebook to recover the model files, uploaded the
+result as `models/extractor`, and pasted Colab 20 from that run. Then: "do i need to paste
+anything for step 3 and 4 you gave?"
+
+**The re-run is a sixth training run, and comparing it to run 5 is the most important thing in
+this entry.** Identical code, identical generator, identical seed for the data, identical 6
+epochs. Only the training process differed.
+
+    field              run 5     run 6    move
+    SUBTOTAL           73.0%     49.0%   -24.0
+    TAX                73.0%     50.0%   -23.0
+    ISSUE_DATE         68.0%     56.5%   -11.5
+    LINE_DESCRIPTION   46.0%     55.0%    +9.0
+
+**Run-to-run variance on a single field is at least 24 points.** That is not a small
+correction; it is larger than most of the per-field movements this log has spent four entries
+attributing to specific causes.
+
+**What this invalidates, stated plainly.**
+
+- The 6-point noise floor quoted since the run 3 session is a **sampling** floor - the same
+  model over two disjoint samples of documents. It says nothing about training variance, and
+  it has been used as though it did. Every "outside the noise band" judgement made against it
+  is unsupported.
+- **The DUE_DATE regression story from the run 5 entry is not established.** The mechanism
+  argued there - that runs 1-4 read the due date positionally because training and the shifted
+  set share a field order, and that shuffling removed the crutch - is still a good a priori
+  argument, and the fact that ISSUE_DATE and DUE_DATE landed on identical counts still points
+  at within-pair confusion. But a 24.5-point move cannot be distinguished from a 24-point noise
+  band on one pair of runs. The explanation stands as a hypothesis; the evidence does not.
+- Small per-field claims across runs 1-5 - TAX +1.5, LINE_UNIT_PRICE +1.5, BUYER_NAME +5.0 -
+  mean nothing and should not be repeated.
+
+**What survives.** The large effects are far outside any plausible noise band and the overall
+figures moved monotonically across five runs: INVOICE_NUMBER 13% to 99%, SUBTOTAL and TAX 0%
+to the seventies, overall 40.7% to 84.1%. The headline - that every point came from removing
+constants from the generator - is unaffected. What is gone is the fine-grained attribution.
+
+**Why it happens, and what was done.** `TrainingArguments` defaults to `seed=42` and `Trainer`
+calls `set_seed` with it, but that happens *after* `AutoModelForTokenClassification` is
+constructed, so the classifier head was initialised from whatever state the process was in.
+`set_seed(SEED)` now runs before the model is built, and `seed` is passed explicitly.
+
+That does not buy determinism. cuDNN kernel selection and GPU reduction order are still free,
+and Colab hands out different GPUs between sessions. So the manifest now records `gpu` and
+`seed` alongside the scores, because two runs cannot be compared without knowing what they ran
+on. **The honest handling of the remainder is to repeat a configuration and quote a range**,
+and that is now the first thing the next sitting should do.
+
+**The diagnostic, which is what was actually asked for.** Colab 20 on the run 6 model, and it
+is unambiguous. Three distinct faults, not one.
+
+**1. SUBTOTAL and TAX merge into a single span, in both directions.**
+
+    wanted  €9,623.69      got  €9,623.69€1,684.15      (subtotal swallowed the tax)
+    wanted  $13,247.54     got  (nothing)               ^ swallowed by TAX
+    wanted  cad4,012.24    got  cad4,012.24cad802.45
+    wanted  eur1,817.65    got  eureur                  ^ swallowed by TOTAL
+
+Confirmed: this is a boundary failure, not a vocabulary gap. On the shifted set the label
+between the two amounts is unseen - `Chargeable value`, `Levy` - so no `B-` is emitted at the
+tax label and the subtotal span runs straight through it. Exactly the mechanism run 4
+demonstrated, still present between the two fields whose labels are hardest.
+
+**More variety in SUBTOTAL or TAX examples is therefore the wrong fix**, which is what the
+cell was built to tell us and what would have been done otherwise.
+
+**2. LINE_DESCRIPTION absorbs the last word of the table header.**
+
+    wanted  nightshiftpremium...      got  extensionnightshiftpremium...
+    wanted  perfectbinding,per100...  got  binding,per100...            (truncated)
+
+The shifted header is `Narrative Count Tariff Extension`. `Extension` and `Tariff Extension`
+are being pulled into the first description span. Five training headers are not enough for the
+model to recognise an unseen header row as `O`.
+
+**And a measurement artifact worth recording**: `serving_accuracy` joins every line-item value
+in a document into one string, so a single bad boundary on line 1 fails the whole document's
+LINE_DESCRIPTION. The field is scored document-level, not per line. That is a defensible
+metric but it is not what the column heading implies, and it partly explains why
+LINE_DESCRIPTION sits in the forties while LINE_AMOUNT is at 100%.
+
+**3. ISSUE_DATE has two separate faults.**
+
+    wanted  01/02/2026    got  11720261701/02/202602/05/2026   merge: number + issue + due
+    wanted  2026-08-27    got  2026-08-272026-09-17            merge: issue + due
+    wanted  03/08/2026    got  03/08                           truncation, lost the year
+    wanted  15.04.2026    got  15.04.                          truncation
+    wanted  14june2026    got  14                              truncation, lost two thirds
+
+The merging is the same boundary failure. The truncation is new and is not a boundary problem
+at all - the span simply ends early, most severely on written dates. That is a third fault
+needing a third fix, and nothing in the plan currently addresses it.
+
+**Answering the question asked.** For an epoch sweep or an ablation, Colab 19 is the paste -
+it carries the overall figures and all thirteen per-field rows. Colab 20 is only worth pasting
+when a field moves and the reason is not obvious. But both of those steps are now demoted:
+with a 24-point noise band, an ablation cannot say what it was built to say.
+
+**Every change made this pass.**
+
+| Cell (Colab) | Change |
+| --- | --- |
+| 15 | `set_seed(SEED)` before the model is constructed; `seed` passed to `TrainingArguments`; the 24-point observation recorded as the reason |
+| 22 | Manifest records `seed` and `gpu` |
+
+**Next, reordered by what the variance finding implies.**
+
+1. **Measure the noise floor properly.** Three runs of the current configuration, changing
+   nothing, quoting the range per field. Eighteen minutes, and without it no ablation can be
+   read. This is stage 9 work and it is the kind of thing an interviewer asks about.
+2. **Then the ablations**, interpreted against that range rather than against 6 points.
+3. **The boundary fault** is now confirmed and is the largest remaining lever. The candidates
+   are more label variety between adjacent money fields, and a gentler fine-tune - fewer
+   epochs or a lower learning rate - on the theory that the pretrained semantics that would
+   let `Levy` read as a tax word are being trained away.
+4. **Date truncation** is a separate, newly identified fault.
+5. Heuristic against trained on the eleven-document corpus. Unchanged in priority and still
+   the comparison that decides whether the model ships.
+
+**Uncommitted.** Everything remains in the working tree by request.
+
+### 2026-09-02 - addendum to run 6: the full variance table, read off the manifest
+
+The entry above was written from the four fields Colab 20 happened to print. The installed
+model's `mailman_model.json` carries `per_field_shifted` for all thirteen, so the comparison
+can be complete. **Run 5 against run 6, identical code, identical data, identical epochs, and
+nothing different but the training process:**
+
+    FIELD                   run 5    run 6    swing
+    INVOICE_NUMBER          99.0%    99.0%    +0.0
+    VENDOR_NAME             99.5%    69.5%   -30.0   <--
+    BUYER_NAME              69.0%    77.5%    +8.5
+    ISSUE_DATE              68.0%    56.5%   -11.5
+    DUE_DATE                68.0%    56.5%   -11.5
+    CURRENCY               100.0%   100.0%    +0.0
+    SUBTOTAL                73.0%    49.0%   -24.0
+    TAX                     73.0%    50.0%   -23.0
+    TOTAL                   99.5%    99.0%    -0.5
+    LINE_DESCRIPTION        46.0%    55.0%    +9.0
+    LINE_QUANTITY           98.5%    99.0%    +0.5
+    LINE_UNIT_PRICE        100.0%    99.5%    -0.5
+    LINE_AMOUNT            100.0%   100.0%    +0.0
+
+    OVERALL                 84.1%    77.7%    -6.4
+
+**The largest swing is 30 points, not 24.** `VENDOR_NAME` went from 99.5% to 69.5% with
+nothing changed. The overall figure moved 6.4 points.
+
+**The structure of the variance is the useful part, and it is not uniform.** Two groups:
+
+- **Stable to within a point**: INVOICE_NUMBER, CURRENCY, TOTAL, LINE_AMOUNT, LINE_QUANTITY,
+  LINE_UNIT_PRICE. All at 99-100% in both runs. These are solved, and repeated runs agree.
+- **Unstable by 8 to 30 points**: VENDOR_NAME, BUYER_NAME, both dates, SUBTOTAL, TAX,
+  LINE_DESCRIPTION. Every one of them is a field the diagnostic shows failing on a *boundary*.
+
+That is not a coincidence and it sharpens the diagnosis. A field the model has genuinely
+learned scores the same every time. A field whose answer depends on finding a span edge in
+text it has never seen is decided by where the weights happened to land, and lands differently
+every run. **The variance is a symptom of the boundary problem rather than a separate issue.**
+
+**Two things stay stable across both runs and are therefore real findings, not noise:**
+
+- ISSUE_DATE and DUE_DATE score identically in both runs - 68.0/68.0, then 56.5/56.5.
+- SUBTOTAL and TAX score within a point of each other in both - 73.0/73.0, then 49.0/50.0.
+
+Within-pair confusion reproduces across independent training runs even as the level swings 24
+points. The pairs finding survives; the levels do not.
+
+**The model now installed at `models/extractor` is run 6, not run 5.** Its manifest reads
+`serving_shifted: 0.7773`. The re-run to recover the files produced a different and materially
+worse model - 6.4 points overall, 30 on a field - and run 5's weights are gone unless that
+Colab session still exists. Nothing depends on them yet, and the honest reading is that
+"run 5's model" was never a thing to preserve: it was one sample from a distribution whose
+spread nobody had measured.
+
+Its manifest also carries `"baseline": {"run": 4 ...}` and no `seed` or `gpu` key, which dates
+it to the notebook as it stood before this session's last two edits. Useful confirmation that
+the manifest can identify which notebook produced a set of weights, which is what it is for.
+
+**A workflow note that follows.** `Colab 22` already prints the manifest minus the token-level
+per-field block, and that print contains everything needed to record a run - the serving
+scores, all thirteen shifted per-field figures, the generator flags, the baseline, the epoch
+count, and now the seed and GPU. It is a few kilobytes. **Pasting Colab 22 is strictly better
+than pasting Colab 19**, and it removes any reason to download 250MB of weights for a run
+whose only purpose is measurement.
+
+**This supersedes the "at least 24 points" figure in the entry above.** It is 30, and the
+noise is concentrated entirely in the boundary-dependent fields.
+
+**Uncommitted.** Everything remains in the working tree by request.
