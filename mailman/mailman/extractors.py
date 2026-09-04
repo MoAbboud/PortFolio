@@ -5,6 +5,10 @@ Three implementations of one protocol, selected by configuration:
   heuristic   regular expressions and layout rules. No key, no weights, no network, no
               cost. The default, the deployable one, and the baseline every other approach
               has to beat.
+  hybrid      the heuristic, with buyer_name taken from the trained model when its weights
+              are present. Rules for closed vocabularies and anything arithmetic depends on,
+              the model for the one field no rule finds. Degrades to the heuristic exactly
+              when there are no weights, so it is safe to deploy.
   trained     a token classifier trained locally and loaded from disk. Free to run, but the
               weights are too large for git and for a free hosting tier, so it is the local
               and showcase path rather than the deployed one.
@@ -35,6 +39,11 @@ def build_extractor(name: str | None = None) -> Extractor:
 
         return HeuristicExtractor()
 
+    if choice == "hybrid":
+        from mailman.hybrid import HybridExtractor
+
+        return HybridExtractor(model_dir=settings.model_dir)
+
     if choice == "trained":
         from mailman.trained import TrainedExtractor
 
@@ -52,5 +61,5 @@ def build_extractor(name: str | None = None) -> Extractor:
         )
 
     raise UnknownExtractor(
-        f"unknown extractor {choice!r}; expected one of heuristic, trained, anthropic"
+        f"unknown extractor {choice!r}; expected one of heuristic, hybrid, trained, anthropic"
     )

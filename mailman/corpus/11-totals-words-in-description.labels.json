@@ -4,6 +4,7 @@
   "should_fail": false,
   "expected": {
     "invoice_number": "SS-2026-0143",
+    "buyer_name": "Halden Construction",
     "vendor_name": "STANWICK SURVEYORS",
     "issue_date": "2026-04-17",
     "due_date": "2026-05-17",

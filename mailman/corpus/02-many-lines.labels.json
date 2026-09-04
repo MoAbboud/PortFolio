@@ -4,6 +4,7 @@
   "should_fail": false,
   "expected": {
     "invoice_number": "NS-88213",
+    "buyer_name": "Pelham Group plc",
     "vendor_name": "NORTHGATE SUPPLIES",
     "issue_date": "2026-07-02",
     "due_date": "2026-08-01",

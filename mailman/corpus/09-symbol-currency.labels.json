@@ -4,6 +4,7 @@
   "should_fail": false,
   "expected": {
     "invoice_number": "PT-2026-0451",
+    "buyer_name": "Maplewood Care",
     "vendor_name": "PEREGRINE TOOLING",
     "issue_date": "2026-03-12",
     "due_date": "2026-04-11",

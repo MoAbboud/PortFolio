@@ -184,6 +184,13 @@ class TrainedExtractor:
         raw = {
             "extractor": "trained",
             "model_dir": str(self.model_dir),
+            # The assembled fields, as the heuristic extractor also records them. Without
+            # this a refusal carries the spans but not what they were read as, so nothing
+            # downstream can say WHICH field was missing or how much of the rest was right -
+            # and a comparison against the corpus reports a blank column instead of a
+            # finding. Same reason the raw response is kept at all: a failure with no
+            # evidence cannot be investigated.
+            "read": read.model_dump(),
             # Kept on the row so an extraction can be traced to the training run behind it,
             # not just to a directory whose contents may since have been replaced.
             "trained_at": (self.manifest or {}).get("trained_at"),

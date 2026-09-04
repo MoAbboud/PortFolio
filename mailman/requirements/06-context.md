@@ -3309,3 +3309,224 @@ rather than compared, and the half-applied vocabulary.
 3. **Stage 4, the validation layer.** The actual current work.
 
 **Uncommitted.** Everything remains in the working tree by request.
+
+### 2026-09-04 - heuristic against trained, on the eleven documents. The model loses 11-1.
+
+**What was asked.** To build the comparison the notebook's own final line has been asking for
+since stage 3: the trained model against the regular expressions, on the same corpus. No GPU,
+no Docker. The author had committed the previous work first.
+
+**The result, and it is not close.**
+
+                                    heuristic            trained
+    documents clean                     11/11               1/11
+    fields right, refusal ignored       82/82              64/82
+    arithmetic breaks                       0                  4
+    total latency, 11 documents         14 ms             920 ms
+
+The one document the trained model handled correctly is `10-not-an-invoice`, which it refused -
+and it refused every other document too, so the refusal is not discrimination.
+
+**Every single failure begins with the same field.**
+
+    currency    heuristic 11/11    trained 1/11
+
+`currency` is a required field, so a document that loses it is refused outright. On everything
+else the model is respectable: `vendor_name` 10/10, `issue_date` 8/8, `due_date` 6/6,
+`invoice_number` 10/11. It is one field away from being a serious contender and that one field
+takes every document down with it.
+
+**The cause, checked rather than guessed.** Zero of the eleven corpus documents carries a
+dedicated currency line. Every single training document does - the generator has always
+emitted `<currency label> <code>` as its last block, and the shifted generator does too.
+
+So the model has only ever seen a currency as *the token after a currency label*. The corpus
+writes it the way invoices actually do: inline with the amounts (`GBP 270.00`), or as a symbol
+with no code anywhere, which is precisely what `09-symbol-currency` exists to test.
+
+**This is the most valuable result the model work has produced, and it is a negative one.**
+`CURRENCY` scored **100% on the shifted set in every one of runs 4 to 8** - the single most
+stable field in the whole series, the one field never in doubt. It scores **1/11 on documents
+shaped like real invoices.**
+
+The shifted set was built to answer "has it learned the structure of an invoice or the wording
+of this notebook", and it does answer that. But it shares a *convention* with the training set -
+that a currency gets its own labelled line - and a held-out set cannot detect a convention it
+also holds. **A hundred percent on a held-out set and nine percent on reality, for the same
+field, in the same week.**
+
+That is the fourth time a number in this project has been better than the thing it measured,
+and it is the strongest of them: the token-level F1 was a metric error, the corpus count was a
+comparison error, the vocabulary was a half-applied change, and this is a *design* error in
+the held-out set itself.
+
+**What the corpus caught that the shifted set structurally could not:**
+
+| Document | What the trained model did |
+| --- | --- |
+| `04-credit-note` | Dropped every sign: subtotal 100.00 where the document says (100.00). It has never seen a parenthesised negative |
+| `08-two-page` | 31 of 40 line items, and no total. The 512 word-piece truncation, biting exactly as the manifest's caveat says it will |
+| `05-european-separators` | Read a unit price as 0 and lost 850.50 from the subtotal |
+| `11-totals-words-in-description` | `station hire` for `Total station hire` - the boundary fault, on a description this time |
+| `02-many-lines` | Descriptions mangled to `K-`, line arithmetic wrong |
+
+**The four arithmetic breaks are the argument for stage 4 in one line.** Four documents where
+the model produced a plausible record that does not add up, and the rules that catch it are the
+ones already on the stage 4 list. The heuristic has none.
+
+**What was built.**
+
+`mailman/corpus_check.py` holds the comparison - the `CHECKS` registry, the field comparison,
+the arithmetic self-check - and `tests/test_corpus.py` now imports from it rather than carrying
+its own copy. One answer key, two callers. Two implementations would have drifted, and the copy
+that drifted would have been the one reporting the numbers, which is the argument this project
+already made for the harness driving the real pipeline.
+
+`python -m mailman.corpus_check` runs every extractor that can run on the machine. The trained
+one is skipped **loudly** when its weights are absent, because a comparison that quietly
+reports one extractor looks exactly like a comparison.
+
+**Two fixes fell out of building it.**
+
+- **A refusal was hiding its own evidence.** `TrainedExtractor` recorded `spans` on a failed
+  extraction but not the assembled `read`, so the first version of this comparison reported
+  eleven blank columns - "it failed" and nothing else. The heuristic already recorded the read
+  for exactly this reason. Now both do, and that is the difference between "the model does not
+  work" and "the model is one field from working". The finding above only exists because of it.
+- **A `KNOWN_GAPS` entry can now expire.** `test_known_gaps_are_still_gaps` fails if a listed
+  gap starts passing, so the exemption for `01-clean.buyer_name` cannot outlive its reason. A
+  suppressed failure that nobody revisits is permanent by default.
+
+**Verification.** 115 passed, 18 skipped - one more than before, the new gap test.
+
+**The answer to the question that has been open since stage 3: the model does not ship.** Not
+at 1/11 against 11/11, not at 66x the latency, and not at 250MB that cannot go in git or a free
+hosting tier. The heuristic is the deployed path and stays so. **What the model has earned is a
+place in the README as the honest comparison** - a hundred percent on its own held-out set and
+one in eleven on documents shaped like the real thing, with the reason understood.
+
+**Every change made this pass.**
+
+| File | Change |
+| --- | --- |
+| `mailman/corpus_check.py` | New. The shared comparison, plus `python -m mailman.corpus_check` |
+| `tests/test_corpus.py` | Rewritten to import the comparison; new `test_known_gaps_are_still_gaps` |
+| `mailman/trained.py` | Records the assembled `read` on a failed extraction, matching the heuristic |
+
+**Next.** Stage 4, the validation layer. It is the plan's current work, it has been for six
+model runs, and this pass has just handed it four documents where a plausible record does not
+add up. Before writing the rules, `03-architecture.md`'s rule table still wants reading against
+the five-bug failure list - two of its eleven rules will fail on this corpus as written.
+
+**Uncommitted.** Everything remains in the working tree by request.
+
+### 2026-09-04 - the model already works, on the one field it was needed for
+
+**What was asked.** "What would it take to make this model work? Should we look for new data?"
+
+**The measurement that answers it.** The comparison in the previous entry excluded
+`buyer_name` through `KNOWN_GAPS`, because that exemption existed to let the heuristic pass
+its own tests. So the one field where the two extractors could possibly differ was the one
+field the comparison was not looking at. Measured directly:
+
+    buyer_name    trained 9/9    heuristic 0/9
+
+Every corpus document, including the two-page one and the credit note. The heuristic returns
+null by design - no rule finds a buyer reliably and a guess there goes into the database.
+
+**So the question was wrong, and so was my reading of the previous result.** "The model loses
+11-1" is true and useless. The model lost because `currency` is required and it scored 1/11 on
+a convention its training data always had and no real invoice has. On the field the rules
+cannot do at all, it is perfect.
+
+**Neither extractor is better. They are good at different things, and the mistake was asking
+one component to do the whole job.**
+
+- **Rules win on closed vocabularies and anything load-bearing for arithmetic.** A currency is
+  a dozen codes and three symbols; a total has to equal subtotal plus tax. Those are things to
+  check, not predict, and a model that gets them slightly wrong produces a plausible record
+  that does not add up - four of the trained model's documents broke their own arithmetic, and
+  none of the heuristic's did.
+- **The model wins where the answer is a span with no reliable rule around it.** That is
+  `buyer_name`, and it is the entire argument for the weights existing.
+
+**Built: `mailman/hybrid.py`, a fourth implementation of the same `Extractor` protocol.** It
+takes the heuristic's reading and overlays only the fields in `MODEL_FIELDS`, currently
+`("buyer_name",)`. The whitelist is deliberate and short: a field joins it when the corpus
+comparison shows the model beating the rules on it, and not before. A model that is right 90%
+of the time is worse than a rule that is right 100% of the time, and worse in the way this
+project cares about, because its mistakes look plausible.
+
+**It reads the model's answer out of a refusal.** The trained extractor refuses these
+documents over `currency` while its buyer on the same page is perfect, so discarding the
+reading because a required field was missing would throw away the only thing being collected.
+That works because the previous pass made a failed extraction record its assembled `read`.
+
+**It degrades to the heuristic when there are no weights**, which is not a nicety: they are
+250MB, gitignored, and will not fit a free hosting tier, so the deployed path has to run
+without them. `test_the_hybrid_falls_back_to_the_heuristic_without_weights` asserts it.
+
+**The corpus now labels `buyer_name` on all ten extractable documents**, and `KNOWN_GAPS`
+exempts it for the heuristic on all ten. That is the third time in two sessions that a
+suppressed measurement was hiding the finding, and the rule is now explicit: **`KNOWN_GAPS` is
+one extractor's known limitation, and the comparison ignores it entirely.** A test asserts each
+listed gap still fails, so an exemption cannot outlive its reason.
+
+**The result.**
+
+                                    heuristic     hybrid    trained
+    documents clean                      1/11      11/11       1/11
+    fields correct                      82/92      92/92      74/92
+    buyer_name                           0/10      10/10      10/10
+    arithmetic breaks                       0          0          4
+    latency, 11 documents                6 ms     931 ms     835 ms
+
+**The hybrid is 92/92. Neither component reaches that alone.** That is the answer to "what
+would it take to make this model work": nothing further. It works now, in the role the
+evidence supports, and the composition is what makes it useful.
+
+**On whether to look for new data - yes, but as EVALUATION, not training, and that distinction
+is the whole point.**
+
+Every improvement in this project came from noticing a convention in the generator and
+removing it: the constant labels, the constant invoice-number shape, the constant field order.
+That process is bounded by what its author can think to vary. **The currency bug is the proof.**
+It survived eight training runs and a purpose-built held-out set, because the training set and
+the shifted set were written by the same person with the same mental model of an invoice, and
+a held-out set cannot detect a convention it also holds.
+
+Real documents break that, and they break it as an evaluation set long before they are needed
+as a training set. Fifty real invoices, labelled once by hand, would have caught the currency
+assumption on the first run. The candidates recorded earlier stand: **RealKIE FCC Invoices**
+(370 real invoices, CC-BY-NC, direct download) is the better fit; **CORD** (800 receipts,
+CC-BY-4.0) is a different document type with a different field set. The licence matters for the
+hosted-demo goal - CC-BY-NC is fine for a portfolio and not for anything commercial, and that
+should be stated wherever the number is quoted.
+
+**What it would take to make the trained extractor work standalone**, recorded because it is a
+real list even though it is now the wrong goal:
+
+| Fault | Fix | Cost |
+| --- | --- | --- |
+| `currency` 1/11 - always on its own labelled line in training, never in reality | Generator sometimes omits the line; currency inline with amounts or symbol-only | One run |
+| Signs dropped - `(100.00)` read as `100.00` | Generator emits parenthesised negatives and credit notes | One run |
+| `08-two-page` truncated at 31 of 40 lines | Long tables in training, and chunking at serving time | Larger |
+| Boundary faults, and the ±40 point per-field initialisation variance they cause | Unsolved, and the reason further runs stopped paying | Open |
+
+**Every change made this pass.**
+
+| File | Change |
+| --- | --- |
+| `mailman/hybrid.py` | New. The composed extractor, with the whitelist and the fallback |
+| `mailman/extractors.py` | `hybrid` registered and documented |
+| `mailman/corpus.py` | `buyer_name` labelled on all ten extractable cases, with the reason |
+| `mailman/corpus_check.py` | `KNOWN_GAPS` covers the buyer everywhere; the comparison no longer suppresses gapped fields; hybrid included |
+| `tests/test_corpus.py` | Hybrid fallback test |
+
+**Verification.** 116 passed, 18 skipped. The hybrid was run with a nonexistent model directory
+and reproduces the heuristic exactly.
+
+**Next.** Stage 4. It has been the plan's current work for six model runs, and the model
+question is now closed with a defensible answer rather than abandoned.
+
+**Uncommitted.** Everything remains in the working tree by request.

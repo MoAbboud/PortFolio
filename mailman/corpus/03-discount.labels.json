@@ -4,6 +4,7 @@
   "should_fail": false,
   "expected": {
     "invoice_number": "BW-2026-771",
+    "buyer_name": "Kestrel Retail Ltd",
     "vendor_name": "BLUEWATER LOGISTICS",
     "issue_date": "2026-09-03",
     "currency": "GBP",

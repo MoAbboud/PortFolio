@@ -4,6 +4,7 @@
   "should_fail": false,
   "expected": {
     "invoice_number": "TS-2026-4417",
+    "buyer_name": "Ashcombe Interiors",
     "vendor_name": "TESSELLATE SYSTEMS GmbH",
     "issue_date": "2026-08-14",
     "due_date": "2026-09-13",

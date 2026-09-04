@@ -1113,3 +1113,128 @@ counted instead of compared, and the vocabulary change that had only half happen
 Stopping the training here. The model has run five stages ahead of the plan and I now have the
 result that says more runs cannot pay for themselves. Next is the heuristic against the trained
 model on my own eleven documents - no GPU, no Docker - and then stage 4.
+
+## Heuristic vs trained, on my own eleven documents. The model loses 11-1.
+
+    python -m mailman.corpus_check
+
+                                    heuristic            trained
+    documents clean                     11/11               1/11
+    fields right, refusal ignored       82/82              64/82
+    arithmetic breaks                       0                  4
+    total latency, 11 documents         14 ms             920 ms
+
+The one document the model "got right" is the delivery note it refused - and it refused all
+eleven, so that is not discrimination.
+
+**Every failure starts with one field: currency, 1/11.** It is a required field, so losing it
+refuses the whole document. On everything else the model is respectable - vendor_name 10/10,
+issue_date 8/8, due_date 6/6, invoice_number 10/11. One field takes down eleven documents.
+
+**The cause, checked not guessed: zero of my eleven corpus documents has a dedicated currency
+line, and every one of my training documents does.** My generator has always ended with
+`<currency label> <code>`. So has my shifted set. So the model only ever learned currency as
+"the token after a currency label", and my corpus writes it the way invoices actually do -
+inline with the amounts, or as a symbol with no code anywhere, which is exactly what
+09-symbol-currency exists to test.
+
+**This is the most valuable thing the model work produced and it is a negative result.**
+CURRENCY scored **100% on the shifted set in every run from 4 to 8** - my single most stable
+field, never once in doubt. It scores **1/11 on documents shaped like real invoices.**
+
+My shifted set answers "did it learn the structure of an invoice or the wording of this
+notebook", and it does answer that honestly. But it shares a CONVENTION with my training set -
+that a currency gets its own labelled line - and **a held-out set cannot detect a convention it
+also holds.** 100% held-out and 9% real, same field, same week.
+
+Fourth time a number here was better than the thing it measured, and the worst of the four: the
+token-level F1 was a metric error, the corpus count was a comparison error, the vocabulary was
+a half-applied change, and this is a design error in the held-out set itself.
+
+What the corpus caught that the shifted set structurally could not:
+
+    04-credit-note   dropped every sign - 100.00 where the document says (100.00)
+    08-two-page      31 of 40 line items and no total - the 512-token truncation, biting
+    05-european      read a unit price as 0, lost 850.50 from the subtotal
+    11-totals-words  "station hire" for "Total station hire" - the boundary fault again
+    02-many-lines    descriptions mangled to "K-", line arithmetic wrong
+
+**Four arithmetic breaks is the argument for stage 4 in one line.** Four documents where the
+model produced a plausible record that does not add up, and the rules that catch it are already
+on my stage 4 list. The heuristic has zero.
+
+Two fixes fell out of building this. **A refusal was hiding its own evidence** - the trained
+extractor recorded spans but not the assembled read, so my first run of this reported eleven
+blank columns saying only "it failed". The heuristic already recorded the read. Now both do,
+and that is the whole difference between "the model does not work" and "the model is one field
+from working". And **a KNOWN_GAPS entry can now expire** - a test fails if a listed gap starts
+passing, so the buyer_name exemption cannot outlive its reason.
+
+**So: the model does not ship.** Not at 1/11 against 11/11, not at 66x the latency, not at
+250MB that cannot go in git or a free tier. The heuristic is the deployed path. What the model
+has earned is a place in the README as the honest comparison, with the reason understood.
+
+## The model already works - on the one field I needed it for
+
+I had the comparison excluding buyer_name through KNOWN_GAPS, because that exemption existed to
+let the heuristic pass its own tests. So the ONE field where the two could differ was the one
+field I was not looking at. Measured directly:
+
+    buyer_name    trained 9/9    heuristic 0/9
+
+Every corpus document, including the two-page one and the credit note.
+
+**So "the model loses 11-1" was true and useless.** It lost because currency is required and it
+scored 1/11 on a convention my training data always had and no real invoice has. On the field
+rules cannot do at all, it is perfect.
+
+Neither extractor is better. They are good at different things and my mistake was asking one
+component to do the whole job.
+
+    rules win     closed vocabularies, and anything arithmetic depends on. A currency is a
+                  dozen codes and three symbols; a total must equal subtotal plus tax. Things
+                  to CHECK, not predict. Four of the model's documents broke their own
+                  arithmetic; none of the heuristic's did.
+    model wins    where the answer is a span with no reliable rule around it. buyer_name.
+
+Built `mailman/hybrid.py` - the heuristic's reading with only MODEL_FIELDS overlaid, currently
+just buyer_name. The whitelist is short on purpose: a field joins it when the corpus shows the
+model beating the rules, not before. A model right 90% of the time is worse than a rule right
+100% of the time, and worse in the way I care about, because its mistakes look plausible.
+
+    python -m mailman.corpus_check
+
+                              heuristic     hybrid    trained
+    documents clean                1/11      11/11       1/11
+    fields correct                82/92      92/92      74/92
+    buyer_name                     0/10      10/10      10/10
+    arithmetic breaks                 0          0          4
+    latency, 11 documents          6 ms     931 ms     835 ms
+
+**92/92. Neither component gets there alone.** That is the answer to "what would it take to make
+the model work" - nothing further. It works now, in the role the evidence supports.
+
+It degrades to the heuristic when the weights are absent, which is not a nicety: 250MB will not
+fit a free tier, so the deployed path has to run without them. There is a test.
+
+Third time in two sessions a suppressed measurement hid the finding, so the rule is explicit
+now: KNOWN_GAPS is one extractor's limitation, and the comparison ignores it entirely.
+
+## Should I look for new data? Yes - as EVALUATION, not training
+
+Every improvement here came from noticing a convention in my generator and removing it. That
+process is bounded by what I can think to vary, and **the currency bug is the proof**: it
+survived eight training runs and a purpose-built held-out set, because my training set and my
+shifted set were written by the same person with the same mental model of an invoice. A
+held-out set cannot detect a convention it also holds.
+
+Real documents break that, and they break it as an EVAL set long before I need them for
+training. Fifty real invoices, hand-labelled once, would have caught the currency assumption on
+run 1. RealKIE FCC (370 real invoices, CC-BY-NC, direct download) is the better fit; CORD (800
+receipts, CC-BY-4.0) is a different document type. NC is fine for a portfolio, not for anything
+commercial, and that belongs wherever the number is quoted.
+
+Worth being able to explain: why I stopped trying to make the tagger do the whole job. Because
+the measurement told me which half it was good at, and composing two components each doing what
+it is good at beat both. That is an engineering answer, not a modelling one, and it is the
+answer this project is supposed to be demonstrating.

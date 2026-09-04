@@ -11,6 +11,12 @@ through anyone's judgement about what the extractor "should have" found.
 
 `expected` holds only the fields worth asserting on. A value of None means the document does
 not carry that field, and the correct extraction is a null - not a guess.
+
+`buyer_name` is labelled on every document even though the heuristic never finds one. It used
+to be labelled only on `01-clean`, exempted through `KNOWN_GAPS`, and that exemption hid the
+only field where the trained model beats the rules: the extractor comparison could not show a
+difference on a field it was suppressing. Labelled everywhere, the comparison reads
+heuristic 0/10 against hybrid 10/10, which is the argument for the weights existing.
 """
 
 from __future__ import annotations
@@ -131,6 +137,7 @@ Total Due                                        GBP {_NORTHGATE_TOTAL:.2f}
         ),
         expected={
             "invoice_number": "NS-88213",
+            "buyer_name": "Pelham Group plc",
             "vendor_name": "NORTHGATE SUPPLIES",
             "issue_date": "2026-07-02",
             "due_date": "2026-08-01",
@@ -164,6 +171,7 @@ Total Due                                        GBP 496.80
         ),
         expected={
             "invoice_number": "BW-2026-771",
+            "buyer_name": "Kestrel Retail Ltd",
             "vendor_name": "BLUEWATER LOGISTICS",
             "issue_date": "2026-09-03",
             "currency": "GBP",
@@ -195,6 +203,7 @@ Total Due                                       GBP (120.00)
         ),
         expected={
             "invoice_number": "CN-2026-0019",
+            "buyer_name": "Vantage Media",
             "vendor_name": "HARROW AND FINCH",
             "issue_date": "2026-08-21",
             "currency": "GBP",
@@ -228,6 +237,7 @@ Total Due                                      EUR 18.862,10
         ),
         expected={
             "invoice_number": "TS-2026-4417",
+            "buyer_name": "Ashcombe Interiors",
             "vendor_name": "TESSELLATE SYSTEMS GmbH",
             "issue_date": "2026-08-14",
             "due_date": "2026-09-13",
@@ -263,6 +273,7 @@ Total Due                                        GBP 540.00
         ),
         expected={
             "invoice_number": "MPW-3310",
+            "buyer_name": "Trent Valley Foods",
             "vendor_name": "MERIDIAN PRINT WORKS",
             "currency": "GBP",
             "total": "540.00",
@@ -292,6 +303,7 @@ Total Due                                        GBP 384.00
         ),
         expected={
             "invoice_number": "CE-2026-0088",
+            "buyer_name": "Ridgeway Motors",
             "vendor_name": "CORVID ENGINEERING",
             "issue_date": "2026-06-11",
             "due_date": None,
@@ -328,6 +340,7 @@ Total Due                                        GBP 29520.00
         ),
         expected={
             "invoice_number": "AP-2026-5120",
+            "buyer_name": "Bexley Wholesale",
             "vendor_name": "ASHLAND PAPER CO",
             "currency": "GBP",
             "total": "29520.00",
@@ -359,6 +372,7 @@ Total Due                                          $699.83
         ),
         expected={
             "invoice_number": "PT-2026-0451",
+            "buyer_name": "Maplewood Care",
             "vendor_name": "PEREGRINE TOOLING",
             "issue_date": "2026-03-12",
             "due_date": "2026-04-11",
@@ -422,6 +436,7 @@ Total Due                                        GBP 996.00
         ),
         expected={
             "invoice_number": "SS-2026-0143",
+            "buyer_name": "Halden Construction",
             "vendor_name": "STANWICK SURVEYORS",
             "issue_date": "2026-04-17",
             "due_date": "2026-05-17",

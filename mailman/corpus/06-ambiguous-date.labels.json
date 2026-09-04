@@ -4,6 +4,7 @@
   "should_fail": false,
   "expected": {
     "invoice_number": "MPW-3310",
+    "buyer_name": "Trent Valley Foods",
     "vendor_name": "MERIDIAN PRINT WORKS",
     "currency": "GBP",
     "total": "540.00",

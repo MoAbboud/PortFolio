@@ -4,6 +4,7 @@
   "should_fail": false,
   "expected": {
     "invoice_number": "CN-2026-0019",
+    "buyer_name": "Vantage Media",
     "vendor_name": "HARROW AND FINCH",
     "issue_date": "2026-08-21",
     "currency": "GBP",

@@ -4,6 +4,7 @@
   "should_fail": false,
   "expected": {
     "invoice_number": "AP-2026-5120",
+    "buyer_name": "Bexley Wholesale",
     "vendor_name": "ASHLAND PAPER CO",
     "currency": "GBP",
     "total": "29520.00",

@@ -4,6 +4,7 @@
   "should_fail": false,
   "expected": {
     "invoice_number": "CE-2026-0088",
+    "buyer_name": "Ridgeway Motors",
     "vendor_name": "CORVID ENGINEERING",
     "issue_date": "2026-06-11",
     "due_date": null,
