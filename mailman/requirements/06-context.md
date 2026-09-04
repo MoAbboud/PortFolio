@@ -3132,3 +3132,180 @@ whose only purpose is measurement.
 noise is concentrated entirely in the boundary-dependent fields.
 
 **Uncommitted.** Everything remains in the working tree by request.
+
+### 2026-09-02 - run profiles, because the GPU quota is a real constraint
+
+**What was asked.** "This might blow out the GPU free tier, this will take time but if it ends
+my limit, i will do it without a gpu."
+
+**Why that mattered more than it looked.** The plan handed over was six GPU runs - three to
+measure the noise floor, three ablations - at roughly six minutes each. On Colab's free tier
+that is a plausible way to run out mid-series, and the old CPU fallback made running out
+actively harmful: it silently dropped `EPOCHS` from 6 to 2. Epochs are the one variable already
+known to move individual fields by seventy points, and dropping them silently is precisely how
+run 2 became uninterpretable. So the fallback that existed for exactly this situation was a
+trap set for it.
+
+**The change: two named run profiles, and epochs are fixed in both.**
+
+    full    4000 documents, 6 epochs, batch 16, 200 eval documents.   What runs 1-6 used.
+    cheap   1500 documents, 6 epochs, batch 8,  150 eval documents.   About a third of the
+                                                                     work; viable on CPU in
+                                                                     tens of minutes.
+
+`PROFILE = "auto"` picks full on a GPU and cheap on CPU, and either can be forced. **Cutting
+documents rather than epochs is the whole point**: it keeps the variable known to matter fixed
+and moves one that has never been shown to.
+
+**The comparability rule is now structural rather than a single check on epochs.** `RUN_SHAPE`
+carries profile, documents and epochs, and `COMPARABLE` is true only when all three match the
+baseline. The manifest records `run_shape` and `comparable_to_baseline`, and a non-matching run
+gets an automatic caveat naming both shapes.
+
+The message a cheap run prints is the useful part:
+
+    NOT COMPARABLE TO THE BASELINE: this run is cheap profile, 1500 docs, 6 epochs.
+    This is fine for an ABLATION SERIES - every run at the same profile is comparable
+    to every other, which is what an ablation needs. It is not a number to put beside
+    run 5.
+
+That is the distinction that makes a CPU fallback worth having. **An ablation asks which of
+three changes did the work, and that question is answered entirely by differences within a
+series.** The absolute level can be lower without costing anything, as long as every run in the
+series shares a shape and the shape travels with the result. What a cheap run cannot do is
+extend the run table, and now it cannot pretend to.
+
+**The plan handed over was also wrong on priorities, and is corrected here.** Three runs to
+measure a noise floor was the right instinct against an unmeasured spread, but `set_seed` now
+runs before the model is constructed, and the classifier head's initialisation was one
+identified source of that spread. **Two seeded runs of the same configuration answer the
+question a three-run spread was going to answer**, and answer it better: if two seeded runs
+agree, the variance is largely gone and every ablation afterwards is readable from a single
+run. If they disagree, no affordable number of runs was going to make per-field ablation
+attribution work, and the honest response is to report ranges and trust only large effects.
+
+So the GPU budget is now: **two runs to find out whether the notebook is reproducible, then
+three ablations that are only worth spending on if it is.** If the quota dies after the first
+two, nothing has been wasted and the ablations move to CPU at the cheap profile.
+
+**Verified.** All 26 code cells compile; the run-size cell was executed on both branches, with
+`ON_GPU` forced true and false, to confirm the messages and the numbers.
+
+**Every change made this pass.**
+
+| Cell (Colab) | Change |
+| --- | --- |
+| 4 | `PROFILE` with full and cheap; epochs fixed at 6 in both; `RUN_SHAPE` and `COMPARABLE`; the run table extended with run 6 and a note that runs 5 and 6 are the same configuration |
+| 22 | Manifest records `run_shape`; `comparable_to_baseline` uses the structural check; the automatic caveat names both shapes |
+
+**Next.**
+
+1. Two full-profile GPU runs, identical, paste Colab 22 from each. Does seeding hold.
+2. If yes: three ablations, one flag off each, GPU if the quota allows and cheap profile on
+   CPU if not.
+3. If no: stop running ablations, report ranges, and treat only large effects as real.
+
+**Uncommitted.** Everything remains in the working tree by request.
+
+### 2026-09-02 - runs 7 and 8: seeding worked, and the ablations are cancelled
+
+**What was asked.** Two full-profile GPU runs of an identical configuration, to find out
+whether `set_seed` before model construction made the notebook reproducible. Both manifests
+pasted. Both on a Tesla T4, both `comparable_to_baseline: true`, both seed 20260901.
+
+**Seeding worked, and it worked well.**
+
+    runs 7 vs 8, identical seed        overall spread  1.4%   worst field  6.5%
+    runs 5 vs 6, unseeded head         overall spread  6.4%   worst field 30.0%
+
+Constructing `AutoModelForTokenClassification` before `set_seed` ran was a real bug and fixing
+it cut run-to-run variance by roughly a factor of four.
+
+**And it did not solve the problem, because the variance that matters is across
+initialisations, not within one.**
+
+    FIELD               run 5   run 6   run 7   run 8    same-seed   across inits
+    OVERALL             84.1%   77.7%   76.0%   74.6%        1.4%           9.5%
+    CURRENCY           100.0%  100.0%  100.0%  100.0%        0.0%           0.0%
+    LINE_AMOUNT        100.0%  100.0%  100.0%  100.0%        0.0%           0.0%
+    LINE_UNIT_PRICE    100.0%   99.5%  100.0%  100.0%        0.0%           0.5%
+    INVOICE_NUMBER      99.0%   99.0%  100.0%   98.5%        1.5%           1.5%
+    BUYER_NAME          69.0%   77.5%   76.0%   73.5%        2.5%           8.5%
+    DUE_DATE            68.0%   56.5%   74.5%   75.0%        0.5%          18.5%
+    ISSUE_DATE          68.0%   56.5%   74.5%   76.0%        1.5%          19.5%
+    SUBTOTAL            73.0%   49.0%   54.0%   47.5%        6.5%          25.5%
+    LINE_QUANTITY       98.5%   99.0%   74.0%   71.0%        3.0%          28.0%
+    TOTAL               99.5%   99.0%   71.5%   71.5%        0.0%          28.0%
+    LINE_DESCRIPTION    46.0%   55.0%   25.5%   24.0%        1.5%          31.0%
+    TAX                 73.0%   50.0%   37.5%   32.5%        5.0%          40.5%
+
+Four runs of one configuration. **Overall ranges from 74.6% to 84.1%, and `TAX` ranges from
+32.5% to 73.0% - forty points, from nothing but where the weights started.**
+
+**The clean split, and it is the finding.** Exactly four fields are stable across every
+initialisation: `CURRENCY`, `LINE_AMOUNT`, `LINE_UNIT_PRICE` and `INVOICE_NUMBER`, all at
+98.5-100% every time. Every one of them has an unambiguous surface form - a three-letter code,
+money in a fixed column position, and since run 5 an identifier that follows a label. **Every
+unstable field is one the diagnostic shows failing on a span boundary.** A field the model has
+genuinely learned scores the same whatever the seed; a field that needs a boundary found in
+unseen text is decided by initialisation luck.
+
+**What this cancels.** The ablation series is off. Detecting whether `vary_structure`
+contributed five points or fifteen, against a 9.5-point spread from initialisation alone,
+needs several runs per configuration - twelve or more runs for four configurations. That is
+not affordable on a free GPU tier and it was not worth it even if it were.
+
+**What it costs, honestly:** the individual contributions of identifier variety, structural
+variety and description variety cannot be separated. Run 5 changed three things at once and
+the budget to unpick them does not exist. That goes in the README as a limitation, not as a
+result.
+
+**What survives, and it is not nothing.** Two effects are far outside any plausible band and
+reproduce across independent initialisations:
+
+- **Vocabulary fully applied.** Run 1's 40.7% against runs 5-8 averaging 79.0%. Thirty-eight
+  points against a band of ten.
+- **Identifier variety.** `INVOICE_NUMBER` from 13.0% to 98.5-100% across four independent
+  initialisations, having sat at 4-13% for four runs before it. As close to certain as this
+  setup produces.
+
+**A correction that follows immediately: 84.1% was the best of three draws, and quoting it was
+the same error as quoting a token-level F1 of 1.000.** The honest figure for this
+configuration is **79.0% mean, range 74.6-84.1 over three initialisations**. The run 5 entry's
+headline number is superseded on those grounds - not because the run was wrong, but because
+one run was never the measurement.
+
+`BASELINE` in the notebook is now that range rather than a point, and Colab 19 judges a result
+against it:
+
+    INSIDE the range already observed for this exact configuration (74.6%-84.1%).
+    That is not evidence of anything. Whatever changed, this run does not show it.
+
+That message is the whole lesson made mechanical. Any future change producing less than about
+ten points overall gets told, before anyone can get attached to it, that it has shown nothing.
+
+**Why this is a better result than the ablations would have been.** The project exists to
+demonstrate measurement discipline, and "we measured the noise before we attributed anything,
+found it was forty points on a field, and cancelled a planned experiment because it could not
+have supported its own conclusion" is a stronger thing to walk an interviewer through than
+three attribution numbers would have been. It is also the fourth time in this project that
+measuring the measurement changed the answer - after the token-level F1, the corpus counted
+rather than compared, and the half-applied vocabulary.
+
+**Every change made this pass.**
+
+| Cell (Colab) | Change |
+| --- | --- |
+| 4 | `BASELINE` is a range - mean, low, high, initialisation count - with the full run table and the variance breakdown; prints the range |
+| 19 | Judges the run against the observed range and says plainly when a result is inside it |
+
+**Next.**
+
+1. **Stop training.** The model has now run five stages ahead of the plan, and this session
+   produced the result that says further runs cannot pay for themselves at this budget.
+2. **Heuristic against trained on the eleven-document corpus.** Zero GPU, no Docker. The
+   comparison that decides whether a 250MB model ships at all, and the one the notebook's own
+   final line has been asking for since stage 3.
+3. **Stage 4, the validation layer.** The actual current work.
+
+**Uncommitted.** Everything remains in the working tree by request.

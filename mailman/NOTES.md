@@ -1044,3 +1044,72 @@ spread I had not measured.
 Workflow: Colab 22 prints the manifest, which carries the serving scores, all thirteen shifted
 per-field numbers, the generator flags, epochs, seed and GPU. A few kilobytes. **Paste that
 instead of Colab 19, and stop downloading 250MB for runs that only exist to be measured.**
+
+## Runs 7 and 8: seeding worked, and I am cancelling the ablations
+
+Two runs, identical config, seed 20260901, both Tesla T4.
+
+    runs 7 vs 8, same seed        overall spread  1.4%   worst field  6.5%
+    runs 5 vs 6, unseeded head    overall spread  6.4%   worst field 30.0%
+
+Constructing the model before `set_seed` ran was a real bug and fixing it cut run-to-run
+variance about fourfold. Good. It also did not solve my problem, because the variance that
+matters is across initialisations, not within one:
+
+    FIELD               run 5   run 6   run 7   run 8   across inits
+    OVERALL             84.1%   77.7%   76.0%   74.6%          9.5%
+    CURRENCY           100.0%  100.0%  100.0%  100.0%          0.0%
+    LINE_AMOUNT        100.0%  100.0%  100.0%  100.0%          0.0%
+    LINE_UNIT_PRICE    100.0%   99.5%  100.0%  100.0%          0.5%
+    INVOICE_NUMBER      99.0%   99.0%  100.0%   98.5%          1.5%
+    BUYER_NAME          69.0%   77.5%   76.0%   73.5%          8.5%
+    DUE_DATE            68.0%   56.5%   74.5%   75.0%         18.5%
+    ISSUE_DATE          68.0%   56.5%   74.5%   76.0%         19.5%
+    SUBTOTAL            73.0%   49.0%   54.0%   47.5%         25.5%
+    LINE_QUANTITY       98.5%   99.0%   74.0%   71.0%         28.0%
+    TOTAL               99.5%   99.0%   71.5%   71.5%         28.0%
+    LINE_DESCRIPTION    46.0%   55.0%   25.5%   24.0%         31.0%
+    TAX                 73.0%   50.0%   37.5%   32.5%         40.5%
+
+**TAX ranges 32.5% to 73.0% across four runs of the same code.** Forty points from nothing but
+where the weights started.
+
+**The split is clean and it tells me what is actually solved.** Four fields are stable across
+every initialisation - CURRENCY, LINE_AMOUNT, LINE_UNIT_PRICE, INVOICE_NUMBER - and all four
+have an unambiguous surface form. Every unstable field is one my diagnostic shows failing on a
+span boundary. A field I have genuinely taught scores the same whatever the seed. A field that
+needs a boundary found in unseen text is decided by luck.
+
+**So the ablations are cancelled.** Telling a five-point contribution from a fifteen-point one
+against a 9.5-point initialisation spread needs several runs per config - twelve-plus runs for
+four configs. Not affordable, and not worth it. The cost is real and goes in the README as a
+limitation: I cannot separate what identifier variety, structural variety and description
+variety each contributed. Run 5 changed three things and I do not have the budget to unpick it.
+
+**What survives, and it is not nothing.** Two effects are far outside the band and reproduce
+across independent inits:
+
+    vocabulary fully applied   run 1 40.7%  ->  runs 5-8 mean 79.0%   (+38 against a band of 10)
+    identifier variety         INVOICE_NUMBER 13.0% -> 98.5-100% on four independent inits
+
+**And a correction I have to make about my own headline: 84.1% was the best of three draws.**
+Quoting it was the same mistake as quoting a token-level F1 of 1.000. The honest figure is
+**79.0% mean, range 74.6-84.1 over three initialisations.**
+
+The notebook now carries the baseline as a range, and Colab 19 says this when a result lands
+inside it:
+
+    INSIDE the range already observed for this exact configuration (74.6%-84.1%).
+    That is not evidence of anything. Whatever changed, this run does not show it.
+
+That is the lesson made mechanical, so the next me cannot get attached to a lucky run.
+
+Worth being able to explain: why cancelling an experiment is a better outcome than running it.
+The point of the harness is to decide things, and it just decided that a planned experiment
+could not have supported its own conclusion. That is the fourth time in this project that
+measuring the measurement changed the answer - after the token-level F1, the corpus that was
+counted instead of compared, and the vocabulary change that had only half happened.
+
+Stopping the training here. The model has run five stages ahead of the plan and I now have the
+result that says more runs cannot pay for themselves. Next is the heuristic against the trained
+model on my own eleven documents - no GPU, no Docker - and then stage 4.
