@@ -1,0 +1,25 @@
+{
+  "name": "20-va-2026-0012",
+  "tests": "Generated breadth: USD, layout 0, date style 3",
+  "should_fail": false,
+  "unsupported": null,
+  "expected": {
+    "invoice_number": "VA-2026-0012",
+    "vendor_name": "Vantage Analytics",
+    "buyer_name": "Redhill Insurance",
+    "issue_date": "2026-04-06",
+    "due_date": "2026-05-06",
+    "currency": "USD",
+    "subtotal": "18400.00",
+    "tax": "3680.00",
+    "total": "22080.00",
+    "line_items": [
+      {
+        "description": "Platform licence, annual",
+        "quantity": "1",
+        "unit_price": "18400.00",
+        "amount": "18400.00"
+      }
+    ]
+  }
+}

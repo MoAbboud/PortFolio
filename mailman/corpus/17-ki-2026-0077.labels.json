@@ -1,0 +1,31 @@
+{
+  "name": "17-ki-2026-0077",
+  "tests": "Generated breadth: EUR, layout 1, date style 0, European separators",
+  "should_fail": false,
+  "unsupported": null,
+  "expected": {
+    "invoice_number": "KI-2026-0077",
+    "vendor_name": "Kestrel Instruments",
+    "buyer_name": "Fenland Water",
+    "issue_date": "2026-03-08",
+    "due_date": "2026-04-07",
+    "currency": "EUR",
+    "subtotal": "4260.00",
+    "tax": "852.00",
+    "total": "5112.00",
+    "line_items": [
+      {
+        "description": "Flow meter",
+        "quantity": "3",
+        "unit_price": "1240.00",
+        "amount": "3720.00"
+      },
+      {
+        "description": "Calibration",
+        "quantity": "3",
+        "unit_price": "180.00",
+        "amount": "540.00"
+      }
+    ]
+  }
+}

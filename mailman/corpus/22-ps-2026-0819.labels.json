@@ -1,0 +1,31 @@
+{
+  "name": "22-ps-2026-0819",
+  "tests": "Generated breadth: GBP, layout 2, date style 0",
+  "should_fail": false,
+  "unsupported": null,
+  "expected": {
+    "invoice_number": "PS-2026-0819",
+    "vendor_name": "Penrose Scaffolding",
+    "buyer_name": "Harbour Developments",
+    "issue_date": "2026-04-23",
+    "due_date": "2026-05-23",
+    "currency": "GBP",
+    "subtotal": "6370.00",
+    "tax": "1274.00",
+    "total": "7644.00",
+    "line_items": [
+      {
+        "description": "Erect and dismantle",
+        "quantity": "1",
+        "unit_price": "3850.00",
+        "amount": "3850.00"
+      },
+      {
+        "description": "Weekly hire",
+        "quantity": "6",
+        "unit_price": "420.00",
+        "amount": "2520.00"
+      }
+    ]
+  }
+}

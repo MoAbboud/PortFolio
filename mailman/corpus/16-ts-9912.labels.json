@@ -1,0 +1,31 @@
+{
+  "name": "16-ts-9912",
+  "tests": "Generated breadth: GBP, layout 0, date style 4",
+  "should_fail": false,
+  "unsupported": null,
+  "expected": {
+    "invoice_number": "TS-9912",
+    "vendor_name": "Tallow & Sons",
+    "buyer_name": "Northgate Hotels",
+    "issue_date": "2026-02-28",
+    "due_date": "2026-03-30",
+    "currency": "GBP",
+    "subtotal": "605.00",
+    "tax": "121.00",
+    "total": "726.00",
+    "line_items": [
+      {
+        "description": "Candles, boxed",
+        "quantity": "40",
+        "unit_price": "12.75",
+        "amount": "510.00"
+      },
+      {
+        "description": "Storage",
+        "quantity": "1",
+        "unit_price": "95.00",
+        "amount": "95.00"
+      }
+    ]
+  }
+}

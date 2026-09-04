@@ -2,6 +2,7 @@
   "name": "01-clean",
   "tests": "The baseline. If this fails, nothing else is worth reading.",
   "should_fail": false,
+  "unsupported": null,
   "expected": {
     "invoice_number": "INV-2026-0042",
     "vendor_name": "ACME CORP LTD",

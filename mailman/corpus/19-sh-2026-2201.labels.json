@@ -1,0 +1,31 @@
+{
+  "name": "19-sh-2026-2201",
+  "tests": "Generated breadth: GBP, layout 3, date style 2",
+  "should_fail": false,
+  "unsupported": null,
+  "expected": {
+    "invoice_number": "SH-2026-2201",
+    "vendor_name": "Stonebridge Haulage",
+    "buyer_name": "Merrow Aggregates",
+    "issue_date": "2026-03-23",
+    "due_date": "2026-04-22",
+    "currency": "GBP",
+    "subtotal": "2532.40",
+    "tax": "506.48",
+    "total": "3038.88",
+    "line_items": [
+      {
+        "description": "Tipper day rate",
+        "quantity": "5",
+        "unit_price": "480.00",
+        "amount": "2400.00"
+      },
+      {
+        "description": "Fuel surcharge",
+        "quantity": "1",
+        "unit_price": "132.40",
+        "amount": "132.40"
+      }
+    ]
+  }
+}

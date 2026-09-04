@@ -1,0 +1,37 @@
+{
+  "name": "31-ar-2026-0337",
+  "tests": "Generated breadth: GBP, layout 3, date style 4",
+  "should_fail": false,
+  "unsupported": null,
+  "expected": {
+    "invoice_number": "AR-2026-0337",
+    "vendor_name": "Ashcombe Roofing",
+    "buyer_name": "Beaumont Estates",
+    "issue_date": "2026-07-13",
+    "due_date": "2026-08-12",
+    "currency": "GBP",
+    "subtotal": "19275.00",
+    "tax": "3855.00",
+    "total": "23130.00",
+    "line_items": [
+      {
+        "description": "Slate, per square metre",
+        "quantity": "240",
+        "unit_price": "68.00",
+        "amount": "16320.00"
+      },
+      {
+        "description": "Scaffold",
+        "quantity": "1",
+        "unit_price": "2400.00",
+        "amount": "2400.00"
+      },
+      {
+        "description": "Waste removal",
+        "quantity": "3",
+        "unit_price": "185.00",
+        "amount": "555.00"
+      }
+    ]
+  }
+}

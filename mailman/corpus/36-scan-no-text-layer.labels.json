@@ -1,0 +1,7 @@
+{
+  "name": "36-scan-no-text-layer",
+  "tests": "A structurally valid PDF with no text layer, which is what a scan is to pdfplumber. Not malformed - it opens fine and yields an empty string.",
+  "should_fail": false,
+  "unsupported": "no text layer - needs OCR or a vision model, neither of which exists yet",
+  "expected": {}
+}

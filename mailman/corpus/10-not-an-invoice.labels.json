@@ -2,6 +2,7 @@
   "name": "10-not-an-invoice",
   "tests": "A delivery note. No amounts, no invoice number. The pipeline must refuse it rather than assemble a record out of whatever it can find.",
   "should_fail": true,
+  "unsupported": null,
   "expected": {
     "invoice_number": null,
     "total": null,

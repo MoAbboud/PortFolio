@@ -1,0 +1,37 @@
+{
+  "name": "29-fph-2026-0623",
+  "tests": "Generated breadth: GBP, layout 1, date style 2",
+  "should_fail": false,
+  "unsupported": null,
+  "expected": {
+    "invoice_number": "FPH-2026-0623",
+    "vendor_name": "Ferrier Plant Hire",
+    "buyer_name": "Southgate Civils",
+    "issue_date": "2026-06-26",
+    "due_date": "2026-07-26",
+    "currency": "GBP",
+    "subtotal": "8160.00",
+    "tax": "1632.00",
+    "total": "9792.00",
+    "line_items": [
+      {
+        "description": "Excavator, weekly",
+        "quantity": "3",
+        "unit_price": "1150.00",
+        "amount": "3450.00"
+      },
+      {
+        "description": "Operator, day",
+        "quantity": "15",
+        "unit_price": "290.00",
+        "amount": "4350.00"
+      },
+      {
+        "description": "Transport",
+        "quantity": "2",
+        "unit_price": "180.00",
+        "amount": "360.00"
+      }
+    ]
+  }
+}

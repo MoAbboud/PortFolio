@@ -1,0 +1,37 @@
+{
+  "name": "35-cp-2026-1177",
+  "tests": "Generated breadth: GBP, layout 3, date style 3",
+  "should_fail": false,
+  "unsupported": null,
+  "expected": {
+    "invoice_number": "CP-2026-1177",
+    "vendor_name": "Calder Packaging",
+    "buyer_name": "Hartley Foods",
+    "issue_date": "2026-08-17",
+    "due_date": "2026-09-16",
+    "currency": "GBP",
+    "subtotal": "2631.00",
+    "tax": "526.20",
+    "total": "3157.20",
+    "line_items": [
+      {
+        "description": "Corrugated case",
+        "quantity": "2400",
+        "unit_price": "0.86",
+        "amount": "2064.00"
+      },
+      {
+        "description": "Pallet wrap",
+        "quantity": "30",
+        "unit_price": "14.20",
+        "amount": "426.00"
+      },
+      {
+        "description": "Tape, per roll",
+        "quantity": "60",
+        "unit_price": "2.35",
+        "amount": "141.00"
+      }
+    ]
+  }
+}

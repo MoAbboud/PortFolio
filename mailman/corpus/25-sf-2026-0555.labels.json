@@ -1,0 +1,37 @@
+{
+  "name": "25-sf-2026-0555",
+  "tests": "Generated breadth: USD, layout 1, date style 3",
+  "should_fail": false,
+  "unsupported": null,
+  "expected": {
+    "invoice_number": "SF-2026-0555",
+    "vendor_name": "Sable Freight",
+    "buyer_name": "Windermere Imports",
+    "issue_date": "2026-05-22",
+    "due_date": "2026-06-21",
+    "currency": "USD",
+    "subtotal": "4309.00",
+    "tax": "861.80",
+    "total": "5170.80",
+    "line_items": [
+      {
+        "description": "Container haulage",
+        "quantity": "2",
+        "unit_price": "1875.00",
+        "amount": "3750.00"
+      },
+      {
+        "description": "Customs entry",
+        "quantity": "2",
+        "unit_price": "62.00",
+        "amount": "124.00"
+      },
+      {
+        "description": "Demurrage",
+        "quantity": "3",
+        "unit_price": "145.00",
+        "amount": "435.00"
+      }
+    ]
+  }
+}

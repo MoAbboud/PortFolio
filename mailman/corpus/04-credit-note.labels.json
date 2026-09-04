@@ -2,6 +2,7 @@
   "name": "04-credit-note",
   "tests": "Every amount negative, printed in parentheses. Accountants' convention.",
   "should_fail": false,
+  "unsupported": null,
   "expected": {
     "invoice_number": "CN-2026-0019",
     "buyer_name": "Vantage Media",

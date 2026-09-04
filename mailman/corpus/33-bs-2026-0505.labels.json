@@ -1,0 +1,31 @@
+{
+  "name": "33-bs-2026-0505",
+  "tests": "Generated breadth: USD, layout 1, date style 1",
+  "should_fail": false,
+  "unsupported": null,
+  "expected": {
+    "invoice_number": "BS-2026-0505",
+    "vendor_name": "Bracken Software",
+    "buyer_name": "Delta Logistics",
+    "issue_date": "2026-07-31",
+    "due_date": "2026-08-30",
+    "currency": "USD",
+    "subtotal": "15300.00",
+    "tax": "3060.00",
+    "total": "18360.00",
+    "line_items": [
+      {
+        "description": "Seats, annual",
+        "quantity": "40",
+        "unit_price": "295.00",
+        "amount": "11800.00"
+      },
+      {
+        "description": "Onboarding",
+        "quantity": "1",
+        "unit_price": "3500.00",
+        "amount": "3500.00"
+      }
+    ]
+  }
+}

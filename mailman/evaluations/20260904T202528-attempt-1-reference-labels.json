@@ -1,0 +1,195 @@
+{
+  "label": "attempt-1-reference-labels",
+  "started_at": "2026-09-04T20:25:28.588902+00:00",
+  "extractor": "hybrid:trained:extractor@2026-09-04",
+  "prompt_version": "hybrid-v1",
+  "rule_set": [
+    "required_fields_present",
+    "amounts_parsed",
+    "currency_is_known",
+    "line_items_sum_to_subtotal",
+    "subtotal_plus_tax_equals_total",
+    "line_arithmetic",
+    "issue_date_is_plausible",
+    "dates_are_ordered",
+    "dates_are_unambiguous",
+    "invoice_number_is_plausible"
+  ],
+  "documents": {
+    "scored": 34,
+    "clean": 21,
+    "refused_correctly": 1,
+    "refused_wrongly": 12,
+    "unsupported": 2
+  },
+  "overall": {
+    "right": 329,
+    "of": 438,
+    "rate": 0.7511
+  },
+  "per_field": {
+    "buyer_name": {
+      "right": 21,
+      "of": 34,
+      "rate": 0.6176
+    },
+    "currency": {
+      "right": 22,
+      "of": 34,
+      "rate": 0.6471
+    },
+    "due_date": {
+      "right": 18,
+      "of": 30,
+      "rate": 0.6
+    },
+    "invoice_number": {
+      "right": 22,
+      "of": 34,
+      "rate": 0.6471
+    },
+    "issue_date": {
+      "right": 20,
+      "of": 32,
+      "rate": 0.625
+    },
+    "line.amount": {
+      "right": 36,
+      "of": 36,
+      "rate": 1.0
+    },
+    "line.description": {
+      "right": 36,
+      "of": 36,
+      "rate": 1.0
+    },
+    "line.quantity": {
+      "right": 36,
+      "of": 36,
+      "rate": 1.0
+    },
+    "line.unit_price": {
+      "right": 36,
+      "of": 36,
+      "rate": 1.0
+    },
+    "subtotal": {
+      "right": 19,
+      "of": 31,
+      "rate": 0.6129
+    },
+    "tax": {
+      "right": 19,
+      "of": 31,
+      "rate": 0.6129
+    },
+    "total": {
+      "right": 22,
+      "of": 34,
+      "rate": 0.6471
+    },
+    "vendor_name": {
+      "right": 22,
+      "of": 34,
+      "rate": 0.6471
+    }
+  },
+  "line_items": {
+    "matched": 36,
+    "expected": 64,
+    "predicted": 36,
+    "precision": 1.0,
+    "recall": 0.5625
+  },
+  "arithmetic_breaks": 0,
+  "unsupported_documents": [
+    {
+      "document": "36-scan-no-text-layer",
+      "reason": "no text layer - needs OCR or a vision model, neither of which exists yet"
+    },
+    {
+      "document": "37-spreadsheet-columns-out-of-order",
+      "reason": "spreadsheet ingestion is not built; the media check refuses it"
+    }
+  ],
+  "wrong": [
+    {
+      "document": "14-wt-2026-018",
+      "field": "(refused)",
+      "expected": "an extraction",
+      "actual": "required field(s) not found: invoice_number"
+    },
+    {
+      "document": "15-ap-2026-3390",
+      "field": "(refused)",
+      "expected": "an extraction",
+      "actual": "required field(s) not found: invoice_number"
+    },
+    {
+      "document": "18-bj-2026-0450",
+      "field": "(refused)",
+      "expected": "an extraction",
+      "actual": "required field(s) not found: invoice_number"
+    },
+    {
+      "document": "19-sh-2026-2201",
+      "field": "(refused)",
+      "expected": "an extraction",
+      "actual": "required field(s) not found: invoice_number"
+    },
+    {
+      "document": "22-ps-2026-0819",
+      "field": "(refused)",
+      "expected": "an extraction",
+      "actual": "required field(s) not found: invoice_number"
+    },
+    {
+      "document": "23-ag-2026-0164",
+      "field": "(refused)",
+      "expected": "an extraction",
+      "actual": "required field(s) not found: invoice_number, currency"
+    },
+    {
+      "document": "26-tn-2026-0290",
+      "field": "(refused)",
+      "expected": "an extraction",
+      "actual": "required field(s) not found: invoice_number"
+    },
+    {
+      "document": "27-ms-2026-1120",
+      "field": "(refused)",
+      "expected": "an extraction",
+      "actual": "required field(s) not found: invoice_number"
+    },
+    {
+      "document": "30-lw-2026-0908",
+      "field": "(refused)",
+      "expected": "an extraction",
+      "actual": "required field(s) not found: invoice_number"
+    },
+    {
+      "document": "31-ar-2026-0337",
+      "field": "(refused)",
+      "expected": "an extraction",
+      "actual": "required field(s) not found: invoice_number"
+    },
+    {
+      "document": "32-nm-2026-0071",
+      "field": "buyer_name",
+      "expected": "Fairview Practice",
+      "actual": "Fairview"
+    },
+    {
+      "document": "34-ws-2026-0148",
+      "field": "(refused)",
+      "expected": "an extraction",
+      "actual": "required field(s) not found: invoice_number"
+    },
+    {
+      "document": "35-cp-2026-1177",
+      "field": "(refused)",
+      "expected": "an extraction",
+      "actual": "required field(s) not found: invoice_number"
+    }
+  ]
+}

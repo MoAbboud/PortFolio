@@ -350,15 +350,20 @@ database.
 
 ## Stage 8 - Corpus and baseline
 
+**Done.** 2026-09-04. 37 documents, `mailman/eval.py`, 21 harness tests.
+**Baseline recorded: 75.1% (329/438), in NOTES.md and `evaluations/`.**
+
 The pivot. Everything before this was building; everything after is measured. The other part
 that has to reflect the author's own judgement - read the comparison logic carefully.
 
 Ends with: `python -m mailman.eval run --corpus .\corpus --label baseline` prints per-field
 accuracy, and that number is in `NOTES.md`.
 
-- [ ] Grow the corpus to thirty to forty documents
-- [ ] Generator emits labels for the synthetic ones, so ground truth is by construction
-- [ ] Hand-label the public sample documents, which is the only hand-labelling needed
+- [x] Grow the corpus to thirty to forty documents
+- [x] Generator emits labels for the synthetic ones, so ground truth is by construction
+- [>] Hand-label the public sample documents. **No public documents in the corpus yet** -
+      everything is synthetic. CORD and RealKIE FCC are the candidates; see 06-context.md
+      on why real documents matter as an EVAL set before they matter as training data
 - [ ] Cover the failures worth catching, not just clean invoices: second currency, an unusual
       date format, a discount line, many line items, two pages, a document that is not an
       invoice at all
@@ -366,18 +371,25 @@ accuracy, and that number is in `NOTES.md`.
       spreadsheet with the columns out of order - and let the harness report them as
       unsupported rather than as wrong. An unsupported count visible in every run is a
       roadmap; a document quietly kept out of the corpus is a forgotten TODO
-- [ ] Labels file beside each document, in the same shape the extractor produces
-- [ ] Harness: run every document through the real pipeline via the command line
-- [ ] Field-by-field comparison, by field kind: exact, normalised, date, decimal
-- [ ] Line items matched as a set, reported as precision and recall over lines
-- [ ] Record every wrong field with its expected value, actual value and document
-- [ ] Record model name, prompt version and rule set on every run
-- [ ] Report per-field accuracy with the count behind each rate
-- [ ] Score already-stored extractions without calling the provider again
-- [ ] **Record the baseline before changing anything**
-- [ ] Write the baseline and the list of fields it gets wrong into `NOTES.md`
+- [x] Labels file beside each document, in the same shape the extractor produces
+- [x] Harness: run every document through the real pipeline via the command line
+- [x] Field-by-field comparison, by field kind: exact, normalised, date, decimal
+- [x] Line items matched as a set, reported as precision and recall over lines
+- [x] Record every wrong field with its expected value, actual value and document
+- [x] Record model name, prompt version and rule set on every run
+- [x] Report per-field accuracy with the count behind each rate
+- [>] Score already-stored extractions without calling the provider again. Not built: the
+      default extractor needs no provider and runs the whole corpus in seconds, so this
+      earns nothing until the `anthropic` path is used in anger
+- [x] **Record the baseline before changing anything**
+- [x] Write the baseline and the list of fields it gets wrong into `NOTES.md`
 
 ## Stage 9 - Iteration against the harness
+
+**Done.** 2026-09-04. Three attempts, all measured, in NOTES.md and `evaluations/`.
+**75.1% -> 98.3%.** Attempt 2 introduced a regression that the arithmetic check caught;
+attempt 3 disproved an eight-stage-old claim and then found the rule and the model each win
+on different documents.
 
 The part that makes the project worth talking about. One change at a time, measured, and the
 result written down whether it helped or not.

@@ -91,3 +91,40 @@ def build_pdf(lines: list[str], per_page: int = LINES_PER_PAGE) -> bytes:
     out += f"trailer\n<< /Size {highest + 1} /Root 1 0 R >>\n".encode()
     out += f"startxref\n{xref_at}\n%%EOF\n".encode()
     return bytes(out)
+
+
+def build_image_only_pdf(width: int = 400, height: int = 520) -> bytes:
+    """A structurally valid PDF with no text layer at all.
+
+    Draws rectangles and nothing else. This is what a scan looks like to `pdfplumber`: a
+    perfectly good PDF that yields an empty string, which is a different failure from a
+    malformed file and has to be reported as a different thing. The corpus needs documents the
+    pipeline genuinely cannot handle, because an unsupported count visible in every run is a
+    roadmap and a document quietly kept out of the corpus is a forgotten TODO.
+    """
+    content = b"1 0 0 RG\n2 w\n"
+    for i in range(6):
+        y = 40 + i * 70
+        content += f"40 {y} {width - 80} 40 re\nS\n".encode("latin-1")
+
+    objects: list[bytes] = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {width} {height}] "
+        f"/Contents 4 0 R /Resources << >> >>".encode("latin-1"),
+        b"<< /Length " + str(len(content)).encode("ascii") + b" >>\nstream\n" + content + b"endstream",
+    ]
+
+    out = bytearray(b"%PDF-1.4\n")
+    offsets = [0]
+    for number, body in enumerate(objects, start=1):
+        offsets.append(len(out))
+        out += f"{number} 0 obj\n".encode("ascii") + body + b"\nendobj\n"
+
+    start = len(out)
+    out += f"xref\n0 {len(objects) + 1}\n".encode("ascii")
+    out += b"0000000000 65535 f \n"
+    for offset in offsets[1:]:
+        out += f"{offset:010d} 00000 n \n".encode("ascii")
+    out += f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{start}\n%%EOF\n".encode("ascii")
+    return bytes(out)

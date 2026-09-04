@@ -32,27 +32,17 @@ from typing import Any
 from mailman.corpus import CASES, Case
 from mailman.invoice import InvoiceFields
 
-# `01-clean`'s buyer_name. The heuristic does not attempt a buyer and a guess would be worse
-# than a null, so the corpus records the document's truth and this records that the deployed
-# extractor does not reach it. Listed rather than deleted from the labels, because the label
-# is right and the extractor is the thing that is short - and because this is the clearest
-# case for the trained model earning its 250MB. Removing the entry is how that gets noticed.
-# The heuristic does not attempt a buyer and never will: no rule finds one reliably, and a
-# guess there is worse than a null because a guess goes into the database. So `buyer_name` is
-# labelled on every document and exempted for the heuristic here.
+# Fields one extractor is known not to reach, exempted for it and ignored by the extractor
+# comparison - a gap is one component's limitation, not a hole in the answer key.
 #
-# This is an exemption for ONE extractor's known limitation, not a hole in the answer key -
-# `test_known_gaps_are_still_gaps` fails if any of these starts passing, and the extractor
-# comparison ignores this set entirely, which is how hybrid's 10/10 against heuristic's 0/10
-# became visible at all.
-KNOWN_GAPS = {
-    (name, "buyer_name")
-    for name in (
-        "01-clean", "02-many-lines", "03-discount", "04-credit-note",
-        "05-european-separators", "06-ambiguous-date", "07-no-due-date",
-        "08-two-page", "09-symbol-currency", "11-totals-words-in-description",
-    )
-}
+# **Empty since stage 9.** It held `buyer_name` on every document for eight stages, on the
+# stated grounds that "no rule finds a buyer reliably". Attempt 3 tested that claim instead of
+# repeating it: a rule reading the text after a buyer label gets 33 of 34, beating the trained
+# model's 30, which truncates multi-word names. The claim had never been measured.
+#
+# `test_known_gaps_are_still_gaps` is what forced this to be emptied rather than left - an
+# exemption that outlives its reason is a permanently suppressed failure.
+KNOWN_GAPS: set[tuple[str, str]] = set()
 
 # How each key in a case's `expected` block is turned into an actual value. Anything not in
 # here is a label nobody has said how to measure, and the caller fails on it rather than

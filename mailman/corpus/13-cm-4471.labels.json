@@ -1,0 +1,31 @@
+{
+  "name": "13-cm-4471",
+  "tests": "Generated breadth: EUR, layout 1, date style 1",
+  "should_fail": false,
+  "unsupported": null,
+  "expected": {
+    "invoice_number": "CM-4471",
+    "vendor_name": "Corrib Marine Ltd",
+    "buyer_name": "Portside Traders",
+    "issue_date": "2026-01-21",
+    "due_date": "2026-02-14",
+    "currency": "EUR",
+    "subtotal": "1103.50",
+    "tax": "220.70",
+    "total": "1324.20",
+    "line_items": [
+      {
+        "description": "Hull inspection",
+        "quantity": "1",
+        "unit_price": "820.00",
+        "amount": "820.00"
+      },
+      {
+        "description": "Anode replacement",
+        "quantity": "6",
+        "unit_price": "47.25",
+        "amount": "283.50"
+      }
+    ]
+  }
+}

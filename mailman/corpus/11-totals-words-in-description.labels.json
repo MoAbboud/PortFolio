@@ -2,6 +2,7 @@
   "name": "11-totals-words-in-description",
   "tests": "Line descriptions containing the six words the totals block is recognised by. A total station is a surveying instrument; 'Overdue' contains 'due'.",
   "should_fail": false,
+  "unsupported": null,
   "expected": {
     "invoice_number": "SS-2026-0143",
     "buyer_name": "Halden Construction",

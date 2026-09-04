@@ -1,0 +1,68 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 5 0 R /Resources << /Font << /F1 3 0 R >> >> >>
+endobj
+5 0 obj
+<< /Length 690 >>
+stream
+BT
+/F1 11 Tf
+15 TL
+1 0 0 1 56 780 Tm
+(Calder Packaging) Tj
+T*
+(20 Fleet Street) Tj
+T*
+(INVOICE) Tj
+T*
+(Document ID CP-2026-1177) Tj
+T*
+(Tax point Aug 17, 2026) Tj
+T*
+(Settlement by Sep 16, 2026) Tj
+T*
+(Bill To: Hartley Foods) Tj
+T*
+() Tj
+T*
+(Details Qty Rate Net) Tj
+T*
+(Corrugated case           2400         GBP 0.86    GBP 2,064.00) Tj
+T*
+(Pallet wrap                30        GBP 14.20      GBP 426.00) Tj
+T*
+(Tape, per roll             60         GBP 2.35      GBP 141.00) Tj
+T*
+() Tj
+T*
+(Total excl. tax                             GBP 2,631.00) Tj
+T*
+(GST                                           GBP 526.20) Tj
+T*
+(Total payable                               GBP 3,157.20) Tj
+T*
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000185 00000 n 
+0000000311 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1052
+%%EOF

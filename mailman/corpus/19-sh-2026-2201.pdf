@@ -1,0 +1,66 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 5 0 R /Resources << /Font << /F1 3 0 R >> >> >>
+endobj
+5 0 obj
+<< /Length 627 >>
+stream
+BT
+/F1 11 Tf
+15 TL
+1 0 0 1 56 780 Tm
+(Stonebridge Haulage) Tj
+T*
+(20 Fleet Street) Tj
+T*
+(INVOICE) Tj
+T*
+(Document ID SH-2026-2201) Tj
+T*
+(Tax point 23 March 2026) Tj
+T*
+(Settlement by 22 April 2026) Tj
+T*
+(Bill To: Merrow Aggregates) Tj
+T*
+() Tj
+T*
+(Details Qty Rate Net) Tj
+T*
+(Tipper day rate             5       GBP 480.00    GBP 2,400.00) Tj
+T*
+(Fuel surcharge              1       GBP 132.40      GBP 132.40) Tj
+T*
+() Tj
+T*
+(Total excl. tax                             GBP 2,532.40) Tj
+T*
+(GST                                           GBP 506.48) Tj
+T*
+(Total payable                               GBP 3,038.88) Tj
+T*
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000185 00000 n 
+0000000311 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+989
+%%EOF

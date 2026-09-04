@@ -1,0 +1,37 @@
+{
+  "name": "15-ap-2026-3390",
+  "tests": "Generated breadth: USD, layout 3, date style 3",
+  "should_fail": false,
+  "unsupported": null,
+  "expected": {
+    "invoice_number": "AP-2026-3390",
+    "vendor_name": "Alderman Print",
+    "buyer_name": "Cavendish Legal",
+    "issue_date": "2026-02-17",
+    "due_date": "2026-03-19",
+    "currency": "USD",
+    "subtotal": "576.00",
+    "tax": "115.20",
+    "total": "691.20",
+    "line_items": [
+      {
+        "description": "Letterhead, 500",
+        "quantity": "1",
+        "unit_price": "212.00",
+        "amount": "212.00"
+      },
+      {
+        "description": "Compliment slips",
+        "quantity": "2",
+        "unit_price": "84.50",
+        "amount": "169.00"
+      },
+      {
+        "description": "Artwork amends",
+        "quantity": "3",
+        "unit_price": "65.00",
+        "amount": "195.00"
+      }
+    ]
+  }
+}

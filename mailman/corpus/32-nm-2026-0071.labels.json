@@ -1,0 +1,31 @@
+{
+  "name": "32-nm-2026-0071",
+  "tests": "Generated breadth: GBP, layout 0, date style 0",
+  "should_fail": false,
+  "unsupported": null,
+  "expected": {
+    "invoice_number": "NM-2026-0071",
+    "vendor_name": "Nightingale Medical",
+    "buyer_name": "Fairview Practice",
+    "issue_date": "2026-07-22",
+    "due_date": "2026-08-21",
+    "currency": "GBP",
+    "subtotal": "1162.50",
+    "tax": "232.50",
+    "total": "1395.00",
+    "line_items": [
+      {
+        "description": "Consumables pack",
+        "quantity": "45",
+        "unit_price": "18.90",
+        "amount": "850.50"
+      },
+      {
+        "description": "Sharps disposal",
+        "quantity": "12",
+        "unit_price": "26.00",
+        "amount": "312.00"
+      }
+    ]
+  }
+}

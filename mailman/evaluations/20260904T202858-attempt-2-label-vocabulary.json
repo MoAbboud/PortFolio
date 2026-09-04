@@ -1,0 +1,159 @@
+{
+  "label": "attempt-2-label-vocabulary",
+  "started_at": "2026-09-04T20:28:58.026010+00:00",
+  "extractor": "hybrid:trained:extractor@2026-09-04",
+  "prompt_version": "hybrid-v1",
+  "rule_set": [
+    "required_fields_present",
+    "amounts_parsed",
+    "currency_is_known",
+    "line_items_sum_to_subtotal",
+    "subtotal_plus_tax_equals_total",
+    "line_arithmetic",
+    "issue_date_is_plausible",
+    "dates_are_ordered",
+    "dates_are_unambiguous",
+    "invoice_number_is_plausible"
+  ],
+  "documents": {
+    "scored": 34,
+    "clean": 28,
+    "refused_correctly": 1,
+    "refused_wrongly": 1,
+    "unsupported": 2
+  },
+  "overall": {
+    "right": 526,
+    "of": 538,
+    "rate": 0.9777
+  },
+  "per_field": {
+    "buyer_name": {
+      "right": 30,
+      "of": 34,
+      "rate": 0.8824
+    },
+    "currency": {
+      "right": 33,
+      "of": 34,
+      "rate": 0.9706
+    },
+    "due_date": {
+      "right": 29,
+      "of": 30,
+      "rate": 0.9667
+    },
+    "invoice_number": {
+      "right": 33,
+      "of": 34,
+      "rate": 0.9706
+    },
+    "issue_date": {
+      "right": 31,
+      "of": 32,
+      "rate": 0.9688
+    },
+    "line.amount": {
+      "right": 61,
+      "of": 61,
+      "rate": 1.0
+    },
+    "line.description": {
+      "right": 61,
+      "of": 61,
+      "rate": 1.0
+    },
+    "line.quantity": {
+      "right": 61,
+      "of": 61,
+      "rate": 1.0
+    },
+    "line.unit_price": {
+      "right": 61,
+      "of": 61,
+      "rate": 1.0
+    },
+    "subtotal": {
+      "right": 30,
+      "of": 31,
+      "rate": 0.9677
+    },
+    "tax": {
+      "right": 30,
+      "of": 31,
+      "rate": 0.9677
+    },
+    "total": {
+      "right": 33,
+      "of": 34,
+      "rate": 0.9706
+    },
+    "vendor_name": {
+      "right": 33,
+      "of": 34,
+      "rate": 0.9706
+    }
+  },
+  "line_items": {
+    "matched": 61,
+    "expected": 64,
+    "predicted": 63,
+    "precision": 0.9683,
+    "recall": 0.9531
+  },
+  "arithmetic_breaks": 2,
+  "unsupported_documents": [
+    {
+      "document": "36-scan-no-text-layer",
+      "reason": "no text layer - needs OCR or a vision model, neither of which exists yet"
+    },
+    {
+      "document": "37-spreadsheet-columns-out-of-order",
+      "reason": "spreadsheet ingestion is not built; the media check refuses it"
+    }
+  ],
+  "wrong": [
+    {
+      "document": "14-wt-2026-018",
+      "field": "line_items[spurious]",
+      "expected": null,
+      "actual": "Our reference WT//"
+    },
+    {
+      "document": "15-ap-2026-3390",
+      "field": "line_items[missing]",
+      "expected": "Letterhead, 500",
+      "actual": null
+    },
+    {
+      "document": "15-ap-2026-3390",
+      "field": "line_items[spurious]",
+      "expected": null,
+      "actual": "Letterhead,"
+    },
+    {
+      "document": "19-sh-2026-2201",
+      "field": "buyer_name",
+      "expected": "Merrow Aggregates",
+      "actual": "Merrow"
+    },
+    {
+      "document": "23-ag-2026-0164",
+      "field": "(refused)",
+      "expected": "an extraction",
+      "actual": "required field(s) not found: currency"
+    },
+    {
+      "document": "30-lw-2026-0908",
+      "field": "buyer_name",
+      "expected": "The Copper Kettle",
+      "actual": null
+    },
+    {
+      "document": "32-nm-2026-0071",
+      "field": "buyer_name",
+      "expected": "Fairview Practice",
+      "actual": "Fairview"
+    }
+  ]
+}

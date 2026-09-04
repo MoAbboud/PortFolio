@@ -1,0 +1,43 @@
+{
+  "name": "21-lc-3308",
+  "tests": "Generated breadth: GBP, layout 1, date style 4",
+  "should_fail": false,
+  "unsupported": null,
+  "expected": {
+    "invoice_number": "LC-3308",
+    "vendor_name": "Larkspur Catering",
+    "buyer_name": "Oakwell Trust",
+    "issue_date": "2026-04-14",
+    "due_date": "2026-04-29",
+    "currency": "GBP",
+    "subtotal": "1962.00",
+    "tax": "392.40",
+    "total": "2354.40",
+    "line_items": [
+      {
+        "description": "Buffet, per head",
+        "quantity": "85",
+        "unit_price": "14.20",
+        "amount": "1207.00"
+      },
+      {
+        "description": "Service staff",
+        "quantity": "4",
+        "unit_price": "120.00",
+        "amount": "480.00"
+      },
+      {
+        "description": "Equipment hire",
+        "quantity": "1",
+        "unit_price": "230.00",
+        "amount": "230.00"
+      },
+      {
+        "description": "Delivery",
+        "quantity": "1",
+        "unit_price": "45.00",
+        "amount": "45.00"
+      }
+    ]
+  }
+}

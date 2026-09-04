@@ -1,0 +1,37 @@
+{
+  "name": "30-lw-2026-0908",
+  "tests": "Generated breadth: EUR, layout 2, date style 3, European separators",
+  "should_fail": false,
+  "unsupported": null,
+  "expected": {
+    "invoice_number": "LW-2026-0908",
+    "vendor_name": "Ledbury Wine Co",
+    "buyer_name": "The Copper Kettle",
+    "issue_date": "2026-07-05",
+    "due_date": "2026-08-04",
+    "currency": "EUR",
+    "subtotal": "2822.00",
+    "tax": "564.40",
+    "total": "3386.40",
+    "line_items": [
+      {
+        "description": "Case, red",
+        "quantity": "18",
+        "unit_price": "94.50",
+        "amount": "1701.00"
+      },
+      {
+        "description": "Case, white",
+        "quantity": "12",
+        "unit_price": "88.00",
+        "amount": "1056.00"
+      },
+      {
+        "description": "Glassware hire",
+        "quantity": "1",
+        "unit_price": "65.00",
+        "amount": "65.00"
+      }
+    ]
+  }
+}

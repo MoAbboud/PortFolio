@@ -1,0 +1,31 @@
+{
+  "name": "34-ws-2026-0148",
+  "tests": "Generated breadth: GBP, layout 2, date style 2",
+  "should_fail": false,
+  "unsupported": null,
+  "expected": {
+    "invoice_number": "WS-2026-0148",
+    "vendor_name": "Whitfield Surveys",
+    "buyer_name": "Portland Homes",
+    "issue_date": "2026-08-08",
+    "due_date": "2026-09-07",
+    "currency": "GBP",
+    "subtotal": "3690.00",
+    "tax": "738.00",
+    "total": "4428.00",
+    "line_items": [
+      {
+        "description": "Topographic survey",
+        "quantity": "1",
+        "unit_price": "2250.00",
+        "amount": "2250.00"
+      },
+      {
+        "description": "Setting out",
+        "quantity": "3",
+        "unit_price": "480.00",
+        "amount": "1440.00"
+      }
+    ]
+  }
+}

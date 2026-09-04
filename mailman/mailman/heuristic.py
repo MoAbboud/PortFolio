@@ -77,6 +77,23 @@ _INVOICE_NUMBER = re.compile(
     re.IGNORECASE,
 )
 
+# Stage 9, attempt 1. The labels above cost twelve of thirty-four corpus documents at the
+# baseline: they were refused outright because the only wordings recognised were `invoice`,
+# `inv` and `credit note`, and real invoices also say `Our reference` and `Document ID`.
+#
+# **Anchored to the start of a line, and that is the whole difficulty.** `10-not-an-invoice`
+# is a delivery note whose second line reads `Delivery Reference: DN-4471`, so a pattern
+# matching `reference` anywhere would mine an invoice number out of the one document the
+# corpus exists to refuse - trading twelve wrong refusals for a false acceptance, which is
+# the worse error. An invoice number's label starts its line; `Delivery Reference` does not
+# start with `Reference`.
+_REFERENCE_NUMBER = re.compile(
+    r"^(?:our\s+reference|document\s+id|doc\s+ref|statement\s+number|account\s+document"
+    r"|tax\s+invoice\s+no|bill\s+no|reference|ref)\b"
+    r"\s*[:#]?\s*([A-Za-z0-9][A-Za-z0-9\-_/]{2,})",
+    re.IGNORECASE,
+)
+
 # Left behind once the amounts are stripped out of a line: "Widget GBP" rather than "Widget".
 # Currency codes are stripped from a line description by token, not by regex.
 _CURRENCY_CODES = frozenset(
@@ -90,6 +107,36 @@ _NOT_A_NAME = re.compile(
     r"\b(?:invoice|receipt|bill|statement|date|due|total|subtotal|tax|vat|page|"
     r"description|quantity|amount|price|qty|terms|number)\b",
     re.IGNORECASE,
+)
+
+# Stage 9, attempt 2. Attempt 1 stopped twelve documents being refused and immediately
+# exposed the next layer: eleven of them then had no due date and no subtotal, because those
+# labels were as narrow as the invoice-number one had been. `_labelled_date(("due",))` cannot
+# see `Pay by` or `Settlement by`; `("subtotal", "sub total", "net")` cannot see `Goods value`.
+#
+# Same class of fix, and the same lesson the trained model taught over five runs: a label
+# vocabulary of one or two wordings is a lookup table, and the document that uses a third is
+# not unusual, it is Tuesday.
+#
+# In one place now rather than as tuples inline at four call sites, because the previous
+# arrangement is how three of them stayed narrow while one got widened.
+_DUE_LABELS = ("due", "pay by", "payable before", "settlement by", "remit by", "payment due")
+_SUBTOTAL_LABELS = (
+    "subtotal", "sub total", "net", "net total", "nett",
+    "goods value", "goods total", "total excl", "amount before tax",
+)
+_TAX_LABELS = ("tax", "vat", "gst", "duty", "output tax")
+_ISSUE_LABELS = ("invoice date", "date of issue", "issued", "tax point", "raised on", "dated")
+
+# Stage 9, attempt 3. The buyer, which this extractor has refused to guess since stage 2 on
+# the grounds that "no rule finds a buyer reliably" - a claim made before anything had been
+# measured, and the only field the trained model uniquely provides.
+#
+# If a rule gets it, the 250MB of weights have no job left at all and the hybrid extractor
+# should be deleted. That is what makes this worth running rather than assuming.
+_BUYER_LABELS = (
+    "bill to", "billed to", "invoice to", "sold to", "charge to",
+    "customer", "client", "buyer", "account of",
 )
 
 _TOTALS_WORDS = ("total", "subtotal", "tax", "vat", "balance", "due")
@@ -164,12 +211,12 @@ class HeuristicExtractor:
         read = InvoiceRead(
             invoice_number=self._invoice_number(lines),
             vendor_name=self._vendor_name(lines),
-            buyer_name=None,  # Not attempted. A guess here would be worse than a null.
+            buyer_name=self._buyer_name(lines),
             issue_date=self._issue_date(lines),
-            due_date=self._labelled_date(lines, ("due",)),
+            due_date=self._labelled_date(lines, _DUE_LABELS),
             currency=self._currency(document_text),
-            subtotal=self._labelled_amount(lines, ("subtotal", "sub total", "net")),
-            tax=self._labelled_amount(lines, ("tax", "vat", "gst")),
+            subtotal=self._labelled_amount(lines, _SUBTOTAL_LABELS),
+            tax=self._labelled_amount(lines, _TAX_LABELS, exclude=_SUBTOTAL_LABELS),
             total=self._total(lines),
             line_items=self._line_items(lines),
             confidence=0.0,
@@ -202,6 +249,8 @@ class HeuristicExtractor:
         )
 
     def _invoice_number(self, lines: list[_Line]) -> str | None:
+        # The explicit invoice wordings first, anywhere on the line. They are unambiguous:
+        # nothing says "invoice number" on a document that is not one.
         for line in lines:
             match = _INVOICE_NUMBER.search(line.text)
             if match:
@@ -210,6 +259,43 @@ class HeuristicExtractor:
                 if _DATE.fullmatch(candidate):
                     continue
                 return candidate
+
+        # Then the generic reference wordings, at the start of a line only. Second because a
+        # document saying both `Reference` and `Invoice Number` means the latter.
+        for line in lines:
+            match = _REFERENCE_NUMBER.match(line.text)
+            if match:
+                candidate = match.group(1).strip(".,;:")
+                if _DATE.fullmatch(candidate):
+                    continue
+                return candidate
+        return None
+
+    def _buyer_name(self, lines: list[_Line]) -> str | None:
+        """The name after a buyer label, or on the line below it.
+
+        Returns null rather than guessing when the label is absent, which is the same rule
+        the vendor lookup follows and the reason this field was left empty for eight stages:
+        a guess goes into the database and a null goes to review.
+        """
+        pattern = _label_pattern(_BUYER_LABELS)
+        for index, line in enumerate(lines):
+            match = pattern.search(line.lower)
+            if not match:
+                continue
+
+            # The name usually follows the label on the same line; some layouts put it on
+            # the next one.
+            rest = line.text[match.end():].lstrip(" :-\t")
+            candidate = rest or (lines[index + 1].text if index + 1 < len(lines) else "")
+            candidate = candidate.strip()
+
+            if not candidate or len(candidate) > 60:
+                continue
+            # Not a heading, not a totals row, not something with money on it.
+            if _NOT_A_NAME.search(candidate) or _money_tokens(candidate):
+                continue
+            return candidate
         return None
 
     def _vendor_name(self, lines: list[_Line]) -> str | None:
@@ -229,7 +315,7 @@ class HeuristicExtractor:
         return None
 
     def _issue_date(self, lines: list[_Line]) -> str | None:
-        labelled = self._labelled_date(lines, ("invoice date", "date of issue", "issued"))
+        labelled = self._labelled_date(lines, _ISSUE_LABELS)
         if labelled:
             return labelled
         for line in lines:
@@ -252,9 +338,28 @@ class HeuristicExtractor:
                     return found
         return None
 
-    def _labelled_amount(self, lines: list[_Line], labels: tuple[str, ...]) -> str | None:
+    def _labelled_amount(
+        self,
+        lines: list[_Line],
+        labels: tuple[str, ...],
+        exclude: tuple[str, ...] = (),
+    ) -> str | None:
+        """The amount on the first line carrying one of `labels` and none of `exclude`.
+
+        `exclude` exists because attempt 2 broke the tax field while fixing the subtotal one.
+        Adding `total excl` to the subtotal vocabulary was right - real invoices write a
+        subtotal that way - but `Total excl. tax` also contains the word `tax`, and the tax
+        lookup scans forward and reaches the subtotal line first. Five documents reported
+        their subtotal as their tax: 576.00 where the answer was 115.20.
+
+        A plausible number in the wrong field, produced by widening a vocabulary. The same
+        shape as every silent bug in this extractor's history, and the harness caught it in
+        one run because the arithmetic breaks went from one to six.
+        """
         for line in lines:
             if not _has_label(line, labels):
+                continue
+            if exclude and _has_label(line, exclude):
                 continue
             # A line with three amounts is a priced row, whatever its description says.
             # Without this, "Tax advisory services  2  GBP 100.00  GBP 200.00" is the first
@@ -262,7 +367,7 @@ class HeuristicExtractor:
             # a wrong number rather than a missing one, and one that still looks like tax.
             if len(_money_tokens(line.text)) >= 3:
                 continue
-            is_subtotal_line = _has_label(line, ("subtotal", "sub total", "net"))
+            is_subtotal_line = _has_label(line, _SUBTOTAL_LABELS)
             if _has_label(line, ("total",)) and not is_subtotal_line:
                 continue
             amount = _last_money(line.text)
@@ -276,7 +381,7 @@ class HeuristicExtractor:
             for line in reversed(lines):
                 if not _has_label(line, labels):
                     continue
-                if _has_label(line, ("subtotal", "sub total")):
+                if _has_label(line, _SUBTOTAL_LABELS):
                     continue
                 if len(_money_tokens(line.text)) >= 3:
                     continue

@@ -1,0 +1,31 @@
+{
+  "name": "23-ag-2026-0164",
+  "tests": "Generated breadth: EUR, layout 3, date style 1, European separators",
+  "should_fail": false,
+  "unsupported": null,
+  "expected": {
+    "invoice_number": "AG-2026-0164",
+    "vendor_name": "Aurora Glassworks",
+    "buyer_name": "Lyndhurst Interiors",
+    "issue_date": "2026-05-05",
+    "due_date": "2026-06-04",
+    "currency": "EUR",
+    "subtotal": "2402.00",
+    "tax": "480.40",
+    "total": "2882.40",
+    "line_items": [
+      {
+        "description": "Toughened panel",
+        "quantity": "8",
+        "unit_price": "268.75",
+        "amount": "2150.00"
+      },
+      {
+        "description": "Edge polishing",
+        "quantity": "8",
+        "unit_price": "31.50",
+        "amount": "252.00"
+      }
+    ]
+  }
+}

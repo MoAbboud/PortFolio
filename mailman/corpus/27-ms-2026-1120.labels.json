@@ -1,0 +1,25 @@
+{
+  "name": "27-ms-2026-1120",
+  "tests": "Generated breadth: GBP, layout 3, date style 0",
+  "should_fail": false,
+  "unsupported": null,
+  "expected": {
+    "invoice_number": "MS-2026-1120",
+    "vendor_name": "Marlowe Security",
+    "buyer_name": "Kingsbridge Retail",
+    "issue_date": "2026-06-08",
+    "due_date": "2026-07-08",
+    "currency": "GBP",
+    "subtotal": "4080.00",
+    "tax": "816.00",
+    "total": "4896.00",
+    "line_items": [
+      {
+        "description": "Monitoring, monthly",
+        "quantity": "12",
+        "unit_price": "340.00",
+        "amount": "4080.00"
+      }
+    ]
+  }
+}

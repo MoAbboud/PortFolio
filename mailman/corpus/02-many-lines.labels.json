@@ -2,6 +2,7 @@
   "name": "02-many-lines",
   "tests": "Twelve line items. Does line extraction degrade as the table grows.",
   "should_fail": false,
+  "unsupported": null,
   "expected": {
     "invoice_number": "NS-88213",
     "buyer_name": "Pelham Group plc",

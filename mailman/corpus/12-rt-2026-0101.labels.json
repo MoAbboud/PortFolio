@@ -1,0 +1,31 @@
+{
+  "name": "12-rt-2026-0101",
+  "tests": "Generated breadth: GBP, layout 0, date style 0",
+  "should_fail": false,
+  "unsupported": null,
+  "expected": {
+    "invoice_number": "RT-2026-0101",
+    "vendor_name": "Ravensworth Tooling",
+    "buyer_name": "Halcyon Foods",
+    "issue_date": "2026-01-13",
+    "due_date": "2026-01-31",
+    "currency": "GBP",
+    "subtotal": "308.50",
+    "tax": "61.70",
+    "total": "370.20",
+    "line_items": [
+      {
+        "description": "Milling cutter set",
+        "quantity": "2",
+        "unit_price": "145.00",
+        "amount": "290.00"
+      },
+      {
+        "description": "Delivery",
+        "quantity": "1",
+        "unit_price": "18.50",
+        "amount": "18.50"
+      }
+    ]
+  }
+}

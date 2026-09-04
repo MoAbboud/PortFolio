@@ -2,6 +2,7 @@
   "name": "07-no-due-date",
   "tests": "An optional field genuinely absent. The correct answer is null, not a guess and not the issue date repeated.",
   "should_fail": false,
+  "unsupported": null,
   "expected": {
     "invoice_number": "CE-2026-0088",
     "buyer_name": "Ridgeway Motors",

@@ -1,0 +1,37 @@
+{
+  "name": "24-de-2026-7714",
+  "tests": "Generated breadth: GBP, layout 0, date style 2",
+  "should_fail": false,
+  "unsupported": null,
+  "expected": {
+    "invoice_number": "DE-2026-7714",
+    "vendor_name": "Dunmore Electrical",
+    "buyer_name": "Castleford Leisure",
+    "issue_date": "2026-05-14",
+    "due_date": "2026-06-13",
+    "currency": "GBP",
+    "subtotal": "2175.00",
+    "tax": "435.00",
+    "total": "2610.00",
+    "line_items": [
+      {
+        "description": "Consumer unit",
+        "quantity": "2",
+        "unit_price": "410.00",
+        "amount": "820.00"
+      },
+      {
+        "description": "Testing and certification",
+        "quantity": "1",
+        "unit_price": "295.00",
+        "amount": "295.00"
+      },
+      {
+        "description": "Labour, day",
+        "quantity": "4",
+        "unit_price": "265.00",
+        "amount": "1060.00"
+      }
+    ]
+  }
+}

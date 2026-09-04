@@ -230,13 +230,16 @@ def test_a_correction_logs_a_row_and_leaves_the_original_extraction_alone(
     )
     original_data = dict(original.extracted_data)
 
+    # A value that differs from what was extracted. Until stage 9 the heuristic returned no
+    # buyer at all, so setting one was always a change; now it finds "Orchard Foods Ltd"
+    # itself and correcting it to the same string is correctly logged as nothing.
     logged = apply_corrections(
-        db_session, document.id, {"buyer_name": "Orchard Foods Ltd"}, reviewed_by="tester"
+        db_session, document.id, {"buyer_name": "Orchard Foods Limited"}, reviewed_by="tester"
     )
 
     assert len(logged) == 1
     assert logged[0].field_path == "buyer_name"
-    assert logged[0].corrected_value == "Orchard Foods Ltd"
+    assert logged[0].corrected_value == "Orchard Foods Limited"
     assert logged[0].reviewed_by == "tester"
 
     db_session.refresh(original)

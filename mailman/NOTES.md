@@ -1304,3 +1304,161 @@ the fraction of required fields it found, which is exactly what `required_fields
 measures. So for my deployed extractor that term is a duplicate carrying a tenth of the weight.
 It stays because a provider-backed extractor returns something genuinely its own, and it stays
 *small* partly because of this.
+
+## THE BASELINE - 2026-09-04
+
+Recorded before changing anything, which is the only reason it is worth anything.
+
+    python -m mailman.eval run --corpus ./corpus --label baseline
+    evaluations/20260904T194049-baseline.json
+
+    extractor        hybrid:trained:extractor@2026-09-04
+    prompt version   hybrid-v1
+    rules            10
+
+    OVERALL          75.1%   (329/438 fields)
+
+    documents scored     34      every field right  21
+    refused correctly     1      refused wrongly    12
+    unsupported           2      arithmetic breaks   0
+
+    PER FIELD
+      due_date            60.0%  (18/30)      line.amount        100.0%  (36/36)
+      subtotal            61.3%  (19/31)      line.description   100.0%  (36/36)
+      tax                 61.3%  (19/31)      line.quantity      100.0%  (36/36)
+      buyer_name          61.8%  (21/34)      line.unit_price    100.0%  (36/36)
+      issue_date          62.5%  (20/32)
+      currency            64.7%  (22/34)
+      invoice_number      64.7%  (22/34)
+      total               64.7%  (22/34)
+      vendor_name         64.7%  (22/34)
+
+    LINE ITEMS  precision 100.0% (36/36)   recall 56.2% (36/64)
+
+**What it gets wrong, and it is almost entirely one thing.** Twelve of thirty-four documents
+are refused outright over `invoice_number`, because my heuristic only knows the labels
+`invoice`, `inv` and `credit note`, and those twelve say **`Our reference`** or **`Document
+ID`**. Both are wordings real invoices use - they came out of the same list I wrote for the
+training generator, so I cannot claim they are contrived.
+
+A refusal takes every field on that document with it, which is why nine unrelated fields all
+sit in the low sixties. **The per-field table is not showing nine problems, it is showing one
+problem twelve times.** The thirteenth wrong field is a truncated buyer name -
+`Fairview Practice` read as `Fairview`.
+
+Line recall of 56.2% is the same fact again: 28 of the 64 expected line items are on documents
+that were never extracted. Precision is 100% - nothing invented a line.
+
+**The number I nearly recorded was 99.7%.** The first version of the harness skipped refused
+documents entirely, so the corpus reported 99.7% while producing nothing at all for a third of
+it. That is the exact dishonesty this harness exists to prevent, and it has a sharper form
+that I want to be able to say out loud: **a system that refuses everything it finds hard would
+score 100%.** Scoring a refusal as silence rewards refusing. A refusal now counts every field
+on the document as wrong, which is what it is.
+
+**Two documents are unsupported and counted separately, never as wrong** - an image-only PDF
+with no text layer, and a CSV. The difference between "we score 75%" and "we score 75% on the
+94% of documents we accept" is the whole honesty of the figure, and an unsupported count in
+every run is a roadmap. A document quietly kept out of the corpus is a forgotten TODO.
+
+**What I am NOT doing:** fixing the label list. The rule is record the baseline before changing
+anything, and a baseline taken after the first improvement is not one. The fix is one line and
+it is stage 9's, where it gets measured.
+
+Worth being able to explain: why the corpus got harder than the extractor on purpose. Thirty-
+four documents that all pass measure nothing - the eleven hand-written cases were at 10/11 and
+the number had stopped moving. Adding breadth with label wordings I had already decided were
+realistic is what turned the corpus back into an instrument. The 24.9 points between here and
+100% are a to-do list with twelve items on it, not a mystery.
+
+## Stage 9 - three attempts, measured
+
+    baseline                                75.1%   (329/438)
+    attempt 1  reference-style number labels 93.7%  (504/538)   +18.6
+    attempt 2  the rest of the vocabulary    97.8%  (526/538)    +4.1
+    attempt 3  a buyer rule                  98.3%  (529/538)    +0.5
+
+    documents where every field is right     21 -> 31 of 34
+    refused wrongly                          12 -> 1
+    arithmetic breaks                         0 -> 2
+    line items, recall                    56.2% -> 95.3%
+
+### Attempt 1: the invoice number label list. +18.6 points.
+
+Twelve of thirty-four documents were refused outright because `_INVOICE_NUMBER` knew only
+`invoice`, `inv` and `credit note`, and those twelve say `Our reference` or `Document ID`.
+
+**The difficulty was not the labels, it was `10-not-an-invoice`.** That document is a delivery
+note whose second line reads `Delivery Reference: DN-4471`, so a pattern matching `reference`
+anywhere would have mined an invoice number out of the one document the corpus exists to
+refuse - trading twelve wrong refusals for a false acceptance, which is the worse error.
+
+Anchoring the new labels to the start of a line threads it: an invoice number's label starts
+its line, and `Delivery Reference` starts with `Delivery`. The explicit invoice wordings are
+still tried first and anywhere on the line, because a document saying both means the latter.
+
+### Attempt 2: the rest of the vocabulary. +4.1 points, after a regression I caused.
+
+Attempt 1 immediately exposed the next layer: eleven of the newly-extracting documents had no
+due date and no subtotal, because `("due",)` cannot see `Pay by` and
+`("subtotal", "sub total", "net")` cannot see `Goods value`. Same class of fix.
+
+**And widening the subtotal vocabulary broke the tax field.** `Total excl. tax` is a real way
+to write a subtotal, and it also contains the word `tax` - so the tax lookup, scanning forward,
+reached the subtotal line first and five documents reported their subtotal as their tax. 576.00
+where the answer was 115.20: a plausible number in the wrong field, which is the shape of every
+silent bug this extractor has ever had.
+
+**The harness caught it in one run**, and not through the tax rate - through `arithmetic
+breaks` going from 1 to 6. The per-field table said tax dropped; the arithmetic count said the
+documents no longer added up. Fixed by giving `_labelled_amount` an `exclude` list so the tax
+lookup skips subtotal lines. Worth noticing that the check which caught it needs no labels at
+all.
+
+### Attempt 3: a buyer rule, which was supposed to settle whether the model has a job
+
+`buyer_name` is the only field the trained model uniquely provides, and the extractor had
+refused to attempt it since stage 2 on the stated grounds that "no rule finds a buyer
+reliably". **That claim had never been measured.** If a rule got it, the 250MB of weights had
+no job left and the hybrid should be deleted.
+
+A rule reading the text after a buyer label scores **33 of 34, against the model's 30** - the
+model truncates multi-word names, giving `Merrow` for `Merrow Aggregates` and `Fairview` for
+`Fairview Practice`. So the rule wins on the corpus and the eight-stage-old claim was wrong.
+
+**But every corpus document says `Bill To:`, and this project has been burned by exactly that
+before** - CURRENCY scored 100% on a held-out set and 1/11 on reality because training and test
+shared a convention. So I probed the rule against wordings the corpus does not contain:
+
+    label                 rule                  model
+    Bill To: .. Buyer     all correct           all correct
+    Deliver invoice to    Orchard Foods Ltd     Orchard Foods Ltd
+    Purchaser             None                  Orchard Foods Ltd
+    Attention             None                  Orchard Foods Ltd
+
+**Neither wins, and the reason is the whole thesis of this project.** The rule is exact when it
+matches and blind when it does not. The model is robust to wording it has never seen and sloppy
+about where a name ends. The hybrid already overlays the model only where the rule found
+nothing, so it gets both properties for free - and that is now a measured claim rather than an
+architectural preference.
+
+The 250MB stays justified, but for a narrower reason than before: not "the model finds buyers"
+but **"the model finds buyers on documents whose wording the rules have never seen"**, which is
+a smaller claim and the true one.
+
+### What is left, and it is four fields
+
+    14-wt-2026-018    a phantom line item made out of the reference line
+    15-ap-2026-3390   "Letterhead, 500" - the 500 in the description read as a quantity
+    23-ag-2026-0164   currency not found; a bare euro symbol. The only document still refused
+
+### What I want to be able to say about this stage
+
+Every one of the 23.2 points came from **vocabulary breadth**, and that is the same finding the
+trained model produced over five runs from the opposite direction: a label list of one or two
+wordings is a lookup table, and the document that uses a third is not unusual, it is Tuesday.
+Rules and a tagger failed for the same reason and were fixed by the same insight.
+
+The second thing is the regression in attempt 2. I widened a vocabulary and silently moved a
+number into the wrong field, and the thing that caught it was an arithmetic check that needs no
+answer key. That is the third time that check has found something no label comparison did.

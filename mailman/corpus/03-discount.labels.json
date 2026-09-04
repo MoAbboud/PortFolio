@@ -2,6 +2,7 @@
   "name": "03-discount",
   "tests": "A negative discount line. It is a line item and it must not be read as a total.",
   "should_fail": false,
+  "unsupported": null,
   "expected": {
     "invoice_number": "BW-2026-771",
     "buyer_name": "Kestrel Retail Ltd",

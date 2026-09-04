@@ -2,6 +2,7 @@
   "name": "09-symbol-currency",
   "tests": "A currency symbol and no ISO code anywhere. The code has to be inferred from the symbol or the field is a null that sends the document to review.",
   "should_fail": false,
+  "unsupported": null,
   "expected": {
     "invoice_number": "PT-2026-0451",
     "buyer_name": "Maplewood Care",

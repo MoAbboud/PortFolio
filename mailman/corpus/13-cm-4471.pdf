@@ -1,0 +1,66 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 5 0 R /Resources << /Font << /F1 3 0 R >> >> >>
+endobj
+5 0 obj
+<< /Length 625 >>
+stream
+BT
+/F1 11 Tf
+15 TL
+1 0 0 1 56 780 Tm
+(Corrib Marine Ltd) Tj
+T*
+(18 Fleet Street) Tj
+T*
+(INVOICE) Tj
+T*
+(Invoice No. CM-4471) Tj
+T*
+(Date of Issue: 21/01/2026) Tj
+T*
+(Payment Due: 14/02/2026) Tj
+T*
+(Bill To: Portside Traders) Tj
+T*
+() Tj
+T*
+(Particulars Units Rate Value) Tj
+T*
+(Hull inspection             1       EUR 820.00      EUR 820.00) Tj
+T*
+(Anode replacement           6        EUR 47.25      EUR 283.50) Tj
+T*
+() Tj
+T*
+(Net total                                   EUR 1,103.50) Tj
+T*
+(Tax                                           EUR 220.70) Tj
+T*
+(Amount Due                                  EUR 1,324.20) Tj
+T*
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000185 00000 n 
+0000000311 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+987
+%%EOF

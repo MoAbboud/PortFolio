@@ -72,14 +72,27 @@ flowchart LR
 | 11 | MCP server | Optional. Extraction exposed as MCP tools over the API that already exists |
 | 12 | AWS | Optional. Lambda, S3, RDS |
 
-Stages 0 to 3 are done. **Stage 4 is the current work.** Stage 3 produced what it was meant
-to: four extraction bugs, every one of them silent, and a list of rules written from those
-failures rather than from imagination.
+**Stages 0 to 9 are done. Stage 10 - hosting - is the only thing between here and the
+definition of finished above.**
 
-The trained extractor still runs ahead of the plan - it exists, it is measured, and it has
-produced the project's most interesting result - but stage 3 found in one afternoon a bug
-that would have made every accuracy figure meaningless, and that is the ordering lesson worth
-keeping.
+    corpus          37 documents
+    baseline        75.1%  (329/438 fields), recorded before any improvement
+    after stage 9   98.3%  (529/538)
+    tests           303 passed, 6 xfailed, 1 skipped
+
+Three of the four conditions are met. A person who is not the author can upload an invoice and
+see structured data; the queue shows what needs a person and a correction can be made and
+approved in a browser; and the README carries accuracy figures produced by the harness in this
+repository, including the changes that did not help. The fourth is a link.
+
+The ordering held up, and stage 3 is why. Running eleven documents through a pipeline with no
+rules at all, in an afternoon, found five silent extraction bugs and produced the list every
+later rule was written from. Every accuracy figure in this project would have been meaningless
+without it.
+
+The trained extractor ran ahead of the plan for five stages and produced the project's most
+interesting result - and then lost to eleven lines of regular expressions on documents shaped
+like real invoices. Both halves of that are in the README.
 
 ### Why the queue comes before the corpus
 

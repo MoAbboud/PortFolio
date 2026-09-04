@@ -1,0 +1,37 @@
+{
+  "name": "26-tn-2026-0290",
+  "tests": "Generated breadth: GBP, layout 2, date style 4",
+  "should_fail": false,
+  "unsupported": null,
+  "expected": {
+    "invoice_number": "TN-2026-0290",
+    "vendor_name": "Thornhill Nurseries",
+    "buyer_name": "Greenway Councils",
+    "issue_date": "2026-05-31",
+    "due_date": "2026-06-30",
+    "currency": "GBP",
+    "subtotal": "6025.50",
+    "tax": "1205.10",
+    "total": "7230.60",
+    "line_items": [
+      {
+        "description": "Semi-mature birch",
+        "quantity": "24",
+        "unit_price": "185.00",
+        "amount": "4440.00"
+      },
+      {
+        "description": "Planting",
+        "quantity": "24",
+        "unit_price": "42.00",
+        "amount": "1008.00"
+      },
+      {
+        "description": "Mulch, cubic metre",
+        "quantity": "15",
+        "unit_price": "38.50",
+        "amount": "577.50"
+      }
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "14-wt-2026-018",
+  "tests": "Generated breadth: GBP, layout 2, date style 2",
+  "should_fail": false,
+  "unsupported": null,
+  "expected": {
+    "invoice_number": "WT/2026/018",
+    "vendor_name": "Wexford Textiles",
+    "buyer_name": "Brightmoor Retail",
+    "issue_date": "2026-02-03",
+    "due_date": "2026-03-05",
+    "currency": "GBP",
+    "subtotal": "558.00",
+    "tax": "111.60",
+    "total": "669.60",
+    "line_items": [
+      {
+        "description": "Cotton drill, per metre",
+        "quantity": "120",
+        "unit_price": "4.65",
+        "amount": "558.00"
+      }
+    ]
+  }
+}
