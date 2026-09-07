@@ -11,19 +11,18 @@ wrong and it gets fixed rather than worked around.
 | [03-architecture.md](03-architecture.md) | One page, two modes, the static cube field, ghosting, the route, weather scars |
 | [04-data-model.md](04-data-model.md) | The recipe format, the voxel grid, the canvas file, the word lookup, the dataset pipeline |
 | [05-tasks.md](05-tasks.md) | The working task list |
-| [06-context.md](06-context.md) | Working memory and handoff. Read this first |
 | [07-pipeline.md](07-pipeline.md) | Where shapes come from: the CC0 sources, licensing, the Colab notebook, the word lookup |
 
-**Start with [06-context.md](06-context.md), then run the app.** It records what exists, what
-was cancelled and why, and where the difficulty actually is. Several decisions here replaced
-earlier ones, and the context file is the only place that says what they replaced.
+**Start with [00-plan.md](00-plan.md), then run the app.** It records what exists, what was
+cancelled and why, and where the difficulty actually is. Several decisions here replaced
+earlier ones, and the plan names what each replaced.
 
 **[01](01-overview.md), [02](02-interaction.md) and [03](03-architecture.md) are out of date.**
 They describe a cube diorama toured by a camera walking a numbered route of framings, which
 stopped being true on 2026-08-08. What Trail is now: a canvas is a strip of film, one piece per
 minute, each with its own objects and weather; the strip rolls into a ring hanging in space; the
 clock turns the ring; and the overview unrolls it flat to read the whole event at once.
-[00](00-plan.md), [04](04-data-model.md), [05](05-tasks.md) and [06](06-context.md) are current.
+[00](00-plan.md), [04](04-data-model.md) and [05](05-tasks.md) are current.
 
     Set-Location "C:\Users\Absol\OneDrive\Documents\GitHub\PortFol\trail"
     npx --yes serve .      # then open the address it prints

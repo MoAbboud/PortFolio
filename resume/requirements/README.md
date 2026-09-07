@@ -11,13 +11,11 @@ wrong and it gets fixed rather than worked around.
 | [03-architecture.md](03-architecture.md) | One file, content lists, renderers, effects, theme, key sequence |
 | [04-data-model.md](04-data-model.md) | The content lists, what the skill levels do and do not mean, the one stored preference |
 | [05-tasks.md](05-tasks.md) | The working task list |
-| [06-context.md](06-context.md) | Working memory for the rebuild. Read this first |
 
-**Start with [06-context.md](06-context.md).** The page is being rebuilt from scratch, and
-documents 01 through 05 describe the previous version rather than the one being built. The
-context file carries the settled decisions, the open questions, and the resume content
-itself, so that work can be picked up without the preceding conversation. Where it disagrees
-with the other documents, it is the one that is right.
+**Documents 01 through 05 describe the previous version of the page, not the one being
+built.** The page is being rebuilt from scratch, so where these documents disagree with what
+the page actually does, the page is the one that is right. The rebuild's settled decisions
+and its content live in the author's working notes, which are kept out of this repository.
 
 Two things worth knowing before editing:
 

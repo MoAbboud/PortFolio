@@ -1,7 +1,7 @@
 """The corpus reader: the eleven documents, run and compared, inside the repository.
 
-Every corpus figure quoted in `requirements/06-context.md` up to this point - "5 of 10",
-"8 of 10", "9 of 10" - came from a script written for the occasion and thrown away. Three
+Every corpus figure quoted up to this point - "5 of 10", "8 of 10", "9 of 10" - came from
+a script written for the occasion and thrown away. Three
 separate sessions each wrote their own, and the one number that was never produced by a
 script at all ("91 tests pass") is the one that turned out to be wrong. This module is that
 script, kept.

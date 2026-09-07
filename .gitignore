@@ -85,8 +85,20 @@ GoogleService-Info.plist
 *.sqlite3
 *.db
 
-# Trail working memory - kept local until the project is ready to be public
-trail/requirements/06-context.md
+# ============================================================
+# Working memory - private to the author, not part of the portfolio
+# ============================================================
+#
+# 06-context.md is the handoff log between working sessions: what was tried,
+# what it cost, what turned out to be wrong, and the arguments behind decisions
+# that were still being argued. It is written to be read by two people and it is
+# not a deliverable. The other five requirements documents are the public spec
+# and stay tracked.
+#
+# The pattern is the convention rather than one project, so a new app that
+# follows the six-document layout is covered on the day it is created rather
+# than the day somebody remembers.
+**/requirements/06-context.md
 
 # Trail models: keep what was written here, not what was downloaded.
 #

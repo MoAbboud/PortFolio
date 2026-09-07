@@ -19,8 +19,7 @@ Three habits that run through all of them:
   tool can produce, and it is where the credibility lives. It becomes the most useful section
   of the README.
 - **The validation rules and the harness get read line by line.** They are the two parts an
-  interviewer will probe, and the answers have to be the author's own. See
-  [06-context.md](06-context.md).
+  interviewer will probe, and the answers have to be the author's own.
 
 ## Checking it from PowerShell
 
@@ -165,8 +164,9 @@ against a fake, but nothing depends on it - see the note at the end of this stag
 - [x] Record the attempt count on the row
 - [x] `GET /documents/{id}/extraction`, returning failed attempts rather than hiding them
 - [x] **Nothing can strand a document in `extracting`.** Any unexpected exception writes a
-      failure row and moves the document to `failed`. This closed a real hole - see
-      [06-context.md](06-context.md)
+      failure row and moves the document to `failed`. This closed a real hole: an exception
+      the pipeline did not expect used to leave the document mid-flight with no record of
+      why. A process that dies outright is the remaining case, and the sweeper covers it
 
 **Done a different way.** This project does not use hosted-model API keys, so "run it
 against the real provider" was replaced rather than completed. The default extractor is
@@ -188,8 +188,7 @@ structured fields, on a clean container with nothing configured.
 uploaded through the running API. **5 of 10 clean on the first run; 10 of 11 now.** The one
 remaining gap is `01-clean`'s `buyer_name`, which the heuristic does not attempt - recorded
 as a known gap in the reader rather than dropped from the labels, because the label is right
-and the extractor is the thing that is short. The failure list is in
-[06-context.md](06-context.md).
+and the extractor is the thing that is short.
 
 - [x] Synthetic invoice generator - `mailman/corpus.py`, ten hand-written cases rather than
       random ones, because random invoices measure the average case and the worst cases are
@@ -338,7 +337,7 @@ Ends with: `POST /approve` puts a real invoice row in the database, and `pytest 
 
 **Done.** 2026-09-04. Server-rendered templates, no build step. 9 tests through the real
 routes. Building it surfaced an ordering bug that made "the latest extraction" a coin flip -
-see 06-context.md and migration 0002.
+see migration 0002.
 
 **This is the demo.** It is also the tool for looking at extractions while stage 8's corpus
 is built. It stays bare: a list, a viewer, a form. No styling pass until the stage 8
@@ -375,8 +374,10 @@ accuracy, and that number is in `NOTES.md`.
 - [x] Grow the corpus to thirty to forty documents
 - [x] Generator emits labels for the synthetic ones, so ground truth is by construction
 - [>] Hand-label the public sample documents. **No public documents in the corpus yet** -
-      everything is synthetic. CORD and RealKIE FCC are the candidates; see 06-context.md
-      on why real documents matter as an EVAL set before they matter as training data
+      everything is synthetic. CORD and RealKIE FCC are the candidates. Real documents matter
+      as an EVAL set before they matter as training data: the currency bug scored 100% on a
+      held-out set and 1 of 11 on real-shaped documents, because training and test shared a
+      convention no real invoice has
 - [ ] Cover the failures worth catching, not just clean invoices: second currency, an unusual
       date format, a discount line, many line items, two pages, a document that is not an
       invoice at all

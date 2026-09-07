@@ -15,8 +15,7 @@ retake is free, and containing no artificial intelligence of any kind at runtime
 place to happen: one diorama built from small cubes, toured by a camera walking a numbered route
 of framings. Cubes were abandoned because drawing with them was too hard and a library of 367
 real models arrived instead; the route was abandoned because the clock turned out to be a better
-control than a list of shots. The full reasoning is in `06-context.md` under "Trail is an event
-recreator". **The redesign is decided and not yet built.**
+control than a list of shots. **The redesign is decided and not yet built.**
 
 **The app is built, running, and has a library of everything on disk.** The renderer, the
 camera, the weather, the clock, the picking, the canvas file and the pen all exist, with 503
@@ -30,8 +29,8 @@ flat colour each into four recognisable people.
 
 **Reading the script was built and then cancelled**, on 2026-08-07. The script is a document
 beside the app now, not an input to it: objects are placed by hand from the library, and a step
-carries only a note saying what happens in it. The reasoning is in `06-context.md` under
-"Reading the script was cancelled" - **it should not be rebuilt without the user saying so.**
+carries only a note saying what happens in it - **and it should not be rebuilt without the
+user saying so.**
 
 **What is left is stage 8: turning the app into the strip.** It is mostly deletion - the cube
 renderer, step ranges, ghosting, flights and free roaming all go - and the additions are one
@@ -112,9 +111,8 @@ Neither needs a narration, a library gap filled, or a feature added. Both need t
 
 ## Decisions already made
 
-Every one came out of the two conversations recorded in `06-context.md`. Where a decision had
-alternatives, the alternatives are named, because knowing what was rejected is most of the
-value.
+Where a decision had alternatives, the alternatives are named, because knowing what was
+rejected is most of the value.
 
 ### From the second conversation, which revised the design
 

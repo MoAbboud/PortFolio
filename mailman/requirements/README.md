@@ -11,14 +11,14 @@ is wrong and it gets fixed rather than worked around.
 | [03-architecture.md](03-architecture.md) | Stack, layers, extraction failure handling, the validation rules, routing, the API surface, key sequences |
 | [04-data-model.md](04-data-model.md) | The seven tables, the status flow, and where the evaluation corpus lives instead |
 | [05-tasks.md](05-tasks.md) | The working task list |
-| [06-context.md](06-context.md) | Handoff between working sessions. Decisions with their rejected alternatives |
 
-[06-context.md](06-context.md) is the one to read first when picking the work back up. It is
-appended to, never rewritten, so the bottom of it is where the current session starts.
+[00-plan.md](00-plan.md) is the one to read first: the stage order, the decisions already
+settled with the reason each one was taken, and the open questions still outstanding.
 
 There is a sibling project at `../evaluaters/eval-harness`. It measures a language model on
-a support-ticket extraction task and is deliberately not reused here - see
-[06-context.md](06-context.md) for why, and for what is worth copying from it anyway.
+a support-ticket extraction task and is deliberately not reused here, because that is a
+different unit of measurement - this project scores fields on documents, and needs its own
+harness to do it.
 
 The current work is stage 4, the validation layer. See [00-plan.md](00-plan.md) for the stage
 order and [05-tasks.md](05-tasks.md) for the task list.

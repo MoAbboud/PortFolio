@@ -262,7 +262,6 @@ measured off the corpus.
 
 | | |
 | --- | --- |
-| [`requirements/06-context.md`](requirements/06-context.md) | Every decision, what it replaced, and what turned out to be wrong. Read this first |
-| [`NOTES.md`](NOTES.md) | The lab notebook - the baseline, the failed experiments, the numbers that did not move |
+| [`NOTES.md`](NOTES.md) | The lab notebook - the baseline, the failed experiments, the numbers that did not move. Read this first |
 | [`requirements/00-plan.md`](requirements/00-plan.md) | The twelve stages and why they are in that order |
 | [`evaluations/`](evaluations/) | Every scored run, append-only |

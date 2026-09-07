@@ -1,9 +1,9 @@
 // The words that belong to a step.
 //
-// Pure module. **This was the script panel, and reading a script was cancelled**
-// - see 06-context.md. Trail no longer tokenises a narration, resolves its
-// nouns against a dictionary, or offers what it finds: the script lives outside
-// the app, and objects are placed by hand from the library.
+// Pure module. **This was the script panel, and reading a script was cancelled.**
+// Trail no longer tokenises a narration, resolves its nouns against a
+// dictionary, or offers what it finds: the script lives outside the app, and
+// objects are placed by hand from the library.
 //
 // What is left is the part the step editor uses. A step carries a note saying
 // what it is about, the notes are only ever the steps read in order, and

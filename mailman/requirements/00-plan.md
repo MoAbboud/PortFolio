@@ -189,7 +189,7 @@ The stage exists to produce evidence, and the order matters.
 | Synthetic and public documents only | No employer or client document enters this repository. The constraint outranks realism |
 | Commit as the work happens | The history is part of what is on display and is not squashed at the end |
 | `NOTES.md` is kept by hand, and tooling may append facts to it | The record of what was tried and what the numbers did can be written down by whoever is at the keyboard. The judgement - what was surprising, what it meant, what to do next - stays the author's, because that is the part no tool can produce and it is where the credibility lives |
-| Its own harness rather than reusing `evaluaters/eval-harness` | Different unit of measurement. See [06-context.md](06-context.md) |
+| Its own harness rather than reusing `evaluaters/eval-harness` | Different unit of measurement. That one scores a language model on a support-ticket task; this one scores fields on documents, and line items as a set |
 
 ## Open questions
 
@@ -218,6 +218,6 @@ The stage exists to produce evidence, and the order matters.
 | Provider cost grows with every harness run | Running the harness becomes something to avoid, which defeats it | Extractions are stored, so a scoring change is re-measured against responses already paid for. Only a prompt or model change needs a fresh run |
 | The rules end up encoding the quirks of the generated documents | The pipeline works on the corpus and falls over on anything else | The generator varies layout, vendor, currency and date format on purpose, and public samples sit beside the generated ones |
 | Scope creep into document types two and three | Three half-working pipelines and no numbers for any of them | Invoices until stage 10 is done |
-| The code gets ahead of the understanding | The parts an interviewer probes hardest are the parts that cannot be explained | The validation rules and the harness are read line by line and adjusted until they reflect the author's own judgement. See [06-context.md](06-context.md) |
+| The code gets ahead of the understanding | The parts an interviewer probes hardest are the parts that cannot be explained | The validation rules and the harness are read line by line and adjusted until they reflect the author's own judgement |
 | A client or employer document ends up in the repository | A real problem, not a portfolio problem | Synthetic and public only. Checked before every commit |
 | Stages 11 and 12 get started before stage 10 is finished | The interesting extensions half-built, the core unfinished | Both are optional and both come after a hosted, documented system |

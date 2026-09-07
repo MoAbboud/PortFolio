@@ -7,8 +7,7 @@ The app runs. Items past stage 1 are marked honestly: `[x]` means built and test
 **The next work is stage 8, and it is mostly deletion.** Trail was redesigned on 2026-08-08
 into an event recreator: the canvas is a long strip, distance along it is time, the camera is
 fixed and orbits whatever hour the clock is showing, and pulling back reads the whole event in
-a line. The reasoning is in `06-context.md` under "Trail is an event recreator", and the
-decisions are in `00-plan.md`.
+a line. The decisions are in `00-plan.md`.
 
 **Everything in stages 1 to 7 below describes the app as it is today.** Where a task there
 contradicts stage 8, stage 8 is right and the older item is left in place as history rather
@@ -123,8 +122,8 @@ not, because `timeline.js` was written and nothing imported it.
 ## Stage 11 - Nothing runs: the take is cancelled and the ground is a board
 
 **Decided 2026-08-13.** *"remove the playback stuff, they are useless... its an illustrator, like a
-drawing board... not even a take is a thing. Just steps."* The reasoning is in `06-context.md`
-under "Trail does not play anything". **This is the largest cancellation in the project**, because
+drawing board... not even a take is a thing. Just steps."*
+**This is the largest cancellation in the project**, because
 every document here had assumed since the first conversation that the output is a recording.
 
 ### 11k - The stutter, and it was not where this file said it was
@@ -166,9 +165,9 @@ objects for now."*
       it did and simply cannot walk
 - [x] The rule that dragged a path along with its object in `reorder`, `openPiece`, `cutPiece`
       and `copyPiece` - four operations that each had to know about it
-- [x] **The mechanism was the good part**, and it does not save the feature. It is written up in
-      `06-context.md` as the one request that looked like it broke the static-field rule and did
-      not; a mechanism with nothing to carry is only surface area
+- [x] **The mechanism was the good part**, and it does not save the feature. It was the one
+      request that looked like it broke the static-field rule and did not; a mechanism with
+      nothing to carry is only surface area
 - [ ] *"For now"* is not *"never"*. The migration says what it dropped where it can be found,
       rather than leaving it only in the history
 
@@ -340,7 +339,7 @@ the backgroud? not 1 for 1 copy but more to beautify the stars."*
 
 **Asked for 2026-08-13:** *"what can be better, what can be more user friendly, what can be done
 to help me smooth out the video making process."* Read against the running app rather than these
-documents. The reasoning is in `06-context.md` under "The app charges you for continuity".
+documents. The finding: the app charges you for continuity.
 
 **Nothing here adds an authoring capability.** `00-plan.md` lists *"it becomes a 3D editor"* as a
 risk with the response *"anything more is a signal to stop"*, so every item was checked against
@@ -1310,8 +1309,7 @@ alone, and `npm run scan` reported nothing new, which looks exactly like working
 ### The script - CANCELLED 2026-08-07
 
 Built, used, and removed at the user's request: *"it adds complications for nothing."* The
-script is a document beside the app now. **Do not rebuild this without being asked** - the
-reasoning is in `06-context.md`.
+script is a document beside the app now. **Do not rebuild this without being asked.**
 
 - [x] ~~Paste a script, tokenise it, resolve it against a dictionary~~ **cancelled**
 - [x] ~~Object tray, cast list, gap list, name detection, synonyms~~ **cancelled**
@@ -1366,7 +1364,7 @@ reasoning is in `06-context.md`.
 ### The clock, places, moves and a walked line - added 2026-08-07
 
 Five things asked for in one message. Four fitted the design; the fifth looked
-like it revived a cancelled one and does not. Reasoning in `06-context.md`.
+like it revived a cancelled one and does not.
 
 - [x] **A time of day per step.** 6 is sunrise, 12 is noon, 18 is sunset, and
       the sun travels between them. `lib/daylight.js`, pure and tested
