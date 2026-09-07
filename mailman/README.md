@@ -3,9 +3,14 @@
 A document intake pipeline. Messy invoices in - PDFs, scans, spreadsheets - validated
 structured records out, with a review queue for anything doubtful.
 
-**Status: stages 0-9 of 12 complete.** Upload a PDF, get structured fields, watch the rules
-judge them, fix one in a browser and file it. No API key, no network call, no cost.
-Hosting is the remaining step.
+**Status: stages 0-9 of 12 complete. Runs locally, not hosted yet - hosting is the next
+update.** This is a working web application, not a notebook and not a model file: upload a PDF,
+get structured fields, watch the rules judge them, fix one in a browser and file it. No API
+key, no network call, no cost per document.
+
+It is deployment-ready rather than deployed - one 301MB container, one database, a health check
+and a shared secret that closes every write. What is left is choosing where to put it. See
+[Hosting](#hosting) for exactly what is built and what remains.
 
 ```
 python -m mailman.eval run --corpus ./corpus --label baseline
@@ -40,6 +45,43 @@ because a rule that used to pass and now fails is only visible if the pass was r
 reviewer's correction writes a `corrections` row plus a **new** extraction rather than editing
 the old one - overwriting the model's answer would destroy both the measurement and the
 labelled example the correction just created.
+
+## The interface
+
+There is one, and it is the point. A pipeline that files a document without a person is only
+half the problem - the other half is the document it should not file, and that needs somewhere
+for a person to look at it.
+
+Three surfaces, one process, no build step. Server-rendered templates rather than a front-end
+project, because the whole thing has to deploy as a single container.
+
+**`/` - the review queue.** What is waiting, oldest first, and *why* each document is waiting:
+the rule that failed and what it said, or the confidence score that fell short. Underneath, a
+count of every document by status. When nothing is waiting it says so and explains how to make
+something wait, because on a clean corpus an empty queue is the correct behaviour and looks
+exactly like a broken page.
+
+**`/review/{id}` - the document beside its fields.** The extracted text on one side, the fields
+on the other as editable inputs, with failed rules highlighted on the fields they implicate.
+Line items in a table. Three buttons - save and re-check, save and approve, reject with a
+reason - so a correction and the decision it leads to happen in one pass rather than two. The
+document's full status history is at the bottom, which is how "why is this here?" gets answered
+a week later.
+
+**`/docs` and `/metrics`.** The OpenAPI page is free and is a demo surface in its own right.
+`/metrics` reports counts by status, the auto-approval rate, and the accuracy figure from the
+newest recorded run.
+
+Deliberately unstyled beyond what makes a table readable. The plan gated a styling pass behind
+the stage 8 baseline; the baseline exists, so it is allowed now and has not been spent yet.
+
+**On "is this just a model?"** - the trained model is the smallest part of this and the most
+replaceable. It scores 74/92 on its own, loses to eleven lines of regular expressions, and on
+the corpus contributes nothing measurable over them. What is actually here is a pipeline, ten
+validation rules, a state machine where one function moves every document, an append-only
+record of every answer the system has ever given, a review interface, and a harness that
+measures the whole thing. The model is one of four interchangeable implementations behind a
+single protocol.
 
 ## The numbers
 
@@ -146,11 +188,53 @@ The review queue is at `/`, the API docs at `/docs`.
 ```powershell
 python -m mailman.eval run --corpus ./corpus --label mine   # score every document
 python -m mailman.corpus_check                              # compare every extractor
-pytest -q                                                   # 303 passed, 6 xfailed
+pytest -q                                                   # 355 passed, 6 xfailed
+python -m mailman.sweeper --dry-run                         # documents abandoned mid-pipeline
 ```
+
+`GET /metrics` reports counts by status, the auto-approval rate, and the accuracy figure from
+the newest run in `evaluations/`. Set `MAILMAN_API_KEY` and everything that writes requires it
+as an `X-API-Key` header - the queue page has an unlock form for the browser, which cannot put
+a header on a form post. Reads stay open, so a public link is a read-only demo by default.
 
 `PowerShell 5.1 has no Invoke-RestMethod -Form`, so uploads go through `curl.exe`; and
 `ConvertTo-Json` defaults to `-Depth 2` and will silently flatten an extraction.
+
+## Hosting
+
+**Not hosted yet. It is built to be, and that is the next update.**
+
+Being honest about the difference: everything below is done and verified, so what remains is a
+decision and an afternoon, not a rewrite. There is no link in this README because there is no
+link, and a portfolio that claims a deployment it does not have is worth less than one that
+says which step it is on.
+
+**What is ready**
+
+| | |
+| --- | --- |
+| One container | `Dockerfile`, **301MB**. It was 1.67GB until a missing `.dockerignore` stopped `COPY . .` taking the virtualenv, torch included |
+| One dependency | PostgreSQL. Nothing else - no broker, no cache, no object store, no worker fleet |
+| Schema on release | Alembic migrations for all seven tables. `alembic upgrade head` is the release command, and it has to be in it: neither the Dockerfile nor compose runs it |
+| A real health check | `/health` probes the database rather than proving the web server started, and reports whether writes are locked. This is what a platform's health probe should point at |
+| Public-safe by default | Set `MAILMAN_API_KEY` and every write - upload, correct, approve, reject, reprocess - requires it. Reads stay open, so a public link is a read-only demo until that policy is deliberately changed |
+| Nothing to pay per request | No hosted-model API key, no network call. Extraction is rules plus an optional local model, so an idle demo costs whatever the container costs and nothing more |
+| Survives a restart | A document abandoned mid-pipeline by a dying process is swept to `failed` with a reason at startup, and can be reprocessed |
+| Storage that can move | Document bytes go through one interface at S3-shaped paths, so object storage is a client swap rather than a schema change |
+
+**What the deploy will actually run.** The trained weights are gitignored - 250MB, over
+GitHub's file limit - so a hosted instance runs the heuristic path. On this corpus that costs
+nothing measurable: the rules alone score the same 98.3%, including `buyer_name` at 33 of 34.
+The model's claim is buyer labels the rules have never seen, and that was always a claim
+measured off the corpus.
+
+**What is left, and it is decisions rather than code**
+
+- Where it goes, and what a container plus a managed Postgres costs there.
+- Whether the database ships seeded. A link that opens on an empty queue demonstrates nothing,
+  and the corpus is 37 documents that can seed one.
+- Whether a visitor may upload at all, or only read. The mechanism supports either; the policy
+  is not chosen yet.
 
 ## Limitations
 
@@ -163,7 +247,16 @@ pytest -q                                                   # 303 passed, 6 xfai
 - **512 word-pieces** in the trained model, so a long multi-page invoice is truncated.
 - **The corpus is 37 documents.** Every rate here carries its count for that reason: a
   two-document movement is noise.
-- **Not hosted yet.**
+- **One shared secret, and only on writes.** Reads are open by design, so a hosted link is a
+  read-only demo. There are no users, no roles and no sessions beyond a cookie holding that one
+  secret. It was not enforced at all until it was found four stages after the comment in the
+  configuration said it would be.
+- **Nothing retries by itself.** A document abandoned mid-pipeline by a dying process is failed
+  by the sweeper, with the reason, and reprocessing it is a person's decision. That is the
+  no-broker trade the architecture makes deliberately.
+- **Not hosted yet**, though it is built to be and the container, the health check, the
+  migrations and the shared secret are all in place. See [Hosting](#hosting) for what is done
+  and what is still a decision. A link goes here in the next update.
 
 ## Where to read
 

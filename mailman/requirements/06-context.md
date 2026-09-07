@@ -4179,3 +4179,242 @@ somebody's tokens.
 already exists, and AWS. Both were always optional and both target specific job postings.
 
 **Uncommitted.** Everything remains in the working tree by request.
+
+### 2026-09-07 - the four things that were wrong, and one found while fixing them
+
+**What was asked.** A review of where the project actually is, and then "please fix the
+problem". Nothing here is a stage; it is the list of things that were broken.
+
+## First, the numbers were re-verified rather than trusted
+
+98.3% reproduces exactly - 529/538, 31 of 34 documents fully correct, the same four wrong
+fields, run with `--no-write` so it is not recorded as a new run. The suite is 303 passed, 6
+xfailed, 1 skipped, in 66 seconds.
+
+It had appeared to hang for twenty-five minutes first. That was the database being down: with
+nothing listening on 5432 the connection is dropped rather than refused, so every DB-backed
+test sat through the OS timeout before reaching `pytest.skip`. Worth knowing before concluding
+the suite is broken.
+
+**One measurement that is new.** `--extractor heuristic` also scores 98.3%, `buyer_name` 33 of
+34 - identical to the hybrid. On this corpus the trained model contributes nothing measurable,
+which is consistent with what stage 9 found, and it is now the deploy story: `models/` is
+gitignored, so a hosted instance runs rules-only and loses nothing that can be measured. The
+model's claim is unseen buyer wordings, and that was always an off-corpus claim.
+
+## The container was broken, and `docker compose ps` said it was fine
+
+The image was four days old, built before stage 7 added `jinja2`, and it was crash-looping on
+`ImportError: jinja2 must be installed`. `docker compose ps` reported `Up`, 0 restarts, because
+`--reload` keeps the reloader parent alive while the child dies on import. **A container status
+cannot tell you an application is running.** `/health` could, and did.
+
+## 1. `/metrics` was linked from every page and never existed
+
+`base.html` has carried a link to it since the templates were written. **A link is not a call,
+so nothing tested it and nothing failed** - it just 404'd at whoever clicked it. The same line
+still said "bare by design until the stage 8 baseline exists", which stopped being true when
+the baseline was recorded.
+
+The endpoint reports counts by status, zero-filled over every legal status, and the
+auto-approval rate.
+
+**The rate is counted from `status_history`, not from `status`.** By the time a document says
+`approved`, whether it went straight through or in front of a person is gone from the column
+and still in the history - which is the reason every transition appends to it. And it counts
+routing *decisions* rather than documents, because a corrected document is validated again and
+routed again on different evidence; counting documents would have to pick one of those and
+silently drop the other.
+
+It also reports the accuracy figure, read from the newest file in `evaluations/` rather than
+recomputed. **An endpoint that scored the corpus its own way would be a second implementation
+free to disagree with the one in git.**
+
+## 2. The API had no authentication
+
+`mailman_api_key` sat in the configuration behind a comment saying "not enforced until stage
+6", and stage 6 ended without enforcing it. **It survived four more stages because nothing ever
+failed: an unset secret and an unchecked secret are indistinguishable from outside**, right up
+until the link is public and `POST /documents` is an open upload box.
+
+**Reads open, writes closed.** That is the smallest rule that makes a public link safe, and it
+is exactly the "read-only demo" the plan already lists as an option for hosting. A visitor
+reads the queue, a document and the metrics, and changes nothing.
+
+**One secret, two envelopes.** A header for scripts, a cookie for the browser. A browser cannot
+put a header on a form post and the review page is a form post, so a header-only check would
+have made the queue unusable the moment the secret was set - a worse bug than the open one it
+replaced. The cookie is the secret, so there is no session store to drift out of step with the
+configuration.
+
+**Unset still means open**, because failing closed would mean setting an environment variable
+before the first local upload, and the project's own rule is that every stage runs from
+PowerShell with nothing set up. The risk that buys - a deploy where somebody forgot the
+variable - is answered by making the state visible rather than silent: `/health` and `/metrics`
+both report whether the secret is enforced. **The fix for a silent failure is not a louder
+default, it is making the state observable**, because the reason nobody noticed for four stages
+is that the only way to find out was to try an upload.
+
+## 3. Nothing recovered a stuck document - and it was two statuses, not one
+
+The known hole was `extracting`: no broker, so a process dying mid-extraction leaves a document
+that nothing moves. `failed -> received` exists for exactly this, and `extracting` cannot reach
+`failed` to use it.
+
+**The one found by looking was `extracted`.** The running database had twenty-four documents
+sitting in it, and `POST /reprocess` answers `409 'extracted' -> 'received' is not a legal
+transition` on every one of them. The pipeline extracts and then validates in two steps, and
+the window between them is a second way to be abandoned. The bug was reported as one status
+because that is the one the design predicted; the database knew about the other.
+
+The sweeper moves both to `failed` with a reason, and the reprocess path that already exists
+takes over - no new status, no new edge, no column. It runs at startup and from
+`python -m mailman.sweeper`.
+
+**Age, not presence.** The tempting startup rule is "anything mid-pipeline is dead, because this
+process is the only thing that runs the pipeline and it has just started". True of one process,
+false of two, and the second one is a scaling decision somebody makes later without reading the
+file.
+
+**`validated` is left open deliberately.** It is transient too and it has no `failed` edge, so
+closing it means changing the state machine rather than sweeping - a design decision, not a
+cleanup task. There is a test asserting it stays out of `SWEEPABLE` until somebody makes that
+decision.
+
+## 4. The image was 1.67GB
+
+There was no `.dockerignore`, so `COPY . .` took the whole repository - `.venv/` with torch
+inside it, `models/`, `data/`, `.git/`. **301MB now**, which is the difference between fitting a
+free tier and not, and it was one missing file.
+
+`corpus/` and `evaluations/` stay in the image on purpose: the corpus is what seeds a demo
+database, and `/metrics` reads the newest evaluation run.
+
+## Verification
+
+347 passed, 1 skipped, 6 xfailed. 49 new tests. Live against the rebuilt container: `/health`
+200 reporting its own lock state, `/metrics` 200 carrying the 98.3% from `evaluations/`, and a
+startup sweep that found nothing because nothing was stuck at that moment.
+
+**Every change made this pass.**
+
+| File | Change |
+| --- | --- |
+| `.dockerignore` | New. 1.67GB to 301MB |
+| `mailman/api/security.py` | New. The shared secret, and where it applies |
+| `mailman/api/metrics.py` | New. `GET /metrics` |
+| `mailman/sweeper.py` | New. `extracting` and `extracted` out of their dead ends |
+| `mailman/api/documents.py` | The four writing endpoints take the secret |
+| `mailman/api/review.py` | The review form takes it too; `/unlock` and `/lock`; two template globals |
+| `mailman/api/health.py` | Reports whether the secret is enforced |
+| `mailman/main.py` | `/metrics` registered; a lifespan that sweeps at startup |
+| `mailman/config.py` | The stage-6 comment replaced with what is true; `stuck_document_seconds` |
+| `mailman/templates/base.html` | The metrics link goes somewhere; lock state and unlock form; the stale strapline |
+| `tests/test_security.py` | New, 21 tests |
+| `tests/test_sweeper.py` | New, 18 tests |
+| `tests/test_metrics.py` | New, 10 tests |
+| `README.md`, `.env.example`, `requirements/05-tasks.md` | Two new limitations, the secret, the sweeper |
+
+**Next.** Hosting is still the only outstanding item in the plan's definition of done, and the
+questions inside it are still the author's: what a container plus a hosted Postgres costs,
+whether the database ships seeded, and whether read-only is the intended answer for a visitor
+or whether uploads should be allowed under a rate limit. Two mechanical things are now known
+about the deploy: the release command has to run `alembic upgrade head`, because neither the
+Dockerfile nor compose does, and the hosted instance will run rules-only, which costs nothing
+measurable.
+
+**Uncommitted.** Everything remains in the working tree.
+
+### 2026-09-07, later - saying in the README what this is and where it is not
+
+**What was asked.** To make the GitHub-facing README say that the app is not hosted yet but is
+built to be, with hosting as the next update - and, underneath it, a question worth recording:
+"does this app have an interface or is it just a model?"
+
+**That question is the one the README was failing to answer**, and it is the question a reader
+arrives with. The old status line said "stages 0-9 of 12 complete", which means nothing to
+anyone who has not read the plan, and the interface - the part that took stage 7 and is the
+whole reason a reviewer can do anything - appeared nowhere above the fold.
+
+Three changes:
+
+- **The status line now says what it is**: a working web application, not a notebook and not a
+  model file, running locally, not hosted, hosting next.
+- **A new "The interface" section**, high up, describing the three surfaces: the queue and why
+  each document is waiting, the review page with the document beside its editable fields and
+  the three buttons, and `/docs` plus `/metrics`. It ends by answering the question directly -
+  the trained model is the smallest and most replaceable part of this, one of four
+  implementations behind a protocol, and it loses to the rules on the corpus.
+- **A new "Hosting" section** that separates *deployment-ready* from *deployed*, because the
+  difference is the whole point of the honesty this README is built on. What is ready is
+  listed as facts that can be checked - 301MB container, one database dependency, Alembic on
+  release, a health check that probes the database, a shared secret that closes writes, no
+  per-request cost, restart recovery, storage behind an interface. What is left is listed as
+  three decisions rather than as work.
+
+**No link is claimed.** There is no link because there is no link, and a portfolio that claims
+a deployment it does not have is worth less than one that says which step it is on. The
+Limitations entry points at the section rather than repeating it.
+
+**Uncommitted.** Everything remains in the working tree.
+
+### 2026-09-07, later still - the review page was showing one rule out of ten
+
+**How it was found.** By opening the queue and doing the thing the README tells a visitor to
+do: break a total, press save and re-check, expect the arithmetic rule to object. It did not
+object. The rules table listed one rule - `vendor_is_known`, a warning - and said nothing about
+a total of 99009.00 against a subtotal and tax of 270.00.
+
+**The rule was fine.** Run directly against the stored extraction it fails exactly as it should,
+and the ten `validation_results` rows written for that extraction include the failure. The
+verdict was recorded correctly and then not displayed.
+
+**`_latest_results` grouped a validation run by an identical `checked_at`.** That was a true
+property when it was written: ten rows written in one transaction, and Postgres `now()` is
+transaction time, so they shared a timestamp to the microsecond.
+
+**Migration 0002 removed the property, to fix a different bug.** Two extractions written in one
+transaction shared `created_at`, so "the latest extraction" was decided arbitrarily by the
+planner and validation ran against the uncorrected answer about half the time. The fix moved
+both ordering columns to `clock_timestamp()`, which advances *within* a transaction - and
+migration 0002's own docstring names `validation_results.checked_at` and says the review page
+uses it. The consequence was written down at the time and not followed through.
+
+So ten rows, ten timestamps, and "the newest set" collapsed to "the single most recently
+written row" - always `vendor_is_known`, because `database_rules` are appended last.
+
+**What it cost, which is more than a cosmetic table.**
+
+- A reviewer opening a document held back by a failed error rule saw a table that did not
+  mention it. That is the one thing the page exists to tell them.
+- `implicated` is derived from the same list, so the fields that rule points at were never
+  highlighted.
+- The queue's "why it is here" column reads the same function, so it fell through to "below the
+  confidence threshold" - true, and not the reason.
+
+**The fix is to stop depending on the clock.** The newest verdict per `rule_name`, which is what
+the page was asking for in the first place, and which is indifferent to whether two rows written
+together share a timestamp.
+
+**One existing test was passing by luck.** `test_a_queued_document_appears_with_the_reason_it_is
+_waiting` fails against the old grouping now, and passed for three stages, because whether the
+single surviving row happened to be a failure depended on whether the last-written rule
+(`vendor_is_known`) failed - which depends on whether a vendor row exists. A test whose result
+turns on database state left over from something else is not green, it is quiet.
+
+**Three tests added**, and each was run against the old code first to confirm it fails: the
+failed error rule is on the review page, the queue names the rule rather than the threshold, and
+re-validating does not stack a second copy of every verdict - which is what the original
+grouping was for and still has to hold.
+
+**Verification.** 355 passed, 1 skipped, 6 xfailed. Live: the review page now lists all ten
+rules with both failures at the top, five fields marked as implicated, and the queue naming
+`subtotal_plus_tax_equals_total`.
+
+**Worth noticing about the class of bug.** This is the fourth in this project that existed
+because something could not be observed, and the second where a fix removed a property another
+piece of code silently depended on. The test suite could not catch it: every test asserted on
+what was *stored*, and the storage was always right. What was wrong was the reading. The thing
+that caught it was a person opening the page and expecting an error.
+
+**Uncommitted.** Everything remains in the working tree.

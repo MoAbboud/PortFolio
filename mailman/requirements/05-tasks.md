@@ -313,13 +313,26 @@ Ends with: `POST /approve` puts a real invoice row in the database, and `pytest 
 - [x] Corrections re-run validation and write a new set of results rather than updating
 - [x] `field_path` uses the same dotted paths the harness will use
 - [x] `POST /documents/{id}/reprocess`, optionally with a `prompt_version`
-- [ ] `GET /documents?status=...&limit=...`
+- [x] `GET /documents?status=...&limit=...`. The parameter is `status_filter`, not `status` -
+      `status` is taken by FastAPI's own import in that module
 - [ ] `GET /vendors`
-- [ ] `GET /metrics`: counts by status, auto-approval rate
-- [ ] Shared secret on the API
-- [ ] pytest over the state machine: every legal transition, and every illegal one rejected
-- [ ] pytest over the transaction boundary: a failure mid-promotion leaves no partial invoice
-- [ ] pytest over corrections and re-validation
+- [x] `GET /metrics`: counts by status, auto-approval rate. **Done 2026-09-07**, three stages
+      after `base.html` started linking to it. The rate is counted from `status_history` rather
+      than from `status`, because an approved document has forgotten which way it was routed,
+      and it counts decisions rather than documents, because a corrected document is routed
+      twice and counting documents would have to drop one of them. It also reports the accuracy
+      figure from the newest run in `evaluations/`, read from the file rather than recomputed
+- [x] Shared secret on the API. **Done 2026-09-07.** Enforced on everything that writes and on
+      nothing that reads, which is the "read-only demo" option from stage 10's open questions
+      expressed as code. Two envelopes for one secret - a header for scripts, a cookie for the
+      browser, because a form post cannot carry a header and the review page is a form post
+- [x] pytest over the state machine: every legal transition, and every illegal one rejected
+- [x] pytest over the transaction boundary: a failure mid-promotion leaves no partial invoice
+- [x] pytest over corrections and re-validation
+- [x] A sweeper for documents abandoned mid-pipeline. **Done 2026-09-07.** Not in the original
+      list: `POST /documents` returning immediately with no broker was a deliberate decision,
+      and no way back out of `extracting` was not. It covers `extracted` too, which is where a
+      live database had twenty-four documents that `reprocess` answered 409 on
 
 ## Stage 7 - Minimal review queue
 
@@ -408,15 +421,23 @@ result written down whether it helped or not.
 
 - [ ] Decide where it hosts and what it costs. See the open questions in
       [00-plan.md](00-plan.md)
-- [ ] Decide what a visitor is allowed to do, so a public upload box is not an open invoice
-      for provider tokens
+- [>] Decide what a visitor is allowed to do, so a public upload box is not an open invoice
+      for provider tokens. **The mechanism exists** - `MAILMAN_API_KEY` closes every write and
+      leaves every read open, so the default shape of a public link is a read-only demo. What
+      is still the author's call is whether that is the intended answer, or whether a visitor
+      should be able to upload under a rate limit
 - [ ] Seed the hosted database with a handful of processed documents, so the link does not
       open on an empty queue
 - [ ] Deploy, and check the whole flow against the public link the same way it was checked
-      locally
-- [ ] README: the problem, the pipeline diagram, the accuracy numbers, what was tried that
+      locally. The image is 301MB now rather than 1.67GB - there was no `.dockerignore`, so
+      `COPY . .` was taking the virtualenv, torch included. The release command has to run
+      `alembic upgrade head`: neither the Dockerfile nor compose does, so a host that only
+      builds the image boots against an empty schema
+- [x] README: the problem, the pipeline diagram, the accuracy numbers, what was tried that
       did not work, the known limitations
-- [ ] Accuracy figures on `GET /metrics` as well as in the README
+- [x] Accuracy figures on `GET /metrics` as well as in the README. The endpoint reads the
+      newest run in `evaluations/` rather than scoring the corpus itself, so it cannot drift
+      from the number in git
 - [ ] A styling pass on the queue, now that it is allowed
 - [ ] Export the corrections log as candidate labels, closing the loop back to the corpus
 

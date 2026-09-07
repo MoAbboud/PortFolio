@@ -13,6 +13,7 @@ from mailman.config import settings
 from mailman.db import SessionLocal, get_session
 from mailman.extractors import build_extractor
 from mailman.models import Document, Extraction
+from mailman.api.security import require_api_key
 from mailman.schemas import DocumentOut
 from mailman.status import RECEIVED
 from mailman.storage import DocumentStore, LocalDocumentStore
@@ -49,6 +50,7 @@ def _extract_in_background(document_id: uuid.UUID) -> None:
     response_model=DocumentOut,
     status_code=status.HTTP_201_CREATED,
     summary="Upload a document",
+    dependencies=[Depends(require_api_key)],
 )
 def upload_document(
     background: BackgroundTasks,
@@ -202,6 +204,7 @@ def _process_in_background(document_id: uuid.UUID) -> None:
 @router.post(
     "/{document_id}/approve",
     summary="Promote an extraction into the invoice record",
+    dependencies=[Depends(require_api_key)],
 )
 def approve_document(
     document_id: uuid.UUID,
@@ -238,6 +241,7 @@ def approve_document(
 @router.post(
     "/{document_id}/corrections",
     summary="Correct fields on an extraction and re-validate",
+    dependencies=[Depends(require_api_key)],
 )
 def correct_document(
     document_id: uuid.UUID,
@@ -278,6 +282,7 @@ def correct_document(
 @router.post(
     "/{document_id}/reprocess",
     summary="Send a document back through extraction",
+    dependencies=[Depends(require_api_key)],
 )
 def reprocess_document(
     document_id: uuid.UUID,

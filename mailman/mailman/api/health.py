@@ -14,6 +14,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from mailman import __version__
+from mailman.api import security
 from mailman.db import get_session
 
 router = APIRouter(tags=["health"])
@@ -39,5 +40,13 @@ def health(session: Session = Depends(get_session)) -> JSONResponse:
 
     return JSONResponse(
         status_code=200,
-        content={"status": "ok", "version": __version__, "database": "ok"},
+        content={
+            "status": "ok",
+            "version": __version__,
+            "database": "ok",
+            # Whether writing needs the shared secret. Green with an open upload box is not
+            # healthy, and this line is what makes "did the deploy get its secret?" a
+            # question the health check answers rather than one somebody tests by uploading.
+            "api_key": "enforced" if security.is_enforced() else "not configured",
+        },
     )

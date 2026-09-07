@@ -28,11 +28,34 @@
   button { font: inherit; padding: .35rem .9rem; }
   .row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
   @media (max-width: 60rem) { .row { grid-template-columns: 1fr; } }
+  .nav form { display: inline; }
+  .nav input[type=password] { font: inherit; width: 12rem; padding: .2rem .3rem; }
+  .nav button { padding: .1rem .5rem; }
 </style>
-<p class="muted">
+{#
+  The metrics link pointed at a route that did not exist from the day this file was written.
+  A link is not a call, so nothing tested it and nothing failed - it just 404'd at whoever
+  clicked it. The endpoint exists now.
+
+  The lock state is here rather than on the queue page alone because it is true of every
+  page: whether this browser may change anything is the first thing a reviewer needs to know,
+  and finding out by pressing approve and getting a 401 is the wrong way to learn it.
+#}
+<p class="muted nav">
   <a href="/">queue</a> ·
   <a href="/docs">api</a> ·
   <a href="/metrics">metrics</a> ·
-  bare by design until the stage 8 baseline exists
+  {% if not api_key_enforced() %}
+    <span class="warn">writes are open - no MAILMAN_API_KEY is set</span>
+  {% elif browser_unlocked(request) %}
+    <span class="pass">unlocked</span>
+    <form method="post" action="/lock"><button type="submit">lock</button></form>
+  {% else %}
+    <span>read-only ·</span>
+    <form method="post" action="/unlock">
+      <input type="password" name="key" placeholder="shared secret" aria-label="shared secret">
+      <button type="submit">unlock</button>
+    </form>
+  {% endif %}
 </p>
 {% block body %}{% endblock %}

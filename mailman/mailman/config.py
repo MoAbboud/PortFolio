@@ -38,7 +38,18 @@ class Settings(BaseSettings):
     # so moving to object storage later is a different client rather than a new schema.
     storage_root: str = "/data/documents"
 
-    # Shared secret for the API. One reviewer, so one secret. Not enforced until stage 6.
+    # Shared secret for the API. One reviewer, so one secret.
+    #
+    # Enforced on everything that writes - upload, correct, approve, reject, reprocess - and
+    # on nothing that reads. That split is the hosting decision written as code: a visitor at
+    # a public link reads the queue, a document and the metrics, and changes nothing.
+    #
+    # Unset means writes are open, which is what a local run wants and what a public one must
+    # not have. The comment here used to say "not enforced until stage 6" and stage 6 ended
+    # without enforcing it, which nothing caught, because an unset secret and an unchecked
+    # secret look identical from outside. So the state is now reported by /health and
+    # /metrics: whether this API is open is a question the system answers rather than one
+    # somebody discovers by uploading to it. See mailman/api/security.py.
     mailman_api_key: str | None = None
 
     # Provider credentials.
@@ -93,6 +104,23 @@ class Settings(BaseSettings):
     extraction_max_tokens: int = 16000
     extraction_timeout_seconds: float = 120.0
     extraction_max_retries: int = 3
+
+    # How long a document may sit mid-pipeline before the sweeper calls it failed.
+    #
+    # The pipeline runs in-process with no broker, so a process that dies partway leaves a
+    # document in `extracting` or in `extracted`, and neither has an edge back to `received`
+    # - not even reprocess can rescue one, which is the 409 that proves it. Fifteen minutes
+    # is well clear of extraction_timeout_seconds plus its retries, and the whole pipeline
+    # takes milliseconds, so a document past this is not slow, it is gone.
+    # See mailman/sweeper.py.
+    stuck_document_seconds: float = Field(
+        default=900.0,
+        validation_alias=AliasChoices(
+            "MAILMAN_STUCK_DOCUMENT_SECONDS",
+            "STUCK_DOCUMENT_SECONDS",
+            "stuck_document_seconds",
+        ),
+    )
 
     # A cap on what one upload may be. An invoice is a few hundred kilobytes; anything at
     # this size is a mistake or an attack, and the check is cheaper than the consequences.

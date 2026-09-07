@@ -1,0 +1,33 @@
+# What does not belong in the image.
+#
+# Without this file `COPY . .` takes the whole repository, and the whole repository is
+# mostly things the running service never opens: the virtualenv alone carries torch, and
+# the image weighed 1.67GB for a process that imports FastAPI, SQLAlchemy and pdfplumber.
+# That is not a tidiness problem - it is the difference between fitting a free hosting tier
+# and not, which is stage 10's open question.
+#
+# The trained weights are the deliberate omission. `hybrid` degrades to the heuristic when
+# there are none, and on the corpus that costs nothing measurable - the rules score 98.3%
+# on their own. The model's claim is buyer names in wordings the rules have never seen, and
+# that is a local and showcase path, not the deploy.
+
+.venv/
+venv/
+models/
+data/
+notebooks/
+
+.git/
+.gitignore
+.dockerignore
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+
+# Secrets never enter the image. They arrive as environment variables.
+.env
+
+# `corpus/` and `evaluations/` stay: the corpus is what seeds a demo database, and
+# `GET /metrics` reads the newest evaluation run to report the accuracy figure.

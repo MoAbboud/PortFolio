@@ -29,6 +29,8 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
+from mailman.api import security
+from mailman.api.security import require_api_key
 from mailman.config import settings
 from mailman.db import get_session
 from mailman.models import Document, Extraction, ValidationResult
@@ -36,6 +38,15 @@ from mailman.status import NEEDS_REVIEW
 
 router = APIRouter(tags=["review"], include_in_schema=False)
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
+
+# Two globals rather than two more keys in every context dict. Whether writes need a secret,
+# and whether this browser has presented one, are true of every page and neither depends on
+# what the page is showing - passing them through each render by hand is how one template
+# ends up rendering a stale answer because somebody added a route and forgot.
+templates.env.globals["api_key_enforced"] = security.is_enforced
+templates.env.globals["browser_unlocked"] = lambda request: security.key_matches(
+    security.presented_key(request)
+)
 
 # Which fields a failed rule implicates, so the form can mark them. Derived from the rule
 # names rather than parsed out of the messages: a message is for a person to read and its
@@ -72,19 +83,41 @@ def _latest_extraction(session: Session, document_id: uuid.UUID) -> Extraction |
 
 
 def _latest_results(session: Session, extraction: Extraction) -> list[ValidationResult]:
-    """Only the newest set. Re-validation appends rather than updating, so without this the
-    page shows every verdict the document has ever had, stacked."""
+    """The newest verdict for each rule. Re-validation appends rather than updating, so
+    without this the page shows every verdict the document has ever had, stacked.
+
+    **This used to group by an identical `checked_at` and it silently stopped working.** The
+    ten rows of one validation run were written in one transaction, and Postgres `now()` is
+    transaction time, so they genuinely did share a timestamp to the microsecond. Migration
+    0002 then moved this column to `clock_timestamp()` to fix a different bug - "the latest
+    extraction" being decided arbitrarily when two shared a timestamp - and `clock_timestamp()`
+    advances within a transaction. The property one fix depended on is the one the other fix
+    removed.
+
+    What it looked like: `newest` matched exactly one row, so the review page showed one rule
+    out of ten - always `vendor_is_known`, because the database rules are appended last. A
+    reviewer looking at a document held back by a failed arithmetic rule saw a table that did
+    not mention it, and the fields that rule implicates were never highlighted. The queue's
+    "why it is here" column reads the same function, so it fell through to "below the
+    confidence threshold" for documents that had a failed error rule to name.
+
+    Grouping by rule name instead of by timestamp does not depend on how the clock behaves,
+    which is the property that was missing. One verdict per rule is also what the page is
+    actually asking for.
+    """
     rows = (
         session.query(ValidationResult)
         .filter(ValidationResult.extraction_id == extraction.id)
         .order_by(ValidationResult.checked_at.desc())
         .all()
     )
-    if not rows:
-        return []
-    newest = rows[0].checked_at
+
+    newest_per_rule: dict[str, ValidationResult] = {}
+    for row in rows:                      # newest first, so the first of each name wins
+        newest_per_rule.setdefault(row.rule_name, row)
+
     return sorted(
-        (r for r in rows if r.checked_at == newest),
+        newest_per_rule.values(),
         key=lambda r: (r.passed, r.severity != "error", r.rule_name),
     )
 
@@ -183,7 +216,16 @@ def review(
 
 # response_model=None because this returns either a rendered page or a redirect, and
 # FastAPI otherwise tries to build a response model out of that union and fails.
-@router.post("/review/{document_id}", response_class=HTMLResponse, response_model=None)
+@router.post(
+    "/review/{document_id}",
+    response_class=HTMLResponse,
+    response_model=None,
+    # The one browser route that writes, so it takes the same secret every writing endpoint
+    # takes. The cookie envelope in `security` exists for this route: a form post cannot
+    # carry a header, and a queue that stopped working the moment the secret was set would
+    # be a worse bug than the open one it replaced.
+    dependencies=[Depends(require_api_key)],
+)
 async def submit_review(
     request: Request,
     document_id: uuid.UUID,
@@ -239,3 +281,42 @@ async def submit_review(
             message=message, message_class=message_class, reviewer=reviewed_by or "",
         ),
     )
+
+
+# The browser's way of presenting the same secret a script sends as a header. Two routes and
+# a cookie, and no session store: the cookie IS the secret, so there is nothing to keep
+# server-side and nothing that can drift out of step with the configuration.
+@router.post("/unlock", response_model=None)
+async def unlock(request: Request) -> RedirectResponse:
+    """Take the secret from a form and put it in a cookie, so this browser can write."""
+    form = await request.form()
+    key = (form.get("key") or "").strip()
+
+    # The wrong secret is rejected here rather than stored and failing later on whatever the
+    # reviewer tried to do next, which would look like the approve button being broken.
+    if not security.key_matches(key):
+        return RedirectResponse(url="/?unlocked=no", status_code=status.HTTP_303_SEE_OTHER)
+
+    response = RedirectResponse(url="/?unlocked=yes", status_code=status.HTTP_303_SEE_OTHER)
+    response.set_cookie(
+        security.COOKIE_NAME,
+        key,
+        # HttpOnly because no script on these pages has any reason to read it, and SameSite
+        # because a form post from another origin should not arrive already authenticated.
+        httponly=True,
+        samesite="lax",
+        # `secure` follows the request rather than being hardcoded: hardcoding it on breaks
+        # every local run over http, and hardcoding it off ships the secret in clear text
+        # from the hosted link. The request knows which one it is.
+        secure=request.url.scheme == "https",
+        max_age=60 * 60 * 12,
+    )
+    return response
+
+
+@router.post("/lock", response_model=None)
+def lock() -> RedirectResponse:
+    """Forget the secret in this browser."""
+    response = RedirectResponse(url="/?unlocked=cleared", status_code=status.HTTP_303_SEE_OTHER)
+    response.delete_cookie(security.COOKIE_NAME)
+    return response

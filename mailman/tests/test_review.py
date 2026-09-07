@@ -200,3 +200,66 @@ def test_a_review_page_for_a_document_that_does_not_exist_is_a_404(
     client: TestClient,
 ) -> None:
     assert client.get(f"/review/{uuid.uuid4()}").status_code == 404
+
+
+def test_the_review_page_shows_every_rule_not_just_the_last_one_written(
+    client: TestClient, db_session: Session
+) -> None:
+    """The regression that hid a failed error rule from the person paid to catch it.
+
+    `_latest_results` grouped a validation run by an identical `checked_at`, which was true
+    while the column defaulted to Postgres `now()` - transaction time, shared by every row
+    written together. Migration 0002 moved it to `clock_timestamp()` to fix a different bug,
+    and `clock_timestamp()` advances within a transaction. Ten rows, ten timestamps, and the
+    "newest set" collapsed to one row: `vendor_is_known`, because the database rules are
+    appended last.
+
+    So the assertion is not "some rules are shown". It is that the *failed error rule* is on
+    the page, because that is what a reviewer is there to act on and it was the row being
+    dropped.
+    """
+    document = a_queued_document(db_session)
+
+    page = client.get(f"/review/{document.id}").text
+
+    assert "subtotal_plus_tax_equals_total" in page
+    assert "vendor_is_known" in page, "the last-written rule was the only one that used to show"
+    assert "required_fields_present" in page, "passing rules are shown too - a rule that used to pass and now fails is only visible if the pass was recorded"
+
+
+def test_the_queue_names_the_rule_rather_than_falling_back_to_the_threshold(
+    client: TestClient, db_session: Session
+) -> None:
+    """The same bug, one page over. The queue's `why it is here` column reads the same
+    function, so a document held back by a failed arithmetic rule was listed under `below the
+    confidence threshold` - true, but not the reason a person needs."""
+    a_queued_document(db_session)
+
+    page = client.get("/").text
+
+    assert "subtotal_plus_tax_equals_total" in page
+
+
+def test_re_validating_does_not_stack_old_verdicts(
+    client: TestClient, db_session: Session
+) -> None:
+    """What the original grouping was for, and it still has to hold. Validation appends
+    rather than updating, so without a rule that picks one verdict per rule name the page
+    grows a second copy of every rule each time a document is re-checked."""
+    from mailman.api.review import _latest_extraction, _latest_results
+    from mailman.pipeline import validate_document
+
+    document = a_queued_document(db_session)
+    extraction = _latest_extraction(db_session, document.id)
+    before = len(_latest_results(db_session, extraction))
+
+    # Re-validate the same extraction, which writes a second full set of rows against it.
+    db_session.query(Document).filter(Document.id == document.id).update(
+        {"status": st.EXTRACTED}
+    )
+    db_session.commit()
+    validate_document(db_session, document.id)
+
+    after = _latest_results(db_session, extraction)
+    assert len(after) == before, "one verdict per rule, however many times it has been checked"
+    assert len({row.rule_name for row in after}) == len(after)
