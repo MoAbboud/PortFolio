@@ -3,9 +3,12 @@
 ## Shape
 
 One FastAPI process serving the API and the web UI, one worker process draining a
-database-backed job queue, one PostgreSQL with pgvector. Everything else - the browser
-extension, the MCP server, the benchmark harness - is a client of that API and holds no
-state of its own.
+database-backed job queue, one PostgreSQL with pgvector, and a set of model files on disk
+that the worker loads. Everything else - the browser extension, the MCP server, the benchmark
+harness - is a client of that API and holds no state of its own.
+
+**There is no model provider in this diagram and there is no key anywhere in this project.**
+Every model runs locally.
 
 ```mermaid
 flowchart LR
@@ -27,7 +30,12 @@ flowchart LR
     end
 
     DB[(PostgreSQL + pgvector)]
-    LLM[Model provider]
+
+    subgraph mdl[Local models, files on disk]
+        MX[Extractor: heuristic, local weights, or trained]
+        MN[NLI: merge verdicts and probe grading]
+        ME[Embeddings: sentence transformer]
+    end
 
     EXT --> API
     MCP --> API
@@ -40,12 +48,16 @@ flowchart LR
     W --> H
     H --> DOM
     H --> DB
-    H --> LLM
+    H --> MX
+    H --> MN
+    H --> ME
 ```
 
-The API never calls a model. Every provider call happens in the worker, which is what makes
-`POST /v1/ingest` fast, cheap and safe to hammer from a browser extension, and what stops a
-slow provider from turning into a slow API.
+The API never loads or runs a model. All inference happens in the worker, which is what makes
+`POST /v1/ingest` fast and safe to hammer from a browser extension, and what stops a minutes-
+long derive from turning into a minutes-long HTTP request. On a machine with no dedicated GPU
+that separation stops being a nicety and becomes the thing that makes the system usable at
+all.
 
 ## Stack
 
@@ -56,18 +68,73 @@ slow provider from turning into a slow API.
 | Database | PostgreSQL 16 + pgvector | Similarity search over entries is the merge step. A second store for vectors would be a second place for the same fact to live |
 | ORM | SQLAlchemy 2, async, asyncpg | |
 | Migrations | Alembic | From the first commit. The first migration is hand-written so the constraints are visible |
-| Schemas | Pydantic v2 | One definition used as the provider's output schema and as the parse target |
+| Schemas | Pydantic v2 | One definition used as the extractor's output schema, as the JSON grammar it compiles to, and as the parse target |
 | Queue | The `jobs` table, `SKIP LOCKED` | A broker earns its place when retry has to survive a restart. This does not yet |
-| Tokens | `tiktoken`, `cl100k_base` | Documented everywhere as an estimator, not as any vendor's real count |
+| Extraction | An interface with three implementations | `heuristic`, `local`, `trained`, chosen by `HERDER_EXTRACTOR`. Copied deliberately from `mailman`, where the same shape produced the project's most interesting result |
+| Local inference | `llama.cpp` through a Python binding, or Ollama | A quantised instruction model in the 3B class, because the target machine has no dedicated GPU. Grammar-constrained decoding is what makes the JSON valid, rather than hoping |
+| Merge and grading | An NLI cross-encoder | Entailment, contradiction and neutral are exactly the distinctions the merge step and the judge need. Small enough to run on CPU without thinking about it |
+| Embeddings | `sentence-transformers` | 384 dimensions. Fixes the pgvector column, so it is a migration and not a setting |
+| Tokens | `tiktoken`, `cl100k_base` | The budget ruler, documented as an estimator. Deliberately **not** the local model's own tokeniser: the budget describes a brief that some other vendor's model will read, so a neutral consistent ruler is the point. The local model's own tokeniser is used only for its own context limit |
 | Local environment | Docker Compose | One command brings up API, worker and database |
 | Tests | pytest | Concentrated on `domain/`, the invariants and the merge verdicts |
 | Web UI | Server-rendered templates | No Node build step, one process, runs from PowerShell. The extension is where the TypeScript budget goes |
 | Extension | TypeScript, Manifest V3, Vite | Deferred until the core loop is measured |
 
+## The models
+
+Four pieces of inference, none of them hosted, all of them files on disk under `models/`,
+which is gitignored for the same reason `mailman`'s is - weights are large and rebuildable,
+and the recipe is the artifact worth committing.
+
+**Extraction is an interface with three implementations**, selected by `HERDER_EXTRACTOR`,
+and an unknown value is an error rather than a silent default:
+
+| Implementation | What it is | Why it exists |
+| --- | --- | --- |
+| `heuristic` | Rules over turn structure and cue phrases. Filters to user turns and agreed statements, keys on modal and commitment language for constraints and decisions, and takes lineage from the turn it matched | It needs no weights, no GPU and no download, it runs in milliseconds, and **it is what a free hosting tier can actually serve.** It is also the honest baseline: if the model cannot beat it, that is the finding |
+| `local` | A quantised instruction model in the 3B class, run through `llama.cpp` with a grammar that forces valid JSON | The default for real use. Good enough for structured extraction, small enough to run on CPU |
+| `trained` | A model fine-tuned by hand on synthetic conversation-to-entry pairs, on Colab's free T4 | Stage 10. It arrives as a measured improvement over the other two rather than as a prerequisite, so the loop is never blocked on a training run |
+
+This is `mailman`'s shape, deliberately. There, three extractors behind one protocol produced
+the project's most interesting result - the trained model ran ahead of the plan for five
+stages and then lost to eleven lines of regular expressions on realistic documents. That
+outcome was only visible because both existed and the harness could compare them. The same
+arrangement here means the question "did the model actually help" has an answer.
+
+**Merging and grading use an NLI cross-encoder rather than a generative model.** This is not a
+compromise forced by having no key; it is a better fit. The four merge verdicts are almost
+exactly the three NLI labels: a candidate that entails an existing entry is a `duplicate`, one
+that contradicts it is a `supersede`, one that is neutral to it is `distinct`, and `update` is
+entailment in one direction only. Grading a probe answer is the same operation - does the
+actual answer entail the expected one - and it yields the three-valued 0 / 0.5 / 1 score
+naturally instead of asking a generative model to pick a number and hoping it is calibrated.
+
+**Embeddings** are a sentence transformer at 384 dimensions, on CPU, over `title + text`.
+
+### What CPU-only means in practice
+
+The target machine has no dedicated GPU. Working assumption, to be replaced by a real
+measurement at stage 2: a full derive of a 60k-token conversation is roughly ten extraction
+calls, and on CPU that is **minutes to tens of minutes**, dominated by prompt processing
+rather than by generation.
+
+Three consequences follow, and they are design inputs rather than complaints:
+
+1. **The architecture already absorbed this.** Derivation is a background job, the API never
+   runs a model, and nothing waits on a derive. That was decided for a different reason and it
+   is what makes a slow local model acceptable.
+2. **Chunk size becomes a much bigger lever than it was.** Every call re-processes the
+   instructions, the worked examples and the existing entry titles, so ten chunks pay that
+   overhead ten times. Larger chunks cut the repeated cost; small models get worse over long
+   contexts. That is a real trade with a measurable optimum, and it belongs in stage 10.
+3. **Nothing may call a model where a rule or an index would do.** Adjudication runs only on
+   candidates that clear the similarity threshold, never on every pair. The session tail is
+   copied, not summarised. Re-rendering after an edit re-runs no inference at all.
+
 ## Layers
 
 ```
-api/          routers. HTTP in, HTTP out. No logic, no provider calls
+api/          routers. HTTP in, HTTP out. No logic, no inference
 schemas/      Pydantic request and response models
 services/     orchestration: ingest, derive, serve, checkpoint, adjust. Talks to the database
 domain/       pure functions: chunking, merging, rendering, scoring. No IO. Heavily tested
@@ -129,13 +196,15 @@ derive(project):
     if none: return
 
   A chunk       split at turn boundaries, target 6000 tokens
-  B extract     per chunk, one model call, structured output:
+  B extract     per chunk, one call to the configured extractor, structured output:
                   [{layer, kind, title, text, lineage[msg ids], confidence, supersedes_title?}]
                 given the chunk and the titles of the project's existing active entries
+                (the local extractor is grammar-constrained, so the JSON is valid by
+                 construction; the heuristic one emits the same shape from rules)
   C merge       per candidate, embed it, search entries by cosine similarity (threshold 0.86)
                   no match          -> create
                   match, and the match is removed -> DROP. Removed means removed
-                  otherwise         -> ask the model to adjudicate:
+                  otherwise         -> run NLI over candidate against each match:
                       duplicate  -> extend lineage, bump last_seen, seen_in_conversations
                       update     -> new revision, merged text, union of lineage
                       supersede  -> new entry, old one superseded_by the new
@@ -226,9 +295,9 @@ checkpoint(injection, mode):
     probes = 3 from entries included in that version    (did the context transmit)
              2 from entries excluded by the budget      (what did compression cost)
              1 from messages no entry covers            (what did extraction miss)
-    answers = ask the target model, given the pack and one question at a time (api mode)
+    answers = ask the target model, given the pack and one question at a time (local mode)
               or one compound numbered message in the live chat (in_chat mode)
-    grades  = judge(question, expected, actual) -> 0 | 0.5 | 1 with a reason
+    grades  = NLI(expected, actual) -> 1 entails, 0.5 partial, 0 contradicts or misses
     integrity = weighted mean, included weighted 1.0, excluded and uncovered 0.5
     a zero on an included probe    -> entry.transmission_failed = true
     a zero on an excluded probe    -> suggestion: add this back
@@ -242,20 +311,25 @@ dominating it.
 
 ## Handling a model that does not cooperate
 
-Every provider call is temperature 0, JSON mode where the provider has it, validated against
-a Pydantic schema, with exactly one repair retry. What happens after that depends on which
-call it was, and the differences matter.
+Every generative call runs at temperature 0 with decoding constrained by a grammar compiled
+from the Pydantic schema, and the result is validated against that schema anyway - a grammar
+guarantees the shape, not the sense. One retry, then the failure is handled. What happens
+after that depends on which call it was, and the differences matter.
+
+The failure modes are different from a hosted provider's, and better: there is no rate limit,
+no quota, no refusal and no outage. What replaces them is a machine that can run out of
+memory.
 
 | Failure | Response |
 | --- | --- |
-| Malformed JSON from extraction | `llm_calls` row written with the raw response, one repair retry, then the chunk is skipped and recorded as skipped. Derivation continues with the other chunks. A whole derive lost to one bad chunk would be a bad trade |
-| Valid JSON, lineage referencing message ids not in the chunk | The candidate is dropped and counted. This is the model inventing evidence, and it is the one failure that must never be tolerated, because the audit trail is the product |
+| Malformed JSON from extraction | Should be impossible on the `local` extractor, because decoding is grammar-constrained - if it happens, the grammar is wrong and that is a bug rather than a bad response. Handled anyway: a `model_calls` row with the raw output, one retry, then the chunk is skipped and **recorded as skipped**. Derivation continues with the other chunks; losing a whole derive to one bad chunk would be a bad trade |
+| Valid JSON, lineage referencing message ids not in the chunk | The candidate is dropped and counted. This is the model inventing evidence, and it is the one failure that must never be tolerated, because the audit trail is the product. Grammar constraints cannot prevent it - a well-formed id can still be a fabricated one - so it is checked in code against the chunk that was actually sent |
 | Valid JSON, lineage empty | Same. A derived entry without lineage is not a low-confidence entry, it is an unsupported claim |
-| Adjudication fails to parse | Fall back to `distinct` - create the entry. The cost is a near-duplicate the user may see; the alternative default, `duplicate`, silently discards new information |
-| Probe generation fails | No probe for that entry. The checkpoint runs with fewer probes and reports the count. A checkpoint that reports the number of probes behind it can be believed |
-| Judge fails to parse | The probe is excluded from the score and flagged, never defaulted to 0 or to 1. Both defaults are lies |
-| Timeout or transport error | Retried inside the client with backoff. After the retries the job fails, lands in `jobs.error`, and is visible on the dashboard |
-| Provider returns a refusal | A 200 with no answer in it. Treated as a parse failure, not as an empty result |
+| NLI returns no label above the confidence floor | Fall back to `distinct` - create the entry. The cost is a near-duplicate the user can see and remove; the alternative default, `duplicate`, silently discards new information |
+| Probe generation fails | No probe for that entry. The checkpoint runs with fewer probes and **reports the count**. A checkpoint that says how many probes are behind it can be believed |
+| Grading is inconclusive | The probe is excluded from the score and flagged, never defaulted to 0 or to 1. Both defaults are lies |
+| Inference times out, or the process is killed for memory | Retried once, then the job fails, lands in `jobs.error`, and is visible on the dashboard. On a CPU-only machine an out-of-memory kill during a long derive is a realistic failure rather than a theoretical one, so the derive cursor only advances on success - a killed derive re-runs from where it was, it does not silently skip material |
+| Model weights missing or not loadable | Startup fails loudly, naming the file and the env var. It does not fall back to the heuristic extractor: a system quietly producing worse briefs than the operator thinks is worse than one that will not start |
 
 The rule underneath all of them: **a failure is recorded and counted, never defaulted into a
 plausible value.** An extraction that silently produced nothing looks exactly like a chunk
@@ -298,7 +372,7 @@ All under `/v1`, JSON, bearer key or session cookie.
 | POST | `/projects/{id}/render` | Force a re-render |
 | GET | `/projects/{id}/resume` | The pack. Writes an injection. Takes vendor, budget, door |
 | GET | `/injections/{id}/probes` | The compound probe message, for an in-chat checkpoint |
-| POST | `/injections/{id}/checkpoint` | Run one. `api` mode runs it server-side; `in_chat` posts captured answers |
+| POST | `/injections/{id}/checkpoint` | Run one. `local` mode runs it server-side against the local model; `in_chat` posts captured answers |
 | GET | `/checkpoints/{id}` | Integrity and every probe with its reason |
 | GET | `/projects/{id}/integrity` | The time series |
 | GET | `/projects/{id}/suggestions` | |
@@ -316,7 +390,7 @@ sequenceDiagram
     participant A as API
     participant DB as Database
     participant W as Worker
-    participant M as Model
+    participant M as Local models
 
     X->>A: POST /v1/ingest (batch of turns)
     A->>DB: insert messages, on conflict do nothing
@@ -334,7 +408,7 @@ sequenceDiagram
     alt match is removed
         W->>W: drop the candidate
     else match found
-        W->>M: adjudicate(candidate, matches)
+        W->>M: NLI(candidate vs matches)
         M-->>W: duplicate | update | supersede | distinct
     end
     W->>DB: write entries, revisions, lineage
@@ -349,20 +423,20 @@ sequenceDiagram
     participant A as API
     participant DB as Database
     participant T as Target model
-    participant J as Judge
+    participant J as NLI model
 
     U->>A: GET /v1/projects/{id}/resume?vendor=claude
     A->>DB: current brief version + preamble
     A->>DB: insert injection(door, vendor, pack_text)
     A-->>U: pack text, injection id
     U->>T: pastes the pack, presses send
-    U->>A: POST /v1/injections/{id}/checkpoint {mode: api}
+    U->>A: POST /v1/injections/{id}/checkpoint {mode: local}
     A->>DB: enqueue checkpoint job
     Note over A,DB: 6 probes: 3 included, 2 excluded, 1 uncovered
     A->>T: pack + one question, per probe
     T-->>A: answers
-    A->>J: question, expected, actual
-    J-->>A: 0 | 0.5 | 1 with a reason
+    A->>J: expected vs actual
+    J-->>A: entails / neutral / contradicts -> 1 | 0.5 | 0
     A->>DB: checkpoint + probe results
     A->>DB: suggestions for every zero
     A-->>U: integrity, and what was lost
@@ -371,15 +445,19 @@ sequenceDiagram
 ## Prompts
 
 In `prompts/`, one file each, every one carrying a `version` header that is written to the
-`llm_calls` row on every call. A prompt change with no version bump makes every earlier
+`model_calls` row on every call. A prompt change with no version bump makes every earlier
 measurement unattributable, which is the quiet way a harness stops meaning anything.
+
+There are fewer prompts than the original design had, because two of the jobs stopped being
+prompted jobs. Adjudication and grading are NLI classifications now, so their behaviour is
+governed by a model, a label mapping and a confidence floor - all versioned in configuration
+and logged the same way. That is a smaller surface to get wrong, and it removes two places
+where a model was being asked to produce a number and trusted to be calibrated.
 
 | Prompt | Job |
 | --- | --- |
-| `extract.md` | Chunk plus existing titles to candidate entries. Three worked examples covering a decision, a code state and an open thread |
-| `adjudicate.md` | Candidate plus up to three matches to one of four verdicts, with a reason |
-| `probe_gen.md` | An entry or a raw message to a question and a ground-truth answer, answerable only from that content |
-| `judge.md` | Question, expected and actual to 0, 0.5 or 1 with a reason |
+| `extract.md` | Chunk plus existing titles to candidate entries, with a JSON grammar beside it. Three worked examples covering a decision, a code state and an open thread |
+| `probe_gen.md` | An entry or a raw message to a question and a ground-truth answer, answerable only from that content. Templates keyed on `kind` are tried first; the model is the fallback |
 | `preamble.md` | The resume-pack header, one variant per target vendor |
 
 The extraction rules that live in `extract.md` are part of the design rather than prompt
@@ -403,8 +481,8 @@ reimplementation.
   handover. Each ships with a hand-written ground-truth fact list.
 - `bench/methods/` - `herder` (the full loop), `naive_summary` (one "summarise this" prompt
   at the same budget), `truncate_tail` (the last N tokens, which is what people actually do).
-- Metrics: recall of ground-truth facts, hallucination rate, compression ratio, cost per
-  resume. Reported per archetype as well as combined, because a method that wins on code and
+- Metrics: recall of ground-truth facts, hallucination rate, compression ratio, and wall-clock
+  per resume (the cost column, now that nothing is billed). Reported per archetype as well as combined, because a method that wins on code and
   loses on planning is a finding rather than an average.
 
 `naive_summary` is the comparison that matters. It is what a reasonable person would build in
@@ -414,12 +492,17 @@ harness is built to be able to return that answer.
 
 ## Security and privacy
 
-- Secrets from the environment. Nothing in the repository.
+- There are no provider secrets, because there is no provider. What secrets exist - a session
+  signing key, the hashes of herder's own API keys - come from the environment and never from
+  the repository. Conversations are never transmitted to a third party for processing; the
+  only text that leaves the machine is a resume pack the user themselves pastes into a chat.
 - API keys stored as SHA-256 hashes with a visible prefix, shown once at creation.
 - Passwords with Argon2, if there is ever a second user. There is one now.
 - Server logs carry ids, counts and timings, never message content.
 - No third-party analytics anywhere in the web app.
-- Rate limits on `/ingest` per key, and on every endpoint that can cause a provider call.
+- Rate limits on `/ingest` per key, and on every endpoint that can trigger inference. The
+  scarce resource is CPU rather than money, but an unauthenticated endpoint that can queue an
+  hour of work is still a way to take the machine down.
 - `GET /me/export` and `DELETE /me` work before anyone other than the author has an account.
 - The self-host path is `docker compose up`, and it is the primary path rather than a
   fallback. A memory of everything someone has ever said to a chatbot is exactly the kind of

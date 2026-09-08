@@ -29,13 +29,13 @@ the same habit of running material through end to end before writing any rules, 
 insistence on an immutable record of what a model actually returned, and the same gate
 keeping the interface bare until a baseline exists.
 
-Two things about this project are different from the rest of the repository and are stated
-here so they are not discovered as surprises:
+Two things about this project are worth stating here so they are not discovered as surprises:
 
-- **It needs a model API key.** Every other app here is free and keyless. Deriving entries
-  and grading probes are language-model work with no honest heuristic substitute, because the
-  model's ability to compact a conversation is the thing being measured. The key is the
-  user's own, from the environment, and this repository never ships one.
+- **It uses no hosted model API and needs no key.** Every model it runs is a file on disk - a
+  small instruction model for extraction, an NLI model for merging and grading, a sentence
+  embedding model for similarity. This matches the rest of the repository, and for a system
+  holding everything its user has ever said to a chatbot it is a design property rather than
+  a cost decision.
 - **It needs PostgreSQL with pgvector.** Similarity search over entries is the merge step, so
   it belongs in the same database as the rows it merges.
 

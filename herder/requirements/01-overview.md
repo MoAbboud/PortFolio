@@ -107,7 +107,19 @@ it. The benchmark is built to be able to say so.
 ## What it runs on
 
 Python and PostgreSQL with pgvector, brought up with one Docker Compose command and driven
-from a PowerShell terminal on Windows. Unlike the other backend project in this repository,
-herder needs an API key for a model provider: deriving entries and grading probes are
-language-model work and there is no honest heuristic substitute for them. The key is the
-user's own, supplied through the environment, and the project never ships one.
+from a PowerShell terminal on Windows.
+
+**No hosted model API. No key, no per-request cost, no vendor.** Every model herder uses runs
+on the machine it is installed on: a small instruction model for extraction, a natural
+language inference model for merging and grading, and a sentence embedding model for
+similarity. All of them are files on disk. A system that remembers everything its user has
+ever said to a chatbot is the last thing that should be shipping that material to a third
+party to be summarised, so this is a design property rather than a cost saving - although it
+is also a cost saving, and it is why the thing can be left running.
+
+The consequence is stated plainly rather than hidden: **extraction quality is bounded by what
+runs on ordinary hardware.** The claim this project makes is about a method - that a
+structured, layered, lineage-carrying brief beats a plain summary at the same token budget -
+and it is measured with the same local model doing the reading on both sides. Holding the
+reader constant is what makes the comparison mean anything; making the reader enormous is not
+required, and would not make the finding more true.

@@ -9,9 +9,9 @@
 | Auditor | Human | To ask "why does it think that" about any line in the brief and be shown the exact messages it came from |
 | Evaluator | Human | To find out whether a change to the extraction prompt, the merge rule, the ordering or the budget moved recall, with evidence, and to compare it against a plain summary |
 | Chatbot vendor | External system | Nothing. The conversation happens in their product and they are not a party to this. herder reads what is on the user's own screen |
-| Extraction model | External system | Receives a chunk of conversation, returns candidate entries as structured data |
-| Judge model | External system | Receives a question, a ground-truth answer and an actual answer, returns a score and a reason |
-| Target model | External system | The model being resumed into. It receives the pack and is the thing being measured |
+| Extraction model | **Inside the boundary** | Reads a chunk and returns candidate entries as structured data. A file on disk that herder loads, not a service it calls |
+| Merge and grading model | **Inside the boundary** | Decides whether a new claim duplicates, revises or contradicts an existing one, and grades a probe answer against its expected answer. Also a file on disk |
+| Target model | External system | The model being resumed into, and the thing being measured. A local model in the benchmark, where it is deliberately a controlled variable; a real vendor's model through the browser extension, when external validity is wanted |
 | Agent or MCP client | External system | To fetch context for a project without a browser, and to write back what it establishes |
 
 The Owner, Curator, Auditor and Evaluator are one person in this project. They are separated
@@ -42,12 +42,12 @@ flowchart TB
         VER[Verify: probe, grade, score]
         ADJ[Adjuster]
         BEN[Benchmark harness]
+        XM[Extraction model<br/>local weights]
+        JM[NLI model<br/>merge and grade]
     end
 
     subgraph out[Outside the boundary]
         V[Chatbot vendor page]
-        XM[Extraction model]
-        JM[Judge model]
         TM[Target model]
         MC[Agent / MCP client]
     end
@@ -146,15 +146,28 @@ flowchart TB
 - **The Owner does not want the pack sent for them.** Text goes into the composer and stops.
   Anything else puts words in someone's mouth in a system that other people can see.
 - **The Evaluator needs the same conversation re-run without losing the previous answer**, so
-  brief versions are immutable and every LLM call is logged with its prompt version, its
-  tokens and its raw response. A scoring change must be re-measurable against responses
-  already paid for, or the harness becomes something to avoid running.
+  brief versions are immutable and every model call is logged with its prompt version, its
+  token counts, its latency and its raw output. A change to how a result is scored must be
+  re-measurable against outputs already computed. The currency is wall-clock rather than
+  money now, and the argument is unchanged: a harness whose every run costs an afternoon of
+  CPU is a harness that stops being run, and a harness that stops being run is the whole
+  project failing quietly.
 - **The vendor page is not a stable interface.** Every DOM adapter is wrong eventually. A
   broken adapter has to fail loudly and visibly rather than quietly capturing nothing, which
   is the failure that would destroy trust in the memory without ever showing an error.
-- **Provider cost is a real constraint on a portfolio project.** Every design decision that
-  affects how often a model is called is also a decision about whether this can be left
-  running.
+- **Local compute is the constraint that replaced provider cost.** Nothing is billed, so the
+  question is never "can this be afforded" but "will this finish". On a machine with no
+  dedicated GPU a full derive of a long conversation is minutes rather than seconds, which the
+  architecture already allows for by making derivation a background job nothing waits on. What
+  it does not allow for is a design that calls a model once per entry per render - the number
+  of model calls per derive is a budget, and it is spent on extraction and on adjudicating
+  genuine collisions, not on anything a vector index or a rule could have decided.
+- **The deployable configuration and the good configuration are not the same.** A quantised
+  instruction model is gigabytes and fits no free hosting tier, exactly as the 255 MB
+  DistilBERT in `fallacysuspect` does not. The extractor is therefore an interface with
+  several implementations, and which one runs is configuration - the cheap one is what a
+  public link can serve, the good one is what the numbers are produced with, and the gap
+  between them is a measurement rather than an embarrassment.
 - **Nothing from an employer or a client goes through this system**, into the repository, or
   into the benchmark corpus. The benchmark conversations are synthetic and written for the
   purpose. This outranks realism, and here it also outranks convenience, because the author's

@@ -62,16 +62,16 @@ Invoke-RestMethod "http://localhost:8000/v1/projects/$p/resume?vendor=claude&bud
 
 # stage 6: measure it
 Invoke-RestMethod -Method Post "http://localhost:8000/v1/injections/$i/checkpoint" `
-  -ContentType application/json -Body '{"mode":"api"}'
+  -ContentType application/json -Body '{"mode":"local"}'
 
 # the pipeline without the API
 python -m herder paste .\bench\datasets\01-coding.txt --project demo
 python -m herder brief demo
 python -m herder resume demo --vendor claude
 
-# what it cost
+# where the time went
 docker compose exec db psql -U herder -d herder -c `
-  "select purpose, count(*), sum(prompt_tokens+completion_tokens) from llm_calls group by 1;"
+  "select purpose, implementation, count(*), avg(latency_ms)::int from model_calls group by 1,2;"
 
 # the harness
 python -m bench.run --method herder --budget 3000
@@ -81,13 +81,24 @@ python -m bench.run --method naive_summary --budget 3000
 pytest -q
 ```
 
-The provider key comes from the environment and never from a file in the repository:
+**There is no API key anywhere in this project.** What comes from the environment is which
+models to load and where they live:
 
 ```powershell
-$env:HERDER_LLM_API_KEY = "..."
+# which extractor runs. Unknown value is an error, never a silent default.
+$env:HERDER_EXTRACTOR = "heuristic"   # heuristic | local | trained
+
+# where the weights live. Gitignored, rebuildable from the recipe in the repo.
+$env:HERDER_MODEL_DIR = "./models"
+
+# nothing here is downloaded at runtime by surprise - fetch it once, on purpose
+python -m herder models pull        # embeddings + NLI, a few hundred MB
+python -m herder models pull --llm  # the quantised extractor, a few GB
+python -m herder models check       # what is present, what is missing, what size
 ```
 
-Docker Compose passes it through rather than baking it into the image.
+Docker Compose mounts `./models` rather than baking weights into the image, so the image
+stays small and the same container runs with or without the local model present.
 
 There is also `http://localhost:8000/docs` - FastAPI generates it, it costs nothing, and it
 is a usable demo surface on its own before the web UI exists.
@@ -111,7 +122,9 @@ is a usable demo surface on its own before the web UI exists.
 - [ ] UUIDv7 generated in the application, so an id exists before the insert
 - [ ] `GET /health` returning green, and **verified to go red**: stopping the database
       returns 503. A health check that only proves the web server started is worth very little
-- [ ] Settings from the environment, including the provider key. Nothing in source
+- [ ] Settings from the environment: which extractor, where the models are. Nothing in source
+- [ ] `models/` gitignored from the first commit, like `mailman`'s. Weights are large and
+      rebuildable; the recipe is what belongs in git
 - [ ] A worker process that starts, claims nothing, and logs that it is polling. The job
       runner shape exists before there is a job to run
 - [ ] `NOTES.md` started - created empty on purpose, with only a reminder of what belongs in
@@ -146,42 +159,59 @@ is a usable demo surface on its own before the web UI exists.
 
 ## Stage 2 - Extract
 
-- [ ] `LLMClient` interface with one provider behind it, imported lazily
-- [ ] `llm_calls` written for **every** call, including the failures, with purpose, model,
-      prompt version, both token counts, latency, whether it parsed first time, and the raw
-      response
+- [ ] The `Extractor` protocol, and **two** implementations behind it: `heuristic` and
+      `local`. `trained` is stage 10 and only has to be a name in the enum now
+- [ ] `HERDER_EXTRACTOR` selects between them; an unknown value is an error rather than a
+      silent default
+- [ ] The local model loaded through `llama.cpp` bindings, imported lazily, with the model
+      file absent being a clear startup error rather than a crash on first use
+- [ ] A JSON grammar compiled from the Pydantic schema, so valid output is a property of
+      decoding rather than something to hope for and repair
+- [ ] `model_calls` written for **every** call, including the failures, with purpose, model,
+      **which implementation**, prompt version, both token counts, latency, whether it
+      validated first time, and the raw output
 - [ ] Prompt files with a `version` header, and the version written to the row on every call
 - [ ] `chunk()` in `domain/`, splitting at turn boundaries towards 6000 tokens, with unit
       tests for a single turn larger than the target
 - [ ] `extract.md` with three worked examples, and the rule about the model's own unadopted
       suggestions stated first
-- [ ] Pydantic schema for the candidate list, used as the provider's output schema and as the
+- [ ] Pydantic schema for the candidate list, used to generate the decoding grammar and as the
       parse target
 - [ ] **Lineage validated against the chunk.** A candidate citing a message id that was not in
       the chunk is dropped and counted, never stored
 - [ ] A candidate with empty lineage is dropped and counted
-- [ ] Malformed JSON: one repair retry, then the chunk is skipped and recorded as skipped.
-      Derivation continues with the other chunks
-- [ ] Timeout, transport error and a refusal handled as three distinct cases
+- [ ] Malformed JSON: one retry, then the chunk is skipped and **recorded as skipped**.
+      Derivation continues with the other chunks. With a grammar in place this should be
+      unreachable - if it fires, the grammar is wrong, and the log should make that obvious
+- [ ] Inference timeout and an out-of-memory kill handled as distinct cases. The derive
+      cursor advances only on success, so a killed derive re-runs rather than skipping material
+- [ ] Missing or unloadable weights fail at startup, naming the file and the variable. **No
+      silent fallback to the heuristic extractor** - quietly producing worse briefs than the
+      operator believes is worse than refusing to start
 - [ ] Entries, revisions and lineage written for the surviving candidates. No merging yet -
       this stage creates one entry per candidate on purpose, so the merge step can be seen to
       do something in stage 3
-- [ ] **Record what one chunk costs**, in tokens and in money, in `NOTES.md`. This is the
-      number the open question in [00-plan.md](00-plan.md) is waiting on
-- [ ] Tests against a fake provider covering every failure row in
-      [03-architecture.md](03-architecture.md)
+- [ ] **Record what one real chunk costs in wall-clock**, split into prompt processing and
+      generation, in `NOTES.md`. This is the number the open question in
+      [00-plan.md](00-plan.md) is waiting on, and it decides the chunk size and the model size
+- [ ] Run the same chunk through `heuristic` and through `local` and put both outputs side by
+      side. The first comparison of the project, and it costs nothing to do now
+- [ ] Tests against a fake extractor covering every failure row in
+      [03-architecture.md](03-architecture.md). The real model is never loaded in the test
+      suite - a suite that needs several gigabytes of weights is a suite that stops being run
 
 ## Stage 3 - Merge and render
 
-- [ ] Embedding client behind the same interface. Provider decided before any embedding is
-      written, because the pgvector dimension is fixed in the DDL
+- [ ] A `sentence-transformers` embedder at 384 dimensions, on CPU. The model is decided
+      before any embedding is written, because the pgvector dimension is fixed in the DDL
 - [ ] `embed` job, run on entry creation and on revision
 - [ ] Similarity search over `entries` with the HNSW index, top 3 above threshold
 - [ ] **The removed-entry rule, in the merge step**: a candidate matching a removed entry is
       dropped. Test it directly, and test it after a re-derive of the same messages
-- [ ] `adjudicate.md`, and the four verdicts each doing what
-      [03-architecture.md](03-architecture.md) says
-- [ ] A parse failure in adjudication falls back to `distinct`, and is counted
+- [ ] The NLI cross-encoder, and the mapping from entailment, contradiction and neutral onto
+      the four verdicts in [03-architecture.md](03-architecture.md)
+- [ ] A confidence floor below which no label is trusted
+- [ ] No label above the floor falls back to `distinct`, and is counted
 - [ ] Revisions on update, `superseded_by` on supersede, lineage union on both
 - [ ] Session tail: the last 1200 tokens of the most recent conversation, one entry of kind
       `tail`, replaced wholesale each derive
@@ -213,7 +243,10 @@ is a usable demo surface on its own before the web UI exists.
       the merge step is not working and the compaction claim fails. This is a stop-and-fix,
       not a note
 - [ ] The first real compression ratio recorded, with the count behind it
-- [ ] The cost of deriving each conversation recorded from `llm_calls`
+- [ ] The wall-clock of deriving each conversation recorded from `model_calls`, per
+      implementation
+- [ ] **`heuristic` against `local` on all ten**, side by side. `mailman`'s equivalent
+      comparison is the most interesting thing in that project
 - [ ] The failure list turned into the shortlist for stage 10
 
 ## Stage 5 - Serve
@@ -232,14 +265,15 @@ is a usable demo surface on its own before the web UI exists.
 - [ ] `probe_gen.md`, and probes cached per `(entry_id, entry_revision)`
 - [ ] Probe selection: 3 included, 2 excluded, 1 uncovered, and fewer reported honestly when
       there are not enough of a category
-- [ ] `judge.md`, scoring 0, 0.5 or 1 with a reason
-- [ ] A judge response that does not parse excludes the probe and flags it. Never defaulted
+- [ ] Grading by NLI: does the actual answer entail the expected one. 1, 0.5 or 0, with the
+      label and its score kept as the reason
+- [ ] An inconclusive grade excludes the probe and flags it. Never defaulted to 0 or to 1
 - [ ] Integrity as the weighted mean, with the three category scores also reported separately
 - [ ] `transmission_failed` set on an included entry that scored 0
 - [ ] Suggestions created for excluded and uncovered zeroes
-- [ ] `POST /v1/injections/{id}/checkpoint` in `api` mode, `GET /v1/checkpoints/{id}`,
+- [ ] `POST /v1/injections/{id}/checkpoint` in `local` mode, `GET /v1/checkpoints/{id}`,
       `GET /v1/projects/{id}/integrity`
-- [ ] The cost of one checkpoint recorded
+- [ ] The wall-clock of one checkpoint recorded
 
 ## Stage 7 - Adjust
 
@@ -275,8 +309,10 @@ Bare. No styling pass before the stage 9 baseline exists.
       **Written from the conversation, never from an extraction**
 - [ ] `bench/methods/`: `herder`, `naive_summary`, `truncate_tail`
 - [ ] `bench/run.py`, driving the real pipeline through the API
-- [ ] Metrics: recall of ground-truth facts, hallucination rate, compression ratio, cost per
-      resume. Per archetype as well as combined
+- [ ] Metrics: recall of ground-truth facts, hallucination rate, compression ratio, and
+      wall-clock per resume. Per archetype as well as combined, and per extractor
+- [ ] The answering model is the same local model for every method. Holding the reader
+      constant is what makes the comparison mean anything
 - [ ] Results as files in `bench/results/`, committed
 - [ ] **The baseline recorded before anything is tuned**
 - [ ] The per-fact detail behind every number, so the next change is informed
@@ -286,7 +322,11 @@ Bare. No styling pass before the stage 9 baseline exists.
 - [ ] At least three genuine attempts, each measured, each written into `NOTES.md` including
       the ones that failed
 - [ ] Candidates in cost order: render ordering, tail reserve size, similarity threshold,
-      chunk size, the extraction prompt, and whether the layer split earns its keep
+      chunk size, the extraction prompt, a larger quantisation, and whether the layer split
+      earns its keep
+- [ ] The `trained` extractor, if the earlier candidates run out. Synthetic
+      conversation-to-entry pairs, fine-tuned on Colab's free T4, measured against the other
+      two on the same corpus
 - [ ] One change at a time. The count reported beside every percentage
 - [ ] The dead ends kept and written up
 
@@ -295,8 +335,8 @@ Bare. No styling pass before the stage 9 baseline exists.
 - [ ] A host with PostgreSQL **and pgvector** - a smaller set of free tiers than plain
       PostgreSQL, and the thing to check first
 - [ ] The demo seeded. A link that opens on an empty project demonstrates nothing
-- [ ] What a visitor may do, decided and enforced. An open paste box is an open invoice for
-      provider tokens
+- [ ] What a visitor may do, decided and enforced. Not because a paste box spends money any
+      more, but because a free tier cannot hold the model or spare the CPU
 - [ ] README: the problem, the architecture diagram, the numbers beside `naive_summary` and
       `truncate_tail`, the dead ends, the limitations, and the circular-measurement caveat
       stated plainly
@@ -329,7 +369,7 @@ Bare. No styling pass before the stage 9 baseline exists.
 - [ ] `GET /v1/me/export` - every message, entry and brief as JSON
 - [ ] `DELETE /v1/me` - a `delete_user` job that hard-deletes, including job payloads
       referencing the user
-- [ ] Rate limits on `/ingest` per key and on everything that can trigger a provider call
+- [ ] Rate limits on `/ingest` per key and on everything that can trigger inference
 - [ ] `GET /metrics` in Prometheus text format
 - [ ] `docs/self-host.md`, with `docker compose up` as the primary path
 - [ ] Registration, Argon2 passwords, and `workspace_members` - only when there is a second
