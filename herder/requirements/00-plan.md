@@ -74,7 +74,8 @@ flowchart LR
 | 13 | MCP door | Optional. Six tools over the API that already exists |
 | 14 | Hardening and self-host | Optional. Export, delete, rate limits, `/metrics`, and the self-host document |
 
-**Nothing is built. Stage 0 is the current work.**
+**Stage 0 is built: the API, the worker, the schema and 27 tests that need no database.
+The container checks wait on Docker. Stage 1 - ingest - is the current work.**
 
 ### Why the core loop comes before everything else
 

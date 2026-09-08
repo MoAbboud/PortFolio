@@ -1,0 +1,22 @@
+# Local model weights. Gigabytes, and rebuildable from the recipe in the repo -
+# `python -m herder models pull`. The recipe is what belongs in git, not the weights.
+#
+# The LEADING SLASH matters and is not decoration. Without it this pattern would also
+# match `herder/models/`, the package directory holding the SQLAlchemy table
+# definitions, and quietly keep the schema out of the repository. Anchored, it means
+# this directory and nothing else.
+/models/
+
+# Local environment
+.venv/
+data/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Secrets. There is no provider key in this project, but the database URL and the
+# session signing key still do not belong in the repository.
+.env

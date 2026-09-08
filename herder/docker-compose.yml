@@ -1,0 +1,61 @@
+services:
+  db:
+    # pgvector's image rather than plain postgres:16. The similarity search is the merge
+    # step, so the extension is not optional and installing it by hand on every fresh
+    # database is a step somebody eventually forgets.
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: herder
+      POSTGRES_PASSWORD: herder
+      POSTGRES_DB: herder
+    ports:
+      # Exposed so psql and a GUI client can reach it from Windows directly.
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U herder -d herder"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: .
+    depends_on:
+      db:
+        # Waits for a database that actually answers, not just a container that started.
+        # Without this the first run races and looks like a broken build.
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://herder:herder@db:5432/herder
+      HERDER_EXTRACTOR: ${HERDER_EXTRACTOR:-heuristic}
+      HERDER_MODEL_DIR: /models
+    ports:
+      - "8000:8000"
+    volumes:
+      # Source mounted so an edit is picked up by a restart without a rebuild.
+      - .:/app
+      # Weights mounted rather than baked in: several gigabytes in an image is how a
+      # deploy stops fitting anywhere. The container runs either way - with no weights
+      # present the heuristic extractor is all that works, and /health says which is on.
+      - ./models:/models
+    command: uvicorn herder.main:app --host 0.0.0.0 --port 8000 --reload
+
+  worker:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://herder:herder@db:5432/herder
+      HERDER_EXTRACTOR: ${HERDER_EXTRACTOR:-heuristic}
+      HERDER_MODEL_DIR: /models
+    volumes:
+      - .:/app
+      - ./models:/models
+    # A separate process, not a thread in the API. All inference happens here, and a derive
+    # is minutes of CPU that must never be inside an HTTP request.
+    command: python -m herder.worker
+
+volumes:
+  pgdata:

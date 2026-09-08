@@ -1,0 +1,27 @@
+# Stage 0 - the scaffold. Nothing here is a model.
+#
+# The local models arrive with the stages that need them, so an early stage is never
+# blocked on a multi-gigabyte download. See requirements/05-tasks.md.
+
+fastapi>=0.115
+uvicorn[standard]>=0.32
+sqlalchemy[asyncio]>=2.0.36
+asyncpg>=0.30
+alembic>=1.14
+pgvector>=0.3.6
+pydantic>=2.10
+pydantic-settings>=2.7
+pytest>=8.3
+pytest-asyncio>=0.25
+httpx>=0.28
+
+# Stage 1 - counting tokens. The budget ruler, documented as an estimator.
+tiktoken>=0.8
+
+# Stage 2 - the local extractor. A few gigabytes of weights, fetched on purpose
+# with `python -m herder models pull --llm`, never as a side effect of an install.
+# llama-cpp-python>=0.3
+
+# Stage 3 - embeddings at 384 dimensions, and the NLI model that decides merge
+# verdicts and grades probes. Hundreds of megabytes, also fetched on purpose.
+# sentence-transformers>=3.3

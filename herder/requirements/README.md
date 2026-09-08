@@ -20,8 +20,8 @@ to be wrong it is changed here first and then in the code - by the author, delib
 the old decision kept beside the new one and the reason recorded. A decision that is only in
 somebody's head is a decision the next working session will make differently.
 
-**Nothing is built. Stage 0, the scaffold, is the current work.** See
-[05-tasks.md](05-tasks.md) for what that means and how to check it.
+**Stage 0, the scaffold, is built and tested.** Stage 1 - ingest - is the current work.
+See [05-tasks.md](05-tasks.md) for what each stage means and how to check it.
 
 There are sibling projects at `../mailman` and `../evaluaters/`. They deliberately share no
 code with this one. What was taken from `mailman` is its shape: the same requirements layout,
