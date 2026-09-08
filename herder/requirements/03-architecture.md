@@ -71,7 +71,7 @@ all.
 | Schemas | Pydantic v2 | One definition used as the extractor's output schema, as the JSON grammar it compiles to, and as the parse target |
 | Queue | The `jobs` table, `SKIP LOCKED` | A broker earns its place when retry has to survive a restart. This does not yet |
 | Extraction | An interface with three implementations | `heuristic`, `local`, `trained`, chosen by `HERDER_EXTRACTOR`. Copied deliberately from `mailman`, where the same shape produced the project's most interesting result |
-| Local inference | `llama.cpp` through a Python binding, or Ollama | A quantised instruction model in the 3B class, because the target machine has no dedicated GPU. Grammar-constrained decoding is what makes the JSON valid, rather than hoping |
+| Local inference | **Ollama**, over HTTP on localhost | Decided at stage 2. `llama-cpp-python` publishes no wheel for Python 3.13 on Windows and building it needs an MSVC toolchain that is not installed - requiring a C++ compiler to run this would be a bad trade. Ollama runs llama.cpp underneath, enforces a JSON schema during decoding through the same grammar machinery, and reports prompt-eval and generation time separately, which is exactly the split stage 2 has to measure |
 | Merge and grading | An NLI cross-encoder | Entailment, contradiction and neutral are exactly the distinctions the merge step and the judge need. Small enough to run on CPU without thinking about it |
 | Embeddings | `sentence-transformers` | 384 dimensions. Fixes the pgvector column, so it is a migration and not a setting |
 | Tokens | `tiktoken`, `cl100k_base` | The budget ruler, documented as an estimator. Deliberately **not** the local model's own tokeniser: the budget describes a brief that some other vendor's model will read, so a neutral consistent ruler is the point. The local model's own tokeniser is used only for its own context limit |
@@ -135,6 +135,7 @@ Three consequences follow, and they are design inputs rather than complaints:
 
 ```
 api/          routers. HTTP in, HTTP out. No logic, no inference
+extractors/   the three implementations behind one protocol, and lineage validation
 schemas/      Pydantic request and response models
 services/     orchestration: ingest, derive, serve, checkpoint, adjust. Talks to the database
 domain/       pure functions: chunking, merging, rendering, scoring. No IO. Heavily tested

@@ -20,9 +20,9 @@ to be wrong it is changed here first and then in the code - by the author, delib
 the old decision kept beside the new one and the reason recorded. A decision that is only in
 somebody's head is a decision the next working session will make differently.
 
-**Stages 0 and 1 are done**: the scaffold, and ingest through both doors. Stage 2 -
-extraction - is the current work. See [05-tasks.md](05-tasks.md) for what each stage means
-and how to check it.
+**Stages 0 and 1 are done**, and stage 2 is built and tested - the heuristic extractor runs
+end to end, and the local one waits on a model being installed. See
+[05-tasks.md](05-tasks.md) for what each stage means and how to check it.
 
 There are sibling projects at `../mailman` and `../evaluaters/`. They deliberately share no
 code with this one. What was taken from `mailman` is its shape: the same requirements layout,

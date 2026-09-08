@@ -43,6 +43,15 @@ class Settings(BaseSettings):
     # Where the weights live. Gitignored, fetched on purpose, never at import time.
     model_dir: Path = Path("./models")
 
+    # The local extractor talks to Ollama over HTTP. `llama-cpp-python` has no wheel for
+    # Python 3.13 on Windows and building it needs an MSVC toolchain, and requiring a C++
+    # compiler to run this project is a bad trade. Ollama runs llama.cpp underneath and
+    # enforces the JSON schema during decoding, which is the part that matters.
+    ollama_url: str = "http://localhost:11434"
+    llm_model: str = "qwen2.5:3b"
+    llm_timeout_seconds: int = 900
+    llm_num_ctx: int = 8192
+
     embed_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     # Fixed in the DDL. Changing it is a migration that invalidates every stored vector,
     # which is the honest place for that decision to live.

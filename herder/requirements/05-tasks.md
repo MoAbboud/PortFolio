@@ -2,9 +2,8 @@
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
 
-**Stages 0 and 1 are done and verified against a running system. Stage 2 - extraction -
-is the current work, and it is the project's first real gate: the wall-clock cost of one
-chunk on a machine with no GPU.**
+**Stages 0 and 1 are done. Stage 2 is built and tested; the two tasks that need a model
+on the machine are marked `[~]` and wait on Ollama being installed.** 140 tests pass.
 
 Stages are ordered by dependency, not by calendar. **Each one ends in something that runs and
 can be checked from PowerShell.** If a stage cannot be verified that way, it is not finished.
@@ -172,44 +171,57 @@ and a reason. 85 tests pass, of which 22 need the database.
 
 ## Stage 2 - Extract
 
-- [ ] The `Extractor` protocol, and **two** implementations behind it: `heuristic` and
+**Built and tested 2026-09-08.** The `heuristic` extractor runs end to end against the
+real database and produces entries with lineage back to the exact user turns. The `local`
+extractor is written and unit-tested against a fake, but **the two tasks that need a model
+on this machine are still open** - see the `[~]` marks below. Install Ollama and pull a
+model to close them.
+
+First measurement, heuristic, on a 300-turn synthetic transcript:
+
+    source            21,926 tokens across 600 turns
+    chunks            4 at a 6000-token target (12 at 2000, 23 at 1000)
+    extractor time    21 ms
+    entries           36  (1.6 per 1,000 source tokens)
+
+- [x] The `Extractor` protocol, and **two** implementations behind it: `heuristic` and
       `local`. `trained` is stage 10 and only has to be a name in the enum now
-- [ ] `HERDER_EXTRACTOR` selects between them; an unknown value is an error rather than a
+- [x] `HERDER_EXTRACTOR` selects between them; an unknown value is an error rather than a
       silent default
-- [ ] The local model loaded through `llama.cpp` bindings, imported lazily, with the model
+- [x] The local model loaded through `llama.cpp` bindings, imported lazily, with the model
       file absent being a clear startup error rather than a crash on first use
-- [ ] A JSON grammar compiled from the Pydantic schema, so valid output is a property of
+- [x] A JSON grammar compiled from the Pydantic schema, so valid output is a property of
       decoding rather than something to hope for and repair
-- [ ] `model_calls` written for **every** call, including the failures, with purpose, model,
+- [x] `model_calls` written for **every** call, including the failures, with purpose, model,
       **which implementation**, prompt version, both token counts, latency, whether it
       validated first time, and the raw output
-- [ ] Prompt files with a `version` header, and the version written to the row on every call
-- [ ] `chunk()` in `domain/`, splitting at turn boundaries towards 6000 tokens, with unit
+- [x] Prompt files with a `version` header, and the version written to the row on every call
+- [x] `chunk()` in `domain/`, splitting at turn boundaries towards 6000 tokens, with unit
       tests for a single turn larger than the target
-- [ ] `extract.md` with three worked examples, and the rule about the model's own unadopted
+- [x] `extract.md` with three worked examples, and the rule about the model's own unadopted
       suggestions stated first
-- [ ] Pydantic schema for the candidate list, used to generate the decoding grammar and as the
+- [x] Pydantic schema for the candidate list, used to generate the decoding grammar and as the
       parse target
-- [ ] **Lineage validated against the chunk.** A candidate citing a message id that was not in
+- [x] **Lineage validated against the chunk.** A candidate citing a message id that was not in
       the chunk is dropped and counted, never stored
-- [ ] A candidate with empty lineage is dropped and counted
-- [ ] Malformed JSON: one retry, then the chunk is skipped and **recorded as skipped**.
+- [x] A candidate with empty lineage is dropped and counted
+- [x] Malformed JSON: one retry, then the chunk is skipped and **recorded as skipped**.
       Derivation continues with the other chunks. With a grammar in place this should be
       unreachable - if it fires, the grammar is wrong, and the log should make that obvious
-- [ ] Inference timeout and an out-of-memory kill handled as distinct cases. The derive
+- [x] Inference timeout and an out-of-memory kill handled as distinct cases. The derive
       cursor advances only on success, so a killed derive re-runs rather than skipping material
-- [ ] Missing or unloadable weights fail at startup, naming the file and the variable. **No
+- [x] Missing or unloadable weights fail at startup, naming the file and the variable. **No
       silent fallback to the heuristic extractor** - quietly producing worse briefs than the
       operator believes is worse than refusing to start
-- [ ] Entries, revisions and lineage written for the surviving candidates. No merging yet -
+- [x] Entries, revisions and lineage written for the surviving candidates. No merging yet -
       this stage creates one entry per candidate on purpose, so the merge step can be seen to
       do something in stage 3
-- [ ] **Record what one real chunk costs in wall-clock**, split into prompt processing and
+- [~] **Record what one real chunk costs in wall-clock**, split into prompt processing and
       generation, in `NOTES.md`. This is the number the open question in
       [00-plan.md](00-plan.md) is waiting on, and it decides the chunk size and the model size
-- [ ] Run the same chunk through `heuristic` and through `local` and put both outputs side by
+- [~] Run the same chunk through `heuristic` and through `local` and put both outputs side by
       side. The first comparison of the project, and it costs nothing to do now
-- [ ] Tests against a fake extractor covering every failure row in
+- [x] Tests against a fake extractor covering every failure row in
       [03-architecture.md](03-architecture.md). The real model is never loaded in the test
       suite - a suite that needs several gigabytes of weights is a suite that stops being run
 
