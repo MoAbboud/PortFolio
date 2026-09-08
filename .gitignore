@@ -109,3 +109,15 @@ GoogleService-Info.plist
 trail/models/*.vox
 trail/models/*/
 !trail/models/names/
+
+# ============================================================
+# herder: the workshopped specification is private
+# ============================================================
+#
+# HERDER_SPEC.md is the raw output of the design conversation that produced this
+# project. It is the source the requirements/ folder was written from, not a
+# deliverable, and it is not for the public repository. The settled spec lives in
+# herder/requirements/00-05, which are tracked.
+#
+# 06-context.md is already covered by the repo-wide rule above.
+herder/HERDER_SPEC.md
