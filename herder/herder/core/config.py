@@ -60,6 +60,12 @@ class Settings(BaseSettings):
     similarity_threshold: float = 0.86
     probe_count: int = 6
 
+    # Ingest limits. An empty paste is a 400 rather than a conversation, and a paste
+    # larger than this is refused with the size in the message rather than silently
+    # chewing through it.
+    max_paste_bytes: int = 2_000_000
+    max_batch_events: int = 200
+
     worker_poll_seconds: float = 2.0
 
 

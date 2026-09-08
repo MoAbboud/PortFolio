@@ -74,8 +74,9 @@ flowchart LR
 | 13 | MCP door | Optional. Six tools over the API that already exists |
 | 14 | Hardening and self-host | Optional. Export, delete, rate limits, `/metrics`, and the self-host document |
 
-**Stage 0 is built: the API, the worker, the schema and 27 tests that need no database.
-The container checks wait on Docker. Stage 1 - ingest - is the current work.**
+**Stages 0 and 1 are done and verified against running containers. Stage 2 - extraction -
+is the current work.** It is the first stage that loads a model, and the first that answers
+a question the project cannot proceed without: how long one chunk takes on a CPU.
 
 ### Why the core loop comes before everything else
 

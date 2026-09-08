@@ -162,9 +162,14 @@ nothing deletes one except a cascade from deleting the user.
   re-send the same turn - on a retry, on a page reload, on a `MutationObserver` firing twice
   for the same node - and a duplicate is silently acknowledged rather than stored again.
   `content_hash` is `sha256(vendor + conversation id + role + normalised text)`.
-- `unique (conversation_id, seq)` is the ordering guarantee. `seq` is assigned server-side as
-  `max(seq) + 1`, with the client's `position` as the tie-breaker. Out-of-order arrival is
-  rare and is handled by inserting at the client position and recomputing the tail.
+- `unique (conversation_id, seq)` is the ordering guarantee, and `seq` is **arrival order,
+  assigned server-side as `max(seq) + 1` and never renumbered.** The specification said the
+  tail should be recomputed when a turn arrives out of order; that is an UPDATE, and
+  invariant 1 forbids one. The invariant wins - it is the one with a test and with the whole
+  audit story behind it. Thread order lives in `client_position` instead, and readers order
+  by `(client_position, seq)`. A late arrival therefore lands with a later `seq` and its
+  correct position, and every reader still sees the conversation in the order it happened.
+  Gaps in `seq` are fine: it has to be unique and increasing, not contiguous.
 - `token_count` is `tiktoken` `cl100k_base` and is documented everywhere as an estimator. It
   is not the token count any particular vendor will charge, and it does not need to be: it is
   used for budgeting and for compression ratios, where consistency matters more than being
@@ -173,10 +178,19 @@ nothing deletes one except a cascade from deleting the user.
 ## conversations
 
 `unique (vendor, vendor_conv_id)` so the same chat seen twice is the same conversation.
-`vendor_conv_id` is null for a pasted transcript, which means pasting the same transcript
-twice creates two conversations - and then the message hash catches the duplicate turns
-inside them, so nothing is double-counted in a brief. That is the intended behaviour and it
-is worth knowing.
+
+A pasted transcript has no vendor id, and an earlier draft of this document claimed that two
+pastes of one transcript would become two conversations whose duplicate turns the message
+hash would then catch. That is wrong: the unique constraint on `content_hash` is scoped to a
+conversation, so it would have caught nothing and the corpus would have doubled.
+
+So a paste is **content-addressed**: `vendor_conv_id` is `paste:` plus a hash of the
+normalised transcript. The same text resolves to the same conversation, every turn then
+collides on its own hash, and nothing is inserted - which is what makes the plan's
+requirement, "re-pasting the same transcript adds no messages", true by construction rather
+than by hope. A *continued* transcript hashes differently, which is why the paste endpoint
+takes an optional `conversation_id`: append to the original and the overlap dedupes turn by
+turn.
 
 ## entries and entry_revisions
 

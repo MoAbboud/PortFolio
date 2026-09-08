@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
-from herder.api import health
+from herder.api import conversations, health, ingest
 
 
 def create_app() -> FastAPI:
@@ -25,7 +25,11 @@ def create_app() -> FastAPI:
             "Runs no hosted model and needs no API key."
         ),
     )
+    # /health carries no key on purpose: it is a probe, and a health check that needs a
+    # credential is a health check the orchestrator cannot use.
     app.include_router(health.router)
+    app.include_router(ingest.router)
+    app.include_router(conversations.router)
     return app
 
 
