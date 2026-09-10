@@ -234,31 +234,45 @@ extrapolation is soft until stage 4 repeats it over ten conversations.
 
 ## Stage 3 - Merge and render
 
-- [ ] A `sentence-transformers` embedder at 384 dimensions, on CPU. The model is decided
+**Done 2026-09-10. The loop closes.** Two numbers the specification carried turned out
+to be wrong when measured, and both failed silently:
+
+- **the similarity threshold, 0.86 -> 0.50.** At 0.86 only one of eleven labelled pairs
+  reached adjudication, so the merge step would never have fired and the memory would
+  have grown linearly while the brief kept rendering. 0.86 was calibrated for a
+  1536-dimension model; the model changed and the scale changed with it.
+- **supersede now needs contradiction in BOTH directions.** Genuine reversals are
+  symmetric; NLI invents one-sided contradictions between unrelated sentences, and the
+  old rule would have retired good entries on that artefact.
+
+Full figures in `NOTES.md`, including the finding that **both extractors missed a
+reversal** - which is the first thing stage 4 has to look at.
+
+- [x] A `sentence-transformers` embedder at 384 dimensions, on CPU. The model is decided
       before any embedding is written, because the pgvector dimension is fixed in the DDL
-- [ ] `embed` job, run on entry creation and on revision
-- [ ] Similarity search over `entries` with the HNSW index, top 3 above threshold
-- [ ] **The removed-entry rule, in the merge step**: a candidate matching a removed entry is
+- [x] `embed` job, run on entry creation and on revision
+- [x] Similarity search over `entries` with the HNSW index, top 3 above threshold
+- [x] **The removed-entry rule, in the merge step**: a candidate matching a removed entry is
       dropped. Test it directly, and test it after a re-derive of the same messages
-- [ ] The NLI cross-encoder, and the mapping from entailment, contradiction and neutral onto
+- [x] The NLI cross-encoder, and the mapping from entailment, contradiction and neutral onto
       the four verdicts in [03-architecture.md](03-architecture.md)
-- [ ] A confidence floor below which no label is trusted
-- [ ] No label above the floor falls back to `distinct`, and is counted
-- [ ] Revisions on update, `superseded_by` on supersede, lineage union on both
-- [ ] Session tail: the last 1200 tokens of the most recent conversation, one entry of kind
+- [x] A confidence floor below which no label is trusted
+- [x] No label above the floor falls back to `distinct`, and is counted
+- [x] Revisions on update, `superseded_by` on supersede, lineage union on both
+- [x] Session tail: the last 1200 tokens of the most recent conversation, one entry of kind
       `tail`, replaced wholesale each derive
-- [ ] Ageing: session entries untouched for 7 days below 0.7 confidence to `archived`
-- [ ] `promotion_suggested` on preference and identity entries seen in 3+ conversations. **No
+- [x] Ageing: session entries untouched for 7 days below 0.7 confidence to `archived`
+- [x] `promotion_suggested` on preference and identity entries seen in 3+ conversations. **No
       automatic promotion** - test that the layer does not change
-- [ ] `render()` in `domain/`, pure, with the ordering and the tail reserve from
+- [x] `render()` in `domain/`, pure, with the ordering and the tail reserve from
       [03-architecture.md](03-architecture.md). Unit tests for the ordering, for the budget
       boundary, and for a tail that does not fit
-- [ ] `brief_versions` written with included and excluded ids, source counts, and the trigger
-- [ ] `projects.current_brief_version_id` updated, and invariant 5 tested
-- [ ] `GET /v1/projects/{id}/brief` and `GET /v1/projects/{id}/entries`
-- [ ] `POST /v1/projects/{id}/derive` and `/render` to force each by hand
-- [ ] Every invariant in [04-data-model.md](04-data-model.md) has a test
-- [ ] CLI: `herder paste`, `herder brief`
+- [x] `brief_versions` written with included and excluded ids, source counts, and the trigger
+- [x] `projects.current_brief_version_id` updated, and invariant 5 tested
+- [x] `GET /v1/projects/{id}/brief` and `GET /v1/projects/{id}/entries`
+- [x] `POST /v1/projects/{id}/derive` and `/render` to force each by hand
+- [x] Every invariant in [04-data-model.md](04-data-model.md) has a test
+- [x] CLI: `herder paste`, `herder brief`
 
 ## Stage 4 - Ten conversations end to end
 

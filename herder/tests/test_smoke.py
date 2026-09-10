@@ -22,7 +22,9 @@ def test_defaults_are_the_documented_ones() -> None:
     assert s.chunk_tokens == 6000
     assert s.brief_budget_tokens == 3000
     assert s.session_tail_tokens == 1200
-    assert s.similarity_threshold == 0.86
+    # 0.50, not the 0.86 the specification named: measured against all-minilm at stage 3,
+    # where 0.86 turned out to be so high the merge step would never have fired.
+    assert s.similarity_threshold == 0.50
     assert s.probe_count == 6
 
 
@@ -91,9 +93,14 @@ def test_app_exposes_health() -> None:
     assert "/health" in create_app().openapi()["paths"]
 
 
-def test_worker_starts_with_no_handlers() -> None:
-    """Stage 0 builds the shape and no handlers. The handlers arrive with their stages."""
+def test_the_worker_has_a_handler_for_every_kind_it_enqueues() -> None:
+    """Stage 0 built the shape; stage 3 filled in derive and render.
+
+    An unknown kind is marked failed with a reason rather than retried forever, so a job
+    nobody can run is visible instead of invisible - but a kind this system *enqueues* and
+    cannot handle would be a bug, so the two lists are checked against each other.
+    """
     from herder.worker.runner import HANDLERS, worker_name
 
-    assert HANDLERS == {}
+    assert set(HANDLERS) == {"derive", "render"}
     assert ":" in worker_name()

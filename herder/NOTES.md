@@ -239,3 +239,123 @@ The `keep_alive` one is the point. That fix came out of a measurement and had no
 guarding it, so deleting it would have restored a 20x regression with the suite still green.
 
 165 tests pass.
+
+
+## 2026-09-10 - stage 3: the loop closes, and two measurements that changed the design
+
+221 tests pass. A transcript goes in and a rendered, budgeted, lineage-backed brief comes
+out. Two of the numbers the specification carried turned out to be wrong when measured, and
+both were wrong in the direction that fails silently.
+
+### Finding 1: the similarity threshold of 0.86 would have broken the merge step entirely
+
+Eleven labelled pairs against `all-minilm`, cosine similarity:
+
+    want   case                             cosine
+    merge  refinement                        0.858
+    merge  same claim, reworded              0.808
+    merge  same claim, synonyms              0.657
+    merge  reversal                          0.656
+    keep   same topic, different claim       0.548
+    merge  correction in situ                0.536
+    keep   same tech, different claim        0.420
+    keep   both about testing                0.207
+    merge  terse vs explicit                 0.179
+    keep   unrelated                         0.077
+    keep   unrelated 2                      -0.078
+
+At 0.86 only one pair in eleven reaches adjudication. "We are using Postgres in production"
+against "Production runs on Postgres" scores **0.808 and would never have been merged** - so
+the memory would have grown linearly while the brief kept rendering perfectly. That is
+exactly the failure the plan flagged as having no error message, and it happened on the very
+first real run: five candidates, zero merged.
+
+The cause is that **0.86 was calibrated for a 1536-dimension model.** The embedding model
+changed and the scale changed with it, and a number carried across without re-measuring was
+simply wrong.
+
+**The second finding is more interesting: there is no clean threshold at all.** The classes
+overlap. "No Redis" against "we will not introduce a message broker" is the same claim and
+scores 0.179, *below* an unrelated-topic pair at 0.548. Separation is negative.
+
+That reframes what the threshold is for. The costs are asymmetric:
+
+- a false positive is one wasted NLI call that returns neutral and keeps both entries;
+- a false negative is a duplicate entry that lives forever.
+
+So similarity is a **recall** filter whose job is keeping cost sub-quadratic, and NLI is
+what actually decides. Set to **0.50**, which catches five of six merge cases and admits one
+harmless keep case. Provisional until stage 4 calibrates it on ten real conversations, and
+the short-entry miss is a real limitation: two-word entries do not embed well enough to
+place.
+
+### Finding 2: superseding on a one-sided contradiction would retire good entries on noise
+
+Measured against `cross-encoder/nli-deberta-v3-base`:
+
+    genuine reversal   "We no longer use Postgres" / "We use Postgres"
+                       contradiction 1.00  <->  contradiction 1.00
+    value changed      "budget is 5000" / "budget is 3000"
+                       contradiction 1.00  <->  contradiction 1.00
+    flat negation      "We will not use Redis" / "We will use Redis"
+                       contradiction 1.00  <->  contradiction 1.00
+    UNRELATED          "Amounts are always Decimal" / "parser lives in transcript.py"
+                       neutral 0.99        <->  contradiction 1.00
+
+**Genuine contradictions are symmetric; spurious ones are one-sided.** The original rule
+superseded on a contradiction in either direction, which would have retired a perfectly good
+entry on an artefact - silently, with nothing to show it had happened. Supersede now requires
+contradiction in both directions, which separated all eight pairs tested.
+
+### What the loop actually does
+
+A 10-turn transcript, then a second 6-turn one into the same project:
+
+    run 1   10 messages, 114 tokens  ->  5 candidates, 5 created,  brief v1, 312 tokens
+    run 2    6 messages,  60 tokens  ->  2 candidates, 1 created, 1 UPDATED, brief v2, 300 tokens
+
+The update is the interesting half. "Money values are always Decimal, never float" merged
+into the earlier "Amounts must never be floats anywhere in this system" as revision 2, with
+the earlier wording preserved behind it - which is what makes an old probe still gradeable.
+
+Compression reads 0.4x and 0.2x, which looks alarming and is not: on a 114-token conversation
+the session tail alone is the whole conversation verbatim, and the tail reserve is 750 tokens
+of a 3000 budget. Compression only means anything once the source exceeds the budget. Stage 4
+is the first place it will.
+
+### The finding that matters most: BOTH extractors missed a reversal
+
+The second transcript contained "Change of plan on one thing - we are switching from Postgres
+to MySQL after all." Neither extractor caught it.
+
+- The **heuristic** missed it because its pattern is `switching to` and the text says
+  "switching *from* Postgres *to* MySQL".
+- The **local model** missed it too, and did something worse: it extracted "Production runs
+  on Postgres" from the turn immediately before, and set `supersedes_title` on it. So the
+  brief now asserts Postgres more confidently, one turn after the user reversed it.
+
+**A memory system that misses "we changed our mind" is worse than one that remembers
+nothing**, because it serves the stale decision with confidence. This is the single most
+important thing for stage 4's failure list, and it is a prompt problem before it is a model
+problem - `extract.md` says a great deal about not extracting the assistant's suggestions and
+nothing at all about reversals.
+
+Worth noting what the local model did get right, since it is the same comparison: it produced
+`Production runs on Postgres` and `Money values are always Decimal, never float` as
+normalised titles where the heuristic emitted raw sentence fragments, and it used
+`supersedes_title`, which the heuristic cannot do at all.
+
+### Smaller things
+
+- **`NULLS LAST DESC` is invalid SQL.** `.nulls_last().desc()` renders it that way;
+  `.desc().nulls_last()` is correct. Caught on the first real derive.
+- **Ageing and promotion were skipped when nothing new had arrived**, because the early
+  return only wrote the tail and re-rendered. Staleness is a function of elapsed time, so a
+  project that has gone quiet is precisely the one whose session entries are due to be
+  archived. Caught by a test, and it would have been very hard to notice in production.
+- The NLI model reads its own `id2label` rather than assuming `[contradiction, entailment,
+  neutral]`. A different checkpoint with another order would have inverted every merge
+  verdict with no error anywhere.
+- Embeddings come from Ollama (`all-minilm`, 384 dimensions) rather than
+  `sentence-transformers` in-process. Same model, same width, one less inference stack in the
+  worker. `sentence-transformers` is still installed, for the NLI cross-encoder.

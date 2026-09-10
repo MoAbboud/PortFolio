@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
-from herder.api import conversations, health, ingest
+from herder.api import conversations, health, ingest, projects
 
 
 def create_app() -> FastAPI:
@@ -30,6 +30,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(ingest.router)
     app.include_router(conversations.router)
+    app.include_router(projects.router)
     return app
 
 

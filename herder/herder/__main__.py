@@ -6,6 +6,8 @@
 - `extract` runs stage 2 over a project: chunk, extract, validate lineage, store.
 - `compare` runs the same chunks through two extractors and prints both, which is the
   comparison the whole three-implementation arrangement exists to make possible.
+- `derive` runs the whole loop, steps A to F, and prints what merged into what.
+- `brief` prints the current brief and its compression ratio.
 """
 
 from __future__ import annotations
@@ -23,6 +25,8 @@ from herder.core.ids import uuid7
 from herder.core.security import generate_key
 from herder.extractors import get_extractor
 from herder.models import ApiKey, Project, User, Workspace
+from herder.models import BriefVersion
+from herder.services.derive import derive_project
 from herder.services.extraction import ExtractionRun, extract_project, load_chunks
 
 
@@ -208,6 +212,92 @@ async def compare(reference: str, max_chunks: int | None) -> int:
     return 0
 
 
+async def derive(reference: str, max_chunks: int | None) -> int:
+    """The whole loop. Chunk, extract, merge, tail, age, render."""
+    from herder.core.embeddings import OllamaEmbedder
+    from herder.core.nli import CrossEncoderNli
+
+    settings = get_settings()
+    sessionmaker = get_sessionmaker()
+
+    async with sessionmaker() as session:
+        project = await _find_project(session, reference)
+        extractor = get_extractor()
+
+        print(f"project     {project.name}  {project.id}")
+        print(f"extractor   {extractor.name} ({extractor.model})")
+        print(f"embeddings  {settings.embed_model_tag} at {settings.embed_dim} dimensions")
+        print(f"nli         {settings.nli_model}, floor {settings.nli_floor}")
+        print(f"similarity  {settings.similarity_threshold}")
+        print("(the first run loads the models; that cost is reported separately)")
+        print()
+
+        run = await derive_project(
+            session,
+            project,
+            extractor,
+            OllamaEmbedder(),
+            CrossEncoderNli(),
+            target_tokens=settings.chunk_tokens,
+            similarity_threshold=settings.similarity_threshold,
+            nli_floor=settings.nli_floor,
+            max_chunks=max_chunks,
+        )
+
+    print(f"  source            {run.source_messages} new messages, {run.source_tokens} tokens")
+    print(f"  chunks            {run.chunks} ({run.chunks_skipped} skipped)")
+    print(f"  candidates        {run.candidates}")
+    print("  verdicts")
+    print(f"    created         {run.created}")
+    print(f"    duplicate       {run.duplicates}")
+    print(f"    updated         {run.updated}")
+    print(f"    superseded      {run.superseded}")
+    print(f"    dropped         {run.dropped_removed} (matched a removed entry)")
+    if run.dropped_lineage:
+        print(f"    bad lineage     {run.dropped_lineage}")
+    if run.below_floor:
+        print(f"    below floor     {run.below_floor} (defaulted to distinct)")
+    print(f"  merged away       {run.merged_away} of {run.candidates} candidates")
+    if run.archived or run.promotions_suggested:
+        print(f"  ageing            {run.archived} archived, {run.promotions_suggested} promotions suggested")
+    print(f"  brief             v{run.brief_version}, {run.brief_tokens} tokens, {run.excluded} entries did not fit")
+    if run.brief_tokens and run.source_tokens:
+        print(f"  compression       {run.source_tokens / run.brief_tokens:.1f}x on this run's source")
+    for error in run.errors[:3]:
+        print(f"  ! {error}")
+    return 0
+
+
+async def brief(reference: str, version: int | None) -> int:
+    sessionmaker = get_sessionmaker()
+
+    async with sessionmaker() as session:
+        project = await _find_project(session, reference)
+        query = select(BriefVersion).where(BriefVersion.project_id == project.id)
+        query = (
+            query.where(BriefVersion.version == version)
+            if version is not None
+            else query.order_by(BriefVersion.version.desc()).limit(1)
+        )
+        found = (await session.execute(query)).scalars().first()
+
+    if found is None:
+        raise SystemExit(f"{project.name} has no brief yet. Run: python -m herder derive --project {project.name}")
+
+    ratio = found.source_token_count / found.token_count if found.token_count else 0
+    print(f"project      {project.name}")
+    print(f"version      {found.version}  ({found.trigger})")
+    print(f"tokens       {found.token_count} of a {found.budget_tokens} budget")
+    print(f"source       {found.source_message_count} messages, {found.source_token_count} tokens")
+    print(f"compression  {ratio:.1f}x")
+    print(f"entries      {len(found.included_entry_ids)} included, {len(found.excluded_entry_ids)} did not fit")
+    print()
+    print("-" * 78)
+    print(found.rendered_text)
+    print("-" * 78)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="herder")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -225,6 +315,14 @@ def main(argv: list[str] | None = None) -> int:
     cmp_.add_argument("--project", default="default", help="project name or id")
     cmp_.add_argument("--max-chunks", type=int, default=1)
 
+    der = sub.add_parser("derive", help="stage 3: the whole loop, chunk to rendered brief")
+    der.add_argument("--project", default="default", help="project name or id")
+    der.add_argument("--max-chunks", type=int, default=None, help="stop after N chunks")
+
+    br = sub.add_parser("brief", help="print the current brief")
+    br.add_argument("--project", default="default", help="project name or id")
+    br.add_argument("--version", type=int, default=None, help="a specific version")
+
     args = parser.parse_args(argv)
 
     if args.command == "bootstrap":
@@ -235,6 +333,12 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "compare":
         return asyncio.run(compare(args.project, args.max_chunks))
+
+    if args.command == "derive":
+        return asyncio.run(derive(args.project, args.max_chunks))
+
+    if args.command == "brief":
+        return asyncio.run(brief(args.project, args.version))
 
     parser.error(f"unknown command {args.command!r}")
     return 2

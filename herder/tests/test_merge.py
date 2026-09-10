@@ -1,0 +1,192 @@
+"""The merge decision logic. Pure, no model, no database.
+
+The merge step is what stops the memory growing linearly with the conversation, so this is
+where the compaction claim is either true or false. The most important test here is the
+removed-entry rule.
+"""
+
+from __future__ import annotations
+
+from herder.core.ids import uuid7
+from herder.domain.merge import (
+    CONTRADICTION,
+    ENTAILMENT,
+    NEUTRAL,
+    Label,
+    Match,
+    Verdict,
+    choose_match,
+    decide_against,
+    merged_text,
+)
+
+FLOOR = 0.5
+
+
+def match(status: str = "active", similarity: float = 0.9, text: str = "stored text") -> Match:
+    return Match(entry_id=uuid7(), status=status, title="stored", text=text, similarity=similarity)
+
+
+def label(name: str, score: float = 0.9) -> Label:
+    return Label(name, score)
+
+
+def decide(m: Match, forward: Label, backward: Label, floor: float = FLOOR):
+    return decide_against(m, forward, backward, floor)
+
+
+# ------------------------------------------------------------------ the hard rule
+
+
+def test_a_candidate_matching_a_removed_entry_is_dropped() -> None:
+    """Removed means removed. Without this the user deletes an entry, the next derive
+    re-creates it, and they delete it again forever."""
+    decision = decide(match(status="removed"), label(ENTAILMENT), label(ENTAILMENT))
+    assert decision.verdict is Verdict.DROP
+
+
+def test_the_removed_rule_beats_a_contradiction() -> None:
+    """No model output may route around it, whatever it says."""
+    decision = decide(match(status="removed"), label(CONTRADICTION, 0.99), label(CONTRADICTION, 0.99))
+    assert decision.verdict is Verdict.DROP
+
+
+def test_the_removed_rule_beats_a_low_confidence_reading() -> None:
+    decision = decide(match(status="removed"), label(NEUTRAL, 0.1), label(NEUTRAL, 0.1))
+    assert decision.verdict is Verdict.DROP
+
+
+# ------------------------------------------------------------------ the four verdicts
+
+
+def test_mutual_entailment_is_a_duplicate() -> None:
+    decision = decide(match(), label(ENTAILMENT), label(ENTAILMENT))
+    assert decision.verdict is Verdict.DUPLICATE
+
+
+def test_a_more_specific_candidate_is_an_update() -> None:
+    """"We use Postgres" and "We use Postgres 16.2 in production" entail one way only.
+
+    Which way decides whether the memory gains the detail or silently discards it.
+    """
+    decision = decide(match(), forward=label(ENTAILMENT), backward=label(NEUTRAL))
+    assert decision.verdict is Verdict.UPDATE
+
+
+def test_a_less_specific_candidate_is_a_duplicate() -> None:
+    """The stored entry already covers it, so there is nothing to add."""
+    decision = decide(match(), forward=label(NEUTRAL), backward=label(ENTAILMENT))
+    assert decision.verdict is Verdict.DUPLICATE
+
+
+def test_contradiction_in_both_directions_supersedes() -> None:
+    """A genuine reversal reads as contradiction both ways. Measured 1.00/1.00 on every
+    real contradiction tested against nli-deberta-v3-base."""
+    decision = decide(match(), label(CONTRADICTION), label(CONTRADICTION))
+    assert decision.verdict is Verdict.SUPERSEDE
+
+
+def test_a_one_sided_contradiction_does_not_supersede() -> None:
+    """This is what NLI returns for UNRELATED text, not for a changed claim.
+
+    Measured: "Amounts are always Decimal" against "The parser lives in transcript.py" comes
+    back neutral 0.99 forward and contradiction 1.00 backward. Superseding on that would
+    retire a good entry on noise, with nothing anywhere to show it had happened.
+    """
+    assert decide(match(), label(NEUTRAL, 0.99), label(CONTRADICTION, 1.0)).verdict is Verdict.DISTINCT
+    assert decide(match(), label(CONTRADICTION, 1.0), label(NEUTRAL, 0.99)).verdict is Verdict.DISTINCT
+
+
+def test_a_one_sided_contradiction_against_entailment_still_follows_the_entailment() -> None:
+    """The entailment is the measured signal; the lone contradiction is the artefact."""
+    decision = decide(match(), forward=label(ENTAILMENT), backward=label(CONTRADICTION))
+    assert decision.verdict is Verdict.UPDATE
+
+
+def test_neutral_both_ways_is_distinct() -> None:
+    decision = decide(match(), label(NEUTRAL), label(NEUTRAL))
+    assert decision.verdict is Verdict.DISTINCT
+    assert decision.below_floor is False
+
+
+# ------------------------------------------------------------------ the confidence floor
+
+
+def test_nothing_above_the_floor_falls_back_to_distinct_and_says_so() -> None:
+    """`distinct` costs a near-duplicate the user can see and remove. `duplicate` would
+    silently discard new information, which is the worse failure."""
+    decision = decide(match(), label(ENTAILMENT, 0.2), label(ENTAILMENT, 0.3))
+    assert decision.verdict is Verdict.DISTINCT
+    assert decision.below_floor is True
+
+
+def test_a_contradiction_below_the_floor_does_not_supersede() -> None:
+    """Superseding on a guess would retire a good entry on no evidence."""
+    decision = decide(match(), label(CONTRADICTION, 0.3), label(CONTRADICTION, 0.3))
+    assert decision.verdict is not Verdict.SUPERSEDE
+
+
+def test_entailment_below_the_floor_does_not_update() -> None:
+    decision = decide(match(), label(ENTAILMENT, 0.3), label(NEUTRAL, 0.95))
+    assert decision.verdict is Verdict.DISTINCT
+    assert decision.below_floor is False  # neutral was measured confidently
+
+
+def test_the_floor_is_configurable() -> None:
+    weak = decide(match(), label(ENTAILMENT, 0.6), label(ENTAILMENT, 0.6), floor=0.9)
+    strong = decide(match(), label(ENTAILMENT, 0.6), label(ENTAILMENT, 0.6), floor=0.5)
+    assert weak.verdict is Verdict.DISTINCT
+    assert strong.verdict is Verdict.DUPLICATE
+
+
+# ------------------------------------------------------------------ candidate selection
+
+
+def test_only_matches_above_the_threshold_are_adjudicated() -> None:
+    """Similarity is arithmetic over an index; adjudication is a model call."""
+    kept = choose_match([match(similarity=0.9), match(similarity=0.5)], threshold=0.86)
+    assert len(kept) == 1
+
+
+def test_the_most_similar_come_first() -> None:
+    matches = [match(similarity=0.87), match(similarity=0.99), match(similarity=0.9)]
+    kept = choose_match(matches, threshold=0.86)
+    assert [round(m.similarity, 2) for m in kept] == [0.99, 0.9, 0.87]
+
+
+def test_at_most_three_are_adjudicated() -> None:
+    """Adjudicating every candidate against every entry makes a derive quadratic."""
+    matches = [match(similarity=0.9 + i / 1000) for i in range(10)]
+    assert len(choose_match(matches, threshold=0.86)) == 3
+
+
+def test_nothing_above_the_threshold_means_nothing_to_adjudicate() -> None:
+    assert choose_match([match(similarity=0.1)], threshold=0.86) == []
+
+
+# ------------------------------------------------------------------ merged text
+
+
+def test_an_update_keeps_the_earlier_wording_behind_the_new() -> None:
+    """A probe may already be graded against the earlier phrasing."""
+    text = merged_text("We use Postgres.", "We use Postgres 16.2 in production.")
+    assert "Postgres 16.2" in text
+    assert "Previously: We use Postgres." in text
+
+
+def test_a_candidate_containing_the_existing_text_just_replaces_it() -> None:
+    text = merged_text("We use Postgres", "We use Postgres in production")
+    assert text == "We use Postgres in production"
+
+
+def test_a_candidate_already_covered_by_the_existing_text_changes_nothing() -> None:
+    text = merged_text("We use Postgres in production", "We use Postgres")
+    assert text == "We use Postgres in production"
+
+
+def test_identical_text_does_not_duplicate_itself() -> None:
+    assert merged_text("Same thing", "Same thing") == "Same thing"
+
+
+def test_an_empty_existing_text_is_replaced() -> None:
+    assert merged_text("", "something new") == "something new"

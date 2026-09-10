@@ -20,9 +20,10 @@ to be wrong it is changed here first and then in the code - by the author, delib
 the old decision kept beside the new one and the reason recorded. A decision that is only in
 somebody's head is a decision the next working session will make differently.
 
-**Stages 0, 1 and 2 are done**, and both extractors have been measured against each
-other. Stage 3 - merge and render, where the loop closes - is the current work. See
-[05-tasks.md](05-tasks.md) for what each stage means and how to check it.
+**Stages 0 to 3 are done and the loop closes**: a transcript goes in and a budgeted,
+lineage-backed brief comes out. Stage 4 - ten conversations end to end, and the written
+list of everywhere it went wrong - is the current work. See [05-tasks.md](05-tasks.md) for
+what each stage means and how to check it.
 
 There are sibling projects at `../mailman` and `../evaluaters/`. They deliberately share no
 code with this one. What was taken from `mailman` is its shape: the same requirements layout,

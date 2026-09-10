@@ -57,7 +57,10 @@ class Settings(BaseSettings):
     llm_keep_alive: str = "30m"
     llm_num_ctx: int = 8192
 
-    embed_model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    # The Ollama tag, not the HuggingFace name: `all-minilm` is the same
+    # all-MiniLM-L6-v2 model at the same 384 dimensions, served by a runtime already
+    # installed for the extractor rather than a second inference stack in the worker.
+    embed_model_tag: str = "all-minilm"
     # Fixed in the DDL. Changing it is a migration that invalidates every stored vector,
     # which is the honest place for that decision to live.
     embed_dim: int = 384
@@ -71,7 +74,21 @@ class Settings(BaseSettings):
     derive_max_age_seconds: int = 600
     brief_budget_tokens: int = 3000
     session_tail_tokens: int = 1200
-    similarity_threshold: float = 0.86
+    # 0.50, not the 0.86 the specification named. Measured on 2026-09-10 against
+    # all-minilm over eleven labelled pairs, and the finding was that **no threshold
+    # separates them cleanly** - "No Redis" against "we will not introduce a message
+    # broker" is the same claim and scores 0.179, below an unrelated-topic pair at 0.548.
+    #
+    # So this is tuned for RECALL, not precision, because the costs are asymmetric. A false
+    # positive is one wasted NLI call that then returns neutral and keeps both entries. A
+    # false negative is a duplicate entry that lives forever and makes the memory grow
+    # linearly - the silent failure the whole compaction claim dies of. Similarity is a
+    # cheap pre-filter to keep the cost sub-quadratic; NLI is what actually decides.
+    #
+    # 0.86 was calibrated for a 1536-dimension model. The model changed and the scale
+    # changed with it, which is the kind of thing that has to be re-measured rather than
+    # carried over. Provisional until stage 4 calibrates it on ten real conversations.
+    similarity_threshold: float = 0.50
     probe_count: int = 6
 
     # Ingest limits. An empty paste is a 400 rather than a conversation, and a paste
