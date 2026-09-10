@@ -246,3 +246,43 @@ async def test_small_chunks_produce_several_calls(session, account):
 
     assert run.chunks == 4
     assert extractor.calls == 4
+
+
+async def test_the_timing_split_is_stored_not_just_the_total(session, account):
+    """A single total hid the fact that 121 s of a 125.6 s call was loading the model.
+
+    The point of this table is that re-scoring is a re-read rather than a re-run, and
+    "did a bigger chunk change the prefill-to-generation ratio" has to be answerable from
+    these rows without touching a model again.
+    """
+    project = await seeded(session, account)
+
+    def timed(chunk, titles, calls):
+        outcome = one_good(chunk, titles, calls)
+        outcome.load_ms = 121_000
+        return outcome
+
+    await extract_project(session, project, FakeExtractor(timed), target_tokens=6000)
+
+    row = (
+        await session.execute(select(ModelCall).where(ModelCall.implementation == "fake"))
+    ).scalars().first()
+    assert row.load_ms == 121_000
+    assert row.prompt_ms == 30
+    assert row.generation_ms == 12
+    assert row.latency_ms == 42
+
+
+async def test_an_extractor_that_does_no_inference_stores_no_timing_split(session, account):
+    """Null means "not applicable", which is a different thing from zero."""
+    from herder.extractors import get_extractor
+
+    project = await seeded(session, account)
+    await extract_project(session, project, get_extractor("heuristic"), target_tokens=6000)
+
+    row = (
+        await session.execute(select(ModelCall).where(ModelCall.implementation == "heuristic"))
+    ).scalars().first()
+    assert row.load_ms is None
+    assert row.prompt_ms is None
+    assert row.generation_ms is None

@@ -39,13 +39,19 @@ NAME = "local"
 class LocalExtractor:
     name = NAME
 
-    def __init__(self) -> None:
+    def __init__(self, client: httpx.Client | None = None) -> None:
+        """`client` is injectable so this class can be tested without Ollama running.
+
+        It also means one connection is reused across the ten or so calls a derive makes,
+        rather than a fresh one per chunk.
+        """
         settings = get_settings()
         self.model = settings.llm_model
         self._url = settings.ollama_url.rstrip("/")
         self._timeout = settings.llm_timeout_seconds
         self._num_ctx = settings.llm_num_ctx
         self._keep_alive = settings.llm_keep_alive
+        self._client = client or httpx.Client()
         self._prompt, self.prompt_version = load_prompt("extract.md")
 
     # ------------------------------------------------------------------ readiness
@@ -53,7 +59,7 @@ class LocalExtractor:
     def check_ready(self) -> None:
         """Raise with the exact command to fix it. Never fall back to the heuristic."""
         try:
-            response = httpx.get(f"{self._url}/api/tags", timeout=5)
+            response = self._client.get(f"{self._url}/api/tags", timeout=5)
             response.raise_for_status()
         except Exception as exc:
             raise ExtractorUnavailable(
@@ -94,7 +100,7 @@ class LocalExtractor:
 
         started = time.perf_counter()
         try:
-            response = httpx.post(f"{self._url}/api/chat", json=body, timeout=self._timeout)
+            response = self._client.post(f"{self._url}/api/chat", json=body, timeout=self._timeout)
             response.raise_for_status()
             payload = response.json()
         except httpx.TimeoutException:

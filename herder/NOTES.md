@@ -156,3 +156,86 @@ rather than now:
 
 Both are priority-ordering problems, which is the same class as the "still need to" fix
 earlier. The local model got neither wrong.
+
+
+## 2026-09-10 - the fix pass, and a variance finding that undercuts yesterday's extrapolation
+
+Three fixes before starting stage 3, all about the instrument rather than the product.
+
+### The timing split is now stored, not just printed
+
+`model_calls` had `latency_ms` and nothing else, so the load/prompt/generation breakdown -
+the thing that caught a 20x measurement error hours earlier - was printed to a terminal and
+thrown away. Migration `0002` adds `load_ms`, `prompt_ms`, `generation_ms`, all nullable,
+because the heuristic does no inference and null there means "not applicable" rather than
+"zero". Verified against the database:
+
+    impl         total    load  prompt     gen     in   out
+    local        12163    4093    4736    3319   1623   267
+    local       125568       -       -       -   1606   316      <- written before the fix
+    heuristic        6       -       -       -   5971     0
+
+The second row is the cold 125-second call from earlier, and it will never be able to say
+where its time went. That is exactly the loss this fix prevents from happening again.
+
+### The variance is large, and it makes the earlier extrapolation soft
+
+Same 36-token chunk, three runs, prefill of about 1,600 tokens each time:
+
+    run 1 (cold)    prompt eval 0.8 s
+    run 2 (warm)    prompt eval 1.0 s
+    run 3           prompt eval 4.7 s   and 4.1 s of model load
+
+**Prefill throughput therefore ranges from about 350 to 2,000 tokens/second on the same
+input** - a spread of nearly 6x. Yesterday's extrapolation of 25-35 seconds for a
+6,000-token chunk used the fast end of that range. At the slow end the same chunk is closer
+to two minutes, and a 60k-token conversation is twenty minutes rather than five.
+
+Both are acceptable for a background job, so the conclusion does not change. What changes is
+how much weight the number can carry: **it is one machine, one chunk, three runs, and it
+varies by 6x.** Anything quoted from it in a README would be dishonest. The real figure needs
+stage 4's ten conversations and repeated runs, and the variance needs reporting beside the
+mean - which is the same lesson `mailman` learned when a variance table turned out to outrank
+the headline result it was supposed to support.
+
+Also worth noting: run 3 paid 4.1 s of load despite `keep_alive: 30m` being in the request,
+because the gap since the previous call exceeded it. `keep_alive` prevents the eviction it
+can prevent; it does not make the first call of a session free.
+
+### Two heuristic bugs fixed, both the same mistake
+
+Both came from reading real output rather than from reasoning, and both were a generic
+marker sitting above a specific one in the priority order:
+
+- **"I don't want that either"** became a `constraint` on the strength of "don't". It is now
+  suppressed by a narrow guard on rejections whose object is a bare pronoun. The reasoning
+  is not that it is short - it is that "that" refers to something in the *assistant* turn,
+  which this extractor deliberately never reads, so the entry is unresolvable by
+  construction rather than merely thin. "I don't want the Redis queue anywhere near
+  production" still extracts, because it names what it rejects.
+- **"I work on a Windows machine ... so every stage has to be checkable there"** became a
+  `constraint` because of "has to". `identity` and `preference` now sit above `constraint`,
+  on the principle that a first-person self-description is a much more specific signal than
+  a modal verb. It matters beyond neatness: identity belongs in the `stable` layer, and
+  filing it as a project constraint puts a durable fact about the user somewhere it expires.
+
+Verified on the real extractor:
+
+    nothing (correct)      <- I don't want that either. The entries are the summary.
+    identity/stable        <- I work on a Windows machine and test everything from PowerShell...
+    constraint/project     <- I don't want the Redis queue anywhere near production.
+    constraint/project     <- Amounts must never be floats anywhere in this system.
+    open_thread/session    <- We still need to pick the confidence threshold before shipping.
+
+### LocalExtractor now has tests
+
+There were none. 18 of them now, against a mocked HTTP transport with no Ollama and no
+model: `keep_alive` is in the request body, the JSON schema is sent as the decoding format,
+temperature is zero, the nanosecond durations are parsed into the three millisecond fields, a
+timeout and an HTTP error each come back as a failed outcome rather than an exception, and
+output that does not validate keeps its raw text.
+
+The `keep_alive` one is the point. That fix came out of a measurement and had nothing
+guarding it, so deleting it would have restored a 20x regression with the suite still green.
+
+165 tests pass.

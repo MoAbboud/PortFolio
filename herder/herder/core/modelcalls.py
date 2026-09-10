@@ -10,6 +10,9 @@ is where that lives. Three things about it are deliberate:
   `local` proves nothing.
 - **The raw output is kept.** It is the bulky column and the only one that matters when
   something breaks: a validation failure with the output thrown away is unfixable.
+- **The timing is stored split, not totalled.** Load, prompt evaluation and generation are
+  three different costs with three different fixes - only the first is avoidable, and at
+  stage 2 it was 96% of the wall clock while being entirely invisible in a single total.
 """
 
 from __future__ import annotations
@@ -45,6 +48,11 @@ async def record_extraction(
             input_tokens=outcome.input_tokens,
             output_tokens=outcome.output_tokens,
             latency_ms=outcome.latency_ms,
+            # Zero means "measured as zero" for an extractor that does inference, and
+            # nothing at all for one that does not.
+            load_ms=outcome.load_ms or None,
+            prompt_ms=outcome.prompt_ms or None,
+            generation_ms=outcome.generation_ms or None,
             validated_first_try=outcome.validated_first_try,
             raw_output=_clip(outcome.raw_output),
             error=outcome.error,

@@ -37,9 +37,17 @@ _PATHY = re.compile(r"[\w./-]+\.(py|ts|tsx|js|sql|md|json|yml|yaml|toml|cfg|html
 # crude - this is a baseline, and a sentence splitter is not the interesting part.
 _SPLIT = re.compile(r"(?<=[.!?])\s+|\n+")
 
-# Order is priority order: the first pattern that matches a sentence wins. Constraints
-# outrank decisions because "we must never use X" is a constraint that happens to be phrased
-# as a decision, and the constraint is the more useful thing to keep.
+# Order is priority order: the first pattern that matches a sentence wins, and the order runs
+# from most specific signal to least.
+#
+#   explicit incompleteness > identity > preference > constraint > decision > weak hints
+#
+# Two of those placements were mistakes found by reading real output rather than by
+# reasoning, and both are the same mistake: a generic marker sitting above a specific one.
+# "We still need to pick X" was a constraint because of "need to", and "I work on Windows
+# ... so every stage has to be checkable" was a constraint because of "has to". Constraints
+# still outrank decisions, because "we must never use X" is a constraint wearing a
+# decision's clothes and the constraint is the more useful half.
 RULES: list[tuple[str, str, str, float, re.Pattern[str]]] = [
     (
         # First, and above `constraint`, because "we still need to pick X" is an unfinished
@@ -52,6 +60,31 @@ RULES: list[tuple[str, str, str, float, re.Pattern[str]]] = [
         re.compile(
             r"\b(still need|still have to|still to|not yet|todo|to do|open question|"
             r"haven't|have not|yet to|remains to be|come back to)\b",
+            re.I,
+        ),
+    ),
+    (
+        # Identity and preference sit above `constraint` because a first-person
+        # self-description is a far more specific signal than a modal verb, and a specific
+        # signal should outrank a generic one. "I work on a Windows machine and test
+        # everything from PowerShell, so every stage has to be checkable there" is one
+        # sentence carrying both, and the durable half is the identity - the obligation is
+        # only true because of it. A sentence-level extractor has to pick one, and picking
+        # the modal put a fact about the user into the project layer, where it expires.
+        "identity",
+        "stable",
+        "something durable about the user",
+        0.55,
+        re.compile(r"\b(i am a|i'm a|my name is|i work (?:at|as|on)|our team|my role|i'm the)\b", re.I),
+    ),
+    (
+        "preference",
+        "stable",
+        "a stated preference about how to work",
+        0.55,
+        re.compile(
+            r"\b(i prefer|i'd rather|i would rather|i like|i don't like|i dislike|i hate|"
+            r"please always|please never|my preference)\b",
             re.I,
         ),
     ),
@@ -79,24 +112,6 @@ RULES: list[tuple[str, str, str, float, re.Pattern[str]]] = [
         ),
     ),
     (
-        "preference",
-        "stable",
-        "a stated preference about how to work",
-        0.55,
-        re.compile(
-            r"\b(i prefer|i'd rather|i would rather|i like|i don't like|i dislike|i hate|"
-            r"please always|please never|my preference)\b",
-            re.I,
-        ),
-    ),
-    (
-        "identity",
-        "stable",
-        "something durable about the user",
-        0.55,
-        re.compile(r"\b(i am a|i'm a|my name is|i work (?:at|as|on)|our team|my role|i'm the)\b", re.I),
-    ),
-    (
         "open_thread",
         "session",
         "something left unfinished",
@@ -108,6 +123,20 @@ RULES: list[tuple[str, str, str, float, re.Pattern[str]]] = [
         ),
     ),
 ]
+
+# A rejection whose object is a bare pronoun carries no content. "I don't want that either"
+# tells a later reader nothing at all, because "that" refers to something in the assistant
+# turn - which this extractor deliberately never reads, so the reference is unresolvable by
+# construction rather than merely inconvenient. Suppressed rather than recorded.
+#
+# Deliberately narrow: it catches the common forms and no more. The general problem is
+# anaphora and stage 4 is where its real cost gets measured.
+_ANAPHORIC_REJECTION = re.compile(
+    r"^(?:i|we)\s+(?:do\s+not|don't|dont|did\s+not|didn't|will\s+not|won't|cannot|can't)\s+"
+    r"(?:want|like|need|think|accept)\s+"
+    r"(?:that|this|it|those|these|them|either|any\s+of\s+(?:that|this|it|those|these|them))\b",
+    re.I,
+)
 
 MIN_SENTENCE_CHARS = 20
 
@@ -137,6 +166,9 @@ class HeuristicExtractor:
             for raw in _SPLIT.split(body):
                 sentence = raw.strip()
                 if len(sentence) < MIN_SENTENCE_CHARS:
+                    continue
+
+                if _ANAPHORIC_REJECTION.match(sentence):
                     continue
 
                 match = self._classify(sentence, has_code)

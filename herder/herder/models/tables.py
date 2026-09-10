@@ -475,6 +475,13 @@ class ModelCall(Base):
     input_tokens: Mapped[int | None] = mapped_column(Integer)
     output_tokens: Mapped[int | None] = mapped_column(Integer)
     latency_ms: Mapped[int | None] = mapped_column(Integer)
+    # The split, not just the total. A cold call at stage 2 spent 121 s of a 125.6 s wall
+    # clock loading the model and 4.8 s doing the work; with one number that is invisible in
+    # the data. Nullable because the heuristic extractor does no inference, and null there
+    # means "not applicable" rather than "zero".
+    load_ms: Mapped[int | None] = mapped_column(Integer)
+    prompt_ms: Mapped[int | None] = mapped_column(Integer)
+    generation_ms: Mapped[int | None] = mapped_column(Integer)
     validated_first_try: Mapped[bool | None] = mapped_column(Boolean)
     raw_output: Mapped[str | None] = mapped_column(Text)
     error: Mapped[str | None] = mapped_column(Text)

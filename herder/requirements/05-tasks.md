@@ -184,7 +184,12 @@ First measurement, heuristic, on a 300-turn synthetic transcript:
     fixed overhead    1,570 prompt tokens per call, whatever the chunk size
 
 Full figures and the quality comparison are in `NOTES.md`. The load cost is why every
-call now sends `keep_alive`.
+call now sends `keep_alive`, and why migration `0002` splits `model_calls.latency_ms`
+into load, prompt and generation - a single total hid it completely.
+
+**Read the variance note in `NOTES.md` before quoting any of these figures.** Prefill
+throughput on the same chunk varied by nearly 6x across three runs, so the per-chunk
+extrapolation is soft until stage 4 repeats it over ten conversations.
 
 - [x] The `Extractor` protocol, and **two** implementations behind it: `heuristic` and
       `local`. `trained` is stage 10 and only has to be a name in the enum now

@@ -132,3 +132,51 @@ def test_it_reports_itself_and_costs_no_model_tokens() -> None:
     assert outcome.failed is False
     # No inference happened, so there is no prompt/generation split to report.
     assert outcome.prompt_ms == 0 and outcome.generation_ms == 0
+
+
+# --------------------------------------------------------------- bugs found by reading output
+
+
+def test_a_content_free_rejection_is_not_extracted() -> None:
+    """"I don't want that either" matched the obligation rule and became a constraint.
+
+    It tells a later reader nothing: "that" refers to something in the assistant turn, which
+    this extractor deliberately never reads, so the reference is unresolvable by construction.
+    An entry like that is pure noise in a brief.
+    """
+    outcome = run(("user", "I don't want that either, it adds nothing to the design."))
+    assert [c.kind for c in outcome.candidates] == []
+
+
+def test_a_rejection_that_names_what_it_rejects_is_still_extracted() -> None:
+    """The guard has to be narrow. This one carries real content and is a real constraint."""
+    outcome = run(("user", "I don't want the Redis queue anywhere near production."))
+    assert kinds(outcome) == ["constraint"]
+
+
+def test_identity_outranks_an_obligation_in_the_same_sentence() -> None:
+    """Recorded as a constraint because of "has to", which put a durable fact about the
+    user into the project layer, where session and project entries expire.
+
+    A sentence-level extractor has to pick one, and identity is the half that outlives the
+    project. A first-person self-description is also a far more specific signal than a modal
+    verb, and specific should outrank generic.
+    """
+    outcome = run(
+        ("user", "I work on a Windows machine and test everything from PowerShell, "
+                 "so every stage has to be checkable there.")
+    )
+    assert kinds(outcome) == ["identity"]
+    assert outcome.candidates[0].layer == "stable"
+
+
+def test_a_constraint_with_no_identity_marker_is_still_a_constraint() -> None:
+    """The reorder must not swallow ordinary constraints."""
+    outcome = run(("user", "Every stage has to be checkable from a terminal."))
+    assert kinds(outcome) == ["constraint"]
+
+
+def test_an_explicit_open_thread_still_outranks_an_obligation() -> None:
+    """The earlier fix of the same shape, kept under test after the reorder."""
+    outcome = run(("user", "We still need to pick the confidence threshold before shipping."))
+    assert kinds(outcome) == ["open_thread"]
