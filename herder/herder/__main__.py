@@ -122,6 +122,7 @@ def _report(run: ExtractionRun, label: str) -> None:
     if run.prompt_ms or run.generation_ms:
         # The split stage 2 exists to measure. On a CPU, prompt processing is expected to
         # dominate - and that is what makes chunk size the biggest lever on a derive.
+        print(f"      model load        {run.load_ms / 1000:.1f}s")
         print(f"      prompt eval       {run.prompt_ms / 1000:.1f}s")
         print(f"      generation        {run.generation_ms / 1000:.1f}s")
         print(f"    model tokens        {run.input_tokens} in, {run.output_tokens} out")

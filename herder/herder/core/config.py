@@ -50,6 +50,11 @@ class Settings(BaseSettings):
     ollama_url: str = "http://localhost:11434"
     llm_model: str = "qwen2.5:3b"
     llm_timeout_seconds: int = 900
+    # How long Ollama holds the model in memory after a call. Its default is 5 minutes,
+    # which is the wrong default here: loading a 3B model costs ~2 minutes of wall clock
+    # against ~5 seconds of actual inference, so a derive running less often than every
+    # 5 minutes would pay 20x its own cost in reloading. Measured at stage 2.
+    llm_keep_alive: str = "30m"
     llm_num_ctx: int = 8192
 
     embed_model: str = "sentence-transformers/all-MiniLM-L6-v2"

@@ -30,6 +30,11 @@ services:
       DATABASE_URL: postgresql+asyncpg://herder:herder@db:5432/herder
       HERDER_EXTRACTOR: ${HERDER_EXTRACTOR:-heuristic}
       HERDER_MODEL_DIR: /models
+      # Ollama runs on the host, not in this container. Without this the container looks
+      # for it at its own localhost and finds nothing.
+      HERDER_OLLAMA_URL: ${HERDER_OLLAMA_URL:-http://host.docker.internal:11434}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8000:8000"
     volumes:
@@ -50,6 +55,9 @@ services:
       DATABASE_URL: postgresql+asyncpg://herder:herder@db:5432/herder
       HERDER_EXTRACTOR: ${HERDER_EXTRACTOR:-heuristic}
       HERDER_MODEL_DIR: /models
+      HERDER_OLLAMA_URL: ${HERDER_OLLAMA_URL:-http://host.docker.internal:11434}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - .:/app
       - ./models:/models

@@ -45,6 +45,7 @@ class LocalExtractor:
         self._url = settings.ollama_url.rstrip("/")
         self._timeout = settings.llm_timeout_seconds
         self._num_ctx = settings.llm_num_ctx
+        self._keep_alive = settings.llm_keep_alive
         self._prompt, self.prompt_version = load_prompt("extract.md")
 
     # ------------------------------------------------------------------ readiness
@@ -85,6 +86,9 @@ class LocalExtractor:
             # usable for structured extraction at all.
             "format": schema,
             "stream": False,
+            # Without this Ollama unloads after 5 minutes and the next derive pays ~2
+            # minutes to reload a model that then works for 5 seconds.
+            "keep_alive": self._keep_alive,
             "options": {"temperature": 0, "num_ctx": self._num_ctx},
         }
 
@@ -104,6 +108,7 @@ class LocalExtractor:
         # Nanoseconds, and both are reported. The split is the point.
         prompt_ms = int(payload.get("prompt_eval_duration", 0) / 1_000_000)
         gen_ms = int(payload.get("eval_duration", 0) / 1_000_000)
+        load_ms = int(payload.get("load_duration", 0) / 1_000_000)
 
         try:
             parsed = CandidateList.model_validate_json(raw)
@@ -132,6 +137,7 @@ class LocalExtractor:
             latency_ms=elapsed,
             prompt_ms=prompt_ms,
             generation_ms=gen_ms,
+            load_ms=load_ms,
         )
         return outcome
 

@@ -20,8 +20,8 @@ to be wrong it is changed here first and then in the code - by the author, delib
 the old decision kept beside the new one and the reason recorded. A decision that is only in
 somebody's head is a decision the next working session will make differently.
 
-**Stages 0 and 1 are done**, and stage 2 is built and tested - the heuristic extractor runs
-end to end, and the local one waits on a model being installed. See
+**Stages 0, 1 and 2 are done**, and both extractors have been measured against each
+other. Stage 3 - merge and render, where the loop closes - is the current work. See
 [05-tasks.md](05-tasks.md) for what each stage means and how to check it.
 
 There are sibling projects at `../mailman` and `../evaluaters/`. They deliberately share no

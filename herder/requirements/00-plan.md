@@ -74,9 +74,9 @@ flowchart LR
 | 13 | MCP door | Optional. Six tools over the API that already exists |
 | 14 | Hardening and self-host | Optional. Export, delete, rate limits, `/metrics`, and the self-host document |
 
-**Stages 0 and 1 are done. Stage 2 is built and tested, with the heuristic extractor
-running end to end.** The one thing still outstanding in it is the measurement that needs a
-model on the machine - how long one chunk takes on a CPU - which waits on Ollama.
+**Stages 0, 1 and 2 are done, and the project's first gate is passed: a derive is
+minutes, not hours.** Stage 3 - merge and render, where the loop closes - is the current
+work.
 
 ### Why the core loop comes before everything else
 
@@ -189,13 +189,13 @@ layers earn their keep at all.
 
 | Question | Blocks | Notes |
 | --- | --- | --- |
-| **How long does one derive take on this machine?** | Stage 2 | The most important open question in the project, with money replaced by wall-clock. Ten extraction calls on CPU, dominated by prompt processing rather than generation. If a 60k-token conversation takes an hour, the chunk size, the derive threshold and the model size all move, and stage 9's benchmark becomes something that runs overnight. Measure it on the first real chunk, before the loop is finished |
+| ~~How long does one derive take on this machine?~~ **Answered at stage 2** | - | Warm, a 36-token chunk is 6.2 s (1.0 s prefill, 2.8 s generation); extrapolated to a 6,000-token chunk that is 25-35 s, so a 60k-token conversation is 4-6 minutes. Acceptable for a background job nothing waits on. **The real finding was elsewhere: loading the model costs 121 s against 5 s of inference**, so every call now sends `keep_alive` and load time is measured as its own column rather than inferred. The 6,000-token figure is still an extrapolation and gets confirmed at stage 4 |
 | Which 3B-class model, and at what quantisation | Stage 2 | Quality against speed against memory, on a machine with no GPU. Q4 is the usual starting point. Measurable rather than arguable, and stage 4 has ten conversations to measure it on |
 | Which NLI model, and where the confidence floor sits | Stage 3 | The floor decides how often merging falls back to `distinct` and creates a near-duplicate. Too high and the memory grows; too low and distinct entries get merged, which is the worse failure because it loses information silently |
 | Which sentence transformer | Stage 3 | 384 dimensions is the working answer. The dimension is fixed in the DDL, so this is a migration rather than a setting. Decide before stage 3 writes any embeddings |
 | Does the heuristic extractor need to be good, or only present? | Stage 4 | If it is what the public link serves, a visitor's experience is the heuristic's output. That may argue for spending real effort on it, or for the hosted demo being fully pre-derived and read-only |
 | Is 0.86 the right similarity threshold | Stage 4 | Too low and distinct entries get adjudicated constantly, which is NLI calls that need not have happened; too high and the memory grows linearly and the whole compaction claim fails. Only stage 4 can say |
-| Is 6000 the right chunk size | Stage 4 | The single biggest lever on how long a derive takes, because every chunk re-processes the instructions, the worked examples and the entry titles. Bigger chunks pay that overhead fewer times but give a small model more context than it handles well. Smaller chunks mean more calls and more duplicate candidates to merge |
+| Is 6000 the right chunk size | Stage 4 | The single biggest lever on how long a derive takes, and stage 2 put a number on it: **the fixed instruction overhead is 1,570 prompt tokens per call** - 21% of prefill at a 6,000-token chunk, 44% at 2,000, 98% at 36. That argues for larger chunks; against it, a 3B model handles a long context worse than a short one. A real trade with a measurable optimum |
 | Is 2000 tokens the right derive threshold | Stage 4 | This is a cost dial in disguise. It decides how often a model is called during a live conversation |
 | Does the layer split earn its keep | Stage 10 | Three layers with different expiry is the most elaborate part of the design. If the benchmark cannot tell it apart from one flat list at the same budget, that should be reported rather than defended |
 | Are six probes enough to be a number | Stage 6 | Six probes gives a score with a granularity of about 0.08. That may be too coarse to detect the improvements stage 10 is looking for, and more probes mean a longer checkpoint |

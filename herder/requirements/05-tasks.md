@@ -173,16 +173,18 @@ and a reason. 85 tests pass, of which 22 need the database.
 
 **Built and tested 2026-09-08.** The `heuristic` extractor runs end to end against the
 real database and produces entries with lineage back to the exact user turns. The `local`
-extractor is written and unit-tested against a fake, but **the two tasks that need a model
-on this machine are still open** - see the `[~]` marks below. Install Ollama and pull a
-model to close them.
+extractor is measured: Ollama with `qwen2.5:3b`.
 
 First measurement, heuristic, on a 300-turn synthetic transcript:
 
-    source            21,926 tokens across 600 turns
-    chunks            4 at a 6000-token target (12 at 2000, 23 at 1000)
-    extractor time    21 ms
-    entries           36  (1.6 per 1,000 source tokens)
+    heuristic         21,926 tokens, 4 chunks, 21 ms, 36 entries
+    local, cold       125.6 s wall - of which 121 s is loading the model
+    local, warm         6.2 s wall, 1.0 s prefill + 2.8 s generation
+    prefill           ~1,600-2,000 tokens/s     generation  ~80-113 tokens/s
+    fixed overhead    1,570 prompt tokens per call, whatever the chunk size
+
+Full figures and the quality comparison are in `NOTES.md`. The load cost is why every
+call now sends `keep_alive`.
 
 - [x] The `Extractor` protocol, and **two** implementations behind it: `heuristic` and
       `local`. `trained` is stage 10 and only has to be a name in the enum now
@@ -216,10 +218,10 @@ First measurement, heuristic, on a 300-turn synthetic transcript:
 - [x] Entries, revisions and lineage written for the surviving candidates. No merging yet -
       this stage creates one entry per candidate on purpose, so the merge step can be seen to
       do something in stage 3
-- [~] **Record what one real chunk costs in wall-clock**, split into prompt processing and
+- [x] **Record what one real chunk costs in wall-clock**, split into prompt processing and
       generation, in `NOTES.md`. This is the number the open question in
       [00-plan.md](00-plan.md) is waiting on, and it decides the chunk size and the model size
-- [~] Run the same chunk through `heuristic` and through `local` and put both outputs side by
+- [x] Run the same chunk through `heuristic` and through `local` and put both outputs side by
       side. The first comparison of the project, and it costs nothing to do now
 - [x] Tests against a fake extractor covering every failure row in
       [03-architecture.md](03-architecture.md). The real model is never loaded in the test

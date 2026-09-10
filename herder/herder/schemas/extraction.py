@@ -76,5 +76,8 @@ class ExtractionOutcome(BaseModel):
     # a derive takes. Zero for extractors that do no inference.
     prompt_ms: int = 0
     generation_ms: int = 0
+    # Time spent loading the model into memory, reported separately because it dwarfs
+    # everything else on a cold start and is avoidable, while the other two are not.
+    load_ms: int = 0
     model: str = ""
     prompt_version: str | None = None

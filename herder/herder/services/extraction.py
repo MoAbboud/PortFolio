@@ -40,6 +40,7 @@ class ExtractionRun:
     latency_ms: int = 0
     prompt_ms: int = 0
     generation_ms: int = 0
+    load_ms: int = 0
     source_tokens: int = 0
     errors: list[str] = field(default_factory=list)
 
@@ -184,6 +185,7 @@ async def extract_project(
         run.latency_ms += outcome.latency_ms
         run.prompt_ms += outcome.prompt_ms
         run.generation_ms += outcome.generation_ms
+        run.load_ms += outcome.load_ms
 
         if outcome.failed:
             # Skipped and recorded as skipped. Losing a whole run to one bad chunk would be
