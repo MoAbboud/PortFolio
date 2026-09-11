@@ -44,8 +44,8 @@ _ROLE_WORDS = {
     "human": "user",
     "you": "user",
     "me": "user",
-    "q": "user",
     "prompt": "user",
+    "question": "user",
     "assistant": "assistant",
     "ai": "assistant",
     "claude": "assistant",
@@ -54,26 +54,45 @@ _ROLE_WORDS = {
     "gemini": "assistant",
     "copilot": "assistant",
     "bot": "assistant",
-    "a": "assistant",
     "answer": "assistant",
     "system": "system",
     "tool": "tool",
 }
 
+# Single letters are matched **case-sensitively**, and that is the whole point of separating
+# them. `q` and `a` used to sit in the table above under a case-insensitive match, which
+# meant any line beginning `a:` or `q:` was read as a speaker change - so a config block
+# pasted inside a turn was shredded:
+#
+#     User: here is the config we settled on
+#     a: 1                <- became an ASSISTANT turn containing "1"
+#     q: 2                <- became a USER turn
+#     port: 5432
+#
+# Four turns from two, with content attributed to the wrong speaker and lineage pointing at
+# turns that were never said. Requiring uppercase keeps genuine "Q:"/"A:" transcripts working
+# and costs nothing, because YAML and dict keys are conventionally lower case.
+_SINGLE_LETTER_ROLES = {"Q": "user", "A": "assistant"}
+
 # A speaker marker at the start of a line: optional markdown bold or heading, the word, a
 # colon. Kept deliberately tight - matching mid-sentence colons would shred code blocks and
 # prose alike, and a transcript that silently loses its code is worse than one that is
 # refused.
+# Not re.IGNORECASE globally: the multi-character words are wrapped in a scoped `(?i:...)`
+# group so they stay case-insensitive, while `Q` and `A` are matched exactly as written.
 _MARKER = re.compile(
     r"^[ \t]{0,3}(?:#{1,6}[ \t]*)?(?:\*\*|__)?[ \t]*"
-    r"(" + "|".join(sorted(_ROLE_WORDS, key=len, reverse=True)) + r")"
+    r"((?i:" + "|".join(sorted(_ROLE_WORDS, key=len, reverse=True)) + r")"
+    r"|" + "|".join(sorted(_SINGLE_LETTER_ROLES)) + r")"
     r"[ \t]*(?:\*\*|__)?[ \t]*:[ \t]*",
-    re.IGNORECASE | re.MULTILINE,
+    re.MULTILINE,
 )
 
 
 def normalise_role(raw: str) -> str:
-    role = _ROLE_WORDS.get(raw.strip().lower())
+    raw = raw.strip()
+    # Exact match first, so "A" is the assistant and "a" is not a speaker at all.
+    role = _SINGLE_LETTER_ROLES.get(raw) or _ROLE_WORDS.get(raw.lower())
     if role is None:
         raise TranscriptError(f"unknown speaker role {raw!r}")
     return role

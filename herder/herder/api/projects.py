@@ -153,13 +153,24 @@ async def entries(
 
     rows = (await session.execute(query.order_by(Entry.last_seen_at.desc()).limit(limit))).all()
 
+    # Lineage for every entry in one query rather than one query per entry. At the 1000-row
+    # limit this endpoint was issuing 1001 round trips, and it is what the adjuster reads on
+    # every page load.
+    lineage_by_entry: dict[uuid.UUID, list[uuid.UUID]] = {}
+    if rows:
+        pairs = (
+            await session.execute(
+                select(EntryLineage.entry_id, EntryLineage.message_id).where(
+                    EntryLineage.entry_id.in_([entry.id for entry, _, _ in rows])
+                )
+            )
+        ).all()
+        for entry_id, message_id in pairs:
+            lineage_by_entry.setdefault(entry_id, []).append(message_id)
+
     out: list[EntryOut] = []
     for entry, title, body in rows:
-        lineage = (
-            await session.execute(
-                select(EntryLineage.message_id).where(EntryLineage.entry_id == entry.id)
-            )
-        ).scalars().all()
+        lineage = lineage_by_entry.get(entry.id, [])
         out.append(
             EntryOut(
                 id=entry.id,

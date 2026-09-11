@@ -336,7 +336,14 @@ two that follow from decisions made in this folder.
 4. `brief_versions.rendered_text` is immutable.
 5. `projects.current_brief_version_id` always points at the highest version for that project.
 6. `entry_revisions` has a row for every revision from 1 to `entries.current_revision`.
-7. Compression ratio for a version is at least 1.
+7. Compression ratio for a version is at least 1 **once the source exceeds the budget**.
+   As first written this said "always", and that is false rather than merely untested: a
+   114-token conversation renders a brief whose verbatim session tail is the whole
+   conversation, plus entry lines restating it, so the brief is legitimately larger than
+   its source. Compression only means anything in the regime where the source does not
+   fit, and that is the regime the invariant now describes. The companion invariant that
+   does hold unconditionally is 8's budget half: `token_count <= budget_tokens` unless
+   pinned entries alone exceed it, in which case the render reports `over_budget`.
 8. Every entry in `included_entry_ids` has `status` of `active` or `pinned` at render time,
    and every pinned entry is included.
 9. Every inference call writes a `model_calls` row, including the ones that fail, and records

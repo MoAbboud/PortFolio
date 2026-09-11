@@ -405,3 +405,253 @@ async def test_an_unavailable_model_stops_before_anything_is_written(session, ac
         await session.execute(select(func.count()).select_from(Entry).where(Entry.project_id == project.id))
     ).scalar_one()
     assert count == 0
+
+
+# ================================================================== bug fixes, 2026-09-11
+
+
+class CountingEmbedder(FakeEmbedder):
+    """Records how many texts it was asked to embed."""
+
+    def __init__(self, similar: bool = True) -> None:
+        super().__init__(similar)
+        self.embedded = 0
+
+    def embed(self, texts: list[str]) -> list[list[float]]:
+        self.embedded += len(texts)
+        return super().embed(texts)
+
+
+async def test_an_entry_with_no_embedding_is_backfilled_by_a_derive(session, account):
+    """An entry with a NULL vector is invisible to `_find_matches`, so it can never merge.
+
+    The stage 2 extract service has no embedder by design and wrote exactly such entries.
+    The `embed` job that was supposed to fix them was ticked done in the task list and did
+    not exist, so they stayed invisible indefinitely.
+    """
+    project = await seeded(session, account)
+    await run(session, project, FakeExtractor([candidate()]))
+
+    entry_id = (
+        await session.execute(select(Entry.id).where(Entry.project_id == project.id, Entry.kind == "decision"))
+    ).scalars().one()
+    await session.execute(update(Entry).where(Entry.id == entry_id).values(embedding=None))
+    await session.commit()
+
+    await session.refresh(project)
+    result = await run(session, project, FakeExtractor([]), embedder=CountingEmbedder())
+
+    assert result.embeddings_backfilled == 1
+    vector = (await session.execute(select(Entry.embedding).where(Entry.id == entry_id))).scalar_one()
+    assert vector is not None
+
+
+async def test_a_removed_entry_with_no_embedding_still_blocks_recreation(session, account):
+    """The worst consequence of the missing embed job, and the reason it mattered.
+
+    Removed-never-resurrects is enforced by MATCHING a candidate against the removed entry.
+    An entry removed before it was ever embedded cannot be matched, so the rule silently did
+    not apply to it and the next derive re-created it - defeating the one behaviour the
+    adjuster's trustworthiness rests on.
+    """
+    project = await seeded(session, account)
+    await run(session, project, FakeExtractor([candidate()]))
+
+    entry_id = (
+        await session.execute(select(Entry.id).where(Entry.project_id == project.id, Entry.kind == "decision"))
+    ).scalars().one()
+    # Removed AND unembedded: exactly the state the bug produced.
+    await session.execute(
+        update(Entry).where(Entry.id == entry_id).values(status="removed", embedding=None)
+    )
+    await session.commit()
+
+    await ingest_paste(session, account["workspace"].id, text="User: the same point, made again.", vendor="claude")
+    await session.refresh(project)
+    second = await run(session, project, FakeExtractor([candidate()]), nli=FakeNli(ENTAILMENT, ENTAILMENT))
+
+    assert second.dropped_removed == 1
+    assert second.created == 0
+    statuses = (
+        await session.execute(
+            select(Entry.status).where(Entry.project_id == project.id, Entry.kind == "decision")
+        )
+    ).scalars().all()
+    assert statuses == ["removed"]
+
+
+async def test_the_tail_is_never_embedded(session, account):
+    """It is replaced wholesale each derive and never merged, so a vector for it would be
+    recomputed forever and never read."""
+    project = await seeded(session, account)
+    await run(session, project, FakeExtractor([candidate()]))
+
+    vector = (
+        await session.execute(
+            select(Entry.embedding).where(Entry.project_id == project.id, Entry.kind == "tail")
+        )
+    ).scalars().first()
+    assert vector is None
+
+
+async def test_two_candidates_revising_the_same_entry_in_one_derive(session, account):
+    """`entries.current_revision` is maintained with a core update(), which does not refresh
+    an ORM object already in the session. Reading it back through `session.get` returned a
+    stale number, so the second revision in one derive reused the first one and collided
+    with the primary key on (entry_id, revision).
+    """
+    project = await seeded(session, account)
+    await run(session, project, FakeExtractor([candidate(text="We use Postgres.")]))
+
+    await ingest_paste(
+        session, account["workspace"].id, text="User: two refinements of the same point at once.", vendor="claude"
+    )
+    await session.refresh(project)
+
+    # Both candidates match the one stored entry, and both read as more specific.
+    two = [
+        candidate(title="first refinement", text="We use Postgres 16 in production."),
+        candidate(title="second refinement", text="We use Postgres 16.2 in production on Linux."),
+    ]
+    result = await run(session, project, FakeExtractor(two), nli=FakeNli(ENTAILMENT, NEUTRAL))
+
+    assert result.updated == 2
+
+    entry = (
+        await session.execute(select(Entry).where(Entry.project_id == project.id, Entry.kind == "decision"))
+    ).scalars().one()
+    revisions = (
+        await session.execute(
+            select(EntryRevision.revision)
+            .where(EntryRevision.entry_id == entry.id)
+            .order_by(EntryRevision.revision)
+        )
+    ).scalars().all()
+
+    # Invariant 6: a row for every revision from 1 to current, with no gaps and no reuse.
+    assert revisions == [1, 2, 3]
+    await session.refresh(entry)
+    assert entry.current_revision == 3
+
+
+# ------------------------------------------------------------------ the documented invariants
+
+
+async def test_invariant_2_every_derived_entry_cites_a_message(session, account):
+    """An entry that cannot say where it came from is an unsupported claim, not a
+    low-confidence one."""
+    project = await seeded(session, account)
+    await run(
+        session,
+        project,
+        FakeExtractor([candidate(), candidate(title="another", kind="constraint")]),
+        embedder=FakeEmbedder(similar=False),
+    )
+
+    orphans = (
+        await session.execute(
+            select(func.count())
+            .select_from(Entry)
+            .outerjoin(EntryLineage, EntryLineage.entry_id == Entry.id)
+            .where(
+                Entry.project_id == project.id,
+                Entry.source == "derived",
+                Entry.kind != "tail",
+                EntryLineage.entry_id.is_(None),
+            )
+        )
+    ).scalar_one()
+    assert orphans == 0
+
+
+async def test_invariant_4_a_rendered_brief_is_never_edited(session, account):
+    """Any change is a new version, so a checkpoint score always refers to a text that
+    still exists exactly as it was sent."""
+    project = await seeded(session, account)
+    await run(session, project, FakeExtractor([candidate()]))
+
+    first = (
+        await session.execute(
+            select(BriefVersion).where(BriefVersion.project_id == project.id, BriefVersion.version == 1)
+        )
+    ).scalars().one()
+    original = first.rendered_text
+
+    await render_project(session, project, "adjust")
+    await session.commit()
+
+    await session.refresh(first)
+    assert first.rendered_text == original
+    count = (
+        await session.execute(
+            select(func.count()).select_from(BriefVersion).where(BriefVersion.project_id == project.id)
+        )
+    ).scalar_one()
+    assert count >= 2
+
+
+async def test_invariant_8_only_active_or_pinned_is_included_and_every_pin_is(session, account):
+    project = await seeded(session, account)
+    await run(
+        session,
+        project,
+        FakeExtractor([candidate(title=f"entry {i}") for i in range(4)]),
+        embedder=FakeEmbedder(similar=False),
+    )
+
+    ids = (
+        await session.execute(select(Entry.id).where(Entry.project_id == project.id, Entry.kind == "decision"))
+    ).scalars().all()
+    await session.execute(update(Entry).where(Entry.id == ids[0]).values(status="pinned"))
+    await session.execute(update(Entry).where(Entry.id == ids[1]).values(status="removed"))
+    await session.execute(update(Entry).where(Entry.id == ids[2]).values(status="archived"))
+    await session.commit()
+
+    version = await render_project(session, project, "adjust")
+    included = set(version.included_entry_ids)
+
+    assert ids[0] in included  # every pinned entry is included
+    assert ids[1] not in included  # removed
+    assert ids[2] not in included  # archived
+
+    statuses = (
+        await session.execute(select(Entry.status).where(Entry.id.in_(included)))
+    ).scalars().all()
+    assert set(statuses) <= {"active", "pinned"}
+
+
+async def test_invariant_7_holds_once_the_source_exceeds_the_budget(session, account):
+    """The invariant as first written said the compression ratio is always at least 1.
+
+    That is false for a small conversation and it is not a defect: a 114-token transcript
+    yields a brief whose verbatim session tail is the whole conversation, plus entry lines
+    restating it, so the brief is legitimately larger than its source. Compression only
+    means anything once the source exceeds the budget, which is the regime this asserts.
+    """
+    long_text = "\n".join(
+        f"User: point {i}. We are going with decision number {i} and it must never be reversed."
+        f"\nAssistant: noted for {i}."
+        for i in range(120)
+    )
+    await ingest_paste(session, account["workspace"].id, text=long_text, vendor="claude")
+    project = account["project"]
+    await session.refresh(project)
+
+    await session.execute(update(Project).where(Project.id == project.id).values(brief_budget_tokens=300))
+    await session.commit()
+    await session.refresh(project)
+
+    await run(session, project, FakeExtractor([candidate()]), embedder=FakeEmbedder(similar=False))
+
+    version = (
+        await session.execute(
+            select(BriefVersion)
+            .where(BriefVersion.project_id == project.id)
+            .order_by(BriefVersion.version.desc())
+            .limit(1)
+        )
+    ).scalars().first()
+
+    assert version.source_token_count > version.budget_tokens, "the corpus must exceed the budget"
+    assert version.token_count <= version.budget_tokens
+    assert version.source_token_count / version.token_count >= 1.0

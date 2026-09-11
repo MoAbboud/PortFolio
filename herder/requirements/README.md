@@ -22,8 +22,10 @@ somebody's head is a decision the next working session will make differently.
 
 **Stages 0 to 3 are done and the loop closes**: a transcript goes in and a budgeted,
 lineage-backed brief comes out. Stage 4 - ten conversations end to end, and the written
-list of everywhere it went wrong - is the current work. See [05-tasks.md](05-tasks.md) for
-what each stage means and how to check it.
+list of everywhere it went wrong - is the current work.
+
+[05-tasks.md](05-tasks.md) is the authority on status and the only place test counts
+live, because the same status restated in three documents drifted in all three.
 
 There are sibling projects at `../mailman` and `../evaluaters/`. They deliberately share no
 code with this one. What was taken from `mailman` is its shape: the same requirements layout,

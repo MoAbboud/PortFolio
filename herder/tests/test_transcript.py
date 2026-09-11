@@ -123,3 +123,47 @@ def test_text_that_merely_starts_with_a_brace_still_parses() -> None:
 def test_unknown_role_in_json_is_refused() -> None:
     with pytest.raises(TranscriptError):
         parse_transcript(json.dumps([{"role": "narrator", "content": "hi"}]))
+
+
+# --------------------------------------------------------------- bug fixed 2026-09-11
+
+
+def test_a_config_block_inside_a_turn_is_not_shredded() -> None:
+    """`q` and `a` were case-insensitive speaker roles, so any line beginning `a:` split
+    the turn. A pasted config block became four turns, with "1" attributed to the assistant
+    and lineage pointing at turns nobody ever said.
+    """
+    parsed = parse_transcript(
+        "User: here is the config we settled on\n"
+        "a: 1\n"
+        "q: 2\n"
+        "port: 5432\n"
+        "That is the whole thing.\n"
+        "Assistant: noted."
+    )
+
+    assert len(parsed.turns) == 2
+    assert parsed.turns[0].role == "user"
+    assert "a: 1" in parsed.turns[0].content
+    assert "port: 5432" in parsed.turns[0].content
+    assert parsed.turns[1].role == "assistant"
+
+
+def test_uppercase_q_and_a_are_still_speakers() -> None:
+    """The fix keeps genuine Q&A transcripts working; only the lower-case forms went."""
+    parsed = parse_transcript("Q: what is the budget?\nA: three thousand tokens.")
+    assert [(t.role, t.content) for t in parsed.turns] == [
+        ("user", "what is the budget?"),
+        ("assistant", "three thousand tokens."),
+    ]
+
+
+def test_a_lowercase_single_letter_is_not_a_speaker() -> None:
+    """With no other marker present this refuses rather than inventing turns."""
+    with pytest.raises(TranscriptError):
+        parse_transcript("a: 1\nq: 2\nport: 5432")
+
+
+def test_multi_character_labels_stay_case_insensitive() -> None:
+    parsed = parse_transcript("human: hi\nCLAUDE: hello\nUsEr: again")
+    assert [t.role for t in parsed.turns] == ["user", "assistant", "user"]

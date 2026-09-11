@@ -2,8 +2,16 @@
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
 
-**Stages 0 and 1 are done. Stage 2 is built and tested; the two tasks that need a model
-on the machine are marked `[~]` and wait on Ollama being installed.** 140 tests pass.
+**Stages 0 to 3 are done. The loop closes: a transcript goes in and a budgeted,
+lineage-backed brief comes out.** Stage 4 - ten conversations end to end and the written
+failure list - is the current work.
+
+**2026-09-11 was a bug-fix run: seven found, including an `embed` job that was ticked done
+and did not exist, and a status line in this file that still claimed stage 2 was current.**
+**233 tests pass, nothing skipped**, verified against the database. The embed fix was then
+confirmed on real data: 62 of 68 stored entries had no vector and were invisible to the
+merge step, and a derive that would have created 36 duplicates now merges 36 of 36. See
+`NOTES.md`.
 
 Stages are ordered by dependency, not by calendar. **Each one ends in something that runs and
 can be checked from PowerShell.** If a stage cannot be verified that way, it is not finished.
@@ -250,7 +258,12 @@ reversal** - which is the first thing stage 4 has to look at.
 
 - [x] A `sentence-transformers` embedder at 384 dimensions, on CPU. The model is decided
       before any embedding is written, because the pgvector dimension is fixed in the DDL
-- [x] `embed` job, run on entry creation and on revision
+- [x] `embed` job. **This was ticked before it existed** - there was no handler and it was
+      never enqueued, so entries written by the stage 2 extract service kept a NULL
+      vector and were invisible to the merge step forever. Worse, a *removed* entry with
+      no vector cannot be matched, so removed-never-resurrects silently did not apply to
+      it. Now real: a `embed` worker handler, an enqueue from `extract_project`, and
+      `derive` backfills before it merges so the loop self-heals
 - [x] Similarity search over `entries` with the HNSW index, top 3 above threshold
 - [x] **The removed-entry rule, in the merge step**: a candidate matching a removed entry is
       dropped. Test it directly, and test it after a re-derive of the same messages

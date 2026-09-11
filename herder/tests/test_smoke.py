@@ -94,7 +94,7 @@ def test_app_exposes_health() -> None:
 
 
 def test_the_worker_has_a_handler_for_every_kind_it_enqueues() -> None:
-    """Stage 0 built the shape; stage 3 filled in derive and render.
+    """Stage 0 built the shape; stage 3 filled in derive, embed and render.
 
     An unknown kind is marked failed with a reason rather than retried forever, so a job
     nobody can run is visible instead of invisible - but a kind this system *enqueues* and
@@ -102,5 +102,5 @@ def test_the_worker_has_a_handler_for_every_kind_it_enqueues() -> None:
     """
     from herder.worker.runner import HANDLERS, worker_name
 
-    assert set(HANDLERS) == {"derive", "render"}
+    assert set(HANDLERS) == {"derive", "embed", "render"}
     assert ":" in worker_name()

@@ -74,9 +74,14 @@ flowchart LR
 | 13 | MCP door | Optional. Six tools over the API that already exists |
 | 14 | Hardening and self-host | Optional. Export, delete, rate limits, `/metrics`, and the self-host document |
 
-**Stages 0, 1 and 2 are done, and the project's first gate is passed: a derive is
-minutes, not hours.** Stage 3 - merge and render, where the loop closes - is the current
-work.
+**Stages 0 to 3 are done. The loop closes, and the project's first gate is passed: a derive
+is minutes, not hours.** Stage 4 is the current work.
+
+**[05-tasks.md](05-tasks.md) is the authority on status**, and the only place test counts and
+per-stage verification live. This paragraph names the stage and nothing more, on purpose: the
+same status used to be restated in three documents and it drifted in all of them - this one
+still claimed stage 2 was current after stage 3 had shipped. A fact worth stating once is
+worth stating in one place.
 
 ### Why the core loop comes before everything else
 

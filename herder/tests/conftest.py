@@ -41,17 +41,40 @@ SKIP_REASON = (
 )
 
 
-@pytest_asyncio.fixture
-async def engine():
-    engine = create_async_engine(TEST_DATABASE_URL, poolclass=None)
+# Whether the database answered, decided once per session.
+#
+# Without this every skipped test paid its own failed connection: with Docker down the suite
+# took 3 minutes 26 seconds to skip 49 tests, about 4 seconds each. A suite that takes
+# minutes to do nothing is a suite that stops being run, which this project has already
+# written down as the thing that kills a harness.
+_REACHABLE: bool | None = None
+
+
+async def _database_reachable() -> bool:
+    global _REACHABLE
+    if _REACHABLE is not None:
+        return _REACHABLE
+
+    probe = create_async_engine(TEST_DATABASE_URL, poolclass=None)
     try:
-        async with engine.connect() as conn:
+        async with probe.connect() as conn:
             # Not just "does it connect" - the migration has to have run, or every test
             # below fails with an unhelpful UndefinedTable.
             await conn.execute(text("select 1 from messages limit 1"))
+        _REACHABLE = True
     except Exception:
-        await engine.dispose()
+        _REACHABLE = False
+    finally:
+        await probe.dispose()
+    return _REACHABLE
+
+
+@pytest_asyncio.fixture
+async def engine():
+    if not await _database_reachable():
         pytest.skip(SKIP_REASON)
+
+    engine = create_async_engine(TEST_DATABASE_URL, poolclass=None)
     yield engine
     await engine.dispose()
 

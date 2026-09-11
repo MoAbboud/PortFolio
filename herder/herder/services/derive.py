@@ -38,6 +38,7 @@ from herder.models import (
     Project,
 )
 from herder.schemas.extraction import Candidate
+from herder.services.embedding import embed_missing
 from herder.services.extraction import extract_chunk, existing_titles
 
 log = logging.getLogger("herder.derive")
@@ -62,6 +63,7 @@ class DeriveRun:
     below_floor: int = 0
     archived: int = 0
     promotions_suggested: int = 0
+    embeddings_backfilled: int = 0
     source_messages: int = 0
     source_tokens: int = 0
     brief_version: int | None = None
@@ -237,6 +239,29 @@ async def _touch(session: AsyncSession, entry_id: uuid.UUID, seen: int) -> None:
     )
 
 
+async def _next_revision(session: AsyncSession, entry_id: uuid.UUID) -> int:
+    """The next revision number, read from `entry_revisions` rather than from the counter.
+
+    `entries.current_revision` is maintained with a core `update()`, which does **not**
+    refresh an ORM object already in the session's identity map. So reading it back through
+    `session.get` can return a stale value - and if two candidates in one derive both revise
+    the same entry, the second computes a revision number the first has already used, which
+    collides with the primary key on `(entry_id, revision)`.
+
+    The revisions table is the source of truth and cannot go stale. Reading from it also
+    means invariant 6 - a row for every revision from 1 to current - cannot be broken by a
+    stale counter.
+    """
+    highest = (
+        await session.execute(
+            select(func.coalesce(func.max(EntryRevision.revision), 0)).where(
+                EntryRevision.entry_id == entry_id
+            )
+        )
+    ).scalar_one()
+    return int(highest) + 1
+
+
 async def _revise(
     session: AsyncSession,
     entry_id: uuid.UUID,
@@ -245,8 +270,14 @@ async def _revise(
     vector: list[float],
 ) -> None:
     """A new revision on the same entry. The old revision is never overwritten."""
-    entry = await session.get(Entry, entry_id)
-    revision = entry.current_revision + 1
+    revision = await _next_revision(session, entry_id)
+    # Read confidence fresh for the same reason: a core update() earlier in this derive
+    # leaves any ORM copy behind.
+    stored_confidence = float(
+        (
+            await session.execute(select(Entry.confidence).where(Entry.id == entry_id))
+        ).scalar_one()
+    )
     text = merged_text(match.text, candidate.text)
 
     session.add(
@@ -269,7 +300,7 @@ async def _revise(
             # The embedding follows the revision, or similarity search keeps matching text
             # that is no longer what the entry says.
             embedding=vector,
-            confidence=max(entry.confidence, candidate.confidence),
+            confidence=max(stored_confidence, candidate.confidence),
         )
     )
     await session.flush()
@@ -394,7 +425,7 @@ async def write_session_tail(session: AsyncSession, project: Project) -> str | N
             )
         )
     else:
-        revision = existing.current_revision + 1
+        revision = await _next_revision(session, existing.id)
         session.add(
             EntryRevision(
                 entry_id=existing.id,
@@ -563,6 +594,14 @@ async def derive_project(
     nli.check_ready()
 
     run = DeriveRun()
+
+    # Self-healing, before anything is matched. An entry with no vector is invisible to
+    # `_find_matches`, so it can never be merged - and a REMOVED entry with no vector
+    # silently escapes the removed-never-resurrects rule and gets re-created. Backfilling
+    # here means the loop repairs that itself rather than depending on a job having been
+    # enqueued at the right moment.
+    run.embeddings_backfilled = await embed_missing(session, project, embedder)
+
     rows = await messages_after_cursor(session, project)
 
     if not rows:

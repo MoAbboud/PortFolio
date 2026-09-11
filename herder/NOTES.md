@@ -359,3 +359,51 @@ normalised titles where the heuristic emitted raw sentence fragments, and it use
 - Embeddings come from Ollama (`all-minilm`, 384 dimensions) rather than
   `sentence-transformers` in-process. Same model, same width, one less inference stack in the
   worker. `sentence-transformers` is still installed, for the NLI cross-encoder.
+
+
+## 2026-09-11 - the bug-fix run, verified against the database
+
+**233 tests pass, nothing skipped.** The three fixes that could not be checked while Docker
+was down are now checked, and one of them turned out to be worth more than the test that
+proved it.
+
+### The missing embed job, measured on real data
+
+Entries carrying no vector, before the fix ran anywhere:
+
+    bench-heuristic-3      36 of 36 have no vector
+    bench-heuristic        20 of 20
+    default                 6 of  6
+    loop-demo               0 of  6
+
+**62 of 68 entries, and the pattern is exact**: every one was written by the stage 2
+`extract` service, which has no embedder. `loop-demo` was built by a stage 3 derive and has
+none. All 62 were invisible to `_find_matches`, so they could never be merged, updated,
+superseded - or matched as removed.
+
+Deriving `bench-heuristic-3` after the fix:
+
+    source        600 messages, 21,926 tokens
+    candidates    36
+    created        0
+    duplicate     36        <- 36 of 36 merged away
+    brief         v1, 2,069 tokens
+
+**Before the fix that run would have created 36 new entries and left 72.** The existing
+thirty-six were invisible, so every candidate would have looked new. That is exactly the
+failure the plan describes as having no error message - the brief still renders, it just
+carries everything twice - and this is what it looks like when it is caught.
+
+### The first compression number that means anything
+
+    21,926 source tokens  ->  2,069 token brief  =  10.6x
+
+Every earlier figure was measured on a conversation smaller than the budget, where the
+verbatim session tail alone is the whole source and the ratio is meaningless. This one is in
+the regime the project actually cares about, and it is the regime invariant 7 now describes.
+
+**10.6x against a target of 20x**, and the honest reading is that this says very little yet:
+it is the heuristic extractor, whose entries are verbatim source sentences and therefore
+about as long as prose can be. The local model produced normalised titles a third of the
+length on the same material at stage 2. Stage 4 measures both properly. What this number does
+establish is that the machinery compresses at all, which before today it provably did not.

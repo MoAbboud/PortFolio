@@ -71,11 +71,32 @@ async def _handle_render(session, payload: dict) -> None:
     log.info("rendered %s: v%d at %d tokens", project.name, version.version, version.token_count)
 
 
+async def _handle_embed(session, payload: dict) -> None:
+    """Give entries with no vector one.
+
+    `derive` already backfills, so this exists for the paths that do not run a derive: the
+    stage 2 extract service, which has no embedder, and the adjuster at stage 7, where a
+    user edits an entry and its vector has to follow the new text.
+    """
+    from herder.core.embeddings import OllamaEmbedder
+    from herder.models import Project
+    from herder.services.embedding import embed_missing
+
+    project = await session.get(Project, uuid.UUID(payload["project_id"]))
+    if project is None:
+        raise ValueError(f"no project {payload['project_id']}")
+
+    done = await embed_missing(session, project, OllamaEmbedder())
+    await session.commit()
+    log.info("embedded %d entries in %s", done, project.name)
+
+
 # One handler per job kind, filled in by the stages that own them.
 #   probe_gen / checkpoint  stage 6
 #   delete_user             stage 14
 HANDLERS: dict[str, object] = {
     "derive": _handle_derive,
+    "embed": _handle_embed,
     "render": _handle_render,
 }
 

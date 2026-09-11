@@ -21,7 +21,7 @@ from herder.core.modelcalls import record_extraction
 from herder.core.tokens import count_tokens
 from herder.domain.chunking import Chunk, ChunkMessage, chunk_messages
 from herder.extractors.base import Extractor, validate_lineage
-from herder.models import Conversation, Entry, EntryLineage, EntryRevision, Message, Project
+from herder.models import Conversation, Entry, EntryLineage, EntryRevision, Job, Message, Project
 from herder.schemas.extraction import Candidate, ExtractionOutcome
 
 log = logging.getLogger("herder.extraction")
@@ -202,6 +202,19 @@ async def extract_project(
         # New titles feed the next chunk, so the extractor stops restating what it has just
         # been told within the same run.
         titles.extend(c.title for c in kept)
+
+    if run.stored:
+        # This service has no embedder by design, so the entries it just wrote have no
+        # vector and are invisible to the merge step until something gives them one.
+        # `derive` backfills on its own; this covers a bare `extract` run.
+        session.add(
+            Job(
+                id=uuid7(),
+                kind="embed",
+                payload={"project_id": str(project.id)},
+                status="queued",
+            )
+        )
 
     await session.commit()
     return run
