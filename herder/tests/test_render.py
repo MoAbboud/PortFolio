@@ -221,6 +221,44 @@ def test_a_title_that_is_its_own_text_is_not_repeated() -> None:
     assert line == "- [fact] Same"
 
 
+def test_a_multi_line_entry_is_flattened_onto_one_line() -> None:
+    """The brief is a bullet list, and a newline breaks an entry out of its own list item.
+
+    A merged entry carries "Previously: ..." on a new paragraph, which rendered as an
+    orphaned block a model reading the pack could not attribute to anything. Found by looking
+    at a real stage 5 pack.
+    """
+    line = format_entry(
+        entry(kind="constraint", title="Decimal for money", text="Decimal for money.\n\nPreviously: never floats.")
+    )
+    assert "\n" not in line
+    assert "Previously: never floats." in line
+
+
+def test_a_title_that_is_only_the_opening_of_the_text_is_not_printed_twice() -> None:
+    """The heuristic's titles are truncations of their own sentence, so printing both spent
+    roughly double the tokens to say one thing. Re-rendering the corpus after this fix cut a
+    brief from 300 tokens to 219."""
+    line = format_entry(
+        entry(
+            kind="constraint",
+            title="Money values are always Decimal, never float",
+            text="Money values are always Decimal, never float, everywhere in the system.",
+        )
+    )
+    assert line.count("Money values are always Decimal") == 1
+    assert line.endswith("everywhere in the system.")
+
+
+def test_a_genuinely_different_title_still_prints_both() -> None:
+    """The local model writes a normalised title that is not a prefix of its text, and that
+    is exactly the case worth keeping both halves of."""
+    line = format_entry(
+        entry(kind="decision", title="Postgres in production", text="Production runs on Postgres, not SQLite.")
+    )
+    assert "Postgres in production - Production runs on Postgres" in line
+
+
 def test_the_vocabularies_match_the_data_model() -> None:
     assert LAYER_ORDER == ("stable", "project", "session")
     assert KIND_ORDER[0] == "constraint"

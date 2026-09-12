@@ -50,12 +50,22 @@ class Settings(BaseSettings):
     ollama_url: str = "http://localhost:11434"
     llm_model: str = "qwen2.5:3b"
     llm_timeout_seconds: int = 900
+    # **Ollama gives the prompt only HALF of num_ctx**, reserving the rest for generation.
+    # Measured 2026-09-12: num_ctx 4096 -> 2050 prompt tokens, 8192 -> 4098, 16384 -> 8194.
+    #
+    # At the old default of 8192 a 6000-token chunk plus ~1,570 tokens of instructions and
+    # ~1,000 of message ids was cut to 4,098 before the model ever saw it, with no error
+    # anywhere - the local extractor returned 3 candidates from a transcript where the
+    # heuristic found 31, and looked merely bad rather than broken.
+    #
+    # So this must be at least 2x the largest prompt. For a 6000-token chunk that is roughly
+    # 2 x 8,600, rounded up with room to spare. qwen2.5:3b supports 32768.
+    llm_num_ctx: int = 24576
     # How long Ollama holds the model in memory after a call. Its default is 5 minutes,
     # which is the wrong default here: loading a 3B model costs ~2 minutes of wall clock
     # against ~5 seconds of actual inference, so a derive running less often than every
     # 5 minutes would pay 20x its own cost in reloading. Measured at stage 2.
     llm_keep_alive: str = "30m"
-    llm_num_ctx: int = 8192
 
     # The Ollama tag, not the HuggingFace name: `all-minilm` is the same
     # all-MiniLM-L6-v2 model at the same 384 dimensions, served by a runtime already

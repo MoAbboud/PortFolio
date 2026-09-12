@@ -94,12 +94,39 @@ def _sort_key(entry: RenderableEntry) -> tuple:
     return (not entry.pinned, layer, kind, -entry.last_seen_at.timestamp())
 
 
+def _one_line(text: str) -> str:
+    """Collapse to a single line.
+
+    The brief is a bullet list, and an entry carrying a newline breaks out of its own list
+    item - a merged entry with a "Previously:" paragraph rendered as an orphaned block that a
+    model reading the pack cannot attribute to anything. Structure beats fidelity here: an
+    entry is a claim, and a claim fits on a line. Anything that genuinely needs its shape
+    preserved belongs in the lineage, which keeps the raw message untouched.
+    """
+    return " ".join(text.split())
+
+
+def _adds_nothing(title: str, body: str) -> bool:
+    """True when the title is just the opening of the text.
+
+    The heuristic extractor's titles are truncations of the sentence they came from, so
+    printing both spent roughly double the tokens to say one thing - and the budget is the
+    scarcest resource in this system. The local model writes a normalised title that differs
+    from its text, and that case still prints both.
+    """
+    trimmed = title.rstrip(" .!?,;:").lower()
+    return bool(trimmed) and body.lower().startswith(trimmed)
+
+
 def format_entry(entry: RenderableEntry) -> str:
-    body = entry.text.strip()
-    title = entry.title.strip()
-    if body and body != title:
-        return f"- [{entry.kind}] {title} - {body}"
-    return f"- [{entry.kind}] {title}"
+    title = _one_line(entry.title)
+    body = _one_line(entry.text)
+
+    if not body or body == title:
+        return f"- [{entry.kind}] {title}"
+    if _adds_nothing(title, body):
+        return f"- [{entry.kind}] {body}"
+    return f"- [{entry.kind}] {title} - {body}"
 
 
 def _truncate_tail(text: str, budget: int, count: Callable[[str], int]) -> tuple[str, bool]:

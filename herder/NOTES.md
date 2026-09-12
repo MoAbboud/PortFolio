@@ -407,3 +407,150 @@ it is the heuristic extractor, whose entries are verbatim source sentences and t
 about as long as prose can be. The local model produced normalised titles a third of the
 length on the same material at stage 2. Stage 4 measures both properly. What this number does
 establish is that the machinery compresses at all, which before today it provably did not.
+
+
+## 2026-09-12 - stage 4: ten conversations, and the list of everywhere it went wrong
+
+The corpus: ten generated transcripts, four archetypes, **113,701 tokens**, 8,343 to 14,993
+each, every turn unique within its transcript. `corpus/generate.py` plants 323 known-hard
+cases and records where in `manifest.json` - not ground truth, which is stage 9's job, but a
+list of specific things to go and check.
+
+    rejection 76   constraint 71   code_block 69   restatement 37
+    reversal 34    empty_rejection 33   long_turn 3
+
+### The stop-and-fix check: PASSED
+
+Entry count against source tokens, heuristic, all ten:
+
+    correlation r        +0.27        (near +1 would mean linear growth, and a dead claim)
+    entries per 1k       1.11 -> 0.61  (falls as conversations get longer, which is the point)
+    8,099 tokens         9 entries
+    14,760 tokens        9 entries
+
+The memory does not grow with the conversation. **Overall compression 9.0x** across 111,011
+source tokens, range 6.7x to 12.2x.
+
+### But it passes by the wrong mechanism, and that is the headline finding
+
+    96 created, 24 merged (duplicate + update), 156 SUPERSEDED
+
+Supersede retires the earlier entry. Unlike duplicate it does **not** union lineage, so the
+flat entry count was being achieved by destroying 156 entries rather than merging them.
+
+Measured against `cross-encoder/nli-deberta-v3-base`:
+
+    same rule, different INCIDENTAL number     contradiction 1.00/1.00  -> supersede  WRONG
+    same claim, numbers stripped               entailment              -> duplicate   right
+    budget 3000 vs 5000 (MATERIAL number)      contradiction 1.00/1.00 -> supersede   right
+
+**The NLI model cannot distinguish an incidental number from a material one.** "item 15"
+against "item 23" reads exactly like "3000 tokens" against "5000 tokens". Any restatement
+carrying a differing date, step, ticket id or line number supersedes instead of merging.
+
+The corpus exaggerates this - real conversations do not say "a rule for item 15" - but the
+mechanism is real and general. **This is the top item for stage 10**, and it needs the
+harness: any fix is a guess until recall can be measured either side of it.
+
+What was fixed now, because it is data loss rather than tuning:
+
+- **A supersede carries the old entry's lineage forward.** A reversal changes what is true;
+  it does not unsay the messages that established the earlier claim. Without this the new
+  entry cited only the turn that reversed the decision and "why did we ever think that"
+  became unanswerable - 156 entries' worth of evidence was going on the floor.
+- **`seen_in_conversations` carries forward too.** Resetting it to 1 on every supersede meant
+  a preference restated across five conversations never reached the promotion threshold: it
+  was superseded back to one each time.
+
+### The bug that made the local extractor look merely bad
+
+**Ollama gives the prompt only half of `num_ctx`, and says nothing.** Measured:
+
+    num_ctx requested  4096  ->  prompt_eval_count  2050
+    num_ctx requested  8192  ->  prompt_eval_count  4098
+    num_ctx requested 16384  ->  prompt_eval_count  8194
+
+At the old default of 8192 the usable prompt was 4,098 tokens, against a 6000-token chunk
+plus ~1,570 of instructions and ~1,000 of message ids. **More than half of every chunk was
+discarded before the model saw it**, with no error anywhere. The only symptom was an
+extractor that looked poor: 3 candidates from a transcript where the heuristic found 31.
+
+Two fixes, and the second matters more than the first:
+
+1. `num_ctx` raised to 24576, sized at 2x the largest prompt.
+2. **The extractor now compares what it sent against `prompt_eval_count` and fails the chunk
+   loudly if the model saw materially less.** The derive cursor does not advance on a failed
+   chunk, so the work is retried once the setting is fixed rather than silently lost. A brief
+   built on half a conversation is worse than no brief, because nothing about it says so.
+
+Verified after: the same chunk now shows 11,231 prompt tokens seen, up from 4,098.
+
+### Chunk size: the plan's assumption was wrong
+
+The plan expected bigger chunks to pay the instruction overhead fewer times but give a small
+model more context than it handles well. Measured on `03-research-notes`:
+
+    target   chunks  msgs/chunk  candidates  per 1k tokens  sec/chunk
+     1,500        3          25           9          2.01        ~20
+     3,000        3          49          26          2.94        ~102
+     6,000        2          73          33          3.73         ~99
+    heuristic     2           -          19          2.15          ~0
+
+**Bigger chunks yield more per token, not less**, and per-chunk time is roughly flat, so
+fewer large chunks wins on both axes. 6000 is the right end of the range tested and the open
+question should now read "is 6000 large enough" rather than "is it too large".
+
+Two caveats, and they matter: yield is not quality - more candidates could be more noise, and
+only stage 9's recall measurement can say - and the between-transcript variance is large
+(the same 6000 target gave 4 candidates on one transcript and 33 on another).
+
+**Local beats the heuristic on yield: 3.73 against 2.15 candidates per 1,000 source tokens.**
+
+### The planted cases
+
+What the heuristic got right, across all ten transcripts:
+
+- **0 assistant proposals leaked into memory** out of 76 planted. The rule that outranks
+  every other rule - only what the user said - holds completely.
+- **0 code fragments** became entries, out of 69 planted code blocks.
+
+What it got wrong:
+
+- **13 content-free rejections became entries.** Three phrasings, all now fixed and tested:
+  "I would rather not, thanks" matched the preference rule and became a stated preference
+  with nothing preferred in it; "Not for item 69 - that is a service I would have to
+  explain in an interview" became a constraint whose subject is "that", pointing at the
+  assistant turn this extractor deliberately never reads. After the fix: 0 leaks out of 10
+  phrasings, 0 losses out of 7 sentences that must still extract.
+- **A real constraint missed entirely**: "No broker - the jobs table is enough for what we
+  need." No cue matches. Left alone deliberately - adding `^no \w+` patterns is a recall
+  guess, and recall guesses belong at stage 10 with a harness, not here.
+
+### A bug in ingest, found only by running the corpus twice
+
+`unique (vendor, vendor_conv_id)` is global, and a paste was content-addressed on the text
+alone. So **one transcript could exist in exactly one project, ever.** Pasting the same text
+into a second project silently resolved to the conversation in the first, the `project_id`
+argument was ignored without a word, and the second project reported every turn as a
+duplicate and came back empty.
+
+Found because the corpus run pastes the same ten transcripts into two sets of projects to
+compare extractors, and got ten empty projects and a derive that did nothing. Fixed by
+scoping the paste reference to the project; re-pasting into the *same* project is still
+idempotent, which is the property that mattered.
+
+### The shortlist for stage 10
+
+1. **False supersede on incidental numbers.** The largest measured defect. Needs the harness.
+2. **Chunk size above 6000.** The trend is clear and untested past 6000.
+3. Heuristic recall on refusal-shaped constraints ("No broker - ...").
+4. Whether `local`'s extra yield is signal or noise - stage 9 answers this, not stage 4.
+
+### Not done
+
+**The full `local` run over all ten transcripts.** The comparison above is one transcript.
+The first attempt produced nothing because of the cross-project paste bug; the second was
+stopped once the `num_ctx` truncation was found, because it was measuring a model seeing half
+its input. Both bugs are fixed and the run is worth repeating - roughly 100 seconds a chunk,
+about 20 chunks, so half an hour - but it has not been done and no number here should be read
+as if it had.

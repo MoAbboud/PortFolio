@@ -1,0 +1,1687 @@
+{
+  "01-coding-session": {
+    "archetype": "coding",
+    "turns": 168,
+    "chars": 48979,
+    "planted": [
+      {
+        "kind": "rejection",
+        "turn": 6,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 8,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 12,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 14,
+        "note": "restates the append-only messages decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 20,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 24,
+        "note": "reverses the pgvector in the same database decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 31,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 33,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 39,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      },
+      {
+        "kind": "rejection",
+        "turn": 47,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 49,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 53,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 55,
+        "note": "restates the a database-backed queue decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 61,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 65,
+        "note": "reverses the hand-written migrations decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 72,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 74,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 80,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      },
+      {
+        "kind": "rejection",
+        "turn": 88,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 90,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 94,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 96,
+        "note": "restates the append-only messages decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 102,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 106,
+        "note": "reverses the pgvector in the same database decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 113,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 115,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 121,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      },
+      {
+        "kind": "rejection",
+        "turn": 129,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 131,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 135,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 137,
+        "note": "restates the a database-backed queue decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 143,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 147,
+        "note": "reverses the hand-written migrations decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 154,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 156,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 162,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      }
+    ]
+  },
+  "02-coding-debug": {
+    "archetype": "coding",
+    "turns": 129,
+    "chars": 63714,
+    "planted": [
+      {
+        "kind": "rejection",
+        "turn": 6,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 8,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 12,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 14,
+        "note": "restates the append-only messages decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 20,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 24,
+        "note": "reverses the pgvector in the same database decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 31,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 33,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 39,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      },
+      {
+        "kind": "rejection",
+        "turn": 47,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 49,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 53,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 55,
+        "note": "restates the a database-backed queue decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 61,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "long_turn",
+        "turn": 65,
+        "note": "a single turn larger than the chunk target - becomes an oversized chunk"
+      },
+      {
+        "kind": "reversal",
+        "turn": 67,
+        "note": "reverses the hand-written migrations decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 74,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 76,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 82,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      },
+      {
+        "kind": "rejection",
+        "turn": 90,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 92,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 96,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 98,
+        "note": "restates the append-only messages decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 104,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 108,
+        "note": "reverses the pgvector in the same database decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 115,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 117,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 123,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      }
+    ]
+  },
+  "03-research-notes": {
+    "archetype": "research",
+    "turns": 147,
+    "chars": 42384,
+    "planted": [
+      {
+        "kind": "rejection",
+        "turn": 6,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 8,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 12,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 14,
+        "note": "restates the append-only messages decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 20,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 24,
+        "note": "reverses the pgvector in the same database decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 31,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 33,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 39,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      },
+      {
+        "kind": "rejection",
+        "turn": 47,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 49,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 53,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 55,
+        "note": "restates the a database-backed queue decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 61,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 65,
+        "note": "reverses the hand-written migrations decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 72,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 74,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 80,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      },
+      {
+        "kind": "rejection",
+        "turn": 88,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 90,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 94,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 96,
+        "note": "restates the append-only messages decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 102,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 106,
+        "note": "reverses the pgvector in the same database decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 113,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 115,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 121,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      },
+      {
+        "kind": "rejection",
+        "turn": 129,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 131,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 135,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 137,
+        "note": "restates the a database-backed queue decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 143,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      }
+    ]
+  },
+  "04-research-review": {
+    "archetype": "research",
+    "turns": 151,
+    "chars": 43871,
+    "planted": [
+      {
+        "kind": "rejection",
+        "turn": 6,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 8,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 12,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 14,
+        "note": "restates the append-only messages decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 20,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 24,
+        "note": "reverses the pgvector in the same database decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 31,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 33,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 39,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      },
+      {
+        "kind": "rejection",
+        "turn": 47,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 49,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 53,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 55,
+        "note": "restates the a database-backed queue decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 61,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 65,
+        "note": "reverses the hand-written migrations decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 72,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 74,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 80,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      },
+      {
+        "kind": "rejection",
+        "turn": 88,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 90,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 94,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 96,
+        "note": "restates the append-only messages decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 102,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 106,
+        "note": "reverses the pgvector in the same database decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 113,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 115,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 121,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      },
+      {
+        "kind": "rejection",
+        "turn": 129,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 131,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 135,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 137,
+        "note": "restates the a database-backed queue decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 143,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 147,
+        "note": "reverses the hand-written migrations decision - must supersede it, not sit beside it"
+      }
+    ]
+  },
+  "05-planning-roadmap": {
+    "archetype": "planning",
+    "turns": 199,
+    "chars": 57733,
+    "planted": [
+      {
+        "kind": "rejection",
+        "turn": 6,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 8,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 12,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 14,
+        "note": "restates the append-only messages decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 20,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 24,
+        "note": "reverses the pgvector in the same database decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 31,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 33,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 39,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      },
+      {
+        "kind": "rejection",
+        "turn": 47,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 49,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 53,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 55,
+        "note": "restates the a database-backed queue decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 61,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 65,
+        "note": "reverses the hand-written migrations decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 72,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 74,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 80,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      },
+      {
+        "kind": "rejection",
+        "turn": 88,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 90,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 94,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 96,
+        "note": "restates the append-only messages decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 102,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 106,
+        "note": "reverses the pgvector in the same database decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 113,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 115,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 121,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      },
+      {
+        "kind": "rejection",
+        "turn": 129,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 131,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 135,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 137,
+        "note": "restates the a database-backed queue decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 143,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 147,
+        "note": "reverses the hand-written migrations decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 154,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 156,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 162,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      },
+      {
+        "kind": "rejection",
+        "turn": 170,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 172,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 176,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 178,
+        "note": "restates the append-only messages decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 184,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 188,
+        "note": "reverses the pgvector in the same database decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 195,
+        "note": "a rejection with no content in it - must not become an entry"
+      }
+    ]
+  },
+  "06-planning-budget": {
+    "archetype": "planning",
+    "turns": 108,
+    "chars": 57107,
+    "planted": [
+      {
+        "kind": "rejection",
+        "turn": 6,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 8,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 12,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 14,
+        "note": "restates the append-only messages decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 20,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 24,
+        "note": "reverses the pgvector in the same database decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 31,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 33,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 39,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      },
+      {
+        "kind": "rejection",
+        "turn": 47,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 49,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 53,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "long_turn",
+        "turn": 55,
+        "note": "a single turn larger than the chunk target - becomes an oversized chunk"
+      },
+      {
+        "kind": "restatement",
+        "turn": 57,
+        "note": "restates the a database-backed queue decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 63,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 67,
+        "note": "reverses the hand-written migrations decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 74,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 76,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 82,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      },
+      {
+        "kind": "rejection",
+        "turn": 90,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 92,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 96,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 98,
+        "note": "restates the append-only messages decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 104,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      }
+    ]
+  },
+  "07-handover-support": {
+    "archetype": "handover",
+    "turns": 137,
+    "chars": 40181,
+    "planted": [
+      {
+        "kind": "rejection",
+        "turn": 6,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 8,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 12,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 14,
+        "note": "restates the append-only messages decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 20,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 24,
+        "note": "reverses the pgvector in the same database decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 31,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 33,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 39,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      },
+      {
+        "kind": "rejection",
+        "turn": 47,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 49,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 53,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 55,
+        "note": "restates the a database-backed queue decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 61,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 65,
+        "note": "reverses the hand-written migrations decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 72,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 74,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 80,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      },
+      {
+        "kind": "rejection",
+        "turn": 88,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 90,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 94,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 96,
+        "note": "restates the append-only messages decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 102,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 106,
+        "note": "reverses the pgvector in the same database decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 113,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 115,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 121,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      },
+      {
+        "kind": "rejection",
+        "turn": 129,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 131,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      }
+    ]
+  },
+  "08-handover-oncall": {
+    "archetype": "handover",
+    "turns": 135,
+    "chars": 38867,
+    "planted": [
+      {
+        "kind": "rejection",
+        "turn": 6,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 8,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 12,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 14,
+        "note": "restates the append-only messages decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 20,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 24,
+        "note": "reverses the pgvector in the same database decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 31,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 33,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 39,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      },
+      {
+        "kind": "rejection",
+        "turn": 47,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 49,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 53,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 55,
+        "note": "restates the a database-backed queue decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 61,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 65,
+        "note": "reverses the hand-written migrations decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 72,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 74,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 80,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      },
+      {
+        "kind": "rejection",
+        "turn": 88,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 90,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 94,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 96,
+        "note": "restates the append-only messages decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 102,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 106,
+        "note": "reverses the pgvector in the same database decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 113,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 115,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 121,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      },
+      {
+        "kind": "rejection",
+        "turn": 129,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 131,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      }
+    ]
+  },
+  "09-coding-refactor": {
+    "archetype": "coding",
+    "turns": 229,
+    "chars": 66723,
+    "planted": [
+      {
+        "kind": "rejection",
+        "turn": 6,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 8,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 12,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 14,
+        "note": "restates the append-only messages decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 20,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 24,
+        "note": "reverses the pgvector in the same database decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 31,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 33,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 39,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      },
+      {
+        "kind": "rejection",
+        "turn": 47,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 49,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 53,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 55,
+        "note": "restates the a database-backed queue decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 61,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 65,
+        "note": "reverses the hand-written migrations decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 72,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 74,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 80,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      },
+      {
+        "kind": "rejection",
+        "turn": 88,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 90,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 94,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 96,
+        "note": "restates the append-only messages decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 102,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 106,
+        "note": "reverses the pgvector in the same database decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 113,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 115,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 121,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      },
+      {
+        "kind": "rejection",
+        "turn": 129,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 131,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 135,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 137,
+        "note": "restates the a database-backed queue decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 143,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 147,
+        "note": "reverses the hand-written migrations decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 154,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 156,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 162,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      },
+      {
+        "kind": "rejection",
+        "turn": 170,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 172,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 176,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 178,
+        "note": "restates the append-only messages decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 184,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 188,
+        "note": "reverses the pgvector in the same database decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 195,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 197,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 203,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      },
+      {
+        "kind": "rejection",
+        "turn": 211,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 213,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 217,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 219,
+        "note": "restates the a database-backed queue decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 225,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      }
+    ]
+  },
+  "10-planning-hosting": {
+    "archetype": "planning",
+    "turns": 88,
+    "chars": 51556,
+    "planted": [
+      {
+        "kind": "rejection",
+        "turn": 6,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 8,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 12,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 14,
+        "note": "restates the append-only messages decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 20,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 24,
+        "note": "reverses the pgvector in the same database decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 31,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 33,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 39,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      },
+      {
+        "kind": "long_turn",
+        "turn": 45,
+        "note": "a single turn larger than the chunk target - becomes an oversized chunk"
+      },
+      {
+        "kind": "rejection",
+        "turn": 49,
+        "note": "assistant proposes: shard the database by workspace before the row count gets uncomfortable - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "constraint",
+        "turn": 51,
+        "note": "hard rule - should outrank facts in the render ordering: every stage has to be checkable from a PowerShel"
+      },
+      {
+        "kind": "code_block",
+        "turn": 55,
+        "note": "fenced code with colons and YAML-ish keys at line start (the compose file)"
+      },
+      {
+        "kind": "restatement",
+        "turn": 57,
+        "note": "restates the a database-backed queue decision in different words - should merge, not duplicate"
+      },
+      {
+        "kind": "rejection",
+        "turn": 63,
+        "note": "assistant proposes: write the brief to object storage and serve it from a CDN - must NOT be extracted as a decision"
+      },
+      {
+        "kind": "reversal",
+        "turn": 67,
+        "note": "reverses the hand-written migrations decision - must supersede it, not sit beside it"
+      },
+      {
+        "kind": "empty_rejection",
+        "turn": 74,
+        "note": "a rejection with no content in it - must not become an entry"
+      },
+      {
+        "kind": "constraint",
+        "turn": 76,
+        "note": "hard rule - should outrank facts in the render ordering: injected text lands in the composer and stops th"
+      },
+      {
+        "kind": "code_block",
+        "turn": 82,
+        "note": "fenced code with colons and YAML-ish keys at line start (the render ordering)"
+      }
+    ]
+  }
+}

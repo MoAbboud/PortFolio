@@ -28,6 +28,7 @@ import httpx
 from pydantic import ValidationError
 
 from herder.core.config import get_settings
+from herder.core.tokens import count_tokens
 from herder.domain.chunking import Chunk
 from herder.extractors.base import ExtractorUnavailable
 from herder.prompts import load_prompt
@@ -110,6 +111,37 @@ class LocalExtractor:
 
         raw = (payload.get("message") or {}).get("content", "")
         elapsed = int((time.perf_counter() - started) * 1000)
+        seen = int(payload.get("prompt_eval_count", 0))
+
+        # **Ollama truncates the prompt to half of num_ctx and says nothing.** Measured
+        # 2026-09-12: num_ctx 4096 gave 2050 prompt tokens, 8192 gave 4098, 16384 gave 8194.
+        # At the old default a 6000-token chunk lost more than half its content before the
+        # model saw it, and the only symptom was an extractor that looked bad - 3 candidates
+        # from a transcript where the heuristic found 31.
+        #
+        # A brief built on half a conversation is worse than no brief, because nothing about
+        # it says so. This fails the chunk loudly rather than recording the result: the
+        # derive cursor then does not advance, so the work is retried once num_ctx is fixed
+        # rather than silently lost.
+        expected = count_tokens(self._prompt) + count_tokens(prompt)
+        if seen and seen < expected * 0.7:
+            return ExtractionOutcome(
+                failed=True,
+                error=(
+                    f"the prompt was truncated: sent about {expected} tokens, the model saw "
+                    f"{seen}. Ollama gives the prompt only half of num_ctx, currently "
+                    f"{self._num_ctx}, so the usable budget is {self._num_ctx // 2}. Raise "
+                    f"HERDER_LLM_NUM_CTX to at least {2 * expected}, or lower "
+                    f"HERDER_CHUNK_TOKENS."
+                ),
+                raw_output=raw,
+                validated_first_try=False,
+                model=self.model,
+                prompt_version=self.prompt_version,
+                input_tokens=seen,
+                output_tokens=int(payload.get("eval_count", 0)),
+                latency_ms=elapsed,
+            )
 
         # Nanoseconds, and both are reported. The split is the point.
         prompt_ms = int(payload.get("prompt_eval_duration", 0) / 1_000_000)

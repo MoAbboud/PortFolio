@@ -28,8 +28,8 @@ class IngestError(ValueError):
     """Bad input. Reaches the caller as a 4xx with the reason."""
 
 
-def paste_reference(text: str) -> str:
-    """A conversation identity derived from the transcript itself.
+def paste_reference(project_id: uuid.UUID, text: str) -> str:
+    """A conversation identity derived from the project and the transcript itself.
 
     A pasted transcript has no vendor conversation id, so without this every paste would be
     a new conversation and re-pasting would double the corpus. Content-addressing makes the
@@ -37,11 +37,24 @@ def paste_reference(text: str) -> str:
     construction: the same text resolves to the same conversation, and then every turn
     collides on its content hash and nothing is inserted.
 
+    **The project is part of the reference, and leaving it out was a bug.**
+    `unique (vendor, vendor_conv_id)` is global, so a reference derived from the text alone
+    meant one transcript could exist in exactly one project ever. Pasting the same text into
+    a second project silently resolved to the conversation in the first, the `project_id`
+    argument was ignored without a word, and the second project came back with zero messages
+    while reporting every turn as a duplicate.
+
+    That is a reasonable thing for a person to do - the same transcript in two projects, to
+    compare settings - and it is exactly what the stage 4 corpus run does, which is how this
+    was found. Scoping the reference by project keeps re-pasting into the *same* project
+    idempotent, which is the property that mattered, while letting the same text live in two.
+
     A *continued* transcript hashes differently and would resolve to a second conversation,
     which is why `conversation_id` exists on the paste request: append to the original and
     the overlap dedupes turn by turn.
     """
-    return "paste:" + hashlib.sha256(normalise(text).encode("utf-8")).hexdigest()[:32]
+    digest = hashlib.sha256(normalise(text).encode("utf-8")).hexdigest()[:32]
+    return f"paste:{project_id}:{digest}"
 
 
 async def resolve_project(session: AsyncSession, workspace_id: uuid.UUID, project_id: uuid.UUID | None) -> Project:
@@ -268,7 +281,7 @@ async def ingest_paste(
             raise IngestError("no such conversation in this project")
     else:
         conversation = await resolve_conversation(
-            session, project, vendor, paste_reference(text), title=title
+            session, project, vendor, paste_reference(project.id, text), title=title
         )
 
     turns: list[tuple[str, str, int | None, dt.datetime | None, str | None]] = [

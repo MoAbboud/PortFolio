@@ -180,3 +180,54 @@ def test_an_explicit_open_thread_still_outranks_an_obligation() -> None:
     """The earlier fix of the same shape, kept under test after the reorder."""
     outcome = run(("user", "We still need to pick the confidence threshold before shipping."))
     assert kinds(outcome) == ["open_thread"]
+
+
+# ============================================= found by the stage 4 corpus run, 2026-09-12
+
+
+def test_a_refusal_whose_referent_is_a_pronoun_is_not_extracted() -> None:
+    """Thirteen entries like this reached real briefs in the stage 4 run.
+
+    The main clause's subject is "that", which points at the assistant turn this extractor
+    deliberately never reads. A reader of the brief learns something was refused and has no
+    way to find out what, which is noise with the shape of a constraint.
+    """
+    outcome = run(
+        ("user", "Not for item 69 - that is a service I would have to explain in an interview for no gain.")
+    )
+    assert outcome.candidates == []
+
+
+def test_a_refusal_with_a_leading_no_is_also_caught() -> None:
+    outcome = run(("user", "No. Not for item 2 - that is a service I would have to explain for no gain."))
+    assert outcome.candidates == []
+
+
+def test_would_rather_not_with_nothing_preferred_is_not_a_preference() -> None:
+    """It matched on "i would rather" and became a stated preference with nothing in it."""
+    outcome = run(("user", "I would rather not, thanks. Let us leave it there for now."))
+    assert [c.kind for c in outcome.candidates] == []
+
+
+def test_would_rather_not_WITH_a_complement_survives() -> None:
+    """The guard has to be narrow: this one names what is being refused."""
+    outcome = run(("user", "I would rather not use Redis for the queue at any point."))
+    assert kinds(outcome) == ["preference"]
+
+
+def test_a_stated_preference_with_a_than_clause_survives() -> None:
+    outcome = run(("user", "I would rather have a loud failure than a silent fallback."))
+    assert kinds(outcome) == ["preference"]
+
+
+def test_a_constraint_opening_with_it_is_survives() -> None:
+    """"It is never acceptable..." is not a refusal opening, so the anaphor guard must not
+    fire on it - the sentence carries its own content."""
+    outcome = run(("user", "It is never acceptable to use floats for money in this system."))
+    assert kinds(outcome) == ["constraint"]
+
+
+def test_a_demonstrative_followed_by_a_noun_survives() -> None:
+    """"That approach" is resolvable enough; "that is" is not."""
+    outcome = run(("user", "That approach must never be used for the hosted demo."))
+    assert kinds(outcome) == ["constraint"]

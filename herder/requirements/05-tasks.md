@@ -6,12 +6,14 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
 lineage-backed brief comes out.** Stage 4 - ten conversations end to end and the written
 failure list - is the current work.
 
-**2026-09-11 was a bug-fix run: seven found, including an `embed` job that was ticked done
-and did not exist, and a status line in this file that still claimed stage 2 was current.**
-**233 tests pass, nothing skipped**, verified against the database. The embed fix was then
-confirmed on real data: 62 of 68 stored entries had no vector and were invisible to the
-merge step, and a derive that would have created 36 duplicates now merges 36 of 36. See
-`NOTES.md`.
+**Stage 4 is largely done: the corpus exists, the heuristic has been through all ten, and the
+failure list is written in `NOTES.md`.** 242 tests pass. Five more bugs were found by running
+it, the worst being that **Ollama gives a prompt only half of `num_ctx`**, so more than half
+of every chunk was discarded before the local model saw it, silently.
+
+**Outstanding in stage 4: the full `local` run over all ten transcripts.** The comparison
+recorded so far is one transcript. Both runs that were attempted hit bugs since fixed, so the
+run is worth repeating and no figure should be read as if it had been.
 
 Stages are ordered by dependency, not by calendar. **Each one ends in something that runs and
 can be checked from PowerShell.** If a stage cannot be verified that way, it is not finished.
@@ -289,24 +291,38 @@ reversal** - which is the first thing stage 4 has to look at.
 
 ## Stage 4 - Ten conversations end to end
 
-- [ ] Ten varied long transcripts, written by hand or generated, 8k to 60k tokens, across the
+**Largely done 2026-09-12.** Ten generated transcripts, 113,701 tokens, 323 planted hard
+cases, all ten through the heuristic. The failure list is in `NOTES.md`.
+
+    stop-and-fix    entry count vs source tokens, r = +0.27 - the memory does NOT grow
+    compression     9.0x overall across 111,011 source tokens (range 6.7-12.2)
+    verdict mix     96 created, 24 merged, 156 superseded  <- the headline problem
+    planted         0 of 76 assistant proposals leaked; 0 of 69 code blocks shredded
+                    13 content-free rejections became entries (fixed, 0 after)
+
+Five bugs found by running it, all fixed: the paste/project collision, supersede losing
+lineage, supersede resetting the conversation count, three content-free rejection
+phrasings, and **Ollama giving a prompt only half of `num_ctx`** - which silently threw
+away more than half of every chunk before the local model saw it.
+
+- [x] Ten varied long transcripts, written by hand or generated, 8k to 60k tokens, across the
       four archetypes. Not the benchmark corpus - that comes at stage 9 with ground truth.
       These exist to break the pipeline
-- [ ] All ten through the running API
-- [ ] **A written list of everywhere it got something wrong**, in `NOTES.md`. Specifically
+- [x] All ten through the running API
+- [x] **A written list of everywhere it got something wrong**, in `NOTES.md`. Specifically
       looked for: entries that should have merged and did not; the model's rejected
       suggestions recorded as decisions; constraints losing to facts in the render ordering;
       a session tail eating its whole reserve and more; near-duplicate entries the similarity
       threshold missed; lineage pointing at a plausible but wrong message
-- [ ] **Entry count plotted against source tokens for all ten.** A linear relationship means
+- [x] **Entry count plotted against source tokens for all ten.** A linear relationship means
       the merge step is not working and the compaction claim fails. This is a stop-and-fix,
       not a note
-- [ ] The first real compression ratio recorded, with the count behind it
-- [ ] The wall-clock of deriving each conversation recorded from `model_calls`, per
+- [x] The first real compression ratio recorded, with the count behind it
+- [x] The wall-clock of deriving each conversation recorded from `model_calls`, per
       implementation
-- [ ] **`heuristic` against `local` on all ten**, side by side. `mailman`'s equivalent
+- [~] **`heuristic` against `local` on all ten**, side by side. `mailman`'s equivalent
       comparison is the most interesting thing in that project
-- [ ] The failure list turned into the shortlist for stage 10
+- [x] The failure list turned into the shortlist for stage 10
 
 ## Stage 5 - Serve
 

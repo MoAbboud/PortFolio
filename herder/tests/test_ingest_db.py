@@ -72,6 +72,51 @@ async def test_whitespace_noise_does_not_defeat_idempotency(session, account):
     assert again.accepted == 0
 
 
+async def test_the_same_transcript_can_live_in_two_projects(session, account):
+    """`unique (vendor, vendor_conv_id)` is global, so a paste reference derived from the
+    text alone meant one transcript could exist in exactly one project, ever.
+
+    The second paste silently resolved to the conversation in the first project, the
+    `project_id` argument was ignored without a word, and the second project came back with
+    zero messages while reporting every turn as a duplicate. Found by the stage 4 corpus run,
+    which pastes the same ten transcripts into two sets of projects to compare extractors -
+    and got ten empty projects and a derive that did nothing.
+    """
+    from herder.core.ids import uuid7
+    from herder.models import Project
+
+    other = Project(id=uuid7(), workspace_id=account["workspace"].id, name="the-other-one")
+    session.add(other)
+    await session.flush()
+
+    first = await ingest_paste(session, account["workspace"].id, text=TRANSCRIPT, vendor="claude")
+    second = await ingest_paste(
+        session, account["workspace"].id, text=TRANSCRIPT, vendor="claude", project_id=other.id
+    )
+
+    assert second.accepted == 4, "the second project must get its own copy of the turns"
+    assert second.conversation_ids != first.conversation_ids
+
+    landed = (
+        await session.execute(
+            select(Conversation.project_id).where(
+                Conversation.id.in_(second.conversation_ids)
+            )
+        )
+    ).scalars().all()
+    assert landed == [other.id], "the project_id argument must be honoured, not ignored"
+
+
+async def test_re_pasting_into_the_SAME_project_is_still_idempotent(session, account):
+    """The property the content-addressing existed for, kept while fixing the bug above."""
+    first = await ingest_paste(session, account["workspace"].id, text=TRANSCRIPT, vendor="claude")
+    again = await ingest_paste(session, account["workspace"].id, text=TRANSCRIPT, vendor="claude")
+
+    assert again.accepted == 0
+    assert again.duplicates == 4
+    assert again.conversation_ids == first.conversation_ids
+
+
 async def test_a_continued_transcript_appends_only_the_new_turns(session, account):
     first = await ingest_paste(session, account["workspace"].id, text=TRANSCRIPT, vendor="claude")
     continued = TRANSCRIPT + "\nUser: one more thing - the brief budget is 3000 tokens.\nAssistant: recorded."

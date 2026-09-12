@@ -138,6 +138,30 @@ _ANAPHORIC_REJECTION = re.compile(
     re.I,
 )
 
+# A refusal whose referent is a bare pronoun. Same principle as the rule above, found at
+# stage 4 where thirteen entries like this reached real briefs:
+#
+#     "Not for item 69 - that is a service I would have to explain in an interview."
+#
+# The main clause's subject is "that", which points at the assistant turn this extractor
+# deliberately never reads. A reader of the brief learns that something was refused and has
+# no way to find out what.
+#
+# Deliberately narrow: it fires only when the sentence OPENS with a refusal and a bare
+# demonstrative follows within the first clause. "It is never acceptable to use floats" is
+# not a refusal opening and survives; "That approach must never be used" has a noun after
+# the demonstrative and survives.
+_REFUSAL_WITH_ANAPHOR = re.compile(
+    r"^(?:no[.,!]?\s+)?not\b.{0,44}?\b(?:that|this|it)\s+(?:is|are|was|were|'s)\b",
+    re.I,
+)
+
+# "I would rather not, thanks." matched the preference rule on "i would rather" and became a
+# stated preference with nothing preferred in it. A preference has to say what is preferred,
+# so "rather not" followed by punctuation or a politeness word is a refusal, not one.
+# "I'd rather not use Redis" keeps its complement and survives.
+_EMPTY_RATHER = re.compile(r"\b(?:i'd|i would)\s+rather\s+not\s*(?:[,.!;]|$|thanks|thank you)", re.I)
+
 MIN_SENTENCE_CHARS = 20
 
 
@@ -168,7 +192,11 @@ class HeuristicExtractor:
                 if len(sentence) < MIN_SENTENCE_CHARS:
                     continue
 
-                if _ANAPHORIC_REJECTION.match(sentence):
+                if (
+                    _ANAPHORIC_REJECTION.match(sentence)
+                    or _REFUSAL_WITH_ANAPHOR.match(sentence)
+                    or _EMPTY_RATHER.search(sentence)
+                ):
                     continue
 
                 match = self._classify(sentence, has_code)

@@ -8,6 +8,7 @@
   comparison the whole three-implementation arrangement exists to make possible.
 - `derive` runs the whole loop, steps A to F, and prints what merged into what.
 - `brief` prints the current brief and its compression ratio.
+- `resume` prints a pack ready to paste into a chat, and records the serve.
 """
 
 from __future__ import annotations
@@ -27,6 +28,7 @@ from herder.extractors import get_extractor
 from herder.models import ApiKey, Project, User, Workspace
 from herder.models import BriefVersion
 from herder.services.derive import derive_project
+from herder.services.serve import ServeError, resume as build_resume
 from herder.services.extraction import ExtractionRun, extract_project, load_chunks
 
 
@@ -298,6 +300,43 @@ async def brief(reference: str, version: int | None) -> int:
     return 0
 
 
+async def resume(reference: str, vendor: str, budget: int | None, quiet: bool) -> int:
+    """Print a pack for pasting into a chat by hand.
+
+    Nothing is sent. The text goes to stdout and a person decides what to do with it.
+    """
+    sessionmaker = get_sessionmaker()
+
+    async with sessionmaker() as session:
+        project = await _find_project(session, reference)
+        try:
+            pack = await build_resume(session, project, vendor=vendor, door="cli", budget_tokens=budget)
+        except ServeError as exc:
+            raise SystemExit(str(exc)) from exc
+
+    if quiet:
+        print(pack.text)
+        return 0
+
+    print(f"project      {project.name}")
+    print(f"version      {pack.version}")
+    print(f"vendor       {pack.vendor}")
+    print(f"tokens       {pack.token_count} (brief budget {pack.budget_tokens})")
+    print(f"integrity    {pack.integrity if pack.integrity is not None else 'never measured'}")
+    if pack.rendered_fresh:
+        print("             a fresh version was rendered for this budget")
+    print(f"injection    {pack.injection_id}")
+    print()
+    print("-" * 78)
+    print(pack.text)
+    print("-" * 78)
+    print()
+    print("Paste that into a chat and press send yourself. Nothing was sent for you.")
+    print("`--quiet` prints the pack alone, for piping to the clipboard:")
+    print(f"    python -m herder resume --project {project.name} --quiet | clip")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="herder")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -323,6 +362,12 @@ def main(argv: list[str] | None = None) -> int:
     br.add_argument("--project", default="default", help="project name or id")
     br.add_argument("--version", type=int, default=None, help="a specific version")
 
+    res = sub.add_parser("resume", help="stage 5: a pack ready to paste into a chat")
+    res.add_argument("--project", default="default", help="project name or id")
+    res.add_argument("--vendor", default="default", choices=("default", "claude", "chatgpt", "gemini"))
+    res.add_argument("--budget", type=int, default=None, help="override the brief budget for this pack")
+    res.add_argument("--quiet", action="store_true", help="print the pack alone, nothing else")
+
     args = parser.parse_args(argv)
 
     if args.command == "bootstrap":
@@ -339,6 +384,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "brief":
         return asyncio.run(brief(args.project, args.version))
+
+    if args.command == "resume":
+        return asyncio.run(resume(args.project, args.vendor, args.budget, args.quiet))
 
     parser.error(f"unknown command {args.command!r}")
     return 2

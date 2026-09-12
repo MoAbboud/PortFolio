@@ -202,16 +202,49 @@ async def _write_entry(
             change_reason="superseded an earlier entry" if superseding else "extracted",
         )
     )
-    for reference in dict.fromkeys(candidate.lineage):
-        session.add(EntryLineage(entry_id=entry_id, message_id=uuid.UUID(reference)))
+    cited = {uuid.UUID(r) for r in dict.fromkeys(candidate.lineage)}
+
+    if superseding is not None:
+        # **The superseded entry's evidence carries forward.** A reversal changes what is
+        # true; it does not unsay the messages that established the earlier claim, and those
+        # messages are still the reason the project once believed it. Without this the new
+        # entry cites only the turn that reversed the decision, and "why did we ever think
+        # that" becomes unanswerable - which is the question lineage exists to answer.
+        #
+        # Found at stage 4: 156 of 276 candidates were superseded, so 156 entries' worth of
+        # lineage was being dropped on the floor.
+        inherited = (
+            await session.execute(
+                select(EntryLineage.message_id).where(EntryLineage.entry_id == superseding)
+            )
+        ).scalars().all()
+        cited.update(inherited)
+
+    for message_id in cited:
+        session.add(EntryLineage(entry_id=entry_id, message_id=message_id))
     await session.flush()
 
     if superseding is not None:
+        # The conversation count carries too. It is what promotion to the stable layer keys
+        # on, and resetting it to 1 on every supersede meant a preference restated across
+        # five conversations never reached the threshold - it was superseded back to one
+        # each time.
+        old = (
+            await session.execute(
+                select(Entry.seen_in_conversations).where(Entry.id == superseding)
+            )
+        ).scalar_one()
+        await session.execute(
+            update(Entry)
+            .where(Entry.id == entry_id)
+            .values(seen_in_conversations=max(int(old), 1))
+        )
         await session.execute(
             update(Entry)
             .where(Entry.id == superseding)
             .values(status="superseded", superseded_by=entry_id)
         )
+        await session.flush()
     return entry_id
 
 

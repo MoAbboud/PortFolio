@@ -19,6 +19,7 @@ from herder.core.db import get_session
 from herder.core.ids import uuid7
 from herder.core.security import require_key
 from herder.models import ApiKey, BriefVersion, Entry, EntryLineage, EntryRevision, Job, Project
+from herder.services.serve import ServeError, resume as build_resume
 
 router = APIRouter(prefix="/v1", tags=["projects"])
 
@@ -54,6 +55,19 @@ class EntryOut(BaseModel):
     lineage: list[uuid.UUID]
     in_current_brief: bool
     last_seen_at: dt.datetime
+
+
+class ResumeOut(BaseModel):
+    injection_id: uuid.UUID
+    brief_version_id: uuid.UUID
+    version: int
+    vendor: str
+    door: str
+    pack_text: str
+    token_count: int
+    budget_tokens: int
+    integrity: float | None
+    rendered_fresh: bool
 
 
 class Enqueued(BaseModel):
@@ -191,6 +205,50 @@ async def entries(
             )
         )
     return out
+
+
+@router.get("/projects/{project_id}/resume", response_model=ResumeOut)
+async def resume(
+    project_id: uuid.UUID,
+    vendor: str = Query(default="default", description="claude, chatgpt, gemini, or default"),
+    door: str = Query(default="rest", description="rest, cli, extension or mcp"),
+    budget: int | None = Query(default=None, description="override the project budget for this pack"),
+    key: ApiKey = Depends(require_key),
+    session: AsyncSession = Depends(get_session),
+) -> ResumeOut:
+    """Build a resume pack and record the serve.
+
+    The pack comes back to the caller and stops there. Nothing is ever sent on the user's
+    behalf - the text lands in a composer and a person presses send.
+
+    A `budget` different from the project's renders a fresh brief version rather than
+    truncating the current one, so the injection always points at a version whose stored text
+    is exactly what was sent.
+    """
+    project = await _project_for(session, project_id, key)
+    try:
+        pack = await build_resume(
+            session, project, vendor=vendor, door=door, budget_tokens=budget
+        )
+    except ServeError as exc:
+        message = str(exc)
+        status_code = (
+            status.HTTP_404_NOT_FOUND if "no brief yet" in message else status.HTTP_400_BAD_REQUEST
+        )
+        raise HTTPException(status_code=status_code, detail=message) from exc
+
+    return ResumeOut(
+        injection_id=pack.injection_id,
+        brief_version_id=pack.brief_version_id,
+        version=pack.version,
+        vendor=pack.vendor,
+        door=pack.door,
+        pack_text=pack.text,
+        token_count=pack.token_count,
+        budget_tokens=pack.budget_tokens,
+        integrity=pack.integrity,
+        rendered_fresh=pack.rendered_fresh,
+    )
 
 
 async def _enqueue(session: AsyncSession, project: Project, kind: str) -> Enqueued:
