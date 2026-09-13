@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Log in - herder{% endblock %}
+{% block body %}
+<h1>Log in</h1>
+<p>Paste your herder API key. It starts with <code>hrd_</code>.</p>
+<form method="post" action="/login">
+  <p><input name="key" type="password" size="60" autocomplete="off" required autofocus></p>
+  <p><button>Log in</button></p>
+</form>
+<p class="meta">No key, or lost it? In PowerShell, from the herder folder:<br>
+<code>.\.venv\Scripts\python.exe -m herder bootstrap --email owner@localhost</code><br>
+It prints a new key. Keys are shown once and stored only as a hash.</p>
+{% endblock %}

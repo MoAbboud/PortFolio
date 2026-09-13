@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Brief - {{ project.name }} - herder{% endblock %}
+{% block nav %}<a href="/projects/{{ project.id }}">{{ project.name }}</a> <span>Brief</span>{% endblock %}
+{% block body %}
+<h1>{{ project.name }}: brief</h1>
+{% if not shown %}
+<p>No brief yet. <form class="inline" method="post" action="/projects/{{ project.id }}/jobs/derive"><button>Derive now</button></form></p>
+{% else %}
+<p>
+  Version {{ shown.version }}{% if current and shown.id == current.id %} (current){% endif %}
+  &middot; {{ shown.token_count }} of {{ shown.budget_tokens }} tokens
+  &middot; {{ shown.included_entry_ids|length }} included, {{ shown.excluded_entry_ids|length }} did not fit
+  &middot; {{ shown.trigger }}
+</p>
+<p>
+  <button data-copy="brief-text">Copy</button>
+  <form class="inline" method="post" action="/projects/{{ project.id }}/serve">
+    or serve it as a pack for <select name="vendor">{% for v in vendors %}<option>{{ v }}</option>{% endfor %}</select>
+    <button>Serve</button>
+  </form>
+</p>
+<pre id="brief-text">{{ shown.rendered_text }}</pre>
+
+{% if diff is not none %}
+<h2>Changes from v{{ against.version }} to v{{ shown.version }}</h2>
+{% if diff %}
+<pre>{% for line in diff %}<span class="{% if line.startswith('+') and not line.startswith('+++') %}add{% elif line.startswith('-') and not line.startswith('---') %}del{% endif %}">{{ line }}</span>
+{% endfor %}</pre>
+{% else %}
+<p>The two versions are identical.</p>
+{% endif %}
+{% endif %}
+{% endif %}
+
+<h2>Versions</h2>
+<div class="scroll">
+<table>
+  <tr><th>Version</th><th>When</th><th>Trigger</th><th>Tokens</th><th>Budget</th><th>Compare</th></tr>
+  {% for v in versions %}
+  <tr>
+    <td><a href="?version={{ v.version }}">v{{ v.version }}</a>{% if current and v.id == current.id %} <strong>current</strong>{% endif %}</td>
+    <td>{{ v.created_at.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+    <td>{{ v.trigger }}</td>
+    <td>{{ v.token_count }}</td>
+    <td>{{ v.budget_tokens }}{% if current and v.budget_tokens != current.budget_tokens %} <span class="meta">(a serve-time override)</span>{% endif %}</td>
+    <td>{% if shown and v.id != shown.id %}<a href="?version={{ shown.version }}&compare={{ v.version }}">diff against v{{ shown.version }}</a>{% endif %}</td>
+  </tr>
+  {% endfor %}
+</table>
+</div>
+{% endblock %}

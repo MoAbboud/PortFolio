@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - herder{% endblock %}
+{% block body %}
+<h1>Dashboard</h1>
+
+<h2>Paste a conversation</h2>
+<form method="post" action="/paste">
+  <p><textarea name="text" rows="10" required placeholder="User: ...&#10;Assistant: ..."></textarea></p>
+  <p>
+    Into
+    <select name="project_id">
+      <option value="">(choose a project)</option>
+      {% for s in stats %}<option value="{{ s.project.id }}">{{ s.project.name }}</option>{% endfor %}
+    </select>
+    or a new project named <input name="new_project" size="24">
+    from
+    <select name="vendor">
+      {% for v in ["manual", "claude", "chatgpt", "gemini", "other"] %}<option>{{ v }}</option>{% endfor %}
+    </select>
+    <button>Paste and derive</button>
+  </p>
+</form>
+
+<h2>Projects</h2>
+<div class="scroll">
+<table>
+  <tr>
+    <th>Project</th><th>Tokens captured</th>
+    {% for layer in layers %}<th>{{ layer|capitalize }}</th>{% endfor %}
+    <th>Brief tokens</th><th>Compression</th><th>Integrity over time</th><th>Work</th>
+  </tr>
+  {% for s in stats %}
+  <tr>
+    <td><a href="/projects/{{ s.project.id }}">{{ s.project.name }}</a></td>
+    <td>{{ s.tokens_captured }} <span class="meta">({{ s.messages }} messages)</span></td>
+    {% for layer in layers %}<td>{{ s.entries_by_layer.get(layer, 0) }}</td>{% endfor %}
+    <td>{% if s.brief_tokens is not none %}{{ s.brief_tokens }} <span class="meta">v{{ s.brief_version }}</span>{% else %}-{% endif %}</td>
+    <td>{% if s.compression is not none %}{{ "%.1f"|format(s.compression) }}x{% else %}-{% endif %}</td>
+    <td>{% if s.integrity_series %}{% for value in s.integrity_series %}{{ "%.2f"|format(value) }}{% if not loop.last %} &rarr; {% endif %}{% endfor %}{% else %}<span class="meta">never measured</span>{% endif %}</td>
+    <td>{% if s.pending_jobs %}{{ s.pending_jobs }} queued{% endif %}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="9">No projects yet. Paste a conversation above.</td></tr>
+  {% endfor %}
+</table>
+</div>
+<p class="meta">Compression is source tokens over brief tokens, and only means something once a conversation is bigger than its budget. Integrity is from checkpoints only; "never measured" is not zero.</p>
+
+<h2>Job failures</h2>
+{% if failures %}
+<div class="scroll">
+<table>
+  <tr><th>When</th><th>Job</th><th>Project</th><th>Error</th></tr>
+  {% for f in failures %}
+  <tr><td>{{ f.created_at.strftime("%Y-%m-%d %H:%M") }}</td><td>{{ f.kind }}</td><td>{{ f.project or "-" }}</td><td>{{ f.error }}</td></tr>
+  {% endfor %}
+</table>
+</div>
+{% else %}
+<p>None.</p>
+{% endif %}
+{% endblock %}

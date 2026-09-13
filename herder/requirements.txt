@@ -15,6 +15,11 @@ pytest>=8.3
 pytest-asyncio>=0.25
 httpx>=0.28
 
+# Stage 8 - the server-rendered pages. Already present as a transitive dependency, which is
+# not the same as being declared: stated here so a change upstream cannot remove it silently,
+# the way sentence-transformers was missing for five stages.
+jinja2>=3.1
+
 # Stage 1 - counting tokens. The budget ruler, documented as an estimator.
 tiktoken>=0.8
 

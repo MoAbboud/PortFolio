@@ -804,3 +804,39 @@ new claim supersede yours, dismiss removes the new claim.
 | `adjust promote` on a Stable entry | refused: already in Stable |
 
 Events recorded the correct before and after state.
+
+## 2026-09-13 - stage 8: the prototype, in a browser
+
+Facts only; the reading is the author's. 403 tests pass.
+
+`http://localhost:8000`, logged in with the API key. A dashboard with a paste box, the adjuster
+(suggestions on top, three columns), an entry page with lineage and edit, the brief with
+versions and diffs, a pack page with a copy button and "run a checkpoint", and a checkpoint
+page with every probe. Bare on purpose - the gate says no styling before the stage 9 baseline.
+
+### Driven live against the running containers
+
+With a temporary key, revoked afterwards:
+
+| Step | Result |
+| --- | --- |
+| `/` without logging in | redirected to `/login` |
+| log in | cookie set, HttpOnly and SameSite=Strict |
+| paste 8 turns into a new project `stage8-live` | derive queued; the page refreshed until the worker finished |
+| project page | three columns, 3 entries |
+| an entry's lineage | the source message, with the entry's text marked |
+| pin from the page | pinned; render done by the worker |
+| brief page | copy button, 3 versions |
+| serve for Claude, run a checkpoint | done by the worker: **integrity 0.83** |
+| a `<b>` tag typed into the conversation | shown escaped on the brief page, not rendered |
+
+### Found on the way
+
+- An empty paste still created the new project before the transcript was refused. Now checked
+  first.
+- The first route layout sent "serve" to the derive/render handler and would have 404'd.
+- A test for escaping on the live project page tested nothing: the message with the tag never
+  became an entry. Checked again where the text does appear (the brief's tail).
+
+Left in the database: projects `stage7-check` and `stage8-live`, and two revoked keys named
+`stage8-live-check`.

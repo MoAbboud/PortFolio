@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Pack - {{ project.name }} - herder{% endblock %}
+{% block nav %}<a href="/projects/{{ project.id }}">{{ project.name }}</a> <a href="/projects/{{ project.id }}/brief">Brief</a>{% endblock %}
+{% block body %}
+<h1>Pack for {{ injection.target_vendor or "default" }}</h1>
+<p class="meta">From brief v{{ version.version }} &middot; served {{ injection.created_at.strftime("%Y-%m-%d %H:%M") }} through {{ injection.door }}. Nothing was sent anywhere: copy it and paste it yourself.</p>
+<p><button data-copy="pack-text">Copy</button></p>
+<pre id="pack-text">{{ injection.pack_text }}</pre>
+
+<h2>Checkpoints of this pack</h2>
+<form method="post" action="/packs/{{ injection.id }}/checkpoint">
+  <button{% if pending %} disabled{% endif %}>Run a checkpoint</button>
+  <span class="meta">The local model answers questions about this exact pack. Around 10 seconds once the models are warm.</span>
+</form>
+{% if pending %}<p>A checkpoint is queued or running.</p>{% endif %}
+<ul>
+  {% for c in checkpoints %}
+  <li><a href="/checkpoints/{{ c.id }}">Integrity {{ "%.2f"|format(c.integrity) }}</a> over {{ c.probe_count }} graded probes, {{ c.created_at.strftime("%Y-%m-%d %H:%M") }}</li>
+  {% else %}
+  <li>None yet.</li>
+  {% endfor %}
+</ul>
+{% endblock %}

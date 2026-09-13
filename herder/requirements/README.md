@@ -20,9 +20,8 @@ to be wrong it is changed here first and then in the code - by the author, delib
 the old decision kept beside the new one and the reason recorded. A decision that is only in
 somebody's head is a decision the next working session will make differently.
 
-**Stages 0 to 7 are done**: a transcript goes in, a budgeted, lineage-backed brief comes out
-as a pack, a checkpoint scores it, and the memory can be corrected by hand. Stage 8 - the
-minimal web UI - is the current work.
+**Stages 0 to 8 are done**, and the prototype runs in a browser: paste, derive, adjust, serve
+and checkpoint without a terminal. Stage 9 - the corpus and the baseline - is the current work.
 
 [05-tasks.md](05-tasks.md) is the authority on status and the only place test counts
 live, because the same status restated in three documents drifted in all three.

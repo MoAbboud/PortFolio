@@ -353,6 +353,12 @@ that genuinely contained nothing worth keeping, and those two need to be told ap
 
 All under `/v1`, JSON, bearer key or session cookie.
 
+*(Stage 8: the pages are outside `/v1`, at `/`, and authenticated by a cookie holding the API
+key itself - checked against its hash exactly as a bearer header is, so there is one
+authentication path rather than two. HttpOnly and SameSite=Strict, which is the whole CSRF
+defence and is sufficient for one user on localhost. Rejected for now: a sessions table,
+which stage 11's hosting will need. The `/v1` API itself still takes only the key header.)*
+
 | Method | Path | Behaviour |
 | --- | --- | --- |
 | POST | `/ingest` | A batch of observed turns. Idempotent. Returns accepted and duplicate counts |

@@ -8,9 +8,12 @@ inside an HTTP request.
 
 from __future__ import annotations
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import RedirectResponse
 
 from herder.api import checkpoints, conversations, entries, health, ingest, projects
+from herder.web.routes import router as web_router
+from herder.web.support import LoginRequired
 
 
 def create_app() -> FastAPI:
@@ -33,6 +36,13 @@ def create_app() -> FastAPI:
     app.include_router(projects.router)
     app.include_router(checkpoints.router)
     app.include_router(entries.router)
+    # Stage 8: the pages. Outside /v1, and authenticated by cookie rather than header.
+    app.include_router(web_router)
+
+    @app.exception_handler(LoginRequired)
+    async def _login_required(request: Request, exc: LoginRequired) -> RedirectResponse:
+        return RedirectResponse("/login", status_code=303)
+
     return app
 
 

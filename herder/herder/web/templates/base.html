@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{% if refresh %}<meta http-equiv="refresh" content="3">{% endif %}
+<title>{% block title %}herder{% endblock %}</title>
+{#- Bare until the stage 9 baseline exists (00-plan.md). Only what layout and legibility need. -#}
+<style>
+  body { font: 15px/1.45 system-ui, sans-serif; margin: 0 auto; max-width: 1200px; padding: 0 16px 48px; }
+  nav { display: flex; gap: 16px; align-items: center; padding: 12px 0; border-bottom: 1px solid #ccc; margin-bottom: 16px; }
+  nav form { margin-left: auto; }
+  .notice { background: #fff6cc; border: 1px solid #e0c96b; padding: 8px 12px; margin-bottom: 16px; }
+  .columns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  @media (max-width: 800px) { .columns { grid-template-columns: 1fr; } }
+  .card { border: 1px solid #ccc; padding: 8px; margin-bottom: 8px; }
+  .card.removed, .card.archived { opacity: .55; }
+  .meta { color: #555; font-size: 13px; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border-bottom: 1px solid #ddd; padding: 6px; text-align: left; vertical-align: top; }
+  .scroll { overflow-x: auto; }
+  pre { white-space: pre-wrap; background: #f4f4f4; padding: 12px; border: 1px solid #ddd; }
+  textarea { width: 100%; box-sizing: border-box; }
+  form.inline { display: inline; }
+  mark { background: #ffe066; }
+  .add { color: #0a6b2d; } .del { color: #a3161d; }
+</style>
+</head>
+<body>
+<nav>
+  <strong><a href="/">herder</a></strong>
+  {% block nav %}{% endblock %}
+  {% if request.cookies.get("herder_key") %}
+  <form method="post" action="/logout"><button>Log out</button></form>
+  {% endif %}
+</nav>
+{% if notice %}<div class="notice">{{ notice }}</div>{% endif %}
+{% if refresh %}<p class="meta">Work is queued or running. This page refreshes every 3 seconds.</p>{% endif %}
+{% block body %}{% endblock %}
+<script>
+  // The only script: copy a block's text. Clipboard needs a secure context, which localhost is.
+  document.addEventListener("click", function (event) {
+    var button = event.target.closest("[data-copy]");
+    if (!button) return;
+    var text = document.getElementById(button.dataset.copy).innerText;
+    navigator.clipboard.writeText(text).then(function () {
+      button.textContent = "Copied";
+      setTimeout(function () { button.textContent = "Copy"; }, 1500);
+    });
+  });
+</script>
+</body>
+</html>

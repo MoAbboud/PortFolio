@@ -2,10 +2,9 @@
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
 
-**Stages 0 to 7 are done.** 376 tests pass. A transcript goes in, a budgeted brief comes out
-as a pack, a checkpoint says how much of it a model received, and a person can correct the
-memory without the next derive undoing it. **Stage 8 - the minimal web UI, the prototype - is
-next.**
+**Stages 0 to 8 are done, and the prototype exists**: everything the terminal could do, in a
+browser at `http://localhost:8000`. 403 tests pass. **Stage 9 - the corpus and the baseline -
+is next**, and the UI stays bare until that baseline is recorded.
 
 **Two things are outstanding behind it, both measurement rather than code.** The full `local`
 run over all ten stage 4 transcripts still has not been done; the comparison recorded so far
@@ -430,16 +429,28 @@ the Docker worker, not only in tests.
 
 Bare. No styling pass before the stage 9 baseline exists.
 
-- [ ] Adjuster: three columns by layer, each entry with kind, title, text, confidence, an
-      in-brief indicator, and pin / remove / edit
-- [ ] Lineage panel: the raw messages behind an entry, highlighted
-- [ ] Brief page: the rendered text, a copy button, the version list, a diff between versions
-- [ ] Checkpoint page: every probe with expected, actual, score and reason, and an add-back
-      button
-- [ ] Suggestions inbox at the top of the adjuster
-- [ ] Dashboard: tokens captured, entries by layer, current brief tokens, compression ratio,
+**Done 2026-09-13. The prototype exists.** Server-rendered Jinja pages in `herder/web/`, served
+by the same FastAPI process at `/`, logged in by pasting the API key (held in an HttpOnly,
+SameSite=Strict cookie). The only script is a copy button. Driven live against the running
+containers end to end: paste, derive by the worker, pin, brief, serve, checkpoint by the
+worker (integrity 0.83), dashboard. **The gate stands: no styling until stage 9's baseline.**
+
+- [x] Adjuster: three columns by layer, each entry with kind, title, text, confidence, an
+      in-brief indicator, and pin / remove / edit (plus restore, add by hand, derive now,
+      re-render, serve)
+- [x] Lineage panel: the raw messages behind an entry, highlighted - phrase by phrase, so a
+      merged entry marks each claim; a message matching nothing is shown unmarked rather
+      than marked wrongly; a manual entry says it has none
+- [x] Brief page: the rendered text, a copy button, the version list, a diff between versions
+      (override versions labelled as such)
+- [x] Checkpoint page: every probe with expected, actual, score and reason, and an add-back
+      button - which accepts the open suggestion if there is one and pins otherwise. The page
+      says the score is one system checking itself, not the benchmark number
+- [x] Suggestions inbox at the top of the adjuster
+- [x] Dashboard: tokens captured, entries by layer, current brief tokens, compression ratio,
       integrity over time, job failures
-- [ ] A paste box, so the whole loop can be demonstrated without a terminal
+- [x] A paste box, so the whole loop can be demonstrated without a terminal - into an existing
+      project or a new one, and it always queues a derive
 
 ## Stage 9 - Corpus and baseline
 

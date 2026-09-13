@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}{{ project.name }} - herder{% endblock %}
+{% block nav %}<span>{{ project.name }}</span> <a href="/projects/{{ project.id }}/brief">Brief</a>{% endblock %}
+{% block body %}
+<h1>{{ project.name }}</h1>
+<p>
+  {{ stats.tokens_captured }} tokens captured.
+  {% if brief %}Brief v{{ brief.version }}: {{ brief.token_count }} of {{ brief.budget_tokens }} tokens{% if stats.compression %}, {{ "%.1f"|format(stats.compression) }}x{% endif %}.{% else %}No brief yet.{% endif %}
+  Integrity: {% if stats.integrity_series %}{{ "%.2f"|format(stats.integrity_series[-1]) }}{% else %}never measured{% endif %}.
+</p>
+<p>
+  <form class="inline" method="post" action="/projects/{{ project.id }}/jobs/derive"><button>Derive now</button></form>
+  <form class="inline" method="post" action="/projects/{{ project.id }}/jobs/render"><button>Re-render</button></form>
+  <form class="inline" method="post" action="/projects/{{ project.id }}/serve">
+    Serve a pack for <select name="vendor">{% for v in vendors %}<option>{{ v }}</option>{% endfor %}</select>
+    <button>Serve</button>
+  </form>
+</p>
+
+<h2>Suggestions</h2>
+{% for s in suggestions %}
+<div class="card">
+  <strong>[{{ s.kind }}]</strong> {{ s.text_ }}
+  <form class="inline" method="post" action="/suggestions/{{ s.id }}/accept"><button>Accept</button></form>
+  <form class="inline" method="post" action="/suggestions/{{ s.id }}/dismiss"><button>Dismiss</button></form>
+</div>
+{% else %}
+<p>None open.</p>
+{% endfor %}
+
+<h2>Entries</h2>
+<div class="columns">
+{% for layer in layers %}
+  <section>
+    <h3>{{ layer|capitalize }} ({{ columns[layer]|length }})</h3>
+    {% for item in columns[layer] %}
+    {% set e = item.entry %}
+    <div class="card {{ e.status }}">
+      <div class="meta">
+        [{{ e.kind }}] {{ e.status }} &middot; confidence {{ "%.2f"|format(e.confidence) }}
+        &middot; {% if item.in_brief %}<strong>in brief</strong>{% else %}not in brief{% endif %}
+        {% if e.source == "user" %}&middot; added by hand{% endif %}
+        {% if e.transmission_failed %}&middot; <strong>did not transmit</strong>{% endif %}
+      </div>
+      <div><strong>{{ item.title }}</strong></div>
+      {% if item.text != item.title %}<div>{{ item.text }}</div>{% endif %}
+      <div>
+        {% set back = "/projects/" ~ project.id %}
+        {% if e.status == "active" %}
+          <form class="inline" method="post" action="/entries/{{ e.id }}/act/pin"><input type="hidden" name="back" value="{{ back }}"><button>Pin</button></form>
+        {% elif e.status == "pinned" %}
+          <form class="inline" method="post" action="/entries/{{ e.id }}/act/unpin"><input type="hidden" name="back" value="{{ back }}"><button>Unpin</button></form>
+        {% endif %}
+        {% if e.status in ("active", "pinned", "archived") %}
+          <form class="inline" method="post" action="/entries/{{ e.id }}/act/remove"><input type="hidden" name="back" value="{{ back }}"><button>Remove</button></form>
+        {% else %}
+          <form class="inline" method="post" action="/entries/{{ e.id }}/act/restore"><input type="hidden" name="back" value="{{ back }}"><button>Restore</button></form>
+        {% endif %}
+        <a href="/entries/{{ e.id }}">Edit &amp; lineage</a>
+      </div>
+    </div>
+    {% else %}
+    <p class="meta">Nothing in this layer.</p>
+    {% endfor %}
+  </section>
+{% endfor %}
+</div>
+
+<h2>Add an entry by hand</h2>
+<form method="post" action="/projects/{{ project.id }}/entries/new">
+  <p>
+    <select name="layer">{% for l in layers %}<option{% if l == "project" %} selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+    <select name="kind">{% for k in kinds %}<option>{{ k }}</option>{% endfor %}</select>
+    <input name="title" size="40" maxlength="80" placeholder="Title" required>
+    <label><input type="checkbox" name="pinned"> pinned</label>
+  </p>
+  <p><textarea name="text" rows="2" placeholder="Text" required></textarea></p>
+  <p><button>Add</button></p>
+</form>
+{% endblock %}

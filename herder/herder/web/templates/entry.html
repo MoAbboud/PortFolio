@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}{{ current.title }} - herder{% endblock %}
+{% block nav %}<a href="/projects/{{ project.id }}">{{ project.name }}</a>{% endblock %}
+{% block body %}
+<h1>{{ current.title }}</h1>
+<p class="meta">
+  [{{ entry.kind }}] {{ entry.status }} &middot; {{ entry.layer }} &middot; revision {{ entry.current_revision }}
+  &middot; {{ entry.source }} &middot; confidence {{ "%.2f"|format(entry.confidence) }}
+</p>
+
+<h2>Lineage</h2>
+{% if entry.source == "user" %}
+<p><strong>Added by hand.</strong> There are no source messages behind this entry, and derive never changes it.</p>
+{% elif messages %}
+<p class="meta">The messages this entry was drawn from. Marked text is where it matches.</p>
+{% for message, conversation_title in messages %}
+<div class="card">
+  <div class="meta">{{ message.role }} &middot; message {{ message.seq }}{% if conversation_title %} of "{{ conversation_title }}"{% endif %} &middot; {{ message.captured_at.strftime("%Y-%m-%d %H:%M") }}</div>
+  <div style="white-space: pre-wrap">{{ message.content | highlight(current.text_) }}</div>
+</div>
+{% endfor %}
+{% else %}
+<p><strong>No lineage rows.</strong> A derived entry should always have some; this is worth reporting.</p>
+{% endif %}
+
+{% if entry.status in ("active", "pinned", "archived") %}
+<h2>Edit</h2>
+<form method="post" action="/entries/{{ entry.id }}/edit">
+  <p><input name="title" size="60" maxlength="80" value="{{ current.title }}"></p>
+  <p><textarea name="text" rows="4">{{ current.text_ }}</textarea></p>
+  <p>Layer <select name="layer">{% for l in layers %}<option{% if l == entry.layer %} selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+  <button>Save</button></p>
+</form>
+{% endif %}
+
+<p>
+  {% set back = "/entries/" ~ entry.id %}
+  {% for action in ["pin", "unpin", "remove", "restore", "archive", "promote"] %}
+  <form class="inline" method="post" action="/entries/{{ entry.id }}/act/{{ action }}"><input type="hidden" name="back" value="{{ back }}"><button>{{ action|capitalize }}</button></form>
+  {% endfor %}
+</p>
+<p class="meta">A button that does not apply says why instead of doing nothing.</p>
+
+<h2>Revisions</h2>
+<div class="scroll">
+<table>
+  <tr><th>#</th><th>By</th><th>Why</th><th>Title</th><th>Text</th></tr>
+  {% for r in revisions %}
+  <tr><td>{{ r.revision }}</td><td>{{ r.changed_by }}</td><td>{{ r.change_reason or "" }}</td><td>{{ r.title }}</td><td>{{ r.text_ }}</td></tr>
+  {% endfor %}
+</table>
+</div>
+{% endblock %}

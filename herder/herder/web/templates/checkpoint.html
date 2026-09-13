@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Checkpoint - {{ project.name }} - herder{% endblock %}
+{% block nav %}<a href="/projects/{{ project.id }}">{{ project.name }}</a> <a href="/packs/{{ injection.id }}">Pack</a>{% endblock %}
+{% block body %}
+<h1>Integrity {{ "%.2f"|format(checkpoint.integrity) }}</h1>
+<p class="meta">
+  Over {{ checkpoint.probe_count }} graded probes &middot; brief v{{ version.version }} served for {{ injection.target_vendor or "default" }}
+  &middot; answers by {{ checkpoint.answer_model }}, graded by {{ checkpoint.judge_model }}
+  {% if checkpoint.latency_ms %}&middot; {{ "%.1f"|format(checkpoint.latency_ms / 1000) }} s{% endif %}
+</p>
+<p class="meta">The questions and expected answers are written by a model from the brief's own entries, so this score is one system checking itself. It is not the benchmark number.</p>
+
+<table>
+  <tr><th>Category</th><th>Weight</th><th>Score</th><th>Graded</th></tr>
+  {% for category, mean, n in categories %}
+  <tr><td>{{ category }}</td><td>{{ 1.0 if category == "included" else 0.5 }}</td><td>{% if mean is not none %}{{ "%.2f"|format(mean) }}{% else %}-{% endif %}</td><td>{{ n }}</td></tr>
+  {% endfor %}
+</table>
+
+<h2>Every probe</h2>
+<div class="scroll">
+<table>
+  <tr><th>Category</th><th>Question</th><th>Expected</th><th>Answer</th><th>Score</th><th>Reason</th><th></th></tr>
+  {% for result, probe, entry_status in rows %}
+  <tr>
+    <td>{{ probe.category }}</td>
+    <td>{{ probe.question }}</td>
+    <td>{{ probe.expected_answer }}</td>
+    <td>{{ result.answer }}</td>
+    <td>{% if result.score is none %}<strong>inconclusive</strong>{% else %}{{ "%g"|format(result.score) }}{% endif %}</td>
+    <td class="meta">{{ result.judge_reason or "" }}</td>
+    <td>
+      {% if probe.entry_id %}<a href="/entries/{{ probe.entry_id }}">entry</a>{% endif %}
+      {% if probe.category == "excluded" and result.score == 0 and entry_status == "active" %}
+      <form class="inline" method="post" action="/entries/{{ probe.entry_id }}/add-back">
+        <input type="hidden" name="back" value="/checkpoints/{{ checkpoint.id }}"><button>Add back</button>
+      </form>
+      {% elif probe.category == "excluded" and entry_status == "pinned" %}<span class="meta">pinned</span>{% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+</div>
+{% endblock %}
