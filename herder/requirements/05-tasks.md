@@ -2,9 +2,10 @@
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
 
-**Stages 0 to 5 are done.** 278 tests pass. A transcript goes in, and a budgeted, lineage-backed brief comes out as a pack
-ready to paste into any chat. **Stage 6 - probes, checkpoints and the integrity score - is the
-current work.**
+**Stages 0 to 6 are done, except that stage 6's checkpoint job has not yet completed in the
+Docker worker** - the image needs rebuilding with the NLI library it was always missing. 330
+tests pass. A transcript goes in, a budgeted brief comes out as a pack, and a checkpoint says
+how much of it a model actually received. **Stage 7 - adjust - is next.**
 
 **Two things are outstanding behind it, both measurement rather than code.** The full `local`
 run over all ten stage 4 transcripts still has not been done; the comparison recorded so far
@@ -361,18 +362,34 @@ existed passed throughout, because none served twice. Detail in `06-context.md`.
 
 ## Stage 6 - Verify
 
-- [ ] `probe_gen.md`, and probes cached per `(entry_id, entry_revision)`
-- [ ] Probe selection: 3 included, 2 excluded, 1 uncovered, and fewer reported honestly when
-      there are not enough of a category
-- [ ] Grading by NLI: does the actual answer entail the expected one. 1, 0.5 or 0, with the
+**Built 2026-09-13; one task waits on a Docker image rebuild.** A checkpoint probes a served
+pack with the local model, grades by NLI, and scores integrity by category. Run for real on
+`loop-demo` four times, and the first real run is what made it work: the answer prompt made
+qwen2.5:3b say "Not stated." to everything, the probe writer declined half the entries, and
+it invented expected answers. All three fixed and measured, detail in `06-context.md`.
+
+- [x] `probe_gen.md`, and probes cached per `(entry_id, entry_revision)` - one row per
+      category, copied rather than regenerated. **The model writes every probe; the templates
+      the plan named were dropped** (a template cannot question free prose without leaking
+      the answer - reasoning in `03-architecture.md`). Every probe is checked in code for
+      leaking its answer and for being entailed by its own source
+- [x] Probe selection: 3 included, 2 excluded, 1 uncovered, and fewer reported honestly when
+      there are not enough of a category. Seeded on the injection id; pins first
+- [x] Grading by NLI: does the actual answer entail the expected one. 1, 0.5 or 0, with the
       label and its score kept as the reason
-- [ ] An inconclusive grade excludes the probe and flags it. Never defaulted to 0 or to 1
-- [ ] Integrity as the weighted mean, with the three category scores also reported separately
-- [ ] `transmission_failed` set on an included entry that scored 0
-- [ ] Suggestions created for excluded and uncovered zeroes
-- [ ] `POST /v1/injections/{id}/checkpoint` in `local` mode, `GET /v1/checkpoints/{id}`,
-      `GET /v1/projects/{id}/integrity`
-- [ ] The wall-clock of one checkpoint recorded
+- [x] An inconclusive grade excludes the probe and flags it. Never defaulted to 0 or to 1 -
+      stored as a NULL score (migration 0003); nothing graded writes no checkpoint at all
+- [x] Integrity as the weighted mean, with the three category scores also reported separately
+- [x] `transmission_failed` set on an included entry that scored 0 (and cleared by a later 1)
+- [x] Suggestions created for excluded and uncovered zeroes, one open suggestion per miss
+- [x] `POST /v1/injections/{id}/checkpoint` in `local` mode, `GET /v1/checkpoints/{id}`,
+      `GET /v1/projects/{id}/integrity`, plus `herder checkpoint` on the CLI
+- [~] The checkpoint job completing in the Docker worker. It reaches the handler and fails
+      with "sentence-transformers is not installed": `requirements.txt` had it commented out
+      since stage 3, so the image never had NLI. Fixed in `requirements.txt` and the
+      `Dockerfile` (CPU torch); **needs `docker compose build worker api`, not yet run**
+- [x] The wall-clock of one checkpoint recorded: **8.6 to 10.2 s** warm for 2 to 4 graded
+      probes on `loop-demo`, 17.5 s on the first run of the session (NLI model load)
 
 ## Stage 7 - Adjust
 

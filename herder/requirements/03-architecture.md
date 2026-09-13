@@ -299,6 +299,9 @@ checkpoint(injection, mode):
     answers = ask the target model, given the pack and one question at a time (local mode)
               or one compound numbered message in the live chat (in_chat mode)
     grades  = NLI(expected, actual) -> 1 entails, 0.5 partial, 0 contradicts or misses
+              (stage 6: "partial" is the answer failing to entail the expected answer while
+              the expected answer entails the answer - true, but not all of it. The forward
+              premise is question + answer, because "Decimal." alone entails nothing)
     integrity = weighted mean, included weighted 1.0, excluded and uncovered 0.5
     a zero on an included probe    -> entry.transmission_failed = true
     a zero on an excluded probe    -> suggestion: add this back
@@ -458,7 +461,8 @@ where a model was being asked to produce a number and trusted to be calibrated.
 | Prompt | Job |
 | --- | --- |
 | `extract.md` | Chunk plus existing titles to candidate entries, with a JSON grammar beside it. Three worked examples covering a decision, a code state and an open thread |
-| `probe_gen.md` | An entry or a raw message to a question and a ground-truth answer, answerable only from that content. Templates keyed on `kind` are tried first; the model is the fallback |
+| `probe_gen.md` | An entry or a raw message to a question and a ground-truth answer, answerable only from that content. *Was: "templates keyed on `kind` are tried first; the model is the fallback".* At stage 6 the model does all of it: an entry's text is free prose, and a template cannot turn "Money values are always Decimal, never float" into a question without either parsing the sentence or putting the answer in the question. A question that contains its answer is worse than none - an excluded entry answered from the question scores 1 and hides what compression cost - so every generated question is also checked in code for leaking its answer, and discarded if it does |
+| `answer.md` | Added at stage 6. The pack and one probe question, as one user message, for a local-mode checkpoint. One line of instruction - answer in a sentence, or "Not stated" - because a long answer degrades the NLI grade and a confident invention reads worse than an admission |
 | `preamble.md` | The resume-pack header, one variant per target vendor |
 
 The extraction rules that live in `extract.md` are part of the design rather than prompt

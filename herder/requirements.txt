@@ -22,6 +22,16 @@ tiktoken>=0.8
 # with `python -m herder models pull --llm`, never as a side effect of an install.
 # llama-cpp-python>=0.3
 
-# Stage 3 - embeddings at 384 dimensions, and the NLI model that decides merge
-# verdicts and grades probes. Hundreds of megabytes, also fetched on purpose.
-# sentence-transformers>=3.3
+# Stage 3 - the NLI model that decides merge verdicts, and at stage 6 grades probes.
+# Embeddings moved to Ollama (all-minilm), so this library is only for NLI.
+#
+# **Was commented out until the stage 6 review, and that was a bug.** Stage 3 installed it
+# into the local venv by hand and never uncommented it here, so a fresh clone - and the
+# Docker image - could not run a derive or a checkpoint at all: the worker failed every
+# checkpoint job with "sentence-transformers is not installed". The CLI worked only because
+# the venv had it. The library installs with pip; the NLI weights (~700 MB) still download
+# on first use, not at install.
+#
+# It pulls in torch. From PyPI on Linux that is the CUDA build, several gigabytes, which a
+# CPU-only Docker image does not need - see the note in the Dockerfile.
+sentence-transformers>=6.0

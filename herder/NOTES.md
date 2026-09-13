@@ -695,3 +695,67 @@ Facts only; the reading of them is the author's to add.
   entries against one tail line - and nothing in the preamble says which part of the block is
   newer. Claude inferred it; ChatGPT did not.
 - One try each. A single disagreement between two models is an anecdote, not a rate.
+
+## 2026-09-13 - stage 6: checkpoints, and what the first real one got wrong
+
+Facts only; the reading is the author's. 330 tests pass.
+
+A checkpoint takes one served pack, writes probe questions about what it included, what the
+budget excluded, and user messages no entry claims; asks the local model each question with
+the pack; grades the answers by NLI; and scores integrity as the weighted mean (included 1.0,
+the other two 0.5).
+
+### The first real run scored the answer prompt, not the brief
+
+    loop-demo, chatgpt serve v4:  integrity 0.00 over 1 probe
+    answer to "What database does production run on?":  "Not stated."
+
+Measured afterwards against the same pack and qwen2.5:3b, four questions each:
+
+| How the question was asked | Answered from the pack |
+| --- | --- |
+| pack + question in one message, ending "If nothing above tells you, answer 'Not stated.'" | 0 of 3 - "Not stated." every time, Peru included |
+| the same, without that line | 3 of 3 |
+| pack as its own turn, a reply, then the question (the by-hand shape) | 3 of 3 |
+
+The escape hatch was taken on every question. The by-hand shape is what shipped. That
+checkpoint row was deleted, since it measured a broken prompt.
+
+### Probe writing, on the six real loop-demo entries
+
+- **Offered "no fact here", the model said so for 3 of 6 entries** - two decisions and an open
+  thread. Entries now decode under a grammar with no way to decline.
+- **It invented expected answers twice**: "Preference lengths are stored as integers" and
+  "Short answers must be no more than 5 words", both for "I prefer short answers with no
+  preamble". Caught by requiring the entry's own text to entail the expected answer (NLI).
+- **The first leak rule discarded good questions** ("What version of Postgres is specifically
+  used?" - 4 of 5 answer words shared, the fifth being 16.2). Replaced: a leak is a yes/no
+  question, or an answer with nothing left once the question's words are removed.
+- **"Change of plan... switching from Postgres to MySQL" was judged to hold no fact.** A
+  worked example of a change of mind fixed it (prompt v3) - but the grounding check then
+  rejected the probe, reading "we are switching to MySQL" as not entailing "the project is
+  using MySQL" (neutral 0.94). So the missed reversal is still not probed.
+
+### The runs that counted
+
+| Serve | Integrity | Graded | By category | Wall clock |
+| --- | --- | --- | --- | --- |
+| v4, 3000 budget | 1.00 | 2 | included 1.00 | 8.6 s |
+| v5, 150 budget | 0.67 | 2 | included 1.00, excluded 0.00 | 10.2 s |
+| v5, 150 budget, all fixes | 0.50 | 4 | included 0.75, excluded 0.00 | 10.0 s |
+
+First run of the session 17.5 s, most of it loading the NLI model. The excluded zeroes are the
+cost of the 150-token budget showing up as intended: asked what was left before shipping, the
+model had not been given the open thread and made up an answer.
+
+**Included 1.00 on "what database does production run on" with the expected answer
+"Postgres" - which is stale.** Probes are written from entries, so an entry that missed a
+change of mind produces a probe that rewards the stale answer. The checkpoint cannot see the
+reversal miss; only the uncovered probe could, and it is the one that was discarded.
+
+### Not yet run: the checkpoint job in the Docker worker
+
+It reaches the handler and fails: the image has no `sentence-transformers`, because
+`requirements.txt` had it commented out since stage 3. Fixed there and in the Dockerfile, not
+rebuilt. (The worker container also predated the compose file's `HERDER_OLLAMA_URL`;
+recreated.)

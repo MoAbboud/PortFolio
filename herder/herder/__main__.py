@@ -10,6 +10,7 @@
 - `brief` prints the current brief and its compression ratio.
 - `render` re-renders the brief from stored entries, with no inference.
 - `resume` prints a pack ready to paste into a chat, and records the serve.
+- `checkpoint` probes a served pack with the local model and scores its integrity.
 """
 
 from __future__ import annotations
@@ -370,6 +371,81 @@ async def resume(reference: str, vendor: str, budget: int | None, quiet: bool) -
     return 0
 
 
+async def checkpoint(reference: str, injection: str | None) -> int:
+    """Run one local-mode checkpoint inline and print every probe. Minutes, not seconds."""
+    from herder.core.nli import CrossEncoderNli
+    from herder.core.verify_models import LocalAnswerer, LocalProbeGenerator
+    from herder.models import Injection
+    from herder.services.checkpoint import CheckpointError, run_checkpoint
+
+    settings = get_settings()
+    sessionmaker = get_sessionmaker()
+
+    async with sessionmaker() as session:
+        project = await _find_project(session, reference)
+        if injection is not None:
+            injection_id = uuid.UUID(injection)
+        else:
+            # The most recent serve of this project - what `herder resume` just printed.
+            injection_id = (
+                await session.execute(
+                    select(Injection.id)
+                    .join(BriefVersion, BriefVersion.id == Injection.brief_version_id)
+                    .where(BriefVersion.project_id == project.id)
+                    .order_by(Injection.created_at.desc())
+                    .limit(1)
+                )
+            ).scalar_one_or_none()
+            if injection_id is None:
+                raise SystemExit(
+                    f"{project.name} has never been served. Run first: "
+                    f"python -m herder resume --project {project.name}"
+                )
+
+        generator, answerer, nli = LocalProbeGenerator(), LocalAnswerer(), CrossEncoderNli()
+        print(f"project     {project.name}")
+        print(f"injection   {injection_id}")
+        print(f"answers     {answerer.model} (local)")
+        print(f"judge       {settings.nli_model}, floor {settings.nli_floor}")
+        print("(a dozen model calls on a CPU - expect minutes, more if the model is cold)")
+        print()
+        try:
+            generator.check_ready()
+            nli.check_ready()
+            run = await run_checkpoint(session, injection_id, generator, answerer, nli, floor=settings.nli_floor)
+        except CheckpointError as exc:
+            raise SystemExit(f"no checkpoint: {exc}") from exc
+
+    for report in run.reports:
+        shown = "inconclusive" if report.score is None else f"{report.score:g}"
+        print(f"[{report.category:9s}] {shown}")
+        print(f"    question  {report.question}")
+        print(f"    expected  {report.expected_answer}")
+        print(f"    answer    {report.answer or '(none)'}")
+        print(f"    reason    {report.reason}")
+        print()
+
+    print(f"integrity   {run.integrity:.2f} over {run.graded} graded probes")
+    for category in ("included", "excluded", "uncovered"):
+        mean, count = run.by_category.get(category, (None, 0))
+        wanted, available = run.requested.get(category, 0), run.available.get(category, 0)
+        shown = f"{mean:.2f}" if mean is not None else "  - "
+        print(f"  {category:9s} {shown}  {count} graded, {wanted} wanted, {available} to choose from")
+    print(
+        f"probes      {run.probes_generated} written, {run.probes_cached} cached, "
+        f"{run.probes_missing} could not be written"
+    )
+    if run.inconclusive or run.unanswered:
+        print(f"not scored  {run.inconclusive} inconclusive, {run.unanswered} unanswered")
+    if run.transmission_failed or run.suggestions:
+        print(f"effects     {run.transmission_failed} entries flagged transmission_failed, {run.suggestions} suggestions")
+    print(f"wall clock  {run.latency_ms / 1000:.1f}s")
+    print(f"checkpoint  {run.checkpoint_id}")
+    for error in run.errors[:5]:
+        print(f"  ! {error}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="herder")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -404,6 +480,10 @@ def main(argv: list[str] | None = None) -> int:
     res.add_argument("--budget", type=int, default=None, help="override the brief budget for this pack")
     res.add_argument("--quiet", action="store_true", help="print the pack alone, nothing else")
 
+    chk = sub.add_parser("checkpoint", help="stage 6: probe a served pack and score its integrity")
+    chk.add_argument("--project", default="default", help="project name or id")
+    chk.add_argument("--injection", default=None, help="a specific serve; default is the latest")
+
     args = parser.parse_args(argv)
 
     if args.command == "bootstrap":
@@ -426,6 +506,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "resume":
         return asyncio.run(resume(args.project, args.vendor, args.budget, args.quiet))
+
+    if args.command == "checkpoint":
+        return asyncio.run(checkpoint(args.project, args.injection))
 
     parser.error(f"unknown command {args.command!r}")
     return 2

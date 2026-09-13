@@ -74,8 +74,8 @@ flowchart LR
 | 13 | MCP door | Optional. Six tools over the API that already exists |
 | 14 | Hardening and self-host | Optional. Export, delete, rate limits, `/metrics`, and the self-host document |
 
-**Stages 0 to 5 are done. The loop closes, the corpus has been through it, and a brief now
-leaves the system as a pack that can be pasted into any chat.** Stage 6 is the current work.
+**Stages 0 to 6 are done. A brief leaves the system as a pack, and a checkpoint measures how
+much of it a model received.** Stage 7 is the current work.
 
 **[05-tasks.md](05-tasks.md) is the authority on status**, and the only place test counts and
 per-stage verification live. This paragraph names the stage and nothing more, on purpose: the

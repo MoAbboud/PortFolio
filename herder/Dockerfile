@@ -7,6 +7,11 @@ WORKDIR /app
 
 # Dependencies first, so a source change does not reinstall them.
 COPY requirements.txt .
+# torch from the CPU index before anything else asks for it. sentence-transformers depends on
+# torch, and the PyPI build on Linux is the CUDA one - gigabytes of GPU libraries in an image
+# for a project that decided at the start it has no GPU. Installed first, the later
+# requirement is already satisfied and pip does not replace it.
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .

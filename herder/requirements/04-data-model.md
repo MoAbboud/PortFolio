@@ -137,6 +137,7 @@ erDiagram
         text answer_model
         real integrity
         int probe_count
+        int latency_ms
     }
     PROBE_RESULTS {
         uuid checkpoint_id PK
@@ -281,9 +282,29 @@ real chat and captures the reply. The second measures the actual deployed model 
 own system prompt and memory in play, which is the honest measurement, and it is opt-in
 because it puts noise in the user's conversation.
 
+*(Noted at stage 6: the DDL's check constraint says `local`, not `api` - this paragraph
+predates the keyless rework and was not updated with it. `local` is what is built: the pack
+and one question go to the local model.)*
+
 `probes` are cached per `(entry_id, entry_revision)` so that generating them is paid for
 once. A probe with `entry_id` null and `message_id` set is an `uncovered` probe, generated
 from raw material no entry claims - the only way to measure what extraction missed.
+
+Three details settled at stage 6:
+
+- **One row per `(entry_id, entry_revision, category)`.** The same entry can be included in
+  one serve and excluded from another. The question does not depend on the category, so the
+  second row copies the first rather than paying for another generation, and the category on
+  the row stays true.
+- **The revision probed is the one the version was rendered from** - the highest revision
+  created at or before the version - not whatever the entry says now. An entry edited after a
+  serve would otherwise be probed on text the pack never held.
+- **`probe_results.score` is nullable** (migration 0003). NULL is an inconclusive grade:
+  excluded from the integrity score and flagged, with the answer and the reason kept.
+  Defaulting it to 0 or 1 is the lie the column would otherwise force. A checkpoint where
+  nothing could be graded writes no row at all, rather than an integrity of 0.
+- **`checkpoints.latency_ms`** is the wall-clock of the whole run, which the per-call rows in
+  `model_calls` do not add up to.
 
 ## model_calls
 
@@ -291,8 +312,9 @@ Not in the original specification as a table; it is there as an instruction ("lo
 call with prompt version, token counts and latency so the benchmark can be reproduced") and
 this is where that instruction lives.
 
-One row per inference call: purpose (`extract`, `adjudicate`, `probe_gen`, `grade`, `answer`,
-`embed`), which model and **which extractor implementation** produced it, prompt version,
+One row per inference call: purpose (`extract`, `adjudicate`, `probe_gen`, `probe_check`,
+`grade`, `answer`, `embed`; `probe_check` added at stage 6 - the NLI call confirming a
+generated expected answer is entailed by its own source), which model and **which extractor implementation** produced it, prompt version,
 input and output token counts, latency, whether the output validated on the first attempt,
 and the raw output. The raw output is the bulky part to keep and the only part that matters
 when something breaks, because a validation failure with the output thrown away is unfixable.
@@ -407,4 +429,5 @@ These are in the specification and are not in the first migration.
 - Every amount-free numeric in this schema is a token count or a score. Token counts are
   integers. Scores are `real` in the range 0 to 1, and the three probe scores are exactly
   0, 0.5 and 1 - a graded judgement with three values a person can argue with, not a
-  continuous number the judge would be making up.
+  continuous number the judge would be making up. Or NULL, for an inconclusive grade, which
+  is not a fourth value but the absence of one.

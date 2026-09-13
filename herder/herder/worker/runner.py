@@ -91,10 +91,37 @@ async def _handle_embed(session, payload: dict) -> None:
     log.info("embedded %d entries in %s", done, project.name)
 
 
+async def _handle_checkpoint(session, payload: dict) -> None:
+    """One local-mode checkpoint. A dozen model calls, so it lives here and not in the API."""
+    from herder.core.config import get_settings
+    from herder.core.nli import CrossEncoderNli
+    from herder.core.verify_models import LocalAnswerer, LocalProbeGenerator
+    from herder.services.checkpoint import run_checkpoint
+
+    generator, answerer, nli = LocalProbeGenerator(), LocalAnswerer(), CrossEncoderNli()
+    # Fail before any work, with the fix in the message, rather than a dozen times over.
+    generator.check_ready()
+    nli.check_ready()
+
+    run = await run_checkpoint(
+        session,
+        uuid.UUID(payload["injection_id"]),
+        generator,
+        answerer,
+        nli,
+        floor=get_settings().nli_floor,
+    )
+    log.info(
+        "checkpoint %s: integrity %.2f over %d graded probes (%d inconclusive, %d unanswered) in %d ms",
+        run.checkpoint_id, run.integrity, run.graded, run.inconclusive, run.unanswered, run.latency_ms,
+    )
+
+
 # One handler per job kind, filled in by the stages that own them.
-#   probe_gen / checkpoint  stage 6
-#   delete_user             stage 14
+#   probe_gen   not a separate job: probes are generated inside a checkpoint and cached
+#   delete_user stage 14
 HANDLERS: dict[str, object] = {
+    "checkpoint": _handle_checkpoint,
     "derive": _handle_derive,
     "embed": _handle_embed,
     "render": _handle_render,

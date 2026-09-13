@@ -348,6 +348,8 @@ class Probe(Base):
     __tablename__ = "probes"
     __table_args__ = (
         CheckConstraint("category in ('included','excluded','uncovered')", name="ck_probes_category"),
+        Index("ix_probes_entry_revision", "entry_id", "entry_revision"),
+        Index("ix_probes_message", "message_id"),
     )
 
     id: Mapped[uuid.UUID] = _pk()
@@ -388,6 +390,8 @@ class Checkpoint(Base):
     # Reported beside the score on purpose. A checkpoint that says how many probes are
     # behind it can be believed; one that does not, cannot.
     probe_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    # The whole checkpoint, not the sum of its model calls. A stage 6 task on its own.
+    latency_ms: Mapped[int | None] = mapped_column(Integer)
     created_at: Mapped[dt.datetime] = _created()
 
 
@@ -403,8 +407,9 @@ class ProbeResult(Base):
     )
     answer: Mapped[str] = mapped_column(Text, nullable=False)
     # Exactly 0, 0.5 or 1. Three values a person can argue with, rather than a continuous
-    # number a model would be inventing.
-    score: Mapped[float] = mapped_column(Float, nullable=False)
+    # number a model would be inventing. NULL when the grade was inconclusive: excluded from
+    # the score and flagged, never defaulted to 0 or 1 (migration 0003).
+    score: Mapped[float | None] = mapped_column(Float)
     judge_reason: Mapped[str | None] = mapped_column(Text)
 
 

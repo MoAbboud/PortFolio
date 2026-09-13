@@ -35,6 +35,44 @@ def _clip(raw: str | None) -> str | None:
     return raw[:RAW_LIMIT] + f"\n...[truncated, {len(raw)} chars total]"
 
 
+async def record_call(
+    session: AsyncSession,
+    purpose: str,
+    *,
+    model: str,
+    implementation: str | None,
+    prompt_version: str | None = None,
+    raw_output: str | None = None,
+    error: str | None = None,
+    input_tokens: int | None = None,
+    output_tokens: int | None = None,
+    latency_ms: int | None = None,
+    load_ms: int | None = None,
+    prompt_ms: int | None = None,
+    generation_ms: int | None = None,
+    validated_first_try: bool | None = None,
+) -> None:
+    """Any inference call other than extraction: `probe_gen`, `answer`, `grade`."""
+    session.add(
+        ModelCall(
+            id=uuid7(),
+            purpose=purpose,
+            model=model,
+            implementation=implementation,
+            prompt_version=prompt_version,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            latency_ms=latency_ms,
+            load_ms=load_ms or None,
+            prompt_ms=prompt_ms or None,
+            generation_ms=generation_ms or None,
+            validated_first_try=validated_first_try,
+            raw_output=_clip(raw_output),
+            error=error,
+        )
+    )
+
+
 async def record_extraction(
     session: AsyncSession, outcome: ExtractionOutcome, implementation: str
 ) -> None:
