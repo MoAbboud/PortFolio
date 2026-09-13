@@ -2,8 +2,10 @@
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
 
-**Stages 0 to 6 are done.** 330 tests pass. A transcript goes in, a budgeted brief comes out as a pack, and a checkpoint says
-how much of it a model actually received. **Stage 7 - adjust - is next.**
+**Stages 0 to 7 are done.** 376 tests pass. A transcript goes in, a budgeted brief comes out
+as a pack, a checkpoint says how much of it a model received, and a person can correct the
+memory without the next derive undoing it. **Stage 8 - the minimal web UI, the prototype - is
+next.**
 
 **Two things are outstanding behind it, both measurement rather than code.** The full `local`
 run over all ten stage 4 transcripts still has not been done; the comparison recorded so far
@@ -392,15 +394,37 @@ it invented expected answers. All three fixed and measured, detail in `06-contex
 
 ## Stage 7 - Adjust
 
-- [ ] `pin`, `unpin`, `remove`, `restore`, `edit`, `relayer`, `add`, `promote`, `archive`
-- [ ] Every action writes an `entry_events` row and a revision where the text changed
-- [ ] Every action enqueues a `render`, never a `derive`
-- [ ] Pinned entries always included and always probed
-- [ ] Manual entries carry `source = user` and no lineage, and the API says so
-- [ ] `GET /v1/entries/{id}/lineage`
-- [ ] Suggestions accept and dismiss
-- [ ] **The removed-never-resurrects test, end to end**: ingest, derive, remove, ingest the
-      same material again, derive, assert it is still gone
+**Done 2026-09-13.** A person can change the memory, and - the part the task list did not
+say - **the next derive no longer undoes it.** Before this stage, derive could supersede a
+pinned entry, rewrite text a person had edited, and attach lineage to an entry they wrote.
+Now an entry a person holds (pinned, written, or edited) is never changed by derive: a more
+specific candidate counts as a duplicate, and a contradiction becomes a `conflict` suggestion
+with both entries kept. Checked live on a throwaway `stage7-check` project through the CLI and
+the Docker worker, not only in tests.
+
+- [x] `pin`, `unpin`, `remove`, `restore`, `edit`, `relayer`, `add`, `promote`, `archive` -
+      `POST /v1/entries/{id}/{action}`, `PATCH /v1/entries/{id}` (edit and relayer),
+      `POST /v1/projects/{id}/entries`; `herder entries` and `herder adjust` on the CLI. A
+      move the status flow does not allow is a 409 with the reason, never a silent no-op
+- [x] Every action writes an `entry_events` row and a revision where the text changed. The
+      first test found the event recording the new status as the old one (a bulk update
+      rewrites the object in the session); fixed in all four places it could happen
+- [x] Every action enqueues a `render`, never a `derive` - and an edit also enqueues `embed`,
+      because the stored vector described the old text
+- [x] Pinned entries always included and always probed - every pin, even past the count of 3
+- [x] Manual entries carry `source = user` and no lineage, and the API says so - a
+      `lineage_note` on the entries list and a `note` on the lineage endpoint, and derive
+      never adds lineage to one
+- [x] `GET /v1/entries/{id}/lineage`
+- [x] Suggestions accept and dismiss - `GET /v1/projects/{id}/suggestions`,
+      `POST /v1/suggestions/{id}/accept|dismiss`, `herder suggestions`. Accepting acts (UC-6):
+      `add_back` pins, `extract` writes the message as a cited entry, `promote` moves to Stable,
+      `conflict` lets the new claim supersede the held one; dismissing a `conflict` removes the
+      new claim. Promotion suggestions are now actually created - stage 3 set only the flag
+- [x] **The removed-never-resurrects test, end to end**: ingest, derive, remove, ingest the
+      same material again, derive, assert it is still gone. Through the API in the suite, and
+      live: the re-paste gave 4 candidates, **2 dropped as matching the removed entry, 0
+      created**
 
 ## Stage 8 - Minimal web UI
 

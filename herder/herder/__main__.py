@@ -256,6 +256,8 @@ async def derive(reference: str, max_chunks: int | None) -> int:
     print(f"    duplicate       {run.duplicates}")
     print(f"    updated         {run.updated}")
     print(f"    superseded      {run.superseded}")
+    if run.conflicts:
+        print(f"    conflict        {run.conflicts} (contradicted an entry you hold - see suggestions)")
     print(f"    dropped         {run.dropped_removed} (matched a removed entry)")
     if run.dropped_lineage:
         print(f"    bad lineage     {run.dropped_lineage}")
@@ -446,6 +448,123 @@ async def checkpoint(reference: str, injection: str | None) -> int:
     return 0
 
 
+async def entries(reference: str, show_all: bool) -> int:
+    """Every entry in the project, with the short id the adjust commands take."""
+    from herder.models import Entry, EntryRevision
+
+    sessionmaker = get_sessionmaker()
+    async with sessionmaker() as session:
+        project = await _find_project(session, reference)
+        current = await current_brief(session, project.id)
+        included = set(current.included_entry_ids) if current is not None else set()
+        query = (
+            select(Entry, EntryRevision.title)
+            .join(EntryRevision, (EntryRevision.entry_id == Entry.id) & (EntryRevision.revision == Entry.current_revision))
+            .where(Entry.project_id == project.id, Entry.kind != "tail")
+        )
+        if not show_all:
+            query = query.where(Entry.status.in_(("active", "pinned", "archived", "removed")))
+        rows = (await session.execute(query.order_by(Entry.layer, Entry.kind, Entry.last_seen_at.desc()))).all()
+
+    print(f"project  {project.name}   brief v{current.version if current else '-'}   {len(rows)} entries")
+    print("  id        in  status    layer    kind          source   title")
+    for entry, title in rows:
+        mark = "yes" if entry.id in included else " - "
+        print(
+            f"  {str(entry.id)[-8:]}  {mark} {entry.status:9s} {entry.layer:8s} {entry.kind:13s} "
+            f"{entry.source:8s} {title[:60]}"
+        )
+    print()
+    print("ids are the LAST 8 characters; `adjust` takes them. `in` = in the current brief.")
+    return 0
+
+
+async def _entry_by_suffix(session, project, suffix: str):
+    from sqlalchemy import String, cast
+
+    from herder.models import Entry
+
+    rows = (
+        await session.execute(
+            select(Entry).where(Entry.project_id == project.id, cast(Entry.id, String).like(f"%{suffix.lower()}")).limit(2)
+        )
+    ).scalars().all()
+    if not rows:
+        raise SystemExit(f"no entry in {project.name} ends with {suffix!r}. Run: python -m herder entries --project {project.name}")
+    if len(rows) > 1:
+        raise SystemExit(f"{suffix!r} matches more than one entry; type more of the id")
+    return rows[0]
+
+
+async def adjust_entry(reference: str, action: str, suffix: str, title: str | None, text: str | None, layer: str | None) -> int:
+    from herder.domain.adjust import Refused
+    from herder.services import adjust
+
+    sessionmaker = get_sessionmaker()
+    async with sessionmaker() as session:
+        project = await _find_project(session, reference)
+        entry = await _entry_by_suffix(session, project, suffix)
+        try:
+            if action == "edit":
+                result = await adjust.edit(session, entry.id, None, title=title, text=text, layer=layer)
+            else:
+                result = await adjust.act(session, entry.id, action, None)
+        except Refused as exc:
+            raise SystemExit(f"refused: {exc}") from exc
+
+    print(f"{result.event:10s} entry {str(result.entry_id)[-8:]}  now {result.status}, {result.layer}, revision {result.revision}")
+    print("render queued - the worker writes the new brief version within a few seconds.")
+    print(f"    python -m herder brief --project {project.name}")
+    return 0
+
+
+async def suggestions(reference: str, decision: str | None, suggestion: str | None) -> int:
+    from herder.domain.adjust import Refused
+    from herder.models import Suggestion
+    from herder.services import adjust
+
+    sessionmaker = get_sessionmaker()
+    async with sessionmaker() as session:
+        project = await _find_project(session, reference)
+        if decision is None:
+            rows = (
+                await session.execute(
+                    select(Suggestion)
+                    .where(Suggestion.project_id == project.id, Suggestion.status == "open")
+                    .order_by(Suggestion.created_at)
+                )
+            ).scalars().all()
+            print(f"project  {project.name}   {len(rows)} open suggestions")
+            for row in rows:
+                print(f"  {str(row.id)[-8:]}  [{row.kind}] {row.text_}")
+            if rows:
+                print()
+                print(f"    python -m herder suggestions --project {project.name} --accept <id>   (or --dismiss <id>)")
+            return 0
+
+        from sqlalchemy import String, cast
+
+        found = (
+            await session.execute(
+                select(Suggestion).where(
+                    Suggestion.project_id == project.id, cast(Suggestion.id, String).like(f"%{suggestion.lower()}")
+                ).limit(2)
+            )
+        ).scalars().all()
+        if len(found) != 1:
+            raise SystemExit(f"{'no' if not found else 'more than one'} suggestion matches {suggestion!r}")
+        try:
+            action = adjust.accept if decision == "accept" else adjust.dismiss
+            result = await action(session, found[0].id, None)
+        except (Refused, adjust.NotFound) as exc:
+            raise SystemExit(f"refused: {exc}") from exc
+
+    print(f"suggestion {suggestion} {decision}ed.")
+    if result is not None:
+        print(f"  entry {str(result.entry_id)[-8:]}: {result.event}, now {result.status}, {result.layer}. Render queued.")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="herder")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -484,7 +603,35 @@ def main(argv: list[str] | None = None) -> int:
     chk.add_argument("--project", default="default", help="project name or id")
     chk.add_argument("--injection", default=None, help="a specific serve; default is the latest")
 
+    ent = sub.add_parser("entries", help="stage 7: list entries with the ids adjust takes")
+    ent.add_argument("--project", default="default", help="project name or id")
+    ent.add_argument("--all", action="store_true", help="include superseded entries")
+
+    adj = sub.add_parser("adjust", help="stage 7: pin, unpin, remove, restore, archive, promote or edit an entry")
+    adj.add_argument("action", choices=("pin", "unpin", "remove", "restore", "archive", "promote", "edit"))
+    adj.add_argument("--project", default="default", help="project name or id")
+    adj.add_argument("--entry", required=True, help="the last characters of the entry id, from `entries`")
+    adj.add_argument("--title", default=None, help="edit: a new title")
+    adj.add_argument("--text", default=None, help="edit: new text")
+    adj.add_argument("--layer", default=None, choices=("stable", "project", "session"), help="edit: move to a layer")
+
+    sug = sub.add_parser("suggestions", help="stage 7: list open suggestions, or accept / dismiss one")
+    sug.add_argument("--project", default="default", help="project name or id")
+    decide = sug.add_mutually_exclusive_group()
+    decide.add_argument("--accept", default=None, metavar="ID", help="accept a suggestion by the end of its id")
+    decide.add_argument("--dismiss", default=None, metavar="ID", help="dismiss a suggestion by the end of its id")
+
     args = parser.parse_args(argv)
+
+    if args.command == "entries":
+        return asyncio.run(entries(args.project, args.all))
+
+    if args.command == "adjust":
+        return asyncio.run(adjust_entry(args.project, args.action, args.entry, args.title, args.text, args.layer))
+
+    if args.command == "suggestions":
+        decision = "accept" if args.accept else "dismiss" if args.dismiss else None
+        return asyncio.run(suggestions(args.project, decision, args.accept or args.dismiss))
 
     if args.command == "bootstrap":
         return asyncio.run(bootstrap(args.email, args.project))

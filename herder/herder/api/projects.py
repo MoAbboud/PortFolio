@@ -54,6 +54,9 @@ class EntryOut(BaseModel):
     promotion_suggested: bool
     transmission_failed: bool
     lineage: list[uuid.UUID]
+    # "The API says so": an empty lineage list alone reads the same as a derived entry whose
+    # lineage went missing, so a hand-written entry is named as one.
+    lineage_note: str | None = None
     in_current_brief: bool
     last_seen_at: dt.datetime
 
@@ -199,6 +202,11 @@ async def entries(
                 promotion_suggested=entry.promotion_suggested,
                 transmission_failed=entry.transmission_failed,
                 lineage=list(lineage),
+                lineage_note=(
+                    "Added by hand. There are no source messages behind it, and derive never changes it."
+                    if entry.source == "user"
+                    else None
+                ),
                 in_current_brief=entry.id in included,
                 last_seen_at=entry.last_seen_at,
             )

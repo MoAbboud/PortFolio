@@ -161,8 +161,10 @@ def select_probes(
     a checkpoint impossible to reproduce. Seeding on the injection id gives the same probes
     for the same serve and different ones across serves.
 
-    **Pins go first among included**, because a user who pinned something asked for it to be
-    carried, and "was it carried" is exactly what an included probe measures.
+    **Every pin is probed, even past the category's count** (stage 7: "pinned entries always
+    included and always probed"). A person who pinned something asked for it to be carried,
+    and "was it carried" is exactly what an included probe measures. The rest of the included
+    count is then filled at random; with more pins than the count, only pins are probed.
 
     **No substitution.** When a category has fewer targets than it asks for, it gets fewer
     probes and the shortfall is reported. Topping it up from another category would change
@@ -179,7 +181,7 @@ def select_probes(
 
         pins = [t for t in pool if t.pinned]
         rest = sorted((t for t in pool if not t.pinned), key=lambda t: str(t.entry_id or t.message_id))
-        chosen = pins[:wanted]
+        chosen = list(pins)
         if len(chosen) < wanted:
             chosen += rng.sample(rest, min(wanted - len(chosen), len(rest)))
         selection.targets.extend(chosen)

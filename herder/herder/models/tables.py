@@ -414,7 +414,18 @@ class ProbeResult(Base):
 
 
 class Suggestion(Base):
+    """What a checkpoint or a derive thinks a person should decide.
+
+    Kinds: `add_back` (an excluded entry the model could not recall), `extract` (a message no
+    entry covers), `promote` (seen in enough conversations to be Stable), `conflict` (a new
+    claim contradicts an entry a person holds).
+    """
+
     __tablename__ = "suggestions"
+    __table_args__ = (
+        CheckConstraint("status in ('open','accepted','dismissed')", name="ck_suggestions_status"),
+        Index("ix_suggestions_project_status", "project_id", "status"),
+    )
 
     id: Mapped[uuid.UUID] = _pk()
     project_id: Mapped[uuid.UUID] = mapped_column(
@@ -422,6 +433,8 @@ class Suggestion(Base):
     )
     kind: Mapped[str] = mapped_column(Text, nullable=False)
     entry_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("entries.id"))
+    # The second entry of a `conflict`: the one a person holds (migration 0004).
+    related_entry_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("entries.id"))
     message_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("messages.id"))
     text_: Mapped[str] = mapped_column("text", Text, nullable=False)
     status: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'open'"))

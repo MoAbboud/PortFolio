@@ -36,6 +36,7 @@ from herder.models import (
     EntryRevision,
     Message,
     Project,
+    Suggestion,
 )
 from herder.schemas.extraction import Candidate
 from herder.services.embedding import embed_missing
@@ -47,6 +48,8 @@ SESSION_TTL_DAYS = 7
 ARCHIVE_BELOW_CONFIDENCE = 0.7
 PROMOTION_CONVERSATIONS = 3
 TAIL_KIND = "tail"
+# `entry_revisions.changed_by` for a revision a person wrote through the adjuster.
+CHANGED_BY_USER = "user"
 
 
 @dataclass
@@ -58,6 +61,7 @@ class DeriveRun:
     duplicates: int = 0
     updated: int = 0
     superseded: int = 0
+    conflicts: int = 0
     dropped_removed: int = 0
     dropped_lineage: int = 0
     below_floor: int = 0
@@ -139,7 +143,7 @@ async def _find_matches(
     """
     distance = Entry.embedding.cosine_distance(vector).label("distance")
     result = await session.execute(
-        select(Entry, EntryRevision.title, EntryRevision.text_, distance)
+        select(Entry, EntryRevision.title, EntryRevision.text_, EntryRevision.changed_by, distance)
         .join(
             EntryRevision,
             (EntryRevision.entry_id == Entry.id)
@@ -162,8 +166,10 @@ async def _find_matches(
             title=title,
             text=text,
             similarity=1.0 - float(dist),
+            # Pinned, written by hand, or last edited by a person. Derive never changes these.
+            held=entry.status == "pinned" or entry.source == "user" or changed_by == CHANGED_BY_USER,
         )
-        for entry, title, text, dist in result.all()
+        for entry, title, text, changed_by, dist in result.all()
     ]
 
 
@@ -361,9 +367,34 @@ async def apply_decision(
     assert match is not None
 
     if decision.verdict is Verdict.DUPLICATE:
-        await _extend_lineage(session, match.entry_id, candidate.lineage)
+        source = (await session.execute(select(Entry.source).where(Entry.id == match.entry_id))).scalar_one()
+        if source != "user":
+            # An entry a person wrote has no lineage and keeps having none: citing messages for
+            # it would claim the conversation is where it came from.
+            await _extend_lineage(session, match.entry_id, candidate.lineage)
         await _touch(session, match.entry_id, await _conversation_count(session, match.entry_id))
         run.duplicates += 1
+        return
+
+    if decision.verdict is Verdict.CONFLICT:
+        # Both kept. The person decides: accepting the suggestion lets the new claim supersede
+        # theirs, dismissing it removes the new claim - which then cannot come back.
+        new_id = await _write_entry(session, project, candidate, vector)
+        session.add(
+            Suggestion(
+                id=uuid7(),
+                project_id=project.id,
+                kind="conflict",
+                entry_id=new_id,
+                related_entry_id=match.entry_id,
+                text_=(
+                    f"The conversation now says \"{candidate.text}\", which contradicts an entry "
+                    f"you hold: \"{match.text}\". Accept to replace yours with it; dismiss to keep yours."
+                ),
+            )
+        )
+        await session.flush()
+        run.conflicts += 1
         return
 
     if decision.verdict is Verdict.UPDATE:
@@ -517,6 +548,27 @@ async def age_and_propose(session: AsyncSession, project: Project, run: DeriveRu
     for entry in candidates:
         await session.execute(
             update(Entry).where(Entry.id == entry.id).values(promotion_suggested=True)
+        )
+        # The data model says "a suggestion appears". Until stage 7 only the flag was set, so
+        # there was nothing for a person to accept.
+        title = (
+            await session.execute(
+                select(EntryRevision.title).where(
+                    EntryRevision.entry_id == entry.id, EntryRevision.revision == entry.current_revision
+                )
+            )
+        ).scalar_one()
+        session.add(
+            Suggestion(
+                id=uuid7(),
+                project_id=project.id,
+                kind="promote",
+                entry_id=entry.id,
+                text_=(
+                    f"\"{title}\" has come up in {entry.seen_in_conversations} conversations. "
+                    "Promote it to Stable, so it carries into every project?"
+                ),
+            )
         )
         run.promotions_suggested += 1
 

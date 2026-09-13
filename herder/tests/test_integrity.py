@@ -139,6 +139,14 @@ def test_pins_are_probed_first() -> None:
         assert pins <= chosen
 
 
+def test_every_pin_is_probed_even_past_the_count() -> None:
+    """Stage 7: pinned entries are always probed."""
+    pool = targets(INCLUDED, 10, pinned=5)
+    chosen = select_probes(pool, [], [], seed="s").targets
+    assert {t.entry_id for t in pool if t.pinned} <= {t.entry_id for t in chosen}
+    assert len(chosen) == 5
+
+
 # ------------------------------------------------------------------ the score
 
 

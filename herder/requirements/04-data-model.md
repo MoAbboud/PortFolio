@@ -246,6 +246,24 @@ is set and a suggestion appears; the layer only changes when a person confirms i
 automatic promotion is a claim about who the user is, made without asking, and it is exactly
 the kind of thing that makes a memory system feel like it is watching rather than working.
 
+### suggestions (settled at stage 7)
+
+Four kinds, each with what accepting and dismissing do:
+
+| Kind | Raised by | Accept | Dismiss |
+| --- | --- | --- | --- |
+| `add_back` | a checkpoint: an excluded entry scored 0 | pin the entry, so the budget cannot drop it | close it |
+| `extract` | a checkpoint: an uncovered message scored 0 | write the message as an entry citing that message, held by the person | close it |
+| `promote` | derive: seen in 3+ conversations | move the entry to Stable | close it; `promotion_suggested` stays set, so it is not raised again |
+| `conflict` | derive: a candidate contradicts an entry a person holds | the new claim supersedes the held entry | the new claim is removed, and so cannot return |
+
+`entry_id` is the entry the suggestion is about; for a `conflict` that is the new claim, and
+`related_entry_id` (migration 0004) is the held entry it contradicts. `status` is `open`,
+`accepted` or `dismissed`, enforced by a check constraint, and a decided suggestion cannot be
+decided again.
+
+Until stage 7, promotion set only the flag, and the "suggestion appears" above was not true.
+
 ## entry_lineage
 
 Two columns, and it is the reason the whole project is defensible. Every derived entry has
@@ -348,7 +366,7 @@ lock.
 ## Invariants
 
 These are enforced in code and each one has a test. They are the specification's list, plus
-two that follow from decisions made in this folder.
+three that follow from decisions made in this folder.
 
 1. `messages` is append-only. No update, no delete except cascade from deleting the user.
 2. Every entry with `source = derived` has at least one lineage row pointing at a message in
@@ -379,6 +397,12 @@ two that follow from decisions made in this folder.
 9. Every inference call writes a `model_calls` row, including the ones that fail, and records
    which extractor implementation was in force. A failed call with no row is time nobody can
    account for; an unattributed one makes every comparison meaningless.
+10. *(Added at stage 7.)* **Derivation never changes an entry a person holds** - one that is
+    pinned, has `source = user`, or whose current revision has `changed_by = user`. Against
+    such an entry a more specific candidate is a duplicate, never an update, and a
+    contradiction is a `conflict` suggestion with both entries kept, never a supersede. An
+    entry with `source = user` never receives a lineage row. Without this, the adjuster's
+    changes last only until the next derive.
 
 ## The benchmark corpus lives outside the database
 

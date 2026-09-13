@@ -759,3 +759,48 @@ It reaches the handler and fails: the image has no `sentence-transformers`, beca
 `requirements.txt` had it commented out since stage 3. Fixed there and in the Dockerfile, not
 rebuilt. (The worker container also predated the compose file's `HERDER_OLLAMA_URL`;
 recreated.)
+
+## 2026-09-13 - stage 7: adjust, and derive stops undoing what a person did
+
+Facts only; the reading is the author's. 376 tests pass.
+
+A person can now pin, unpin, remove, restore, archive, promote, edit, relayer and add entries,
+and accept or dismiss suggestions - over the API and from the CLI (`herder entries`,
+`herder adjust`, `herder suggestions`). Every change writes an `entry_events` row and queues a
+render; none runs a model.
+
+### The gap the task list did not name
+
+Before this stage, derive could overrule the adjuster on the next pass:
+
+- a **pinned** entry could be superseded by a contradicting candidate, which the status flow
+  in the data model does not allow;
+- a **hand-edited** entry could be rewritten by an `update` verdict;
+- a **hand-written** entry could receive lineage from a `duplicate`, claiming the conversation
+  was where it came from.
+
+Now derive never changes an entry a person holds (invariant 10). A more specific candidate is
+a duplicate; a contradiction keeps both and raises a `conflict` suggestion - accept lets the
+new claim supersede yours, dismiss removes the new claim.
+
+### Found by the tests
+
+- **The event log recorded the new state as the old one.** `from_status` read `pinned` on a
+  pin, because a bulk `update()` also rewrites the object in the session. Same mistake in
+  three more places (relayer, edit revision, conflict accept). All four fixed.
+- **Promotion suggestions were never created.** Stage 3 set `promotion_suggested` and wrote no
+  suggestion row, so there was nothing for a person to accept.
+- **A checkpoint could probe an entry removed after the serve** (invariant 3). Filtered.
+
+### Live, on a throwaway `stage7-check` project
+
+| Step | Result |
+| --- | --- |
+| paste 6 turns, derive (heuristic) | 3 entries, brief v1 |
+| `herder adjust remove` on the Decimal constraint | render job done by the Docker worker; brief v2 without it |
+| paste the same turns plus the Decimal rule again, derive | 4 candidates: **2 dropped as matching the removed entry**, 2 duplicates, **0 created** |
+| `herder adjust edit` | revision 2, `changed_by = user`; embed job done by the worker |
+| `adjust pin` on the removed entry | refused: cannot pin an entry that is removed |
+| `adjust promote` on a Stable entry | refused: already in Stable |
+
+Events recorded the correct before and after state.

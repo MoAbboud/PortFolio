@@ -42,6 +42,13 @@ reach adjudication. "Rare" is not the same as "safe", and this is a silent failu
 A generative model asked to pick one of four words would also work, but it would be picking
 a label and a confidence that nothing calibrates. Entailment is a measurement.
 
+## Entries a person holds
+
+**Derivation never changes an entry a person has acted on** - pinned, written by hand, or
+edited. Added at stage 7, because an adjuster whose changes the next derive quietly undoes is
+worse than no adjuster. Against a held entry, `update` becomes `duplicate` (the wording stays
+theirs) and `supersede` becomes `conflict` (both kept, and the person is asked).
+
 ## The hard rule
 
 **A candidate matching a removed entry is dropped.** Not merged, not re-created. Derivation
@@ -68,6 +75,9 @@ class Verdict(StrEnum):
     SUPERSEDE = "supersede"
     DISTINCT = "distinct"
     DROP = "drop"
+    # The candidate contradicts an entry a person holds. Written as a new entry beside it, and
+    # a suggestion asks the person which one is true. Stage 7.
+    CONFLICT = "conflict"
 
 
 @dataclass(frozen=True)
@@ -79,6 +89,9 @@ class Match:
     title: str
     text: str
     similarity: float
+    # True when a person has acted on this entry: pinned it, written it, or edited its text.
+    # Derivation never changes such an entry - see `decide_against`.
+    held: bool = False
 
 
 @dataclass(frozen=True)
@@ -129,6 +142,11 @@ def decide_against(match: Match, forward: Label, backward: Label, floor: float) 
         and min(forward.score, backward.score) >= floor
     )
     if contradicts:
+        if match.held:
+            # A person pinned, wrote or edited this entry. Superseding it would overrule them
+            # on the strength of an NLI reading, and silently: the entry they chose would just
+            # stop appearing. The candidate is kept beside it and they are asked.
+            return Decision(Verdict.CONFLICT, match, "contradicts an entry a person holds: kept both, asking")
         return Decision(Verdict.SUPERSEDE, match, "each contradicts the other: the claim has changed")
 
     forward_entails = forward.label == ENTAILMENT and forward.score >= floor
@@ -137,6 +155,10 @@ def decide_against(match: Match, forward: Label, backward: Label, floor: float) 
     if forward_entails and backward_entails:
         return Decision(Verdict.DUPLICATE, match, "each entails the other: the same claim")
     if forward_entails:
+        if match.held:
+            # Rewriting text a person chose, even into something more specific, is still
+            # rewriting it. Counted as seen again; the wording stays theirs.
+            return Decision(Verdict.DUPLICATE, match, "more specific, but a person holds the stored wording")
         # The candidate is the more specific of the two, so the memory gains detail.
         return Decision(Verdict.UPDATE, match, "the candidate is more specific than the stored entry")
     if backward_entails:

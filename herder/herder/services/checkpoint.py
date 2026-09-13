@@ -121,10 +121,12 @@ async def _targets(
         ).scalars()
     } if ids else {}
 
+    # Removed since the serve means never probed (invariant 3), even though the pack held it:
+    # probing it would flag transmission on an entry the person has already said is wrong.
     included = [
         ProbeTarget(INCLUDED, entry_id=i, pinned=entries[i].status == "pinned")
         for i in version.included_entry_ids
-        if i in entries
+        if i in entries and entries[i].status != "removed"
     ]
     # Only entries still live. "Add this back" is the suggestion an excluded zero produces, and
     # suggesting the user add back an entry they have since removed would be arguing with them.
