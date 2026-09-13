@@ -361,7 +361,12 @@ async def resume(reference: str, vendor: str, budget: int | None, quiet: bool) -
     print()
     print("Paste that into a chat and press send yourself. Nothing was sent for you.")
     print("`--quiet` prints the pack alone, for piping to the clipboard:")
-    print(f"    python -m herder resume --project {project.name} --quiet | clip")
+    # The same options as this run. Dropping --vendor here sent people who copied the hint to
+    # the default preamble instead of the one they had just looked at.
+    options = f"--project {project.name} --vendor {pack.vendor}"
+    if budget is not None:
+        options += f" --budget {budget}"
+    print(f"    python -m herder resume {options} --quiet | clip")
     return 0
 
 
