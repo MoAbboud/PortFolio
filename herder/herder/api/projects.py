@@ -19,6 +19,7 @@ from herder.core.db import get_session
 from herder.core.ids import uuid7
 from herder.core.security import require_key
 from herder.models import ApiKey, BriefVersion, Entry, EntryLineage, EntryRevision, Job, Project
+from herder.services.derive import current_brief
 from herder.services.serve import NoBriefError, ServeError, resume as build_resume
 
 router = APIRouter(prefix="/v1", tags=["projects"])
@@ -94,13 +95,18 @@ async def brief(
 ) -> BriefOut:
     project = await _project_for(session, project_id, key)
 
-    query = select(BriefVersion).where(BriefVersion.project_id == project.id)
-    query = (
-        query.where(BriefVersion.version == version)
-        if version is not None
-        else query.order_by(BriefVersion.version.desc()).limit(1)
-    )
-    found = (await session.execute(query)).scalars().first()
+    if version is None:
+        # The pointer, not the highest version: a serve-time budget override stores a version
+        # that is higher but is not the project's brief.
+        found = await current_brief(session, project.id)
+    else:
+        found = (
+            await session.execute(
+                select(BriefVersion).where(
+                    BriefVersion.project_id == project.id, BriefVersion.version == version
+                )
+            )
+        ).scalars().first()
     if found is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -139,15 +145,8 @@ async def entries(
 ) -> list[EntryOut]:
     project = await _project_for(session, project_id, key)
 
-    current = (
-        await session.execute(
-            select(BriefVersion.included_entry_ids)
-            .where(BriefVersion.project_id == project.id)
-            .order_by(BriefVersion.version.desc())
-            .limit(1)
-        )
-    ).scalars().first() or []
-    included = set(current)
+    current = await current_brief(session, project.id)
+    included = set(current.included_entry_ids) if current is not None else set()
 
     query = (
         select(Entry, EntryRevision.title, EntryRevision.text_)

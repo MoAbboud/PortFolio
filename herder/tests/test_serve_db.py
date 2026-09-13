@@ -12,6 +12,7 @@ import pytest
 from sqlalchemy import func, select
 
 from herder.models import BriefVersion, Injection, Project
+from herder.services.derive import current_brief, render_project
 from herder.services.serve import ServeError, build_pack, preamble_for, resume
 from tests.test_derive_db import FakeExtractor, candidate, run, seeded  # noqa: F401
 
@@ -161,17 +162,63 @@ async def test_a_budget_override_does_not_change_the_project(session, account):
 
 @pytest.mark.asyncio
 async def test_an_override_does_not_leak_into_the_next_plain_serve(session, account):
-    """The override version becomes the highest version (invariant 5), so a plain serve that
-    just took the highest version would hand the next caller the shrunken brief - the
-    override quietly applying to every serve after it. Found reviewing stage 5."""
+    """The override's version is the highest version, so a plain serve that took the highest
+    handed every later caller the shrunken brief. Found reviewing stage 5. The plain serve
+    reads the pointer now, so it gets the brief from before the override - not a re-render of
+    it, which is what the first fix did and which wrote a duplicate version."""
     project = await seeded(session, account)
     await run(session, project, FakeExtractor([candidate(title=f"entry {i}") for i in range(6)]))
+    before = await resume(session, project)
 
     await resume(session, project, budget_tokens=150)
     plain = await resume(session, project)
 
     assert plain.budget_tokens == project.brief_budget_tokens
-    assert plain.rendered_fresh is True
+    assert plain.rendered_fresh is False
+    assert plain.brief_version_id == before.brief_version_id
+
+
+@pytest.mark.asyncio
+async def test_an_override_is_stored_but_does_not_become_the_current_brief(session, account):
+    """Invariant 5. Stored, because the injection points at it and stage 6 scores its text.
+    Not current, because the brief is what the project's own budget produces."""
+    project = await seeded(session, account)
+    await run(session, project, FakeExtractor([candidate()]))
+    brief_before = await current_brief(session, project.id)
+
+    pack = await resume(session, project, budget_tokens=150)
+
+    assert await session.get(BriefVersion, pack.brief_version_id) is not None
+    assert pack.version > brief_before.version
+    assert (await current_brief(session, project.id)).id == brief_before.id
+
+
+@pytest.mark.asyncio
+async def test_an_override_rendered_before_the_current_brief_is_not_reused(session, account):
+    """It was rendered from entries that have changed since, so serving it would be stale."""
+    project = await seeded(session, account)
+    await run(session, project, FakeExtractor([candidate()]))
+
+    old = await resume(session, project, budget_tokens=150)
+    await render_project(session, project, "adjust")
+    new = await resume(session, project, budget_tokens=150)
+
+    assert new.rendered_fresh is True
+    assert new.brief_version_id != old.brief_version_id
+
+
+@pytest.mark.asyncio
+async def test_the_brief_endpoint_shows_the_brief_not_the_override(client, account, session):
+    from herder.services.ingest import ingest_paste
+
+    project = account["project"]
+    await ingest_paste(session, account["workspace"].id, text="User: we use Postgres.\nAssistant: ok.", vendor="claude")
+    await session.refresh(project)
+    await run(session, project, FakeExtractor([candidate()]))
+
+    await resume(session, project, budget_tokens=150)
+    body = (await client.get(f"/v1/projects/{project.id}/brief")).json()
+    assert body["budget_tokens"] == project.brief_budget_tokens
 
 
 @pytest.mark.asyncio

@@ -8,6 +8,7 @@
   comparison the whole three-implementation arrangement exists to make possible.
 - `derive` runs the whole loop, steps A to F, and prints what merged into what.
 - `brief` prints the current brief and its compression ratio.
+- `render` re-renders the brief from stored entries, with no inference.
 - `resume` prints a pack ready to paste into a chat, and records the serve.
 """
 
@@ -27,7 +28,7 @@ from herder.core.security import generate_key
 from herder.extractors import get_extractor
 from herder.models import ApiKey, Project, User, Workspace
 from herder.models import BriefVersion
-from herder.services.derive import derive_project
+from herder.services.derive import current_brief, derive_project, render_project
 from herder.services.serve import ServeError, resume as build_resume
 from herder.services.extraction import ExtractionRun, extract_project, load_chunks
 
@@ -275,13 +276,17 @@ async def brief(reference: str, version: int | None) -> int:
 
     async with sessionmaker() as session:
         project = await _find_project(session, reference)
-        query = select(BriefVersion).where(BriefVersion.project_id == project.id)
-        query = (
-            query.where(BriefVersion.version == version)
-            if version is not None
-            else query.order_by(BriefVersion.version.desc()).limit(1)
-        )
-        found = (await session.execute(query)).scalars().first()
+        if version is None:
+            # The pointer, not the highest version - an override's version is not the brief.
+            found = await current_brief(session, project.id)
+        else:
+            found = (
+                await session.execute(
+                    select(BriefVersion).where(
+                        BriefVersion.project_id == project.id, BriefVersion.version == version
+                    )
+                )
+            ).scalars().first()
 
     if found is None:
         raise SystemExit(f"{project.name} has no brief yet. Run: python -m herder derive --project {project.name}")
@@ -297,6 +302,29 @@ async def brief(reference: str, version: int | None) -> int:
     print("-" * 78)
     print(found.rendered_text)
     print("-" * 78)
+    return 0
+
+
+async def render(reference: str) -> int:
+    """Re-render the brief from the stored entries. No inference, no ageing, nothing extracted.
+
+    The CLI twin of `POST /v1/projects/{id}/render`, run inline rather than enqueued. Needed
+    whenever the render itself changes: a stored version is immutable, so a brief rendered
+    before a render fix keeps the old layout until something renders it again.
+    """
+    sessionmaker = get_sessionmaker()
+
+    async with sessionmaker() as session:
+        project = await _find_project(session, reference)
+        previous = await current_brief(session, project.id)
+        if previous is None:
+            raise SystemExit(f"{project.name} has no brief yet. Run: python -m herder derive --project {project.name}")
+        version = await render_project(session, project, "adjust")
+        await session.commit()
+
+    print(f"project      {project.name}")
+    print(f"version      {previous.version} -> {version.version}")
+    print(f"tokens       {previous.token_count} -> {version.token_count} of a {version.budget_tokens} budget")
     return 0
 
 
@@ -362,6 +390,9 @@ def main(argv: list[str] | None = None) -> int:
     br.add_argument("--project", default="default", help="project name or id")
     br.add_argument("--version", type=int, default=None, help="a specific version")
 
+    ren = sub.add_parser("render", help="re-render the brief from stored entries, no inference")
+    ren.add_argument("--project", default="default", help="project name or id")
+
     res = sub.add_parser("resume", help="stage 5: a pack ready to paste into a chat")
     res.add_argument("--project", default="default", help="project name or id")
     res.add_argument("--vendor", default="default", choices=("default", "claude", "chatgpt", "gemini"))
@@ -384,6 +415,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "brief":
         return asyncio.run(brief(args.project, args.version))
+
+    if args.command == "render":
+        return asyncio.run(render(args.project))
 
     if args.command == "resume":
         return asyncio.run(resume(args.project, args.vendor, args.budget, args.quiet))

@@ -334,7 +334,15 @@ two that follow from decisions made in this folder.
 3. An entry with `status = removed` never appears in `included_entry_ids`, never gets
    probed, and never receives a new lineage row.
 4. `brief_versions.rendered_text` is immutable.
-5. `projects.current_brief_version_id` always points at the highest version for that project.
+5. `projects.current_brief_version_id` points at the highest version **rendered at the
+   project's own budget**. A serve-time budget override stores its version - the injection
+   points at it, and a checkpoint scores exactly that text - but never moves the pointer, so
+   the brief every other reader sees is not changed by one caller asking for a smaller pack.
+   Readers of "the brief" read the pointer, never the highest version.
+
+   *Was:* "always points at the highest version for that project". True until stage 5 added
+   overrides, after which it made one `resume --budget 150` the brief for every later serve.
+   Changed after the stage 5 review; the reasoning is in `06-context.md`.
 6. `entry_revisions` has a row for every revision from 1 to `entries.current_revision`.
 7. Compression ratio for a version is at least 1 **once the source exceeds the budget**.
    As first written this said "always", and that is false rather than merely untested: a

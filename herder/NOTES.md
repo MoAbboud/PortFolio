@@ -646,3 +646,11 @@ Worth noticing when the pack is tried by hand: `loop-demo`'s brief still says pr
 Postgres "and always will" while its own tail says the user switched to MySQL - the stage 3
 missed reversal, sitting inside the pack. "What database does production use?" tests both it
 and the "user wins" line at once.
+
+**Later the same day - the override is stored but never the brief.** The first fix re-rendered
+on the plain serve after an override, which wrote a copy of the brief as a new version. Now
+only a render at the project's own budget moves `current_brief_version_id`, and `GET /brief`,
+`herder brief`, the entries endpoint and plain serves all read that pointer. Checked on
+`loop-demo` in a rolled-back transaction: render v4, override v5, repeated override reused v5,
+plain serve v4 with nothing re-rendered. Invariant 5 reworded. 278 tests pass. Added `herder
+render`, because a brief rendered before the tail fix keeps the old layout until re-rendered.

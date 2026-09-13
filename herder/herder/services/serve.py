@@ -24,7 +24,7 @@ from herder.core.ids import uuid7
 from herder.core.tokens import count_tokens
 from herder.models import BriefVersion, Checkpoint, Injection, Project
 from herder.prompts import load_prompt
-from herder.services.derive import render_project
+from herder.services.derive import current_brief, render_project
 
 log = logging.getLogger("herder.serve")
 
@@ -127,12 +127,10 @@ async def resume(
     sent. Rendering is cheap - no inference at all - so the honest option is also the easy
     one.
 
-    **The version served is the highest one only if it was rendered at the budget asked for.**
-    An override's version becomes the highest version (invariant 5), so "serve the highest"
-    on its own would hand every later caller the shrunken brief - the override applying to
-    every serve after it, which is exactly what it must not do. The same check also re-renders
-    when the project's budget has changed since the last render, and lets a repeated override
-    reuse the version it already rendered instead of writing a duplicate.
+    **An override's version is stored but never becomes the current brief** (invariant 5). A
+    plain serve reads the project's pointer, so it is unaffected by any override before it.
+    An override reuses a version already rendered at its budget, but only one newer than the
+    current brief - an older one was rendered from entries that have since changed.
     """
     if door not in DOORS:
         raise ServeError(f"unknown door {door!r}; expected one of {', '.join(DOORS)}")
@@ -141,31 +139,41 @@ async def resume(
     # Normalised before it is stored: stage 6 groups by vendor, and "Claude" is "claude".
     vendor = (vendor or "").strip().lower() or "default"
 
-    latest = (
-        await session.execute(
-            select(BriefVersion)
-            .where(BriefVersion.project_id == project.id)
-            .order_by(BriefVersion.version.desc())
-            .limit(1)
-        )
-    ).scalars().first()
+    current = await current_brief(session, project.id)
 
     # Checked before any render. A render needs no derive to run, so an override on a project
     # that was never derived would otherwise serve an empty pack and record it as sent.
-    if latest is None:
+    if current is None:
         raise NoBriefError(
             f"{project.name} has no brief yet. Run a derive first: "
             f"python -m herder derive --project {project.name}"
         )
 
-    wanted = budget_tokens if budget_tokens is not None else project.brief_budget_tokens
-    rendered_fresh = latest.budget_tokens != wanted
-    if rendered_fresh:
+    version: BriefVersion | None
+    if budget_tokens is None or budget_tokens == project.brief_budget_tokens:
+        # Re-rendered only if the project's budget has changed since the brief was rendered.
+        version = current if current.budget_tokens == project.brief_budget_tokens else None
+    else:
+        version = (
+            await session.execute(
+                select(BriefVersion)
+                .where(
+                    BriefVersion.project_id == project.id,
+                    BriefVersion.budget_tokens == budget_tokens,
+                    BriefVersion.version > current.version,
+                )
+                .order_by(BriefVersion.version.desc())
+                .limit(1)
+            )
+        ).scalars().first()
+
+    rendered_fresh = version is None
+    if version is None:
         # The budget is passed through, never written onto the project: a caller asking for a
         # smaller pack once must not quietly shrink every future derive.
-        version = await render_project(session, project, "manual", budget_tokens=wanted)
-    else:
-        version = latest
+        version = await render_project(
+            session, project, "manual", budget_tokens=budget_tokens
+        )
 
     integrity = await _latest_integrity(session, project.id)
     text = build_pack(project.name, version.version, version.rendered_text, vendor, integrity)

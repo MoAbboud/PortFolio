@@ -533,7 +533,13 @@ async def render_project(
     `budget_tokens` overrides the project's budget for this render only. It is a parameter
     rather than a temporary edit to `project.brief_budget_tokens`, because an edited ORM object
     is flushed with the render and the override would be written to the project row.
+
+    **An override's version is stored but never becomes the current brief.** It has to be
+    stored: the injection points at it, and stage 6 scores exactly the text that was sent. It
+    must not be current: the brief is what the project's own budget produces, and a caller
+    asking once for a smaller pack does not get to change what every other reader sees.
     """
+    effective_budget = budget_tokens if budget_tokens is not None else project.brief_budget_tokens
     rows = (
         await session.execute(
             select(Entry, EntryRevision.title, EntryRevision.text_)
@@ -568,7 +574,7 @@ async def render_project(
 
     rendered = render_brief(
         entries,
-        budget_tokens if budget_tokens is not None else project.brief_budget_tokens,
+        effective_budget,
         count_tokens,
         tail_text=tail_text,
         tail_entry_id=tail_id,
@@ -585,7 +591,7 @@ async def render_project(
     # `max + 1` is a race without this. Since stage 5 a render can run inside an HTTP request
     # (a resume with a budget override) while a derive or render job is running for the same
     # project, and both would pick the same number and one would die on the unique constraint.
-    # The project row is updated below anyway, so this only takes that lock earlier.
+    # The project row is the natural thing to serialise renders on: it holds the pointer.
     await session.execute(select(Project.id).where(Project.id == project.id).with_for_update())
 
     next_version = int(
@@ -614,12 +620,28 @@ async def render_project(
     session.add(version)
     await session.flush()
 
-    # Invariant 5: this always points at the highest version for the project.
-    await session.execute(
-        update(Project).where(Project.id == project.id).values(current_brief_version_id=version.id)
-    )
-    await session.flush()
+    # Invariant 5: this points at the highest version rendered at the project's own budget.
+    if effective_budget == project.brief_budget_tokens:
+        await session.execute(
+            update(Project).where(Project.id == project.id).values(current_brief_version_id=version.id)
+        )
+        await session.flush()
     return version
+
+
+async def current_brief(session: AsyncSession, project_id: uuid.UUID) -> BriefVersion | None:
+    """The project's brief - what its pointer names, which is not always the highest version.
+
+    Read as a column rather than from the `Project` object, because the pointer is written
+    with a core `update()` that does not refresh an object already in the session. Reading
+    the attribute after a render in the same session would return the previous version.
+    """
+    pointer = (
+        await session.execute(
+            select(Project.current_brief_version_id).where(Project.id == project_id)
+        )
+    ).scalar_one_or_none()
+    return await session.get(BriefVersion, pointer) if pointer is not None else None
 
 
 # --------------------------------------------------------------------- the loop

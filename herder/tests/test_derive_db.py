@@ -329,7 +329,8 @@ async def test_a_failed_chunk_leaves_the_cursor_where_it_was(session, account):
 
 
 async def test_the_brief_version_increments_and_the_project_points_at_it(session, account):
-    """Invariant 5."""
+    """Invariant 5, for a render at the project's own budget. The override half - stored but
+    never current - is tested in test_serve_db.py, where overrides come from."""
     project = await seeded(session, account)
     await run(session, project, FakeExtractor([candidate()]))
     await session.refresh(project)

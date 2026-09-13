@@ -3,7 +3,7 @@
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
 
 **Stages 0 to 5 are done, except for one stage 5 task that needs a person and a browser.**
-275 tests pass. A transcript goes in, and a budgeted, lineage-backed brief comes out as a pack
+278 tests pass. A transcript goes in, and a budgeted, lineage-backed brief comes out as a pack
 ready to paste into any chat. **Stage 6 - probes, checkpoints and the integrity score - is the
 current work.**
 
@@ -345,9 +345,12 @@ existed passed throughout, because none served twice. Detail in `06-context.md`.
 - [x] Pack assembly: preamble, the three layer sections, the tail
 - [x] `GET /v1/projects/{id}/resume` with vendor, budget and door, writing an `injections` row
 - [x] Budget override at serve time renders a fresh version rather than truncating the
-      current one - and a serve only reuses the highest version if it was rendered at the
-      budget asked for, so the override does not leak into the serves after it (fixed on
-      review; it did, as first ticked)
+      current one - stored, but never the current brief: only a render at the project's own
+      budget moves `current_brief_version_id`, and every reader of "the brief" reads that
+      pointer (invariant 5 reworded). As first ticked, the override leaked into every later
+      serve
+- [x] CLI `herder render`, re-rendering from stored entries with no inference - a stored
+      version is immutable, so a brief rendered before a render fix needs this to change
 - [x] CLI `herder resume`, so a pack can be pasted into a real chat by hand and looked at
 - [~] Tried by hand in at least two different chatbots, and what each one did with it written
       down
