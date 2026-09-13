@@ -2,8 +2,7 @@
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
 
-**Stages 0 to 5 are done, except for one stage 5 task that needs a person and a browser.**
-278 tests pass. A transcript goes in, and a budgeted, lineage-backed brief comes out as a pack
+**Stages 0 to 5 are done.** 278 tests pass. A transcript goes in, and a budgeted, lineage-backed brief comes out as a pack
 ready to paste into any chat. **Stage 6 - probes, checkpoints and the integrity score - is the
 current work.**
 
@@ -352,16 +351,13 @@ existed passed throughout, because none served twice. Detail in `06-context.md`.
 - [x] CLI `herder render`, re-rendering from stored entries with no inference - a stored
       version is immutable, so a brief rendered before a render fix needs this to change
 - [x] CLI `herder resume`, so a pack can be pasted into a real chat by hand and looked at
-- [~] Tried by hand in at least two different chatbots, and what each one did with it written
+- [x] Tried by hand in at least two different chatbots, and what each one did with it written
       down
 
-      Needs a browser, so it is not something the build can close:
-
-          python -m herder resume --project loop-demo --vendor claude --quiet | clip
-
-      Paste into two chatbots, ask something only the carried context can answer, and write
-      down what each did - particularly whether either ignored the instruction not to
-      summarise the block back.
+      Done 2026-09-13 in claude.ai and chatgpt.com, `loop-demo` v4, one try each. Both obeyed
+      "do not summarise". Asked which database production uses, **Claude said MySQL** (right,
+      from the tail) and **ChatGPT said PostgreSQL 16.2** (wrong, from the stale entries).
+      Written up in `NOTES.md`; what it means is a stage 10 question.
 
 ## Stage 6 - Verify
 

@@ -654,3 +654,44 @@ only a render at the project's own budget moves `current_brief_version_id`, and 
 `loop-demo` in a rolled-back transaction: render v4, override v5, repeated override reused v5,
 plain serve v4 with nothing re-rendered. Invariant 5 reworded. 278 tests pass. Added `herder
 render`, because a brief rendered before the tail fix keeps the old layout until re-rendered.
+
+## 2026-09-13 - the pack tried by hand: Claude
+
+Facts only; the reading of them is the author's to add.
+
+- **Where:** claude.ai in the browser, a new chat. Pack `loop-demo` v4, vendor `claude`, 353
+  tokens, sent alone as the first message. (Whether the chat was incognito: not yet recorded.)
+- **Reply to the pack alone:** "What would you like to work on?" No summary, no acknowledgement
+  of the block. The collapsed thinking label read "Spotting a conflict between stated database
+  constraints" - it noticed the contradiction but did not mention it in the reply.
+- **"What database does production use?"** -> "MySQL — that was the switch you made from
+  Postgres." One line, no preamble, which also matches the `[preference]` entry.
+- **Where the right answer came from:** only the verbatim `[tail]`. Every entry in the pack -
+  two constraints and two decisions - still says Postgres, because the extractor missed the
+  reversal at stage 3. The tail's reserved share is what carried it.
+- ChatGPT: not yet tried.
+
+## 2026-09-13 - the pack tried by hand: ChatGPT
+
+Facts only; the reading of them is the author's to add.
+
+- **Where:** chatgpt.com in the browser. Same pack, `loop-demo` v4, vendor `chatgpt`, sent
+  alone as the first message. (Temporary Chat or not: not yet recorded.)
+- **Reply to the pack alone:** "What do you want to tackle next?" No summary, no
+  acknowledgement.
+- **"What database does production use?"** -> "Production uses PostgreSQL 16.2." **Wrong.** It
+  took the `[decision]` entries and ignored the tail's "switching from Postgres to MySQL".
+
+### The two side by side
+
+| | Summarised the pack? | Which database |
+| --- | --- | --- |
+| Claude | No | MySQL - right, from the tail |
+| ChatGPT | No | PostgreSQL 16.2 - wrong, from the entries |
+
+- **The "do not summarise" line held in both.**
+- **"The user wins" did not settle it, and could not have.** That line covers a conflict
+  between the block and what the user says *now*. This conflict is *inside* the block - four
+  entries against one tail line - and nothing in the preamble says which part of the block is
+  newer. Claude inferred it; ChatGPT did not.
+- One try each. A single disagreement between two models is an anecdote, not a rate.
