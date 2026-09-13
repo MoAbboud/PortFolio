@@ -25,6 +25,7 @@ NLI, not a generative judge, run on (premise, hypothesis) pairs:
     forward entails                          ->  1    the answer carries the expected fact
     forward contradicts                      ->  0    the answer says something else
     forward neutral, backward entails        ->  0.5  what it said is true, but not all of it
+                                                      (the author's call, 2026-09-13)
     forward neutral, backward does not       ->  0    the answer does not carry the fact
     forward below the confidence floor       ->  inconclusive: excluded and flagged
 

@@ -2,9 +2,7 @@
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
 
-**Stages 0 to 6 are done, except that stage 6's checkpoint job has not yet completed in the
-Docker worker** - the image needs rebuilding with the NLI library it was always missing. 330
-tests pass. A transcript goes in, a budgeted brief comes out as a pack, and a checkpoint says
+**Stages 0 to 6 are done.** 330 tests pass. A transcript goes in, a budgeted brief comes out as a pack, and a checkpoint says
 how much of it a model actually received. **Stage 7 - adjust - is next.**
 
 **Two things are outstanding behind it, both measurement rather than code.** The full `local`
@@ -362,7 +360,7 @@ existed passed throughout, because none served twice. Detail in `06-context.md`.
 
 ## Stage 6 - Verify
 
-**Built 2026-09-13; one task waits on a Docker image rebuild.** A checkpoint probes a served
+**Done 2026-09-13.** A checkpoint probes a served
 pack with the local model, grades by NLI, and scores integrity by category. Run for real on
 `loop-demo` four times, and the first real run is what made it work: the answer prompt made
 qwen2.5:3b say "Not stated." to everything, the probe writer declined half the entries, and
@@ -384,10 +382,11 @@ it invented expected answers. All three fixed and measured, detail in `06-contex
 - [x] Suggestions created for excluded and uncovered zeroes, one open suggestion per miss
 - [x] `POST /v1/injections/{id}/checkpoint` in `local` mode, `GET /v1/checkpoints/{id}`,
       `GET /v1/projects/{id}/integrity`, plus `herder checkpoint` on the CLI
-- [~] The checkpoint job completing in the Docker worker. It reaches the handler and fails
-      with "sentence-transformers is not installed": `requirements.txt` had it commented out
-      since stage 3, so the image never had NLI. Fixed in `requirements.txt` and the
-      `Dockerfile` (CPU torch); **needs `docker compose build worker api`, not yet run**
+- [x] The checkpoint job completing in the Docker worker. It first failed with
+      "sentence-transformers is not installed": `requirements.txt` had it commented out since
+      stage 3, so the image never had NLI. Fixed there and in the `Dockerfile` (CPU torch,
+      1.51 GB image). After the rebuild: **done, integrity 0.50 over 4 probes in 6.8 s**,
+      identical to the CLI run on the same serve
 - [x] The wall-clock of one checkpoint recorded: **8.6 to 10.2 s** warm for 2 to 4 graded
       probes on `loop-demo`, 17.5 s on the first run of the session (NLI model load)
 
