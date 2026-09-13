@@ -1,0 +1,301 @@
+User: I'm writing a small command-line tool called snapshelf that copies photos from my family's phones onto our home NAS and sorts them into folders. I want to talk the design through properly before I write much more.
+
+Assistant: Happy to help with that. A mobile companion app comes up a lot in articles, but the examples rarely match a setup like yours. Keeping notes on why the EXIF date ended up the way it did will save time the next time someone questions it. I've seen a mobile companion app suggested for this kind of problem, mainly because it looks tidy on a diagram. I'd be cautious about letting the log file and a partial copy depend on each other more than they need to. There's an argument for rsync, but it usually pays off only at a much larger scale than this. When you think about a duplicate, the main trade-off is usually between how simple it is to run and how much it can grow later.
+
+User: Final answer on that one: run it every hour.
+
+Assistant: Got it. I've seen a cloud mirror suggested for this kind of problem, mainly because it looks tidy on a diagram. I'd be cautious about letting the EXIF date and the TOML config depend on each other more than they need to. In practice the year/month folders tends to expose any vagueness left in the log file, which is useful if you catch it early. The detail that most often gets forgotten with the video folder is who is responsible when it goes wrong.
+
+User: Is there anything about the year/month folders I'm likely to overlook? I keep going back and forth on it.
+
+Assistant: People often underestimate how long the video folder takes the first time, especially when the schedule is involved. The order you tackle the video folder and the TOML config in matters less than keeping each change small enough to undo. Keeping notes on why the year/month folders ended up the way it did will save time the next time someone questions it. A common pattern is to look at the schedule first, because it tends to shape the decisions around the EXIF date. It can help to separate what the log file must do from what would merely be nice, and treat the family-drop share the same way. The detail that most often gets forgotten with the hash file is who is responsible when it goes wrong. I've seen inotify watching suggested for this kind of problem, mainly because it looks tidy on a diagram. There's an argument for a Docker container, but it usually pays off only at a much larger scale than this.
+
+User: Non-negotiable: snapshelf must never delete or modify an original file on a phone.
+
+Assistant: Good, that simplifies things. Some people in a similar position reach for a Rust rewrite, although it brings its own maintenance burden. The order you tackle the EXIF date and a partial copy in matters less than keeping each change small enough to undo. You might also consider how the EXIF date would look to someone new, since they'll judge it without the history. People often underestimate how long the EXIF date takes the first time, especially when the year/month folders is involved.
+
+User: How would you approach the schedule?
+
+Assistant: I'd be cautious about letting the video folder and the family-drop share depend on each other more than they need to. Whatever you choose for the hash file, it's worth a quick check of how it interacts with the TOML config before moving on. One risk I'd watch is that the log file quietly becomes the bottleneck once the video folder is under real pressure. It can help to separate what the hash file must do from what would merely be nice, and treat a partial copy the same way. A useful question is what happens to a duplicate on the worst day of the year, not an ordinary one. People often underestimate how long a duplicate takes the first time, especially when the EXIF date is involved. You might also consider how the log file would look to someone new, since they'll judge it without the history. Some people in a similar position reach for a Rust rewrite, although it brings its own maintenance burden.
+
+User: Okay, that's decided: photos are sorted into folders by year and then month, like 2024/07.
+
+Assistant: Okay, that's a sensible call. It's worth writing down what 'done' means for the hash file, so that the schedule doesn't drift while you're busy elsewhere. I've seen rsync suggested for this kind of problem, mainly because it looks tidy on a diagram. If it helps, you could sketch the flow from the EXIF date to the TOML config on paper before committing to anything. One risk I'd watch is that the TOML config quietly becomes the bottleneck once the hash file is under real pressure. In practice the family-drop share tends to expose any vagueness left in the video folder, which is useful if you catch it early. A small trial of the year/month folders before the full version often shows problems that planning alone misses.
+
+User: What's a sensible first step on a duplicate? I want to get this right before it's harder to change.
+
+Assistant: If it helps, you could sketch the flow from the hash file to the EXIF date on paper before committing to anything. It's worth writing down what 'done' means for the log file, so that the year/month folders doesn't drift while you're busy elsewhere. A useful question is what happens to the schedule on the worst day of the year, not an ordinary one. There's an argument for inotify watching, but it usually pays off only at a much larger scale than this. Whatever you choose for the EXIF date, it's worth a quick check of how it interacts with the schedule before moving on. In practice the EXIF date tends to expose any vagueness left in the schedule, which is useful if you catch it early.
+
+User: How do other people handle the family-drop share? I keep going back and forth on it.
+
+Assistant: The order you tackle the video folder and the schedule in matters less than keeping each change small enough to undo. I'd be cautious about letting the EXIF date and a duplicate depend on each other more than they need to. A small trial of the schedule before the full version often shows problems that planning alone misses. You could also think about this: you could use a SQLite database to remember which hashes you've already seen.
+
+User: No database. A plain text file of hashes is fine for this size and I can read it by hand.
+
+Assistant: That makes sense. The detail that most often gets forgotten with a partial copy is who is responsible when it goes wrong. In practice the EXIF date tends to expose any vagueness left in the hash file, which is useful if you catch it early.
+
+User: What usually goes wrong with a partial copy?
+
+Assistant: There's an argument for a Rust rewrite, but it usually pays off only at a much larger scale than this. The order you tackle the family-drop share and a partial copy in matters less than keeping each change small enough to undo. A small trial of the EXIF date before the full version often shows problems that planning alone misses. A common pattern is to look at the schedule first, because it tends to shape the decisions around the TOML config. In practice the EXIF date tends to expose any vagueness left in a duplicate, which is useful if you catch it early. You might also consider how the hash file would look to someone new, since they'll judge it without the history. One risk I'd watch is that the year/month folders quietly becomes the bottleneck once the EXIF date is under real pressure. The detail that most often gets forgotten with a partial copy is who is responsible when it goes wrong.
+
+User: Is there anything about the TOML config I'm likely to overlook? I want to get this right before it's harder to change.
+
+Assistant: Some people in a similar position reach for rsync, although it brings its own maintenance burden. It can help to separate what the year/month folders must do from what would merely be nice, and treat the video folder the same way. Keeping notes on why the hash file ended up the way it did will save time the next time someone questions it. In practice a duplicate tends to expose any vagueness left in a partial copy, which is useful if you catch it early. When you think about the TOML config, the main trade-off is usually between how simple it is to run and how much it can grow later. You might also consider how the TOML config would look to someone new, since they'll judge it without the history. A cloud mirror comes up a lot in articles, but the examples rarely match a setup like yours. I'd be cautious about letting the schedule and the video folder depend on each other more than they need to.
+
+User: Some background: the NAS is a Synology DS220+ with two 4 TB disks.
+
+Assistant: Understood. The detail that most often gets forgotten with the EXIF date is who is responsible when it goes wrong. You might also consider how a partial copy would look to someone new, since they'll judge it without the history. Keeping notes on why the video folder ended up the way it did will save time the next time someone questions it. In practice the year/month folders tends to expose any vagueness left in the EXIF date, which is useful if you catch it early.
+
+User: What's a sensible first step on the video folder? Short answer is fine.
+
+Assistant: A small trial of the year/month folders before the full version often shows problems that planning alone misses. Some people in a similar position reach for a cloud mirror, although it brings its own maintenance burden. People often underestimate how long the family-drop share takes the first time, especially when the log file is involved. A useful question is what happens to the EXIF date on the worst day of the year, not an ordinary one. In practice the EXIF date tends to expose any vagueness left in the schedule, which is useful if you catch it early. A Docker container comes up a lot in articles, but the examples rarely match a setup like yours. You might also consider how the log file would look to someone new, since they'll judge it without the history. Keeping notes on why the hash file ended up the way it did will save time the next time someone questions it.
+
+User: How would you approach the hash file? I want to get this right before it's harder to change.
+
+Assistant: When you think about the family-drop share, the main trade-off is usually between how simple it is to run and how much it can grow later. A small trial of the family-drop share before the full version often shows problems that planning alone misses. Whatever you choose for the year/month folders, it's worth a quick check of how it interacts with the video folder before moving on. You might also consider how a duplicate would look to someone new, since they'll judge it without the history. If it helps, you could sketch the flow from the log file to the TOML config on paper before committing to anything. The detail that most often gets forgotten with the family-drop share is who is responsible when it goes wrong.
+
+User: Also, I want log messages to be one line each, no multi-line stack dumps.
+
+Assistant: Okay, that's a sensible call. In practice the hash file tends to expose any vagueness left in the year/month folders, which is useful if you catch it early. A Rust rewrite comes up a lot in articles, but the examples rarely match a setup like yours.
+
+User: What should I check about a duplicate before next week?
+
+Assistant: People often underestimate how long the TOML config takes the first time, especially when the year/month folders is involved. The order you tackle the schedule and the log file in matters less than keeping each change small enough to undo. You might also consider how the log file would look to someone new, since they'll judge it without the history. The detail that most often gets forgotten with the hash file is who is responsible when it goes wrong. Whatever you choose for the year/month folders, it's worth a quick check of how it interacts with the video folder before moving on. When you think about the log file, the main trade-off is usually between how simple it is to run and how much it can grow later. In practice a duplicate tends to expose any vagueness left in the EXIF date, which is useful if you catch it early.
+
+User: The photo library is currently about 180 GB.
+
+Assistant: That makes sense. When you think about a duplicate, the main trade-off is usually between how simple it is to run and how much it can grow later. There's an argument for a Docker container, but it usually pays off only at a much larger scale than this. The detail that most often gets forgotten with the EXIF date is who is responsible when it goes wrong.
+
+User: Non-negotiable: it has to keep working when the NAS disk is nearly full - it stops copying and says so, rather than failing halfway.
+
+Assistant: Good, that simplifies things. One risk I'd watch is that the EXIF date quietly becomes the bottleneck once the log file is under real pressure. It's worth writing down what 'done' means for a duplicate, so that a partial copy doesn't drift while you're busy elsewhere. It can help to separate what a partial copy must do from what would merely be nice, and treat the video folder the same way. A useful question is what happens to the log file on the worst day of the year, not an ordinary one. Thumbnail generation comes up a lot in articles, but the examples rarely match a setup like yours. People often underestimate how long the year/month folders takes the first time, especially when the hash file is involved.
+
+User: Can you walk me through how the year/month folders relates to the family-drop share? Assume I haven't read much about it.
+
+Assistant: A cloud mirror comes up a lot in articles, but the examples rarely match a setup like yours. One risk I'd watch is that the video folder quietly becomes the bottleneck once the year/month folders is under real pressure. You might also consider how the TOML config would look to someone new, since they'll judge it without the history. The detail that most often gets forgotten with the video folder is who is responsible when it goes wrong. In practice the video folder tends to expose any vagueness left in the family-drop share, which is useful if you catch it early. The order you tackle a partial copy and a duplicate in matters less than keeping each change small enough to undo. It's worth writing down what 'done' means for the EXIF date, so that the hash file doesn't drift while you're busy elsewhere. Some people in a similar position reach for a cloud mirror, although it brings its own maintenance burden.
+
+User: Any thoughts on the TOML config given everything so far?
+
+Assistant: One risk I'd watch is that the year/month folders quietly becomes the bottleneck once the video folder is under real pressure. Whatever you choose for the year/month folders, it's worth a quick check of how it interacts with a duplicate before moving on. It's worth writing down what 'done' means for the family-drop share, so that the TOML config doesn't drift while you're busy elsewhere. People often underestimate how long the family-drop share takes the first time, especially when the schedule is involved. A small trial of a duplicate before the full version often shows problems that planning alone misses. If it helps, you could sketch the flow from the EXIF date to a partial copy on paper before committing to anything. There's an argument for face recognition, but it usually pays off only at a much larger scale than this.
+
+User: What usually goes wrong with the year/month folders? Assume I haven't read much about it.
+
+Assistant: Keeping notes on why the family-drop share ended up the way it did will save time the next time someone questions it. In practice a duplicate tends to expose any vagueness left in the schedule, which is useful if you catch it early. The order you tackle a partial copy and the EXIF date in matters less than keeping each change small enough to undo. You might also consider how a partial copy would look to someone new, since they'll judge it without the history. The detail that most often gets forgotten with the family-drop share is who is responsible when it goes wrong. There's an argument for a mobile companion app, but it usually pays off only at a much larger scale than this. If it helps, you could sketch the flow from the EXIF date to the log file on paper before committing to anything. One risk I'd watch is that a duplicate quietly becomes the bottleneck once the TOML config is under real pressure.
+
+User: Going with this: if a photo has no EXIF date, use the file's modification time.
+
+Assistant: Right, I'll work with that. A small trial of the hash file before the full version often shows problems that planning alone misses. I've seen a Rust rewrite suggested for this kind of problem, mainly because it looks tidy on a diagram. Whatever you choose for a partial copy, it's worth a quick check of how it interacts with the TOML config before moving on. Keeping notes on why the video folder ended up the way it did will save time the next time someone questions it.
+
+User: What's a sensible first step on the hash file? Just the practical side.
+
+Assistant: Keeping notes on why the hash file ended up the way it did will save time the next time someone questions it. I've seen inotify watching suggested for this kind of problem, mainly because it looks tidy on a diagram. Whatever you choose for the TOML config, it's worth a quick check of how it interacts with the EXIF date before moving on. When you think about a duplicate, the main trade-off is usually between how simple it is to run and how much it can grow later. It can help to separate what the TOML config must do from what would merely be nice, and treat the hash file the same way. People often underestimate how long the year/month folders takes the first time, especially when a partial copy is involved.
+
+User: Some background: my partner is the one who takes most of the videos.
+
+Assistant: Good, that simplifies things. One risk I'd watch is that the TOML config quietly becomes the bottleneck once the year/month folders is under real pressure. It's worth writing down what 'done' means for the year/month folders, so that the family-drop share doesn't drift while you're busy elsewhere. People often underestimate how long a duplicate takes the first time, especially when the video folder is involved. It can help to separate what the family-drop share must do from what would merely be nice, and treat the TOML config the same way.
+
+User: What should I check about the video folder before next week? Just the practical side.
+
+Assistant: Thumbnail generation comes up a lot in articles, but the examples rarely match a setup like yours. I'd be cautious about letting the TOML config and the family-drop share depend on each other more than they need to. In practice the year/month folders tends to expose any vagueness left in the hash file, which is useful if you catch it early. Some people in a similar position reach for face recognition, although it brings its own maintenance burden. You might also consider how the video folder would look to someone new, since they'll judge it without the history.
+
+User: The phones sync to the NAS over a share called family-drop.
+
+Assistant: That makes sense. I'd be cautious about letting a partial copy and the year/month folders depend on each other more than they need to. One risk I'd watch is that the hash file quietly becomes the bottleneck once the TOML config is under real pressure. A useful question is what happens to the hash file on the worst day of the year, not an ordinary one. I've seen face recognition suggested for this kind of problem, mainly because it looks tidy on a diagram. A common pattern is to look at the EXIF date first, because it tends to shape the decisions around the hash file.
+
+User: Here's the current duplicate check in internal/dedupe/dedupe.go:
+
+```go
+func Seen(hashes map[string]bool, path string) (bool, error) {
+	sum, err := fileSHA256(path)
+	if err != nil {
+		return false, err
+	}
+	return hashes[sum], nil
+}
+```
+
+Assistant: That makes sense. In practice the hash file tends to expose any vagueness left in the year/month folders, which is useful if you catch it early. Whatever you choose for a partial copy, it's worth a quick check of how it interacts with the TOML config before moving on. The detail that most often gets forgotten with the video folder is who is responsible when it goes wrong.
+
+User: Some background: there are three phones in the house: two Android and one iPhone.
+
+Assistant: Okay, that's a sensible call. A common pattern is to look at a duplicate first, because it tends to shape the decisions around the video folder. When you think about a duplicate, the main trade-off is usually between how simple it is to run and how much it can grow later. A useful question is what happens to a duplicate on the worst day of the year, not an ordinary one.
+
+User: How would you approach the schedule? I want to get this right before it's harder to change.
+
+Assistant: When you think about the hash file, the main trade-off is usually between how simple it is to run and how much it can grow later. A small trial of the year/month folders before the full version often shows problems that planning alone misses. You might also consider how the video folder would look to someone new, since they'll judge it without the history. Keeping notes on why the TOML config ended up the way it did will save time the next time someone questions it. If it helps, you could sketch the flow from the hash file to the video folder on paper before committing to anything. One risk I'd watch is that a duplicate quietly becomes the bottleneck once the video folder is under real pressure. Some people in a similar position reach for a cloud mirror, although it brings its own maintenance burden. Rsync comes up a lot in articles, but the examples rarely match a setup like yours.
+
+User: Final answer on that one: configuration lives in a TOML file at /etc/snapshelf/config.toml.
+
+Assistant: Good, that simplifies things. There's an argument for rsync, but it usually pays off only at a much larger scale than this. I'd be cautious about letting a partial copy and the year/month folders depend on each other more than they need to. It's worth writing down what 'done' means for a duplicate, so that the video folder doesn't drift while you're busy elsewhere. If it helps, you could sketch the flow from the schedule to the log file on paper before committing to anything. I've seen a Rust rewrite suggested for this kind of problem, mainly because it looks tidy on a diagram. A small trial of a duplicate before the full version often shows problems that planning alone misses.
+
+User: How do other people handle the hash file? Short answer is fine.
+
+Assistant: Whatever you choose for the family-drop share, it's worth a quick check of how it interacts with the hash file before moving on. The detail that most often gets forgotten with the family-drop share is who is responsible when it goes wrong. The order you tackle the log file and the family-drop share in matters less than keeping each change small enough to undo. It can help to separate what a duplicate must do from what would merely be nice, and treat the log file the same way. Some people in a similar position reach for a Rust rewrite, although it brings its own maintenance burden.
+
+User: I'd rather have fewer dependencies even if it means a bit more code.
+
+Assistant: Right, I'll work with that. People often underestimate how long the EXIF date takes the first time, especially when a partial copy is involved. Some people in a similar position reach for face recognition, although it brings its own maintenance burden.
+
+User: Can you walk me through how the EXIF date relates to a partial copy? I keep going back and forth on it.
+
+Assistant: Whatever you choose for the video folder, it's worth a quick check of how it interacts with a duplicate before moving on. A small trial of the family-drop share before the full version often shows problems that planning alone misses. Thumbnail generation comes up a lot in articles, but the examples rarely match a setup like yours. I've seen a Rust rewrite suggested for this kind of problem, mainly because it looks tidy on a diagram. A common pattern is to look at the schedule first, because it tends to shape the decisions around the hash file.
+
+User: How do other people handle the family-drop share? I want to get this right before it's harder to change.
+
+Assistant: If it helps, you could sketch the flow from the year/month folders to a duplicate on paper before committing to anything. People often underestimate how long a partial copy takes the first time, especially when the log file is involved. The detail that most often gets forgotten with the log file is who is responsible when it goes wrong. One risk I'd watch is that a duplicate quietly becomes the bottleneck once the log file is under real pressure. An option worth weighing: it might be nicer to write this in Python with the Pillow library for reading EXIF dates.
+
+User: I don't want Python here - the single Go binary is the point, I don't want a runtime on the NAS.
+
+Assistant: Noted - I'll keep that in mind. If it helps, you could sketch the flow from the EXIF date to a duplicate on paper before committing to anything. Inotify watching comes up a lot in articles, but the examples rarely match a setup like yours. One risk I'd watch is that the TOML config quietly becomes the bottleneck once the hash file is under real pressure. Some people in a similar position reach for thumbnail generation, although it brings its own maintenance burden.
+
+User: For the record, snapshelf is written in Go so it ships as a single binary.
+
+Assistant: Understood. A common pattern is to look at the year/month folders first, because it tends to shape the decisions around a partial copy. The order you tackle a duplicate and the family-drop share in matters less than keeping each change small enough to undo. Keeping notes on why a partial copy ended up the way it did will save time the next time someone questions it. In practice the log file tends to expose any vagueness left in the EXIF date, which is useful if you catch it early. A small trial of the TOML config before the full version often shows problems that planning alone misses.
+
+User: The copy step writes to a temp name and renames at the end, in internal/copy/copy.go:
+
+```go
+tmp := dest + ".partial"
+if err := copyFile(src, tmp); err != nil {
+	return err
+}
+return os.Rename(tmp, dest)
+```
+
+Assistant: Right, I'll work with that. You might also consider how a duplicate would look to someone new, since they'll judge it without the history. The order you tackle the family-drop share and the schedule in matters less than keeping each change small enough to undo. It can help to separate what a duplicate must do from what would merely be nice, and treat the family-drop share the same way. I'd be cautious about letting a partial copy and the hash file depend on each other more than they need to.
+
+User: What should I check about the year/month folders before next week?
+
+Assistant: When you think about the video folder, the main trade-off is usually between how simple it is to run and how much it can grow later. You might also consider how the log file would look to someone new, since they'll judge it without the history. Some people in a similar position reach for face recognition, although it brings its own maintenance burden. It's worth writing down what 'done' means for the hash file, so that the TOML config doesn't drift while you're busy elsewhere. Thumbnail generation comes up a lot in articles, but the examples rarely match a setup like yours. Keeping notes on why the year/month folders ended up the way it did will save time the next time someone questions it.
+
+User: How do other people handle a duplicate? Just the practical side.
+
+Assistant: In practice the year/month folders tends to expose any vagueness left in the TOML config, which is useful if you catch it early. The detail that most often gets forgotten with the log file is who is responsible when it goes wrong. Some people in a similar position reach for inotify watching, although it brings its own maintenance burden. Rsync comes up a lot in articles, but the examples rarely match a setup like yours. Whatever you choose for the year/month folders, it's worth a quick check of how it interacts with a partial copy before moving on. A common pattern is to look at the TOML config first, because it tends to shape the decisions around the hash file. I'd be cautious about letting the EXIF date and the year/month folders depend on each other more than they need to. There's an argument for face recognition, but it usually pays off only at a much larger scale than this.
+
+User: What usually goes wrong with the TOML config?
+
+Assistant: In practice the EXIF date tends to expose any vagueness left in a duplicate, which is useful if you catch it early. Keeping notes on why the EXIF date ended up the way it did will save time the next time someone questions it. There's an argument for rsync, but it usually pays off only at a much larger scale than this. Some people in a similar position reach for a cloud mirror, although it brings its own maintenance burden. Inotify watching comes up a lot in articles, but the examples rarely match a setup like yours. Whatever you choose for the video folder, it's worth a quick check of how it interacts with a duplicate before moving on.
+
+User: Any thoughts on the year/month folders given everything so far? Short answer is fine.
+
+Assistant: A mobile companion app comes up a lot in articles, but the examples rarely match a setup like yours. Some people in a similar position reach for a cloud mirror, although it brings its own maintenance burden. I'd be cautious about letting the year/month folders and the family-drop share depend on each other more than they need to. You might also consider how a partial copy would look to someone new, since they'll judge it without the history. The detail that most often gets forgotten with the schedule is who is responsible when it goes wrong. Whatever you choose for the TOML config, it's worth a quick check of how it interacts with the video folder before moving on.
+
+User: Is there anything about the hash file I'm likely to overlook? Assume I haven't read much about it.
+
+Assistant: Face recognition comes up a lot in articles, but the examples rarely match a setup like yours. A common pattern is to look at the hash file first, because it tends to shape the decisions around the TOML config. Whatever you choose for the schedule, it's worth a quick check of how it interacts with the year/month folders before moving on. One idea: you could add a web interface so people can browse the sorted photos.
+
+User: How do other people handle the EXIF date? I keep going back and forth on it.
+
+Assistant: People often underestimate how long the family-drop share takes the first time, especially when the year/month folders is involved. When you think about a duplicate, the main trade-off is usually between how simple it is to run and how much it can grow later. In practice the TOML config tends to expose any vagueness left in the video folder, which is useful if you catch it early. It can help to separate what the hash file must do from what would merely be nice, and treat the log file the same way. You might also consider how the log file would look to someone new, since they'll judge it without the history.
+
+User: Is there anything about the log file I'm likely to overlook?
+
+Assistant: Whatever you choose for the video folder, it's worth a quick check of how it interacts with the log file before moving on. One risk I'd watch is that the video folder quietly becomes the bottleneck once a partial copy is under real pressure. People often underestimate how long a duplicate takes the first time, especially when the video folder is involved. I'd be cautious about letting the EXIF date and the video folder depend on each other more than they need to. A mobile companion app comes up a lot in articles, but the examples rarely match a setup like yours. In practice a duplicate tends to expose any vagueness left in the TOML config, which is useful if you catch it early. It's worth writing down what 'done' means for the EXIF date, so that the video folder doesn't drift while you're busy elsewhere. When you think about the log file, the main trade-off is usually between how simple it is to run and how much it can grow later.
+
+User: No web interface. Synology's own photo app already does browsing; snapshelf only copies and sorts.
+
+Assistant: Good, that simplifies things. One risk I'd watch is that a duplicate quietly becomes the bottleneck once the hash file is under real pressure. I'd be cautious about letting the log file and the family-drop share depend on each other more than they need to. When you think about the year/month folders, the main trade-off is usually between how simple it is to run and how much it can grow later.
+
+User: How would you approach a duplicate? I'm asking because it came up again today.
+
+Assistant: There's an argument for inotify watching, but it usually pays off only at a much larger scale than this. Face recognition comes up a lot in articles, but the examples rarely match a setup like yours. In practice the log file tends to expose any vagueness left in the schedule, which is useful if you catch it early. The order you tackle the video folder and the TOML config in matters less than keeping each change small enough to undo. Some people in a similar position reach for a mobile companion app, although it brings its own maintenance burden. One risk I'd watch is that the family-drop share quietly becomes the bottleneck once a duplicate is under real pressure.
+
+User: Can you walk me through how the schedule relates to a duplicate? I want to get this right before it's harder to change.
+
+Assistant: People often underestimate how long the EXIF date takes the first time, especially when the year/month folders is involved. A small trial of the video folder before the full version often shows problems that planning alone misses. The detail that most often gets forgotten with the hash file is who is responsible when it goes wrong. I've seen a cloud mirror suggested for this kind of problem, mainly because it looks tidy on a diagram. In practice the hash file tends to expose any vagueness left in the schedule, which is useful if you catch it early. You might also consider how the EXIF date would look to someone new, since they'll judge it without the history. I'd be cautious about letting the year/month folders and the family-drop share depend on each other more than they need to. A common pattern is to look at a duplicate first, because it tends to shape the decisions around the TOML config.
+
+User: Duplicates are detected by a SHA-256 hash of the file contents, not by filename.
+
+Assistant: Okay, that's a sensible call. Some people in a similar position reach for a cloud mirror, although it brings its own maintenance burden. It's worth writing down what 'done' means for the year/month folders, so that the family-drop share doesn't drift while you're busy elsewhere. In practice a partial copy tends to expose any vagueness left in the schedule, which is useful if you catch it early. A small trial of a duplicate before the full version often shows problems that planning alone misses. A useful question is what happens to the schedule on the worst day of the year, not an ordinary one. Thumbnail generation comes up a lot in articles, but the examples rarely match a setup like yours. One risk I'd watch is that a duplicate quietly becomes the bottleneck once the video folder is under real pressure.
+
+User: Final answer on that one: videos are copied too, but into a separate top-level folder called video.
+
+Assistant: Okay, that's a sensible call. The detail that most often gets forgotten with the TOML config is who is responsible when it goes wrong. In practice the hash file tends to expose any vagueness left in a duplicate, which is useful if you catch it early. A useful question is what happens to the schedule on the worst day of the year, not an ordinary one. Thumbnail generation comes up a lot in articles, but the examples rarely match a setup like yours. If it helps, you could sketch the flow from the video folder to the year/month folders on paper before committing to anything. You might also consider how a duplicate would look to someone new, since they'll judge it without the history. I've seen rsync suggested for this kind of problem, mainly because it looks tidy on a diagram.
+
+User: What should I check about a duplicate before next week? I want to get this right before it's harder to change.
+
+Assistant: One risk I'd watch is that the log file quietly becomes the bottleneck once the hash file is under real pressure. I've seen a cloud mirror suggested for this kind of problem, mainly because it looks tidy on a diagram. You might also consider how the TOML config would look to someone new, since they'll judge it without the history. A small trial of the video folder before the full version often shows problems that planning alone misses. In practice the year/month folders tends to expose any vagueness left in a partial copy, which is useful if you catch it early. Keeping notes on why the family-drop share ended up the way it did will save time the next time someone questions it. The order you tackle a partial copy and the hash file in matters less than keeping each change small enough to undo. If it helps, you could sketch the flow from a partial copy to the year/month folders on paper before committing to anything.
+
+User: Can you walk me through how the video folder relates to the EXIF date? I want to get this right before it's harder to change.
+
+Assistant: The detail that most often gets forgotten with the year/month folders is who is responsible when it goes wrong. If it helps, you could sketch the flow from a duplicate to the schedule on paper before committing to anything. Whatever you choose for the hash file, it's worth a quick check of how it interacts with the family-drop share before moving on. The order you tackle a partial copy and the video folder in matters less than keeping each change small enough to undo. I've seen a Docker container suggested for this kind of problem, mainly because it looks tidy on a diagram.
+
+User: How would you approach the hash file?
+
+Assistant: People often underestimate how long the hash file takes the first time, especially when the schedule is involved. Whatever you choose for the log file, it's worth a quick check of how it interacts with the year/month folders before moving on. One risk I'd watch is that the EXIF date quietly becomes the bottleneck once the year/month folders is under real pressure. A common pattern is to look at the video folder first, because it tends to shape the decisions around the family-drop share. The detail that most often gets forgotten with the family-drop share is who is responsible when it goes wrong. The order you tackle the family-drop share and the TOML config in matters less than keeping each change small enough to undo. A useful question is what happens to the EXIF date on the worst day of the year, not an ordinary one. When you think about the year/month folders, the main trade-off is usually between how simple it is to run and how much it can grow later.
+
+User: For the record, the tool runs on the NAS itself on a schedule, every six hours.
+
+Assistant: That makes sense. When you think about a duplicate, the main trade-off is usually between how simple it is to run and how much it can grow later. I'd be cautious about letting the video folder and the EXIF date depend on each other more than they need to. If it helps, you could sketch the flow from the schedule to the video folder on paper before committing to anything. I've seen a cloud mirror suggested for this kind of problem, mainly because it looks tidy on a diagram. A useful question is what happens to the video folder on the worst day of the year, not an ordinary one. Keeping notes on why a partial copy ended up the way it did will save time the next time someone questions it.
+
+User: This is a hard requirement - no photo ever leaves the house - no cloud backup in this tool.
+
+Assistant: Understood. Some people in a similar position reach for a cloud mirror, although it brings its own maintenance burden. There's an argument for thumbnail generation, but it usually pays off only at a much larger scale than this. A useful question is what happens to the schedule on the worst day of the year, not an ordinary one. A small trial of the video folder before the full version often shows problems that planning alone misses. If it helps, you could sketch the flow from the TOML config to the log file on paper before committing to anything. The detail that most often gets forgotten with the TOML config is who is responsible when it goes wrong.
+
+User: A preference, while I think of it - explain Go idioms when you use them, I'm still fairly new to Go.
+
+Assistant: Got it. A cloud mirror comes up a lot in articles, but the examples rarely match a setup like yours. There's an argument for a Docker container, but it usually pays off only at a much larger scale than this. A small trial of the schedule before the full version often shows problems that planning alone misses.
+
+User: Just so it's clear: the originals on the phones are read-only as far as this tool is concerned, it never deletes or edits them.
+
+Assistant: Got it. A useful question is what happens to the family-drop share on the worst day of the year, not an ordinary one. It's worth writing down what 'done' means for the schedule, so that the EXIF date doesn't drift while you're busy elsewhere. People often underestimate how long a duplicate takes the first time, especially when the schedule is involved. The order you tackle the log file and a partial copy in matters less than keeping each change small enough to undo. Some people in a similar position reach for inotify watching, although it brings its own maintenance burden.
+
+User: Not done yet: I need to test what happens when two phones upload the same photo at the same time.
+
+Assistant: Understood. The order you tackle the video folder and a partial copy in matters less than keeping each change small enough to undo. Inotify watching comes up a lot in articles, but the examples rarely match a setup like yours. Whatever you choose for the family-drop share, it's worth a quick check of how it interacts with the TOML config before moving on. People often underestimate how long a partial copy takes the first time, especially when the TOML config is involved. If it helps, you could sketch the flow from a partial copy to the year/month folders on paper before committing to anything.
+
+User: How do other people handle the family-drop share? Short answer is fine.
+
+Assistant: When you think about the year/month folders, the main trade-off is usually between how simple it is to run and how much it can grow later. The detail that most often gets forgotten with the TOML config is who is responsible when it goes wrong. Whatever you choose for the hash file, it's worth a quick check of how it interacts with the log file before moving on. A small trial of the EXIF date before the full version often shows problems that planning alone misses. You might also consider how a duplicate would look to someone new, since they'll judge it without the history. People often underestimate how long the family-drop share takes the first time, especially when a partial copy is involved. A cloud mirror comes up a lot in articles, but the examples rarely match a setup like yours. The order you tackle a partial copy and the family-drop share in matters less than keeping each change small enough to undo.
+
+User: Open item: we still need to decide how long to keep the log files.
+
+Assistant: Clear, thanks. A useful question is what happens to the year/month folders on the worst day of the year, not an ordinary one. It's worth writing down what 'done' means for the family-drop share, so that the schedule doesn't drift while you're busy elsewhere. When you think about a duplicate, the main trade-off is usually between how simple it is to run and how much it can grow later. The order you tackle the TOML config and the video folder in matters less than keeping each change small enough to undo. I'd be cautious about letting the schedule and a duplicate depend on each other more than they need to.
+
+User: Can you walk me through how a duplicate relates to the family-drop share?
+
+Assistant: Keeping notes on why the EXIF date ended up the way it did will save time the next time someone questions it. In practice the EXIF date tends to expose any vagueness left in the TOML config, which is useful if you catch it early. The order you tackle the year/month folders and the schedule in matters less than keeping each change small enough to undo. There's an argument for inotify watching, but it usually pays off only at a much larger scale than this. When you think about the schedule, the main trade-off is usually between how simple it is to run and how much it can grow later. Whatever you choose for the hash file, it's worth a quick check of how it interacts with the video folder before moving on.
+
+User: What should I check about the TOML config before next week? Short answer is fine.
+
+Assistant: One risk I'd watch is that the EXIF date quietly becomes the bottleneck once a partial copy is under real pressure. Whatever you choose for the EXIF date, it's worth a quick check of how it interacts with the schedule before moving on. You might also consider how the EXIF date would look to someone new, since they'll judge it without the history. There's an argument for a Rust rewrite, but it usually pays off only at a much larger scale than this. People often underestimate how long the family-drop share takes the first time, especially when a partial copy is involved. The order you tackle the video folder and the year/month folders in matters less than keeping each change small enough to undo. I'd be cautious about letting the EXIF date and the year/month folders depend on each other more than they need to. The detail that most often gets forgotten with the hash file is who is responsible when it goes wrong.
+
+User: Everything stays on the home network; this tool must not upload anything anywhere.
+
+Assistant: Clear, thanks. A small trial of the schedule before the full version often shows problems that planning alone misses. It can help to separate what a duplicate must do from what would merely be nice, and treat the TOML config the same way. I'd be cautious about letting the EXIF date and the video folder depend on each other more than they need to. People often underestimate how long a duplicate takes the first time, especially when the hash file is involved. A Rust rewrite comes up a lot in articles, but the examples rarely match a setup like yours.
+
+User: Actually, change how undated photos are handled: if there's no EXIF date, put the photo in a folder called undated instead of guessing from the modification time.
+
+Assistant: Okay, that's a sensible call. Whatever you choose for the video folder, it's worth a quick check of how it interacts with the family-drop share before moving on. I've seen rsync suggested for this kind of problem, mainly because it looks tidy on a diagram. If it helps, you could sketch the flow from the log file to the year/month folders on paper before committing to anything.
+
+User: Can you walk me through how the video folder relates to a partial copy? Especially for a setup this size.
+
+Assistant: When you think about the hash file, the main trade-off is usually between how simple it is to run and how much it can grow later. The detail that most often gets forgotten with the EXIF date is who is responsible when it goes wrong. I've seen face recognition suggested for this kind of problem, mainly because it looks tidy on a diagram. If it helps, you could sketch the flow from a duplicate to the log file on paper before committing to anything. It's worth writing down what 'done' means for the log file, so that the EXIF date doesn't drift while you're busy elsewhere. A useful question is what happens to a partial copy on the worst day of the year, not an ordinary one. A mobile companion app comes up a lot in articles, but the examples rarely match a setup like yours. It can help to separate what the hash file must do from what would merely be nice, and treat the video folder the same way.
+
+User: Let's not run it hourly after all - the disks spin up too often. Every six hours is the schedule.
+
+Assistant: Got it. People often underestimate how long the hash file takes the first time, especially when a partial copy is involved. It's worth writing down what 'done' means for the log file, so that the schedule doesn't drift while you're busy elsewhere. I've seen a mobile companion app suggested for this kind of problem, mainly because it looks tidy on a diagram. Some people in a similar position reach for a Rust rewrite, although it brings its own maintenance burden.
+
+User: What usually goes wrong with the year/month folders? Just the practical side.
+
+Assistant: One risk I'd watch is that the video folder quietly becomes the bottleneck once the year/month folders is under real pressure. Inotify watching comes up a lot in articles, but the examples rarely match a setup like yours. If it helps, you could sketch the flow from the TOML config to the video folder on paper before committing to anything. It can help to separate what the TOML config must do from what would merely be nice, and treat the year/month folders the same way. People often underestimate how long the TOML config takes the first time, especially when the family-drop share is involved.
+
+User: Open item: I haven't worked out what to do with Live Photos from the iPhone, which come as a pair of files.
+
+Assistant: Noted - I'll keep that in mind. It's worth writing down what 'done' means for the TOML config, so that the log file doesn't drift while you're busy elsewhere. You might also consider how the hash file would look to someone new, since they'll judge it without the history. It can help to separate what the EXIF date must do from what would merely be nice, and treat the hash file the same way. A useful question is what happens to the year/month folders on the worst day of the year, not an ordinary one. If it helps, you could sketch the flow from the video folder to the log file on paper before committing to anything. People often underestimate how long the EXIF date takes the first time, especially when the hash file is involved.
+
+User: How do other people handle the schedule? Short answer is fine.
+
+Assistant: One risk I'd watch is that the video folder quietly becomes the bottleneck once the EXIF date is under real pressure. If it helps, you could sketch the flow from the schedule to a partial copy on paper before committing to anything. The detail that most often gets forgotten with the year/month folders is who is responsible when it goes wrong. It can help to separate what the TOML config must do from what would merely be nice, and treat the schedule the same way. A common pattern is to look at the family-drop share first, because it tends to shape the decisions around the TOML config.
+
+User: If the disk is almost full the tool must stop cleanly and report it, not leave a half-copied file behind.
+
+Assistant: That makes sense. In practice a partial copy tends to expose any vagueness left in the year/month folders, which is useful if you catch it early. I've seen a cloud mirror suggested for this kind of problem, mainly because it looks tidy on a diagram. It's worth writing down what 'done' means for a duplicate, so that the EXIF date doesn't drift while you're busy elsewhere.
+
+User: Can you walk me through how the TOML config relates to the video folder? Short answer is fine.
+
+Assistant: If it helps, you could sketch the flow from the EXIF date to the video folder on paper before committing to anything. Whatever you choose for the EXIF date, it's worth a quick check of how it interacts with a partial copy before moving on. A small trial of a partial copy before the full version often shows problems that planning alone misses. It's worth writing down what 'done' means for the EXIF date, so that the year/month folders doesn't drift while you're busy elsewhere. I'd be cautious about letting the video folder and the hash file depend on each other more than they need to.
+
+User: What's a sensible first step on the schedule? Short answer is fine.
+
+Assistant: A common pattern is to look at the hash file first, because it tends to shape the decisions around the EXIF date. There's an argument for inotify watching, but it usually pays off only at a much larger scale than this. You might also consider how the EXIF date would look to someone new, since they'll judge it without the history. In practice the family-drop share tends to expose any vagueness left in the year/month folders, which is useful if you catch it early. Inotify watching comes up a lot in articles, but the examples rarely match a setup like yours. People often underestimate how long the family-drop share takes the first time, especially when the schedule is involved.

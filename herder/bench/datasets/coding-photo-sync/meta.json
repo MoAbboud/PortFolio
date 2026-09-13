@@ -1,0 +1,9 @@
+{
+  "name": "coding-photo-sync",
+  "archetype": "coding",
+  "title": "A command-line tool that syncs phone photos to a home NAS",
+  "tokens": 11220,
+  "turns": 142,
+  "generator_version": "1",
+  "seed": 20260913
+}

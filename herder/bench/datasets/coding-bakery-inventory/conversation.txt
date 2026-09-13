@@ -1,0 +1,310 @@
+User: I'm building the inventory service for Crumb & Co, a bakery chain with four shops. It tracks flour, butter and packaging stock per shop and tells the head baker what to reorder. I'd like to work through the design with you over the next while.
+
+Assistant: Happy to help with that. I've seen an ORM migration tool suggested for this kind of problem, mainly because it looks tidy on a diagram. I'd be cautious about letting the SQLite file and the audit trail depend on each other more than they need to. The detail that most often gets forgotten with the back-office server is who is responsible when it goes wrong. A common pattern is to look at the nightly job first, because it tends to shape the decisions around the SQLite file. There's an argument for an event-sourced ledger, but it usually pays off only at a much larger scale than this. You might also consider how expiry dates would look to someone new, since they'll judge it without the history.
+
+User: Small thing about how I work: I prefer plain functions over classes unless a class clearly earns its place.
+
+Assistant: Understood. One risk I'd watch is that the back-office server quietly becomes the bottleneck once a delivery is under real pressure. There's an argument for a message queue, but it usually pays off only at a much larger scale than this. Keeping notes on why expiry dates ended up the way it did will save time the next time someone questions it. Whatever you choose for the stock table, it's worth a quick check of how it interacts with the back-office server before moving on.
+
+User: Can you walk me through how the SQLite file relates to the stock table?
+
+Assistant: People often underestimate how long the SQLite file takes the first time, especially when the nightly job is involved. Whatever you choose for the shop codes, it's worth a quick check of how it interacts with the nightly job before moving on. In practice the stock table tends to expose any vagueness left in the nightly job, which is useful if you catch it early. It's worth writing down what 'done' means for expiry dates, so that the stock table doesn't drift while you're busy elsewhere. The order you tackle a stock adjustment and the nightly job in matters less than keeping each change small enough to undo.
+
+User: Some background: the back-office server is a second-hand mini PC with 8 GB of RAM.
+
+Assistant: Good, that simplifies things. People often underestimate how long the SQLite file takes the first time, especially when the nightly job is involved. I've seen hourly reorder runs suggested for this kind of problem, mainly because it looks tidy on a diagram. A small trial of the back-office server before the full version often shows problems that planning alone misses. A common pattern is to look at the stock table first, because it tends to shape the decisions around the reorder email. One risk I'd watch is that a stock adjustment quietly becomes the bottleneck once the SQLite file is under real pressure.
+
+User: Any thoughts on the back-office server given everything so far? Just the practical side.
+
+Assistant: If it helps, you could sketch the flow from a stock adjustment to the nightly job on paper before committing to anything. When you think about the nightly job, the main trade-off is usually between how simple it is to run and how much it can grow later. Keeping notes on why a stock adjustment ended up the way it did will save time the next time someone questions it. It can help to separate what the back-office server must do from what would merely be nice, and treat a stock adjustment the same way. People often underestimate how long the nightly job takes the first time, especially when the shop codes is involved. A useful question is what happens to a stock adjustment on the worst day of the year, not an ordinary one. You might also consider how the shop codes would look to someone new, since they'll judge it without the history.
+
+User: How do other people handle expiry dates?
+
+Assistant: The order you tackle the reorder email and the back-office server in matters less than keeping each change small enough to undo. In practice the SQLite file tends to expose any vagueness left in expiry dates, which is useful if you catch it early. You might also consider how the nightly job would look to someone new, since they'll judge it without the history. If it helps, you could sketch the flow from the SQLite file to the audit trail on paper before committing to anything. It can help to separate what the back-office server must do from what would merely be nice, and treat the stock table the same way. A useful question is what happens to the SQLite file on the worst day of the year, not an ordinary one.
+
+User: After mulling it over: units are stored in grams for dry goods and in pieces for packaging.
+
+Assistant: Understood. One risk I'd watch is that expiry dates quietly becomes the bottleneck once the SQLite file is under real pressure. When you think about a delivery, the main trade-off is usually between how simple it is to run and how much it can grow later. In practice the nightly job tends to expose any vagueness left in the shop codes, which is useful if you catch it early. A useful question is what happens to the SQLite file on the worst day of the year, not an ordinary one. There's an argument for a spreadsheet import, but it usually pays off only at a much larger scale than this. Keeping notes on why a delivery ended up the way it did will save time the next time someone questions it.
+
+User: Is there anything about the audit trail I'm likely to overlook? Assume I haven't read much about it.
+
+Assistant: People often underestimate how long the stock table takes the first time, especially when a delivery is involved. The detail that most often gets forgotten with the stock table is who is responsible when it goes wrong. The order you tackle the shop codes and a delivery in matters less than keeping each change small enough to undo. There's an argument for a message queue, but it usually pays off only at a much larger scale than this. Keeping notes on why the back-office server ended up the way it did will save time the next time someone questions it. You might also consider how the back-office server would look to someone new, since they'll judge it without the history.
+
+User: Can you walk me through how a delivery relates to the audit trail? I want to get this right before it's harder to change.
+
+Assistant: In practice the SQLite file tends to expose any vagueness left in a stock adjustment, which is useful if you catch it early. I've seen an ORM migration tool suggested for this kind of problem, mainly because it looks tidy on a diagram. If it helps, you could sketch the flow from the shop codes to the stock table on paper before committing to anything. Some people in a similar position reach for a microservice per shop, although it brings its own maintenance burden. An event-sourced ledger comes up a lot in articles, but the examples rarely match a setup like yours. Keeping notes on why expiry dates ended up the way it did will save time the next time someone questions it. When you think about the reorder email, the main trade-off is usually between how simple it is to run and how much it can grow later.
+
+User: Let's settle it - the head baker gets reorder suggestions by email, not by text message.
+
+Assistant: Right, I'll work with that. Some people in a similar position reach for a spreadsheet import, although it brings its own maintenance burden. People often underestimate how long the nightly job takes the first time, especially when a stock adjustment is involved. There's an argument for barcode scanners, but it usually pays off only at a much larger scale than this. When you think about the stock table, the main trade-off is usually between how simple it is to run and how much it can grow later. Whatever you choose for the shop codes, it's worth a quick check of how it interacts with the audit trail before moving on. I'd be cautious about letting the back-office server and the SQLite file depend on each other more than they need to. A common pattern is to look at the stock table first, because it tends to shape the decisions around the reorder email.
+
+User: What should I check about the audit trail before next week? Short answer is fine.
+
+Assistant: There's an argument for barcode scanners, but it usually pays off only at a much larger scale than this. It's worth writing down what 'done' means for the shop codes, so that the nightly job doesn't drift while you're busy elsewhere. If it helps, you could sketch the flow from a stock adjustment to the reorder email on paper before committing to anything. When you think about the nightly job, the main trade-off is usually between how simple it is to run and how much it can grow later. I've seen an event-sourced ledger suggested for this kind of problem, mainly because it looks tidy on a diagram. An event-sourced ledger comes up a lot in articles, but the examples rarely match a setup like yours. Whatever you choose for the shop codes, it's worth a quick check of how it interacts with the stock table before moving on. It can help to separate what the audit trail must do from what would merely be nice, and treat the SQLite file the same way.
+
+User: Any thoughts on the reorder email given everything so far? Short answer is fine.
+
+Assistant: I've seen a message queue suggested for this kind of problem, mainly because it looks tidy on a diagram. A useful question is what happens to expiry dates on the worst day of the year, not an ordinary one. It's worth writing down what 'done' means for the back-office server, so that the nightly job doesn't drift while you're busy elsewhere. There's an argument for a spreadsheet import, but it usually pays off only at a much larger scale than this. The order you tackle expiry dates and the shop codes in matters less than keeping each change small enough to undo. A small trial of the back-office server before the full version often shows problems that planning alone misses.
+
+User: Flour is delivered on Tuesdays and Fridays.
+
+Assistant: Noted - I'll keep that in mind. A small trial of the stock table before the full version often shows problems that planning alone misses. In practice expiry dates tends to expose any vagueness left in a delivery, which is useful if you catch it early. People often underestimate how long the audit trail takes the first time, especially when the stock table is involved.
+
+User: How do other people handle the stock table? Short answer is fine.
+
+Assistant: It can help to separate what the audit trail must do from what would merely be nice, and treat expiry dates the same way. You might also consider how the stock table would look to someone new, since they'll judge it without the history. When you think about expiry dates, the main trade-off is usually between how simple it is to run and how much it can grow later. I'd be cautious about letting a delivery and the shop codes depend on each other more than they need to. Some people in a similar position reach for a spreadsheet import, although it brings its own maintenance burden. There's an argument for a message queue, but it usually pays off only at a much larger scale than this. I've seen a mobile app suggested for this kind of problem, mainly because it looks tidy on a diagram. People often underestimate how long expiry dates takes the first time, especially when the back-office server is involved.
+
+User: The busiest shop is CRM2, near the train station.
+
+Assistant: Okay, that's a sensible call. One risk I'd watch is that expiry dates quietly becomes the bottleneck once the audit trail is under real pressure. Whatever you choose for the SQLite file, it's worth a quick check of how it interacts with the nightly job before moving on. Some people in a similar position reach for a spreadsheet import, although it brings its own maintenance burden. A small trial of a delivery before the full version often shows problems that planning alone misses.
+
+User: And the nightly entry point is in jobs/reorder.py, run by cron:
+
+```python
+def main() -> None:
+    for shop in SHOPS:
+        suggestions = compute(shop)
+        send_email(shop, suggestions)
+```
+
+Assistant: Noted - I'll keep that in mind. Keeping notes on why a delivery ended up the way it did will save time the next time someone questions it. A message queue comes up a lot in articles, but the examples rarely match a setup like yours. It's worth writing down what 'done' means for the back-office server, so that a stock adjustment doesn't drift while you're busy elsewhere. I'd be cautious about letting the shop codes and a delivery depend on each other more than they need to. If it helps, you could sketch the flow from the back-office server to a stock adjustment on paper before committing to anything.
+
+User: How would you approach the back-office server? Just the practical side.
+
+Assistant: A common pattern is to look at the back-office server first, because it tends to shape the decisions around the shop codes. It's worth writing down what 'done' means for the back-office server, so that the stock table doesn't drift while you're busy elsewhere. When you think about the audit trail, the main trade-off is usually between how simple it is to run and how much it can grow later. People often underestimate how long the nightly job takes the first time, especially when a stock adjustment is involved. One risk I'd watch is that the SQLite file quietly becomes the bottleneck once the reorder email is under real pressure. The detail that most often gets forgotten with the shop codes is who is responsible when it goes wrong.
+
+User: Okay, that's decided: we'll round stock to the nearest 100 grams.
+
+Assistant: Good, that simplifies things. It can help to separate what a stock adjustment must do from what would merely be nice, and treat the shop codes the same way. There's an argument for a message queue, but it usually pays off only at a much larger scale than this. I'd be cautious about letting the audit trail and a stock adjustment depend on each other more than they need to. A small trial of the shop codes before the full version often shows problems that planning alone misses.
+
+User: Can you walk me through how the back-office server relates to expiry dates? Just the practical side.
+
+Assistant: In practice the reorder email tends to expose any vagueness left in expiry dates, which is useful if you catch it early. People often underestimate how long a stock adjustment takes the first time, especially when the SQLite file is involved. When you think about the shop codes, the main trade-off is usually between how simple it is to run and how much it can grow later. I've seen a mobile app suggested for this kind of problem, mainly because it looks tidy on a diagram. I'd be cautious about letting the stock table and a stock adjustment depend on each other more than they need to. It can help to separate what the audit trail must do from what would merely be nice, and treat a delivery the same way.
+
+User: What usually goes wrong with the shop codes? I want to get this right before it's harder to change.
+
+Assistant: If it helps, you could sketch the flow from the audit trail to the stock table on paper before committing to anything. A useful question is what happens to the reorder email on the worst day of the year, not an ordinary one. A mobile app comes up a lot in articles, but the examples rarely match a setup like yours. A small trial of the shop codes before the full version often shows problems that planning alone misses. I've seen a microservice per shop suggested for this kind of problem, mainly because it looks tidy on a diagram.
+
+User: Final answer on that one: the service is written in Python with FastAPI.
+
+Assistant: Okay, that's a sensible call. In practice the shop codes tends to expose any vagueness left in the stock table, which is useful if you catch it early. A small trial of the audit trail before the full version often shows problems that planning alone misses. It's worth writing down what 'done' means for the reorder email, so that the shop codes doesn't drift while you're busy elsewhere. A common pattern is to look at the reorder email first, because it tends to shape the decisions around the back-office server. One risk I'd watch is that expiry dates quietly becomes the bottleneck once the back-office server is under real pressure. A useful question is what happens to the nightly job on the worst day of the year, not an ordinary one. The detail that most often gets forgotten with a stock adjustment is who is responsible when it goes wrong.
+
+User: What should I check about the reorder email before next week?
+
+Assistant: It can help to separate what the audit trail must do from what would merely be nice, and treat the shop codes the same way. You might also consider how a stock adjustment would look to someone new, since they'll judge it without the history. A small trial of expiry dates before the full version often shows problems that planning alone misses. People often underestimate how long the nightly job takes the first time, especially when the back-office server is involved. It's worth writing down what 'done' means for the SQLite file, so that a stock adjustment doesn't drift while you're busy elsewhere. There's an argument for a spreadsheet import, but it usually pays off only at a much larger scale than this. One risk I'd watch is that a delivery quietly becomes the bottleneck once expiry dates is under real pressure.
+
+User: What usually goes wrong with a stock adjustment? Short answer is fine.
+
+Assistant: It can help to separate what expiry dates must do from what would merely be nice, and treat the stock table the same way. Whatever you choose for the audit trail, it's worth a quick check of how it interacts with a stock adjustment before moving on. A common pattern is to look at the SQLite file first, because it tends to shape the decisions around the reorder email. It's worth writing down what 'done' means for the stock table, so that the audit trail doesn't drift while you're busy elsewhere. I'd be cautious about letting the nightly job and a stock adjustment depend on each other more than they need to. If it helps, you could sketch the flow from the shop codes to the audit trail on paper before committing to anything. There's an argument for a spreadsheet import, but it usually pays off only at a much larger scale than this. A small trial of expiry dates before the full version often shows problems that planning alone misses.
+
+User: Can you walk me through how expiry dates relates to the back-office server? Especially for a setup this size.
+
+Assistant: I've seen a message queue suggested for this kind of problem, mainly because it looks tidy on a diagram. There's an argument for hourly reorder runs, but it usually pays off only at a much larger scale than this. The detail that most often gets forgotten with the back-office server is who is responsible when it goes wrong. It's worth writing down what 'done' means for the nightly job, so that the back-office server doesn't drift while you're busy elsewhere. Some people in a similar position reach for an event-sourced ledger, although it brings its own maintenance burden. One idea: you could put Redis in front of SQLite as a cache so the nightly job reads faster.
+
+User: No Redis - it's one more thing to run on a tiny box, and the nightly job has all night anyway.
+
+Assistant: Good, that simplifies things. People often underestimate how long expiry dates takes the first time, especially when the reorder email is involved. A mobile app comes up a lot in articles, but the examples rarely match a setup like yours.
+
+User: After mulling it over: reorder suggestions are generated once a night at 2am, not on every stock change.
+
+Assistant: Noted - I'll keep that in mind. People often underestimate how long a delivery takes the first time, especially when the audit trail is involved. Keeping notes on why the back-office server ended up the way it did will save time the next time someone questions it. You might also consider how a delivery would look to someone new, since they'll judge it without the history. It's worth writing down what 'done' means for the SQLite file, so that the nightly job doesn't drift while you're busy elsewhere. It can help to separate what the shop codes must do from what would merely be nice, and treat the nightly job the same way. When you think about the nightly job, the main trade-off is usually between how simple it is to run and how much it can grow later. A small trial of the audit trail before the full version often shows problems that planning alone misses.
+
+User: Any thoughts on a delivery given everything so far? Just the practical side.
+
+Assistant: The order you tackle the audit trail and the nightly job in matters less than keeping each change small enough to undo. One risk I'd watch is that the SQLite file quietly becomes the bottleneck once the stock table is under real pressure. When you think about the SQLite file, the main trade-off is usually between how simple it is to run and how much it can grow later. It's worth writing down what 'done' means for a delivery, so that the back-office server doesn't drift while you're busy elsewhere. Keeping notes on why the nightly job ended up the way it did will save time the next time someone questions it. You might also consider how a delivery would look to someone new, since they'll judge it without the history.
+
+User: Can you walk me through how a stock adjustment relates to the back-office server? Especially for a setup this size.
+
+Assistant: A spreadsheet import comes up a lot in articles, but the examples rarely match a setup like yours. I've seen a mobile app suggested for this kind of problem, mainly because it looks tidy on a diagram. In practice the audit trail tends to expose any vagueness left in the nightly job, which is useful if you catch it early. People often underestimate how long the SQLite file takes the first time, especially when the nightly job is involved. One risk I'd watch is that the back-office server quietly becomes the bottleneck once the audit trail is under real pressure. If it helps, you could sketch the flow from the nightly job to a delivery on paper before committing to anything. The order you tackle the reorder email and a delivery in matters less than keeping each change small enough to undo.
+
+User: Every stock change must record who made it and when. That's not up for debate.
+
+Assistant: Right, I'll work with that. The order you tackle the audit trail and the nightly job in matters less than keeping each change small enough to undo. I'd be cautious about letting a delivery and expiry dates depend on each other more than they need to. One risk I'd watch is that expiry dates quietly becomes the bottleneck once the nightly job is under real pressure. The detail that most often gets forgotten with the shop codes is who is responsible when it goes wrong. If it helps, you could sketch the flow from expiry dates to the stock table on paper before committing to anything.
+
+User: Final answer on that one: each shop is identified by a short code: CRM1, CRM2, CRM3 and CRM4.
+
+Assistant: Okay, that's a sensible call. You might also consider how the shop codes would look to someone new, since they'll judge it without the history. When you think about the stock table, the main trade-off is usually between how simple it is to run and how much it can grow later. Whatever you choose for a delivery, it's worth a quick check of how it interacts with the stock table before moving on. A small trial of the audit trail before the full version often shows problems that planning alone misses. If it helps, you could sketch the flow from the shop codes to the nightly job on paper before committing to anything. I've seen an event-sourced ledger suggested for this kind of problem, mainly because it looks tidy on a diagram.
+
+User: What's a sensible first step on the back-office server? I want to get this right before it's harder to change.
+
+Assistant: A message queue comes up a lot in articles, but the examples rarely match a setup like yours. I'd be cautious about letting the audit trail and a delivery depend on each other more than they need to. It can help to separate what the shop codes must do from what would merely be nice, and treat the back-office server the same way. Keeping notes on why a delivery ended up the way it did will save time the next time someone questions it. One idea: it might be worth moving to PostgreSQL now so you never have to migrate later.
+
+User: I don't want Postgres for this. SQLite is enough for four shops and I'd rather not run a database server.
+
+Assistant: That makes sense. Some people in a similar position reach for a message queue, although it brings its own maintenance burden. People often underestimate how long the nightly job takes the first time, especially when the reorder email is involved.
+
+User: How do other people handle the nightly job? I keep going back and forth on it.
+
+Assistant: A common pattern is to look at the stock table first, because it tends to shape the decisions around the back-office server. When you think about the SQLite file, the main trade-off is usually between how simple it is to run and how much it can grow later. In practice the reorder email tends to expose any vagueness left in a delivery, which is useful if you catch it early. Whatever you choose for the shop codes, it's worth a quick check of how it interacts with the nightly job before moving on. It can help to separate what the shop codes must do from what would merely be nice, and treat the stock table the same way.
+
+User: What should I check about the audit trail before next week? Especially for a setup this size.
+
+Assistant: A common pattern is to look at expiry dates first, because it tends to shape the decisions around the reorder email. You might also consider how the stock table would look to someone new, since they'll judge it without the history. It can help to separate what the SQLite file must do from what would merely be nice, and treat the back-office server the same way. It's worth writing down what 'done' means for expiry dates, so that the back-office server doesn't drift while you're busy elsewhere. There's an argument for a message queue, but it usually pays off only at a much larger scale than this. An ORM migration tool comes up a lot in articles, but the examples rarely match a setup like yours. I'd be cautious about letting a delivery and a stock adjustment depend on each other more than they need to.
+
+User: This is where the stock adjustment lives right now, in stock.py:
+
+```python
+def adjust(conn, shop: str, item: str, delta: int, who: str) -> None:
+    current = read_level(conn, shop, item)
+    if current + delta < 0:
+        raise ValueError("stock cannot go negative")
+    write_level(conn, shop, item, current + delta, who)
+```
+
+Assistant: Got it. The order you tackle expiry dates and the SQLite file in matters less than keeping each change small enough to undo. It's worth writing down what 'done' means for the stock table, so that the SQLite file doesn't drift while you're busy elsewhere. A common pattern is to look at the SQLite file first, because it tends to shape the decisions around expiry dates. You might also consider how the back-office server would look to someone new, since they'll judge it without the history. When you think about expiry dates, the main trade-off is usually between how simple it is to run and how much it can grow later.
+
+User: Any thoughts on a delivery given everything so far? Especially for a setup this size.
+
+Assistant: I've seen hourly reorder runs suggested for this kind of problem, mainly because it looks tidy on a diagram. There's an argument for an event-sourced ledger, but it usually pays off only at a much larger scale than this. People often underestimate how long the nightly job takes the first time, especially when the reorder email is involved. A common pattern is to look at the SQLite file first, because it tends to shape the decisions around the nightly job. The order you tackle expiry dates and the back-office server in matters less than keeping each change small enough to undo. Some people in a similar position reach for a mobile app, although it brings its own maintenance burden. I'd be cautious about letting expiry dates and a delivery depend on each other more than they need to.
+
+User: Can you walk me through how the nightly job relates to the SQLite file? Short answer is fine.
+
+Assistant: I've seen an ORM migration tool suggested for this kind of problem, mainly because it looks tidy on a diagram. Whatever you choose for the SQLite file, it's worth a quick check of how it interacts with the shop codes before moving on. It's worth writing down what 'done' means for expiry dates, so that a stock adjustment doesn't drift while you're busy elsewhere. There's an argument for a mobile app, but it usually pays off only at a much larger scale than this. A common pattern is to look at the SQLite file first, because it tends to shape the decisions around the back-office server. A useful question is what happens to the SQLite file on the worst day of the year, not an ordinary one.
+
+User: Okay, that's decided: reorder suggestions go to Marisol only.
+
+Assistant: That makes sense. The detail that most often gets forgotten with the audit trail is who is responsible when it goes wrong. You might also consider how expiry dates would look to someone new, since they'll judge it without the history. The order you tackle the nightly job and a delivery in matters less than keeping each change small enough to undo. Keeping notes on why the nightly job ended up the way it did will save time the next time someone questions it. People often underestimate how long the reorder email takes the first time, especially when the shop codes is involved. I've seen a message queue suggested for this kind of problem, mainly because it looks tidy on a diagram.
+
+User: Any thoughts on the stock table given everything so far?
+
+Assistant: There's an argument for a microservice per shop, but it usually pays off only at a much larger scale than this. You might also consider how a stock adjustment would look to someone new, since they'll judge it without the history. It's worth writing down what 'done' means for the SQLite file, so that expiry dates doesn't drift while you're busy elsewhere. A small trial of expiry dates before the full version often shows problems that planning alone misses. In practice the reorder email tends to expose any vagueness left in a delivery, which is useful if you catch it early. The order you tackle a delivery and expiry dates in matters less than keeping each change small enough to undo.
+
+User: Going with this: stock levels are stored in SQLite, one file per deployment, because it runs on a single small server in the back office.
+
+Assistant: Noted - I'll keep that in mind. Whatever you choose for a stock adjustment, it's worth a quick check of how it interacts with the stock table before moving on. Hourly reorder runs comes up a lot in articles, but the examples rarely match a setup like yours. One risk I'd watch is that expiry dates quietly becomes the bottleneck once the SQLite file is under real pressure. The order you tackle the audit trail and the nightly job in matters less than keeping each change small enough to undo.
+
+User: How do other people handle the SQLite file?
+
+Assistant: A useful question is what happens to the stock table on the worst day of the year, not an ordinary one. I'd be cautious about letting the SQLite file and a delivery depend on each other more than they need to. The order you tackle the back-office server and a delivery in matters less than keeping each change small enough to undo. One risk I'd watch is that the reorder email quietly becomes the bottleneck once a delivery is under real pressure. Some people in a similar position reach for hourly reorder runs, although it brings its own maintenance burden.
+
+User: A preference, while I think of it - please keep code examples short - under twenty lines if you can.
+
+Assistant: Good, that simplifies things. People often underestimate how long a delivery takes the first time, especially when the nightly job is involved. I've seen a microservice per shop suggested for this kind of problem, mainly because it looks tidy on a diagram. Some people in a similar position reach for a message queue, although it brings its own maintenance burden. In practice the stock table tends to expose any vagueness left in expiry dates, which is useful if you catch it early.
+
+User: Any thoughts on a stock adjustment given everything so far? Especially for a setup this size.
+
+Assistant: It's worth writing down what 'done' means for a stock adjustment, so that the shop codes doesn't drift while you're busy elsewhere. Whatever you choose for the shop codes, it's worth a quick check of how it interacts with the SQLite file before moving on. The order you tackle a stock adjustment and the back-office server in matters less than keeping each change small enough to undo. I've seen a spreadsheet import suggested for this kind of problem, mainly because it looks tidy on a diagram. It can help to separate what the reorder email must do from what would merely be nice, and treat the audit trail the same way.
+
+User: The head baker is called Marisol.
+
+Assistant: Noted - I'll keep that in mind. People often underestimate how long a delivery takes the first time, especially when the SQLite file is involved. Keeping notes on why a stock adjustment ended up the way it did will save time the next time someone questions it. A small trial of a delivery before the full version often shows problems that planning alone misses. The order you tackle expiry dates and the shop codes in matters less than keeping each change small enough to undo.
+
+User: Any thoughts on the nightly job given everything so far? Just the practical side.
+
+Assistant: There's an argument for a message queue, but it usually pays off only at a much larger scale than this. One risk I'd watch is that the back-office server quietly becomes the bottleneck once the shop codes is under real pressure. The order you tackle the nightly job and a stock adjustment in matters less than keeping each change small enough to undo. A useful question is what happens to the back-office server on the worst day of the year, not an ordinary one. It's worth writing down what 'done' means for the nightly job, so that the SQLite file doesn't drift while you're busy elsewhere.
+
+User: Any thoughts on the audit trail given everything so far? Just the practical side.
+
+Assistant: A useful question is what happens to the SQLite file on the worst day of the year, not an ordinary one. The order you tackle the back-office server and a delivery in matters less than keeping each change small enough to undo. In practice a stock adjustment tends to expose any vagueness left in the shop codes, which is useful if you catch it early. People often underestimate how long a delivery takes the first time, especially when the nightly job is involved. One risk I'd watch is that the stock table quietly becomes the bottleneck once the shop codes is under real pressure. Keeping notes on why the SQLite file ended up the way it did will save time the next time someone questions it. It's worth writing down what 'done' means for the SQLite file, so that the audit trail doesn't drift while you're busy elsewhere.
+
+User: In case it matters, the chain has four shops and one central bakery that supplies them.
+
+Assistant: Noted - I'll keep that in mind. A mobile app comes up a lot in articles, but the examples rarely match a setup like yours. If it helps, you could sketch the flow from the shop codes to the nightly job on paper before committing to anything. It can help to separate what a delivery must do from what would merely be nice, and treat the nightly job the same way.
+
+User: What's a sensible first step on the nightly job? Especially for a setup this size.
+
+Assistant: There's an argument for an event-sourced ledger, but it usually pays off only at a much larger scale than this. When you think about the shop codes, the main trade-off is usually between how simple it is to run and how much it can grow later. I've seen a spreadsheet import suggested for this kind of problem, mainly because it looks tidy on a diagram. Keeping notes on why the audit trail ended up the way it did will save time the next time someone questions it. A useful question is what happens to expiry dates on the worst day of the year, not an ordinary one. The detail that most often gets forgotten with the nightly job is who is responsible when it goes wrong. Whatever you choose for the SQLite file, it's worth a quick check of how it interacts with the shop codes before moving on. People often underestimate how long a stock adjustment takes the first time, especially when the SQLite file is involved.
+
+User: How would you approach a stock adjustment? I want to get this right before it's harder to change.
+
+Assistant: It can help to separate what a delivery must do from what would merely be nice, and treat the stock table the same way. There's an argument for a mobile app, but it usually pays off only at a much larger scale than this. Keeping notes on why the back-office server ended up the way it did will save time the next time someone questions it. When you think about a stock adjustment, the main trade-off is usually between how simple it is to run and how much it can grow later. It's worth writing down what 'done' means for the SQLite file, so that the stock table doesn't drift while you're busy elsewhere.
+
+User: Also, I like type hints on every function signature.
+
+Assistant: Clear, thanks. The order you tackle a stock adjustment and the audit trail in matters less than keeping each change small enough to undo. There's an argument for barcode scanners, but it usually pays off only at a much larger scale than this. Some people in a similar position reach for an ORM migration tool, although it brings its own maintenance burden. A small trial of expiry dates before the full version often shows problems that planning alone misses.
+
+User: What should I check about a stock adjustment before next week? I want to get this right before it's harder to change.
+
+Assistant: A small trial of a stock adjustment before the full version often shows problems that planning alone misses. If it helps, you could sketch the flow from a delivery to the shop codes on paper before committing to anything. People often underestimate how long the shop codes takes the first time, especially when the back-office server is involved. Some people in a similar position reach for a mobile app, although it brings its own maintenance burden. I'd be cautious about letting the stock table and the nightly job depend on each other more than they need to. It's worth writing down what 'done' means for a delivery, so that expiry dates doesn't drift while you're busy elsewhere.
+
+User: Nothing leaves the back-office network - no cloud services for this system. That's not up for debate.
+
+Assistant: Right, I'll work with that. Keeping notes on why a stock adjustment ended up the way it did will save time the next time someone questions it. If it helps, you could sketch the flow from expiry dates to the shop codes on paper before committing to anything. There's an argument for a message queue, but it usually pays off only at a much larger scale than this. I'd be cautious about letting the nightly job and the audit trail depend on each other more than they need to. When you think about the audit trail, the main trade-off is usually between how simple it is to run and how much it can grow later. A common pattern is to look at the reorder email first, because it tends to shape the decisions around the shop codes. Whatever you choose for expiry dates, it's worth a quick check of how it interacts with the stock table before moving on.
+
+User: Stock quantities are never allowed to go negative - a sale that would do that is rejected. That's not up for debate.
+
+Assistant: Noted - I'll keep that in mind. Some people in a similar position reach for a microservice per shop, although it brings its own maintenance burden. A small trial of the stock table before the full version often shows problems that planning alone misses. I've seen barcode scanners suggested for this kind of problem, mainly because it looks tidy on a diagram. When you think about the reorder email, the main trade-off is usually between how simple it is to run and how much it can grow later. The order you tackle expiry dates and the audit trail in matters less than keeping each change small enough to undo. Hourly reorder runs comes up a lot in articles, but the examples rarely match a setup like yours.
+
+User: Can you walk me through how the audit trail relates to the reorder email? I want to get this right before it's harder to change.
+
+Assistant: There's an argument for an event-sourced ledger, but it usually pays off only at a much larger scale than this. When you think about a delivery, the main trade-off is usually between how simple it is to run and how much it can grow later. It's worth writing down what 'done' means for the back-office server, so that the shop codes doesn't drift while you're busy elsewhere. I've seen barcode scanners suggested for this kind of problem, mainly because it looks tidy on a diagram. It can help to separate what the SQLite file must do from what would merely be nice, and treat a delivery the same way. In practice a delivery tends to expose any vagueness left in the back-office server, which is useful if you catch it early. The order you tackle the audit trail and the nightly job in matters less than keeping each change small enough to undo.
+
+User: Can you walk me through how the nightly job relates to the audit trail? Just the practical side.
+
+Assistant: It's worth writing down what 'done' means for expiry dates, so that the reorder email doesn't drift while you're busy elsewhere. People often underestimate how long the reorder email takes the first time, especially when the SQLite file is involved. I'd be cautious about letting the nightly job and the shop codes depend on each other more than they need to. A common pattern is to look at the stock table first, because it tends to shape the decisions around a stock adjustment. One risk I'd watch is that the back-office server quietly becomes the bottleneck once the SQLite file is under real pressure. It can help to separate what the stock table must do from what would merely be nice, and treat the SQLite file the same way. Keeping notes on why the back-office server ended up the way it did will save time the next time someone questions it.
+
+User: How do other people handle the back-office server? Assume I haven't read much about it.
+
+Assistant: I've seen barcode scanners suggested for this kind of problem, mainly because it looks tidy on a diagram. A microservice per shop comes up a lot in articles, but the examples rarely match a setup like yours. A useful question is what happens to a stock adjustment on the worst day of the year, not an ordinary one. If it helps, you could sketch the flow from the stock table to the back-office server on paper before committing to anything. Some people in a similar position reach for a microservice per shop, although it brings its own maintenance burden. Something to consider - A small React dashboard would let each shop manager see their own stock.
+
+User: Not now. Shop managers won't log in to anything; the email to Marisol is the whole interface for this version.
+
+Assistant: Noted - I'll keep that in mind. Some people in a similar position reach for a mobile app, although it brings its own maintenance burden. I've seen an event-sourced ledger suggested for this kind of problem, mainly because it looks tidy on a diagram. A common pattern is to look at the SQLite file first, because it tends to shape the decisions around the audit trail.
+
+User: How would you approach the nightly job?
+
+Assistant: There's an argument for barcode scanners, but it usually pays off only at a much larger scale than this. I've seen a mobile app suggested for this kind of problem, mainly because it looks tidy on a diagram. If it helps, you could sketch the flow from the stock table to expiry dates on paper before committing to anything. The order you tackle the audit trail and the stock table in matters less than keeping each change small enough to undo. It can help to separate what the audit trail must do from what would merely be nice, and treat the back-office server the same way. You might also consider how the audit trail would look to someone new, since they'll judge it without the history.
+
+User: Remember this runs entirely inside the back office; no part of it may call out to a cloud provider.
+
+Assistant: Right, I'll work with that. I've seen an ORM migration tool suggested for this kind of problem, mainly because it looks tidy on a diagram. I'd be cautious about letting expiry dates and the back-office server depend on each other more than they need to. In practice the stock table tends to expose any vagueness left in the nightly job, which is useful if you catch it early.
+
+User: What usually goes wrong with the back-office server?
+
+Assistant: An ORM migration tool comes up a lot in articles, but the examples rarely match a setup like yours. A small trial of the SQLite file before the full version often shows problems that planning alone misses. In practice the reorder email tends to expose any vagueness left in a stock adjustment, which is useful if you catch it early. When you think about the stock table, the main trade-off is usually between how simple it is to run and how much it can grow later. It's worth writing down what 'done' means for the stock table, so that a stock adjustment doesn't drift while you're busy elsewhere.
+
+User: Change of plan on who gets the reorder email: it goes to both Marisol and the shop manager of the shop concerned, not Marisol alone.
+
+Assistant: Right, I'll work with that. In practice a delivery tends to expose any vagueness left in the back-office server, which is useful if you catch it early. When you think about the back-office server, the main trade-off is usually between how simple it is to run and how much it can grow later. You might also consider how a delivery would look to someone new, since they'll judge it without the history. It can help to separate what the back-office server must do from what would merely be nice, and treat a stock adjustment the same way. Whatever you choose for the audit trail, it's worth a quick check of how it interacts with the back-office server before moving on.
+
+User: How do other people handle a stock adjustment? Short answer is fine.
+
+Assistant: People often underestimate how long expiry dates takes the first time, especially when the shop codes is involved. The order you tackle the back-office server and the SQLite file in matters less than keeping each change small enough to undo. It's worth writing down what 'done' means for a stock adjustment, so that the shop codes doesn't drift while you're busy elsewhere. A small trial of the shop codes before the full version often shows problems that planning alone misses. The detail that most often gets forgotten with the shop codes is who is responsible when it goes wrong.
+
+User: Something unresolved - we still haven't decided how to handle stock that expires, like butter past its date.
+
+Assistant: Good, that simplifies things. A common pattern is to look at the reorder email first, because it tends to shape the decisions around expiry dates. In practice the stock table tends to expose any vagueness left in the reorder email, which is useful if you catch it early. People often underestimate how long the nightly job takes the first time, especially when the stock table is involved. The order you tackle the shop codes and the stock table in matters less than keeping each change small enough to undo. It can help to separate what the audit trail must do from what would merely be nice, and treat a delivery the same way.
+
+User: What usually goes wrong with a delivery? I keep going back and forth on it.
+
+Assistant: It's worth writing down what 'done' means for expiry dates, so that the audit trail doesn't drift while you're busy elsewhere. A common pattern is to look at the stock table first, because it tends to shape the decisions around the audit trail. In practice the stock table tends to expose any vagueness left in expiry dates, which is useful if you catch it early. Some people in a similar position reach for a message queue, although it brings its own maintenance burden. An event-sourced ledger comes up a lot in articles, but the examples rarely match a setup like yours. The detail that most often gets forgotten with the reorder email is who is responsible when it goes wrong.
+
+User: Scrap the rounding I mentioned earlier - keep stock exact to the gram, bakers weigh precisely and rounding hid real shortages.
+
+Assistant: Good, that simplifies things. A small trial of the nightly job before the full version often shows problems that planning alone misses. The order you tackle a delivery and the back-office server in matters less than keeping each change small enough to undo. You might also consider how the shop codes would look to someone new, since they'll judge it without the history. It's worth writing down what 'done' means for the back-office server, so that a stock adjustment doesn't drift while you're busy elsewhere.
+
+User: Can you walk me through how expiry dates relates to the back-office server?
+
+Assistant: It's worth writing down what 'done' means for the back-office server, so that the stock table doesn't drift while you're busy elsewhere. A common pattern is to look at the SQLite file first, because it tends to shape the decisions around the shop codes. I'd be cautious about letting the audit trail and the reorder email depend on each other more than they need to. Keeping notes on why a delivery ended up the way it did will save time the next time someone questions it. In practice the audit trail tends to expose any vagueness left in the back-office server, which is useful if you catch it early. Whatever you choose for the stock table, it's worth a quick check of how it interacts with the SQLite file before moving on. The detail that most often gets forgotten with the reorder email is who is responsible when it goes wrong. The order you tackle a stock adjustment and the stock table in matters less than keeping each change small enough to undo.
+
+User: Each adjustment has to carry the person and the timestamp, no exceptions.
+
+Assistant: Right, I'll work with that. Whatever you choose for the reorder email, it's worth a quick check of how it interacts with a delivery before moving on. The detail that most often gets forgotten with a delivery is who is responsible when it goes wrong. Keeping notes on why expiry dates ended up the way it did will save time the next time someone questions it. Some people in a similar position reach for hourly reorder runs, although it brings its own maintenance burden.
+
+User: Is there anything about the audit trail I'm likely to overlook? Short answer is fine.
+
+Assistant: Keeping notes on why the back-office server ended up the way it did will save time the next time someone questions it. It's worth writing down what 'done' means for the shop codes, so that a stock adjustment doesn't drift while you're busy elsewhere. An ORM migration tool comes up a lot in articles, but the examples rarely match a setup like yours. There's an argument for a microservice per shop, but it usually pays off only at a much larger scale than this. In practice expiry dates tends to expose any vagueness left in the SQLite file, which is useful if you catch it early. It can help to separate what a stock adjustment must do from what would merely be nice, and treat the nightly job the same way. When you think about the back-office server, the main trade-off is usually between how simple it is to run and how much it can grow later. You might also consider how the nightly job would look to someone new, since they'll judge it without the history.
+
+User: What should I check about the stock table before next week? Especially for a setup this size.
+
+Assistant: People often underestimate how long a delivery takes the first time, especially when the nightly job is involved. I'd be cautious about letting the back-office server and the SQLite file depend on each other more than they need to. An event-sourced ledger comes up a lot in articles, but the examples rarely match a setup like yours. Keeping notes on why the audit trail ended up the way it did will save time the next time someone questions it. A useful question is what happens to a delivery on the worst day of the year, not an ordinary one. The detail that most often gets forgotten with the nightly job is who is responsible when it goes wrong.
+
+User: To say it again plainly: a negative stock figure must be impossible, and the write that would cause one gets refused.
+
+Assistant: Okay, that's a sensible call. One risk I'd watch is that the reorder email quietly becomes the bottleneck once a stock adjustment is under real pressure. There's an argument for barcode scanners, but it usually pays off only at a much larger scale than this. A useful question is what happens to expiry dates on the worst day of the year, not an ordinary one. A common pattern is to look at the shop codes first, because it tends to shape the decisions around the back-office server. Some people in a similar position reach for a spreadsheet import, although it brings its own maintenance burden.
+
+User: Something unresolved - the reorder threshold per ingredient is still undecided.
+
+Assistant: Understood. When you think about a stock adjustment, the main trade-off is usually between how simple it is to run and how much it can grow later. A small trial of expiry dates before the full version often shows problems that planning alone misses. There's an argument for a message queue, but it usually pays off only at a much larger scale than this. I've seen barcode scanners suggested for this kind of problem, mainly because it looks tidy on a diagram. A useful question is what happens to expiry dates on the worst day of the year, not an ordinary one.
+
+User: What's a sensible first step on the SQLite file? I keep going back and forth on it.
+
+Assistant: A common pattern is to look at the shop codes first, because it tends to shape the decisions around the SQLite file. The order you tackle a stock adjustment and a delivery in matters less than keeping each change small enough to undo. In practice expiry dates tends to expose any vagueness left in the nightly job, which is useful if you catch it early. One risk I'd watch is that the audit trail quietly becomes the bottleneck once the shop codes is under real pressure. People often underestimate how long the SQLite file takes the first time, especially when a delivery is involved. The detail that most often gets forgotten with the audit trail is who is responsible when it goes wrong.
+
+User: Not done yet: I need to work out whether returns from shops go back into central stock.
+
+Assistant: Noted - I'll keep that in mind. In practice the back-office server tends to expose any vagueness left in a delivery, which is useful if you catch it early. I'd be cautious about letting the SQLite file and the back-office server depend on each other more than they need to. Some people in a similar position reach for an event-sourced ledger, although it brings its own maintenance burden. When you think about the shop codes, the main trade-off is usually between how simple it is to run and how much it can grow later. Whatever you choose for the reorder email, it's worth a quick check of how it interacts with a stock adjustment before moving on. If it helps, you could sketch the flow from expiry dates to the shop codes on paper before committing to anything.
+
+User: Is there anything about the back-office server I'm likely to overlook? I want to get this right before it's harder to change.
+
+Assistant: The detail that most often gets forgotten with the stock table is who is responsible when it goes wrong. People often underestimate how long the reorder email takes the first time, especially when the stock table is involved. It's worth writing down what 'done' means for a delivery, so that the reorder email doesn't drift while you're busy elsewhere. In practice expiry dates tends to expose any vagueness left in the nightly job, which is useful if you catch it early. I'd be cautious about letting the reorder email and the back-office server depend on each other more than they need to. There's an argument for barcode scanners, but it usually pays off only at a much larger scale than this. When you think about the audit trail, the main trade-off is usually between how simple it is to run and how much it can grow later.

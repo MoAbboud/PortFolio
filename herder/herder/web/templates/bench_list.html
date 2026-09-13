@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Benchmark fact lists - herder{% endblock %}
+{% block nav %}<span>Benchmark</span>{% endblock %}
+{% block body %}
+<h1>Benchmark fact lists</h1>
+<p>Eight made-up conversations. For each one, read it and write down the facts it establishes - this is the answer key the benchmark scores every method against. Aim for about {{ target }} per conversation.</p>
+<p class="meta">{{ written }} facts written so far, of about {{ target * rows|length }}.</p>
+<div class="scroll">
+<table>
+  <tr><th>Conversation</th><th>Topic</th><th>Size</th><th>Facts written</th><th>Of which false</th></tr>
+  {% for r in rows %}
+  <tr>
+    <td><a href="/bench/{{ r.meta.name }}">{{ r.meta.title }}</a></td>
+    <td>{{ r.meta.archetype }}</td>
+    <td>{{ "{:,}".format(r.meta.tokens) }} tokens, {{ r.meta.turns }} turns</td>
+    <td>{{ r.total }}{% if r.total >= target %} <strong>done</strong>{% endif %}</td>
+    <td>{{ r.false }}</td>
+  </tr>
+  {% endfor %}
+</table>
+</div>
+{% endblock %}

@@ -12,6 +12,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
 
 from herder.api import checkpoints, conversations, entries, health, ingest, projects
+from herder.web.bench_routes import router as bench_router
 from herder.web.routes import router as web_router
 from herder.web.support import LoginRequired
 
@@ -38,6 +39,8 @@ def create_app() -> FastAPI:
     app.include_router(entries.router)
     # Stage 8: the pages. Outside /v1, and authenticated by cookie rather than header.
     app.include_router(web_router)
+    # Stage 9: the benchmark's fact-list authoring pages. Off when HERDER_BENCH_AUTHORING=false.
+    app.include_router(bench_router)
 
     @app.exception_handler(LoginRequired)
     async def _login_required(request: Request, exc: LoginRequired) -> RedirectResponse:

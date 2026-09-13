@@ -109,6 +109,10 @@ class Settings(BaseSettings):
 
     worker_poll_seconds: float = 2.0
 
+    # Stage 9: the pages at /bench write ground-truth fact lists into bench/datasets. A local
+    # authoring tool, not a feature - any hosted deployment sets HERDER_BENCH_AUTHORING=false.
+    bench_authoring: bool = True
+
 
 @lru_cache
 def get_settings() -> Settings:

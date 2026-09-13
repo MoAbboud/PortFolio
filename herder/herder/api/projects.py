@@ -10,11 +10,12 @@ import datetime as dt
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import func, literal_column, select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from herder.core.config import get_settings
 from herder.core.db import get_session
 from herder.core.ids import uuid7
 from herder.core.security import require_key
@@ -295,6 +296,44 @@ async def render(
     """
     project = await _project_for(session, project_id, key)
     return await _enqueue(session, project, "render")
+
+
+class NewProject(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    brief_budget_tokens: int | None = Field(default=None, ge=1)
+
+
+class ProjectCreated(BaseModel):
+    id: uuid.UUID
+    name: str
+    brief_budget_tokens: int
+
+
+@router.post("/projects", response_model=ProjectCreated, status_code=201)
+async def create_project(
+    body: NewProject,
+    key: ApiKey = Depends(require_key),
+    session: AsyncSession = Depends(get_session),
+) -> ProjectCreated:
+    """Listed in the architecture's API surface since the start and built at stage 9, when the
+    benchmark needed a fresh project per conversation through the API rather than the database."""
+    name = body.name.strip()
+    taken = (
+        await session.execute(select(Project.id).where(Project.workspace_id == key.workspace_id, Project.name == name))
+    ).first()
+    if taken is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"a project named {name!r} already exists")
+    settings = get_settings()
+    project = Project(
+        id=uuid7(),
+        workspace_id=key.workspace_id,
+        name=name,
+        brief_budget_tokens=body.brief_budget_tokens or settings.brief_budget_tokens,
+        session_tail_tokens=settings.session_tail_tokens,
+    )
+    session.add(project)
+    await session.commit()
+    return ProjectCreated(id=project.id, name=project.name, brief_budget_tokens=project.brief_budget_tokens)
 
 
 @router.get("/projects", response_model=list[dict])

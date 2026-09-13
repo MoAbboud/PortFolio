@@ -496,6 +496,17 @@ reimplementation.
   per resume (the cost column, now that nothing is billed). Reported per archetype as well as combined, because a method that wins on code and
   loses on planning is a finding rather than an average.
 
+*Settled at stage 9 (details in `05-tasks.md` and `06-context.md`):* the first corpus is eight
+conversations, not twenty, by the author's choice. Each fact is marked true or false, and
+**hallucination is measured on the false ones** - a turned-down idea or reversed decision the
+reader judges true. The reader answers true / false / not stated per fact, grammar-constrained,
+with the context first so Ollama caches it. herder's context is the brief, not the pack (the
+pack's vendor instruction carries no memory, and the other methods get none). `naive_summary`
+is map-reduce, because a 10,000-token conversation does not fit the local model's usable
+context, and is cut at the budget if it runs over. A `no_context` control shows what guessing
+alone scores. Runs are at 500 and 3,000 tokens: 500 is roughly the 20x the project's central
+question names, 3,000 is the product default.
+
 `naive_summary` is the comparison that matters. It is what a reasonable person would build in
 an afternoon, and if herder does not beat it at the same token budget then the entries, the
 merging, the layering and the versioning are elaborate machinery around no advantage. The

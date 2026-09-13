@@ -21,7 +21,8 @@ the old decision kept beside the new one and the reason recorded. A decision tha
 somebody's head is a decision the next working session will make differently.
 
 **Stages 0 to 8 are done**, and the prototype runs in a browser: paste, derive, adjust, serve
-and checkpoint without a terminal. Stage 9 - the corpus and the baseline - is the current work.
+and checkpoint without a terminal. Stage 9 - the corpus and the baseline - is the current work:
+the harness exists, and the hand-written fact lists come next.
 
 [05-tasks.md](05-tasks.md) is the authority on status and the only place test counts
 live, because the same status restated in three documents drifted in all three.

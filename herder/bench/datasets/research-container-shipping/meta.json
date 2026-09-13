@@ -1,0 +1,9 @@
+{
+  "name": "research-container-shipping",
+  "archetype": "research",
+  "title": "A long-form article on the history of container shipping",
+  "tokens": 10797,
+  "turns": 134,
+  "generator_version": "1",
+  "seed": 20260913
+}

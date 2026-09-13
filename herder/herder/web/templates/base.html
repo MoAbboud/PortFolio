@@ -31,7 +31,8 @@
   <strong><a href="/">herder</a></strong>
   {% block nav %}{% endblock %}
   {% if request.cookies.get("herder_key") %}
-  <form method="post" action="/logout"><button>Log out</button></form>
+  <a href="/bench" style="margin-left:auto">Benchmark</a>
+  <form method="post" action="/logout" style="margin-left:0"><button>Log out</button></form>
   {% endif %}
 </nav>
 {% if notice %}<div class="notice">{{ notice }}</div>{% endif %}

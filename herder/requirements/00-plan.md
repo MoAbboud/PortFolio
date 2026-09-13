@@ -75,7 +75,8 @@ flowchart LR
 | 14 | Hardening and self-host | Optional. Export, delete, rate limits, `/metrics`, and the self-host document |
 
 **Stages 0 to 8 are done. The demo exists: the whole loop runs in a browser.** Stage 9 is the
-current work, and stage 8 stays bare until its baseline is recorded.
+current work - its harness is built and the author's fact lists are next - and stage 8 stays
+bare until its baseline is recorded.
 
 **[05-tasks.md](05-tasks.md) is the authority on status**, and the only place test counts and
 per-stage verification live. This paragraph names the stage and nothing more, on purpose: the

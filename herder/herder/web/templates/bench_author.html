@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{{ meta.title }} - facts - herder{% endblock %}
+{% block nav %}<a href="/bench">Benchmark</a> <span>{{ meta.name }}</span>{% endblock %}
+{% block body %}
+<style>
+  .author { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; }
+  @media (max-width: 900px) { .author { grid-template-columns: 1fr; } }
+  .conversation { max-height: 80vh; overflow-y: auto; border: 1px solid #ccc; padding: 8px; }
+  .turn { padding: 6px 4px; border-bottom: 1px solid #eee; white-space: pre-wrap; }
+  .turn.user { background: #f3f7ff; }
+  .panel { position: sticky; top: 8px; align-self: start; max-height: 96vh; overflow-y: auto; }
+  .panel input[type=text], .panel textarea, .panel select { width: 100%; box-sizing: border-box; }
+</style>
+<h1>{{ meta.title }}</h1>
+<p class="meta">{{ meta.archetype }} &middot; {{ "{:,}".format(meta.tokens) }} tokens &middot; {{ turns|length }} turns &middot; <strong>{{ facts.facts|length }}</strong> facts written (aim for about {{ target }})</p>
+
+<div class="author">
+  <section class="conversation">
+    {% for t in turns %}
+    <div class="turn {{ t.role }}" id="t{{ loop.index }}"><strong>#{{ loop.index }} {{ "You" if t.role == "user" else "Assistant" }}:</strong> {{ t.content }}</div>
+    {% endfor %}
+  </section>
+
+  <section class="panel">
+    <details{% if not facts.facts %} open{% endif %}>
+      <summary><strong>How to write a fact</strong></summary>
+      <ul>
+        <li><strong>One claim per fact</strong>, as a sentence that makes sense on its own: "The service stores stock in SQLite."</li>
+        <li><strong>true</strong> = still true at the end of the conversation: decided, required, stated, preferred, or still open.</li>
+        <li><strong>false</strong> = in the conversation but <em>not</em> true at the end: a suggestion the user turned down, or an earlier decision that was changed later. Write it as the claim itself ("The service uses Redis") and mark it false.</li>
+        <li><strong>Turns</strong> = the numbers on the left where it is said, rejected or changed. Several are fine: "12, 88".</li>
+        <li>Mostly facts the <em>user</em> said or agreed to. The assistant's long explanations decide nothing unless the user takes them up.</li>
+        <li>Roughly one in four false is a good mix. Write from reading this page only - not from herder's brief or entries.</li>
+      </ul>
+    </details>
+
+    <h2 id="form">{% if editing %}Edit {{ editing.id }}{% else %}Add a fact{% endif %}</h2>
+    <form method="post" action="/bench/{{ meta.name }}/facts">
+      {% if editing %}<input type="hidden" name="fact_id" value="{{ editing.id }}">{% endif %}
+      <p><textarea name="statement" rows="3" required placeholder="One claim, as a full sentence">{{ editing.statement if editing else "" }}</textarea></p>
+      <p>
+        <select name="kind">
+          {% for k in kinds %}<option{% if editing and editing.kind == k %} selected{% endif %}>{{ k }}</option>{% endfor %}
+        </select>
+      </p>
+      <p>
+        <label><input type="radio" name="truth" value="true" {% if not editing or editing.truth == "true" %}checked{% endif %}> true at the end</label>
+        <label><input type="radio" name="truth" value="false" {% if editing and editing.truth == "false" %}checked{% endif %}> false (rejected or changed)</label>
+      </p>
+      <p><input type="text" name="turns" placeholder="Turn numbers, e.g. 12, 88" value="{{ editing.turns|join(', ') if editing else '' }}"></p>
+      <p><input type="text" name="note" placeholder="Note to yourself (optional)" value="{{ editing.note if editing else '' }}"></p>
+      <p><button>{% if editing %}Save changes{% else %}Add fact{% endif %}</button>{% if editing %} <a href="/bench/{{ meta.name }}">cancel</a>{% endif %}</p>
+    </form>
+
+    <h2 id="facts">Facts ({{ facts.facts|length }})</h2>
+    <p class="meta">{% for k, n in counts.items() if n %}{{ k }} {{ n }}{% if not loop.last %} &middot; {% endif %}{% endfor %}</p>
+    {% for f in facts.facts|reverse %}
+    <div class="card">
+      <div class="meta">{{ f.id }} &middot; {{ f.kind }} &middot; <strong>{{ f.truth }}</strong>{% if f.turns %} &middot; turns {% for n in f.turns %}<a href="#t{{ n }}">{{ n }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}</div>
+      <div>{{ f.statement }}</div>
+      {% if f.note %}<div class="meta">{{ f.note }}</div>{% endif %}
+      <a href="?edit={{ f.id }}#form">edit</a>
+      <form class="inline" method="post" action="/bench/{{ meta.name }}/facts/{{ f.id }}/delete"><button>delete</button></form>
+    </div>
+    {% else %}
+    <p>None yet.</p>
+    {% endfor %}
+  </section>
+</div>
+{% endblock %}

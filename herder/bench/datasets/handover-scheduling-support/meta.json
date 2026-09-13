@@ -1,0 +1,9 @@
+{
+  "name": "handover-scheduling-support",
+  "archetype": "handover",
+  "title": "Handing over the support queue for a scheduling SaaS",
+  "tokens": 9373,
+  "turns": 120,
+  "generator_version": "1",
+  "seed": 20260913
+}

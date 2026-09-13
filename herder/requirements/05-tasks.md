@@ -2,9 +2,10 @@
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
 
-**Stages 0 to 8 are done, and the prototype exists**: everything the terminal could do, in a
-browser at `http://localhost:8000`. 403 tests pass. **Stage 9 - the corpus and the baseline -
-is next**, and the UI stays bare until that baseline is recorded.
+**Stages 0 to 8 are done, and the prototype exists** at `http://localhost:8000`. 428 tests
+pass. **Stage 9's harness is built and waiting on the one part that is the author's: the
+hand-written fact lists** for eight conversations, written at `/bench`. Then the baseline is
+run and recorded before anything is tuned. The UI stays bare until it is.
 
 **Two things are outstanding behind it, both measurement rather than code.** The full `local`
 run over all ten stage 4 transcripts still has not been done; the comparison recorded so far
@@ -454,18 +455,36 @@ worker (integrity 0.83), dashboard. **The gate stands: no styling until stage 9'
 
 ## Stage 9 - Corpus and baseline
 
-- [ ] Twenty synthetic conversations, 8k to 60k tokens, five per archetype
+**Built 2026-09-13; waiting on the author's fact lists.** Everything but the answer key exists
+and has been run end to end on a scratch copy with three placeholder facts (never in
+`bench/datasets`). **The author chose, when asked:** 8 conversations rather than 20 for the
+first baseline, a new generator rather than stage 4's, and to write every fact himself.
+
+- [x] ~~Twenty synthetic conversations, 8k to 60k tokens, five per archetype~~ **Eight, 9k to
+      13k tokens, two per archetype** (coding, research, planning, handover) - the author's
+      scope for the first baseline; twenty stays the target for later. From
+      `bench/generate.py`, a new generator with different subjects and phrasing, because the
+      heuristic was tuned on stage 4's conversations. Every turn unique; the app's own parser
+      reads back every turn of all eight
 - [ ] A hand-written ground-truth fact list per conversation, 30 to 60 facts, tagged by kind.
-      **Written from the conversation, never from an extraction**
-- [ ] `bench/methods/`: `herder`, `naive_summary`, `truncate_tail`
-- [ ] `bench/run.py`, driving the real pipeline through the API
-- [ ] Metrics: recall of ground-truth facts, hallucination rate, compression ratio, and
-      wall-clock per resume. Per archetype as well as combined, and per extractor
-- [ ] The answering model is the same local model for every method. Holding the reader
-      constant is what makes the comparison mean anything
-- [ ] Results as files in `bench/results/`, committed
+      **Written from the conversation, never from an extraction.** The author's, at
+      `http://localhost:8000/bench` - a page showing the numbered conversation and nothing
+      herder derived. Each fact is marked true or false; false facts (turned-down ideas,
+      reversed decisions) are what hallucination is measured on
+- [x] `bench/methods.py`: `herder`, `naive_summary`, `truncate_tail`, plus a `no_context`
+      control showing what guessing alone scores
+- [x] `bench/run.py`, driving the real pipeline through the API (a `POST /v1/projects`
+      endpoint was added for it). Resumable; `--label baseline` refuses to start until every
+      fact list has at least 30 facts
+- [x] Metrics: recall, hallucination (false facts judged true), contradiction, compression,
+      and time to build. Per archetype as well as combined, per kind, and per extractor (the
+      run records the worker's; a second extractor is a second run)
+- [x] The answering model is the same local model for every method, with one versioned
+      prompt (`bench/prompts/read.md`)
+- [ ] Results as files in `bench/results/`, committed - the harness writes them; none yet
 - [ ] **The baseline recorded before anything is tuned**
-- [ ] The per-fact detail behind every number, so the next change is informed
+- [x] The per-fact detail behind every number - the report's last section, every fact against
+      every method, with the exact context each reader saw saved beside it
 
 ## Stage 10 - Iteration
 

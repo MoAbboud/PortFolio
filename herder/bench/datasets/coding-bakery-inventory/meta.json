@@ -1,0 +1,9 @@
+{
+  "name": "coding-bakery-inventory",
+  "archetype": "coding",
+  "title": "An inventory service for a small bakery chain",
+  "tokens": 11817,
+  "turns": 148,
+  "generator_version": "1",
+  "seed": 20260913
+}

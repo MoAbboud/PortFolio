@@ -840,3 +840,27 @@ With a temporary key, revoked afterwards:
 
 Left in the database: projects `stage7-check` and `stage8-live`, and two revoked keys named
 `stage8-live-check`.
+
+## 2026-09-13 - stage 9: the harness, waiting on the fact lists
+
+Facts only; the reading is the author's. 428 tests pass. **No benchmark result exists yet** -
+the answer key is the author's to write, and nothing below is a measurement of herder.
+
+**Built:** eight conversations (`bench/generate.py`, 9,373 to 12,829 tokens, two each of coding,
+research, planning and handover, none of their lines shared with stage 4's corpus); a page at
+`/bench` for writing each conversation's fact list; and `bench/run.py`, which compares
+`herder` (through the API), `naive_summary`, `truncate_tail` and a `no_context` control at 500
+and 3,000 tokens, with one local model reading every context.
+
+**Checked end to end on a scratch copy of one conversation with three placeholder facts** - in
+a scratch folder, never in `bench/datasets`. About a minute with warm models: herder's derive 19 s,
+the map-reduce summary 56 s, twelve verdicts in seconds. The report came out with counts, per
+archetype, per kind and per fact. Its numbers are three placeholder facts and mean nothing.
+
+**One thing visible in that scratch run's brief, noted and deliberately not acted on:** the
+heuristic made entries of two throwaway sentences from the generated conversation - "Let's park
+it for now." as a decision and "Assume I haven't read much about it." as an open thread. Those
+are exactly the kind of failure the baseline should count. Changing the extractor or the
+conversations before the baseline exists would be tuning against the benchmark.
+
+Expected time for the full baseline with the heuristic: roughly 30-60 minutes.
