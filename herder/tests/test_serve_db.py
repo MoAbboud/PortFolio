@@ -11,12 +11,12 @@ from __future__ import annotations
 import pytest
 from sqlalchemy import func, select
 
-from herder.domain.merge import ENTAILMENT, NEUTRAL  # noqa: F401  (kept for parity with siblings)
 from herder.models import BriefVersion, Injection, Project
 from herder.services.serve import ServeError, build_pack, preamble_for, resume
 from tests.test_derive_db import FakeExtractor, candidate, run, seeded  # noqa: F401
 
-pytestmark = pytest.mark.asyncio
+# No module-level `pytestmark = pytest.mark.asyncio`: half this file is synchronous, and the
+# mark on a plain function is a warning today and an error in a later pytest-asyncio.
 
 
 # ------------------------------------------------------------------ pure: the preamble
@@ -86,6 +86,7 @@ def test_a_quote_in_the_project_name_cannot_break_the_tag() -> None:
 # ------------------------------------------------------------------ the serve
 
 
+@pytest.mark.asyncio
 async def test_a_serve_records_an_injection(session, account):
     """The injection is the join key a checkpoint hangs off: which version went where, with
     the exact text that was sent."""
@@ -102,6 +103,7 @@ async def test_a_serve_records_an_injection(session, account):
     assert injection.pack_text == pack.text
 
 
+@pytest.mark.asyncio
 async def test_the_pack_carries_the_current_version(session, account):
     project = await seeded(session, account)
     await run(session, project, FakeExtractor([candidate()]))
@@ -115,6 +117,7 @@ async def test_the_pack_carries_the_current_version(session, account):
     assert pack.version == highest
 
 
+@pytest.mark.asyncio
 async def test_a_budget_override_renders_a_fresh_version(session, account):
     """Truncating the stored text would produce a pack matching no version in the database,
     and a checkpoint against it would be scored on a text that was never sent."""
@@ -143,6 +146,7 @@ async def test_a_budget_override_renders_a_fresh_version(session, account):
     assert stored.rendered_text in pack.text
 
 
+@pytest.mark.asyncio
 async def test_a_budget_override_does_not_change_the_project(session, account):
     """A caller asking for a smaller pack once must not quietly shrink every future derive."""
     project = await seeded(session, account)
@@ -155,6 +159,63 @@ async def test_a_budget_override_does_not_change_the_project(session, account):
     assert project.brief_budget_tokens == original
 
 
+@pytest.mark.asyncio
+async def test_an_override_does_not_leak_into_the_next_plain_serve(session, account):
+    """The override version becomes the highest version (invariant 5), so a plain serve that
+    just took the highest version would hand the next caller the shrunken brief - the
+    override quietly applying to every serve after it. Found reviewing stage 5."""
+    project = await seeded(session, account)
+    await run(session, project, FakeExtractor([candidate(title=f"entry {i}") for i in range(6)]))
+
+    await resume(session, project, budget_tokens=150)
+    plain = await resume(session, project)
+
+    assert plain.budget_tokens == project.brief_budget_tokens
+    assert plain.rendered_fresh is True
+
+
+@pytest.mark.asyncio
+async def test_repeating_an_override_reuses_the_version_it_rendered(session, account):
+    """Nothing changed between the two serves, so a second render would be a duplicate."""
+    project = await seeded(session, account)
+    await run(session, project, FakeExtractor([candidate()]))
+
+    first = await resume(session, project, budget_tokens=150)
+    second = await resume(session, project, budget_tokens=150)
+
+    assert second.rendered_fresh is False
+    assert second.brief_version_id == first.brief_version_id
+
+
+@pytest.mark.asyncio
+async def test_an_override_on_a_project_with_no_brief_still_says_derive(session, account):
+    """The override path used to render regardless, so a never-derived project served an
+    empty pack and recorded an injection for it instead of saying what to do."""
+    project = account["project"]
+    with pytest.raises(ServeError) as exc:
+        await resume(session, project, budget_tokens=150)
+    assert "derive" in str(exc.value)
+
+    versions = (
+        await session.execute(
+            select(func.count()).select_from(BriefVersion).where(BriefVersion.project_id == project.id)
+        )
+    ).scalar_one()
+    assert versions == 0
+
+
+@pytest.mark.asyncio
+async def test_the_vendor_is_stored_normalised(session, account):
+    """Stage 6 groups checkpoints by vendor, and "Claude" and "claude" are one vendor."""
+    project = await seeded(session, account)
+    await run(session, project, FakeExtractor([candidate()]))
+
+    pack = await resume(session, project, vendor=" Claude ")
+    injection = await session.get(Injection, pack.injection_id)
+    assert injection.target_vendor == "claude"
+
+
+@pytest.mark.asyncio
 async def test_the_same_budget_reuses_the_current_version(session, account):
     project = await seeded(session, account)
     await run(session, project, FakeExtractor([candidate()]))
@@ -175,6 +236,7 @@ async def test_the_same_budget_reuses_the_current_version(session, account):
     assert after == before
 
 
+@pytest.mark.asyncio
 async def test_serving_a_project_with_no_brief_says_what_to_do(session, account):
     project = account["project"]
     with pytest.raises(ServeError) as exc:
@@ -182,6 +244,7 @@ async def test_serving_a_project_with_no_brief_says_what_to_do(session, account)
     assert "derive" in str(exc.value)
 
 
+@pytest.mark.asyncio
 async def test_an_unknown_door_is_refused(session, account):
     project = await seeded(session, account)
     await run(session, project, FakeExtractor([candidate()]))
@@ -189,6 +252,7 @@ async def test_an_unknown_door_is_refused(session, account):
         await resume(session, project, door="carrier-pigeon")
 
 
+@pytest.mark.asyncio
 async def test_integrity_is_none_until_a_checkpoint_exists(session, account):
     """Stage 6 creates checkpoints. Until then the tag carries no integrity attribute."""
     project = await seeded(session, account)
@@ -199,6 +263,7 @@ async def test_integrity_is_none_until_a_checkpoint_exists(session, account):
     assert "integrity" not in pack.text
 
 
+@pytest.mark.asyncio
 async def test_the_endpoint_returns_a_pack_and_records_the_door(client, account, session):
     from herder.services.ingest import ingest_paste
 
@@ -218,15 +283,31 @@ async def test_the_endpoint_returns_a_pack_and_records_the_door(client, account,
     assert body["integrity"] is None
 
 
+@pytest.mark.asyncio
 async def test_the_endpoint_404s_for_a_project_with_no_brief(client, account):
     response = await client.get(f"/v1/projects/{account['project'].id}/resume")
     assert response.status_code == 404
     assert "derive" in response.json()["detail"]
 
 
-async def test_the_endpoint_is_scoped_to_the_workspace(client, session):
+@pytest.mark.asyncio
+async def test_the_endpoint_is_scoped_to_the_workspace(client, session, account):
+    """The project has to really exist, in someone else's workspace. An id that was never
+    stored 404s whether or not the tenancy check is there, so it proved nothing - and the
+    detail is asserted because "no brief yet" is also a 404."""
     from herder.core.ids import uuid7
+    from herder.models import User, Workspace
 
-    other = Project(id=uuid7(), workspace_id=uuid7(), name="not-yours")
+    stranger = User(id=uuid7(), email=f"stranger-{uuid7().hex[:8]}@localhost")
+    session.add(stranger)
+    await session.flush()
+    elsewhere = Workspace(id=uuid7(), name="elsewhere", owner_user_id=stranger.id)
+    session.add(elsewhere)
+    await session.flush()
+    other = Project(id=uuid7(), workspace_id=elsewhere.id, name="not-yours")
+    session.add(other)
+    await session.flush()
+
     response = await client.get(f"/v1/projects/{other.id}/resume")
     assert response.status_code == 404
+    assert response.json()["detail"] == "no such project"

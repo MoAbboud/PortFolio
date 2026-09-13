@@ -19,7 +19,7 @@ from herder.core.db import get_session
 from herder.core.ids import uuid7
 from herder.core.security import require_key
 from herder.models import ApiKey, BriefVersion, Entry, EntryLineage, EntryRevision, Job, Project
-from herder.services.serve import ServeError, resume as build_resume
+from herder.services.serve import NoBriefError, ServeError, resume as build_resume
 
 router = APIRouter(prefix="/v1", tags=["projects"])
 
@@ -230,12 +230,10 @@ async def resume(
         pack = await build_resume(
             session, project, vendor=vendor, door=door, budget_tokens=budget
         )
+    except NoBriefError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except ServeError as exc:
-        message = str(exc)
-        status_code = (
-            status.HTTP_404_NOT_FOUND if "no brief yet" in message else status.HTTP_400_BAD_REQUEST
-        )
-        raise HTTPException(status_code=status_code, detail=message) from exc
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
     return ResumeOut(
         injection_id=pack.injection_id,

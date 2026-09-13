@@ -202,6 +202,37 @@ def test_the_tail_reserve_does_not_starve_when_there_is_no_tail() -> None:
     assert len(without.included_entry_ids) >= len(with_tail.included_entry_ids)
 
 
+def test_a_multi_line_tail_stays_inside_its_own_list_item() -> None:
+    """The same defect `_one_line` fixed for entries, on the one entry it does not touch.
+
+    The tail is verbatim turns, one per line, and flattening it would lose who said what - so
+    its continuation lines are indented under the bullet instead of left at column 0, where
+    they read as orphaned text belonging to no item. Found in the real loop-demo brief.
+    """
+    tail = "user: first thing\nassistant: ok\nuser: last thing"
+    result = render([entry(kind="constraint")], budget=100, tail_text=tail)
+
+    lines = result.text.splitlines()
+    start = next(i for i, line in enumerate(lines) if line.startswith("- [tail]"))
+    assert lines[start] == "- [tail] user: first thing"
+    assert lines[start + 1 :] == ["  assistant: ok", "  user: last thing"]
+
+
+def test_the_tail_block_fits_its_reserve_with_its_heading_and_bullet() -> None:
+    """Counted in characters, so the heading, the bullet and the indentation all cost
+    something. Only the bare tail text used to be counted, so a brief whose entries filled
+    their share could overrun the budget by the overhead."""
+    budget = 400
+    entries = [entry(kind="fact", title=f"entry number {i} padding") for i in range(30)]
+    tail = "\n".join(f"user: line {i} of the conversation" for i in range(40))
+    result = render_brief(entries, budget, len, tail_text=tail)
+
+    assert result.tail_included is True
+    section = result.text[result.text.index("## Session") :]
+    assert len(section) <= int(budget * 0.25)
+    assert result.token_count <= budget
+
+
 def test_an_entry_of_kind_tail_in_the_list_is_not_rendered_as_a_normal_entry() -> None:
     """The tail is passed separately; a stored tail entry must not appear twice."""
     result = render([entry(kind="tail", layer="session", title="stale tail"), entry(kind="constraint")])
@@ -248,6 +279,13 @@ def test_a_title_that_is_only_the_opening_of_the_text_is_not_printed_twice() -> 
     )
     assert line.count("Money values are always Decimal") == 1
     assert line.endswith("everywhere in the system.")
+
+
+def test_a_title_that_only_prefixes_a_longer_word_still_prints() -> None:
+    """ "Rust" is not the opening of "Rustls is used for TLS" - it is a different word, and
+    dropping it would lose the claim the title made."""
+    line = format_entry(entry(kind="decision", title="Rust", text="Rustls is used for TLS."))
+    assert line == "- [decision] Rust - Rustls is used for TLS."
 
 
 def test_a_genuinely_different_title_still_prints_both() -> None:

@@ -20,9 +20,9 @@ to be wrong it is changed here first and then in the code - by the author, delib
 the old decision kept beside the new one and the reason recorded. A decision that is only in
 somebody's head is a decision the next working session will make differently.
 
-**Stages 0 to 3 are done and the loop closes**: a transcript goes in and a budgeted,
-lineage-backed brief comes out. Stage 4 - ten conversations end to end, and the written
-list of everywhere it went wrong - is the current work.
+**Stages 0 to 5 are done**: a transcript goes in, and a budgeted, lineage-backed brief comes
+out as a pack ready to paste into any chat. Stage 6 - probes, checkpoints and the integrity
+score - is the current work.
 
 [05-tasks.md](05-tasks.md) is the authority on status and the only place test counts
 live, because the same status restated in three documents drifted in all three.

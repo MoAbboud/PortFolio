@@ -522,9 +522,18 @@ async def age_and_propose(session: AsyncSession, project: Project, run: DeriveRu
 
 
 async def render_project(
-    session: AsyncSession, project: Project, trigger: str, tail_text: str | None = None
+    session: AsyncSession,
+    project: Project,
+    trigger: str,
+    tail_text: str | None = None,
+    budget_tokens: int | None = None,
 ) -> BriefVersion:
-    """Step F. A new immutable version, every time."""
+    """Step F. A new immutable version, every time.
+
+    `budget_tokens` overrides the project's budget for this render only. It is a parameter
+    rather than a temporary edit to `project.brief_budget_tokens`, because an edited ORM object
+    is flushed with the render and the override would be written to the project row.
+    """
     rows = (
         await session.execute(
             select(Entry, EntryRevision.title, EntryRevision.text_)
@@ -559,7 +568,7 @@ async def render_project(
 
     rendered = render_brief(
         entries,
-        project.brief_budget_tokens,
+        budget_tokens if budget_tokens is not None else project.brief_budget_tokens,
         count_tokens,
         tail_text=tail_text,
         tail_entry_id=tail_id,
@@ -572,6 +581,12 @@ async def render_project(
             .where(Conversation.project_id == project.id)
         )
     ).one()
+
+    # `max + 1` is a race without this. Since stage 5 a render can run inside an HTTP request
+    # (a resume with a budget override) while a derive or render job is running for the same
+    # project, and both would pick the same number and one would die on the unique constraint.
+    # The project row is updated below anyway, so this only takes that lock earlier.
+    await session.execute(select(Project.id).where(Project.id == project.id).with_for_update())
 
     next_version = int(
         (

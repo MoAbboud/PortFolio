@@ -115,7 +115,13 @@ def _adds_nothing(title: str, body: str) -> bool:
     from its text, and that case still prints both.
     """
     trimmed = title.rstrip(" .!?,;:").lower()
-    return bool(trimmed) and body.lower().startswith(trimmed)
+    lowered = body.lower()
+    if not trimmed or not lowered.startswith(trimmed):
+        return False
+    # On a word boundary. "Rust" is not the opening of "Rustls is used for TLS", and dropping
+    # it would lose the claim the title made.
+    rest = lowered[len(trimmed) :]
+    return not rest or not rest[0].isalnum()
 
 
 def format_entry(entry: RenderableEntry) -> str:
@@ -127,6 +133,17 @@ def format_entry(entry: RenderableEntry) -> str:
     if _adds_nothing(title, body):
         return f"- [{entry.kind}] {body}"
     return f"- [{entry.kind}] {title} - {body}"
+
+
+def format_tail(text: str) -> str:
+    """The tail as one list item, its continuation lines indented under the bullet.
+
+    Not flattened like an entry: the tail is verbatim turns, one per line, and joining them
+    would lose who said what. Left at column 0 they broke out of the list item exactly as a
+    multi-line entry did, so they are indented instead.
+    """
+    first, *rest = text.split("\n")
+    return "\n".join([f"- [{TAIL_KIND}] {first}", *(f"  {line}" for line in rest)])
 
 
 def _truncate_tail(text: str, budget: int, count: Callable[[str], int]) -> tuple[str, bool]:
@@ -211,13 +228,22 @@ def render_brief(
             parts.extend(sections[layer])
 
     if tail_text:
-        fitted, truncated = _truncate_tail(tail_text.strip(), tail_reserve, count)
+        heading = LAYER_HEADINGS["session"] if "session" not in sections else None
+
+        def tail_cost(candidate: str) -> int:
+            # The whole block as it will be printed - heading, bullet and indentation included.
+            # Counting only the bare text let a full brief overrun its budget by the overhead.
+            block = format_tail(candidate)
+            return count(f"{heading}\n{block}" if heading else block)
+
+        fitted, truncated = _truncate_tail(tail_text.strip(), tail_reserve, tail_cost)
         if fitted:
-            parts.append(LAYER_HEADINGS["session"] if "session" not in sections else "")
-            parts.append(f"- [{TAIL_KIND}] {fitted}")
+            if heading:
+                parts.append(heading)
+            parts.append(format_tail(fitted))
             result.tail_included = True
             result.tail_truncated = truncated
-            used += count(fitted)
+            used += tail_cost(fitted)
             if tail_entry_id is not None:
                 result.included_entry_ids.append(tail_entry_id)
         elif tail_entry_id is not None:

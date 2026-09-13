@@ -2,18 +2,16 @@
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
 
-**Stages 0 to 3 are done. The loop closes: a transcript goes in and a budgeted,
-lineage-backed brief comes out.** Stage 4 - ten conversations end to end and the written
-failure list - is the current work.
+**Stages 0 to 5 are done, except for one stage 5 task that needs a person and a browser.**
+275 tests pass. A transcript goes in, and a budgeted, lineage-backed brief comes out as a pack
+ready to paste into any chat. **Stage 6 - probes, checkpoints and the integrity score - is the
+current work.**
 
-**Stage 4 is largely done: the corpus exists, the heuristic has been through all ten, and the
-failure list is written in `NOTES.md`.** 242 tests pass. Five more bugs were found by running
-it, the worst being that **Ollama gives a prompt only half of `num_ctx`**, so more than half
-of every chunk was discarded before the local model saw it, silently.
-
-**Outstanding in stage 4: the full `local` run over all ten transcripts.** The comparison
-recorded so far is one transcript. Both runs that were attempted hit bugs since fixed, so the
-run is worth repeating and no figure should be read as if it had been.
+**Two things are outstanding behind it, both measurement rather than code.** The full `local`
+run over all ten stage 4 transcripts still has not been done; the comparison recorded so far
+is one transcript, and no figure should be read as if it had been. And stage 4's 9.0x
+compression figure predates the stage 5 render fix, which cut briefs by 15 to 27 per cent, so
+it is understated and has not been re-measured.
 
 Stages are ordered by dependency, not by calendar. **Each one ends in something that runs and
 can be checked from PowerShell.** If a stage cannot be verified that way, it is not finished.
@@ -326,14 +324,41 @@ away more than half of every chunk before the local model saw it.
 
 ## Stage 5 - Serve
 
-- [ ] `preamble.md` with a variant per target vendor
-- [ ] Pack assembly: preamble, the three layer sections, the tail
-- [ ] `GET /v1/projects/{id}/resume` with vendor, budget and door, writing an `injections` row
-- [ ] Budget override at serve time renders a fresh version rather than truncating the
-      current one
-- [ ] CLI `herder resume`, so a pack can be pasted into a real chat by hand and looked at
-- [ ] Tried by hand in at least two different chatbots, and what each one did with it written
+**Done 2026-09-12 apart from the last task, which is the author's to do.** A pack is built, a
+vendor preamble is chosen, and every serve writes an `injections` row for stage 6 to hang a
+checkpoint off.
+
+Reading the first real pack found two rendering bugs that had been there since stage 3 and
+were invisible until a brief was laid out for a human: a newline in an entry broke it out of
+its own list item, and the title was printed beside a body that merely repeated it. Fixing the
+second cut `loop-demo` from 300 tokens to 219. Written up in `NOTES.md`.
+
+**Reviewed 2026-09-13, and the budget override task below was ticked while wrong.** It did
+render a fresh version, but that version became the highest one, and a plain serve took the
+highest - so one `--budget 150` made every later pack 150 tokens. It also rendered an empty
+pack for a project never derived, and wrote the override onto the project row mid-transaction.
+The tail kept the newline bug the entries were fixed for, and its heading and bullet were not
+counted against its reserve. All fixed with a regression test each; the override tests that
+existed passed throughout, because none served twice. Detail in `06-context.md`.
+
+- [x] `preamble.md` with a variant per target vendor
+- [x] Pack assembly: preamble, the three layer sections, the tail
+- [x] `GET /v1/projects/{id}/resume` with vendor, budget and door, writing an `injections` row
+- [x] Budget override at serve time renders a fresh version rather than truncating the
+      current one - and a serve only reuses the highest version if it was rendered at the
+      budget asked for, so the override does not leak into the serves after it (fixed on
+      review; it did, as first ticked)
+- [x] CLI `herder resume`, so a pack can be pasted into a real chat by hand and looked at
+- [~] Tried by hand in at least two different chatbots, and what each one did with it written
       down
+
+      Needs a browser, so it is not something the build can close:
+
+          python -m herder resume --project loop-demo --vendor claude --quiet | clip
+
+      Paste into two chatbots, ask something only the carried context can answer, and write
+      down what each did - particularly whether either ignored the instruction not to
+      summarise the block back.
 
 ## Stage 6 - Verify
 

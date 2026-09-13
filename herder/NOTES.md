@@ -554,3 +554,95 @@ stopped once the `num_ctx` truncation was found, because it was measuring a mode
 its input. Both bugs are fixed and the run is worth repeating - roughly 100 seconds a chunk,
 about 20 chunks, so half an hour - but it has not been done and no number here should be read
 as if it had.
+
+## 2026-09-12 - stage 5: the pack, and two render bugs the first real pack exposed
+
+268 tests pass. A brief now leaves the system as something a person can paste into a chat, and
+every serve writes the `injections` row a checkpoint will hang off at stage 6.
+
+### Looking at one real pack found two defects
+
+Both had been in the renderer since stage 3 and neither was visible until a brief was laid out
+for a human to read. That is the argument for stage 5 sitting before the measurement stages
+rather than after them.
+
+**An entry containing a newline broke out of its own list item.** A merged entry carries its
+old wording on a second paragraph, and the brief is a bullet list, so it rendered as an
+orphaned block that a model reading the pack cannot attribute to anything:
+
+    - [constraint] Money values are always Decimal - Money values are always Decimal ...
+
+    Previously: Amounts must never be floats anywhere in this system.
+    - [decision] ...
+
+Entries are flattened to one line now. An entry is a claim and a claim fits on a line;
+anything that genuinely needs its shape kept is in the lineage, which holds the raw message
+untouched.
+
+**The title and the text were both printed when the title was only the opening of the text.**
+The heuristic's titles are truncations of the sentence they came from, so nearly every entry
+said everything twice and spent roughly double the tokens doing it. Re-rendering after the
+fix:
+
+    loop-demo                 300 -> 219 tokens   (-27%)
+    s4-h-09-coding-refactor  1269 -> 1075 tokens  (-15%)
+
+The local model writes a normalised title that is not a prefix of its text, and that case
+still prints both halves - which is the case worth having two halves for.
+
+**Stage 4's 9.0x compression figure predates this fix** and is therefore understated. It has
+not been re-measured and the stage 4 entry above has not been edited to pretend otherwise.
+
+### Decisions in the serve path
+
+- **A budget override renders a fresh version rather than truncating the current one.**
+  Truncating the stored text would produce a pack whose content matches no version in the
+  database, and a stage 6 checkpoint against it would be scoring a text that was never sent.
+  Rendering costs no inference, so the honest option is also the cheap one. The override
+  applies to that serve only - asking for a smaller pack once does not quietly shrink every
+  future derive.
+- **Integrity is left out of the tag until it has been measured.** Printing `integrity=0.00`
+  for a project that has never been checkpointed would be a lie with a number on it, and the
+  number is the part people believe. Stage 6 fills it in.
+- **One preamble file, one section per vendor**, falling back to `default` for anything
+  unknown. Two lines carry most of the weight and appear in every variant: that if the block
+  conflicts with what the user says now, the user wins - stale context is what makes a memory
+  system worse than no memory system; and that the model must not summarise the block back -
+  without it the first reply is spent reciting the context, which also puts it on the screen
+  in front of whoever is standing there. A test asserts both survive in all four variants.
+- **Nothing is sent anywhere.** The pack goes to stdout or to the caller and stops.
+
+### Still to do in this stage, and it is not mine to do
+
+The pack has not been tried in a real chatbot. That is the last stage 5 task and it needs a
+person with a browser:
+
+    python -m herder resume --project loop-demo --vendor claude --quiet | clip
+
+Paste it into Claude and into ChatGPT, ask something that only the carried context can answer,
+and write down what each one did. The line most likely to be disobeyed, and the easiest to
+check, is the instruction not to summarise the block back.
+
+## 2026-09-13 - stage 5 review: the override did not stay in its serve
+
+Facts only; what they mean is the author's to add. 275 tests pass.
+
+- **The budget override leaked.** Its fresh version became the highest version, and a plain
+  serve took the highest, so after one `resume --budget 150` every later pack was 150 tokens.
+  The claim above that the override "applies to that serve only" was not true when written.
+  A serve now reuses the highest version only if it was rendered at the budget asked for,
+  and renders otherwise.
+- An override on a never-derived project rendered and recorded an empty pack instead of
+  saying to derive. The override was also written onto the project row inside the
+  transaction and restored before commit, rather than passed to the render.
+- **The tail had the newline bug** fixed for entries above: its turns sat at column 0 under
+  the `- [tail]` bullet. They are indented now, not flattened, so who said what survives. Its
+  heading and bullet were not counted against the tail reserve, so a full brief could run
+  over budget by that overhead.
+- Two renders racing for one project could take the same version number; the project row is
+  now locked before `max + 1`. Not covered by a test - the suite runs on one connection.
+
+Worth noticing when the pack is tried by hand: `loop-demo`'s brief still says production is
+Postgres "and always will" while its own tail says the user switched to MySQL - the stage 3
+missed reversal, sitting inside the pack. "What database does production use?" tests both it
+and the "user wins" line at once.
