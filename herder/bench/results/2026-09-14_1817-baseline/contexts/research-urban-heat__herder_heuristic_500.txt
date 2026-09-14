@@ -1,0 +1,14 @@
+## Stable
+- [preference] I like short paragraphs, four or five sentences at most.
+- [preference] Small thing about how I work: I'd rather you flag uncertainty than sound confident.
+## Project
+- [constraint] Non-negotiable: every temperature figure I quote must say whether it is air temperature or surface temperature.
+- [constraint] Whenever a number appears, it has to be clear if it's air or surface temperature - mixing them is the mistake I keep seeing.
+- [decision] Going with this: the review covers studies published from 2010 onwards only.
+- [decision] Going with this: the chapter's target length is 6,000 words.
+- [decision] Let's park it for now.
+## Session (most recent)
+- [open_thread] Assume I haven't read much about it.
+- [open_thread] I haven't settled how to handle studies that only report percentages rather than degrees.
+- [open_thread] Something unresolved - I still need to decide whether green roofs belong in this chapter or the next one.
+- [tail] assistant: The order you tackle canopy cover and the shading section in matters less than keeping each change small enough to undo. I've seen a bibliometric map suggested for this kind of problem, mainly because it looks tidy on a diagram. Keeping notes on why the satellite studies ended up the way it did will save time the next time someone questions it. Some people in a similar position reach for cool pavements, although it brings its own maintenance burden. A common pattern is to look at canopy cover first, because it tends to shape the decisions around the shading section.

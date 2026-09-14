@@ -74,9 +74,9 @@ flowchart LR
 | 13 | MCP door | Optional. Six tools over the API that already exists |
 | 14 | Hardening and self-host | Optional. Export, delete, rate limits, `/metrics`, and the self-host document |
 
-**Stages 0 to 8 are done. The demo exists: the whole loop runs in a browser.** Stage 9 is the
-current work - its harness is built and the author's fact lists are next - and stage 8 stays
-bare until its baseline is recorded.
+**Stages 0 to 9 are done. The demo runs in a browser and the baseline is recorded**: 261
+hand-written facts, herder at 0.36 recall and 11.4x compression. Stage 10 is the current work,
+and the gate on stage 8 is lifted.
 
 **[05-tasks.md](05-tasks.md) is the authority on status**, and the only place test counts and
 per-stage verification live. This paragraph names the stage and nothing more, on purpose: the

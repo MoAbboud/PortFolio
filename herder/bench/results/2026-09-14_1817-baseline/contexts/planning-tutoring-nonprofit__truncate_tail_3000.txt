@@ -1,0 +1,83 @@
+User: Is there anything about the library room I'm likely to overlook? I want to get this right before it's harder to change.
+
+Assistant: When you think about the pilot term, the main trade-off is usually between how simple it is to run and how much it can grow later. A useful question is what happens to student progress on the worst day of the year, not an ordinary one. The order you tackle student progress and the charity registration in matters less than keeping each change small enough to undo. Some people in a similar position reach for home visits, although it brings its own maintenance burden. Keeping notes on why the volunteer rota ended up the way it did will save time the next time someone questions it. The detail that most often gets forgotten with the charity registration is who is responsible when it goes wrong.
+
+User: Small thing about how I work: tell me what similar groups have done wrong, not just right.
+
+Assistant: Good, that simplifies things. Whatever you choose for the volunteer rota, it's worth a quick check of how it interacts with safeguarding before moving on. The detail that most often gets forgotten with the charity registration is who is responsible when it goes wrong. You might also consider how the background checks would look to someone new, since they'll judge it without the history.
+
+User: How do other people handle the charity registration? I want to get this right before it's harder to change.
+
+Assistant: It can help to separate what the pilot term must do from what would merely be nice, and treat the volunteer rota the same way. In practice the volunteer rota tends to expose any vagueness left in session plans, which is useful if you catch it early. I'd be cautious about letting the volunteer rota and session plans depend on each other more than they need to. You might also consider how student progress would look to someone new, since they'll judge it without the history. Keeping notes on why the grant application ended up the way it did will save time the next time someone questions it.
+
+User: Can you walk me through how the charity registration relates to the volunteer rota? Especially for a setup this size.
+
+Assistant: A useful question is what happens to session plans on the worst day of the year, not an ordinary one. Some people in a similar position reach for exam-cram workshops, although it brings its own maintenance burden. Whatever you choose for the background checks, it's worth a quick check of how it interacts with the charity registration before moving on. Keeping notes on why the school referrals ended up the way it did will save time the next time someone questions it. If it helps, you could sketch the flow from the pilot term to the school referrals on paper before committing to anything. People often underestimate how long the library room takes the first time, especially when the volunteer rota is involved.
+
+User: Two of the founders are retired teachers.
+
+Assistant: Okay, that's a sensible call. A useful question is what happens to session plans on the worst day of the year, not an ordinary one. You might also consider how safeguarding would look to someone new, since they'll judge it without the history. When you think about safeguarding, the main trade-off is usually between how simple it is to run and how much it can grow later. I'd be cautious about letting student progress and the library room depend on each other more than they need to.
+
+User: Keep plans in short bullet lists, our volunteers read on their phones.
+
+Assistant: Understood. When you think about the library room, the main trade-off is usually between how simple it is to run and how much it can grow later. It can help to separate what the grant application must do from what would merely be nice, and treat student progress the same way. Whatever you choose for student progress, it's worth a quick check of how it interacts with the grant application before moving on.
+
+User: It's public venues only; nobody tutors in a private home.
+
+Assistant: Okay, that's a sensible call. It's worth writing down what 'done' means for the pilot term, so that the grant application doesn't drift while you're busy elsewhere. Keeping notes on why the volunteer rota ended up the way it did will save time the next time someone questions it. If it helps, you could sketch the flow from the library room to the background checks on paper before committing to anything. You might also consider how the charity registration would look to someone new, since they'll judge it without the history. A useful question is what happens to the school referrals on the worst day of the year, not an ordinary one.
+
+User: What's a sensible first step on the volunteer rota?
+
+Assistant: Keeping notes on why the school referrals ended up the way it did will save time the next time someone questions it. Some people in a similar position reach for a mobile app for homework help, although it brings its own maintenance burden. If it helps, you could sketch the flow from the library room to student progress on paper before committing to anything. The order you tackle session plans and the charity registration in matters less than keeping each change small enough to undo. It's worth writing down what 'done' means for the charity registration, so that the school referrals doesn't drift while you're busy elsewhere. I'd be cautious about letting session plans and student progress depend on each other more than they need to. A common pattern is to look at student progress first, because it tends to shape the decisions around the volunteer rota.
+
+User: What's a sensible first step on the school referrals?
+
+Assistant: It's worth writing down what 'done' means for the pilot term, so that safeguarding doesn't drift while you're busy elsewhere. You might also consider how session plans would look to someone new, since they'll judge it without the history. A small trial of the school referrals before the full version often shows problems that planning alone misses. In practice the grant application tends to expose any vagueness left in the library room, which is useful if you catch it early. Weekend sessions comes up a lot in articles, but the examples rarely match a setup like yours.
+
+User: Open item: we need to agree who is the safeguarding lead.
+
+Assistant: Clear, thanks. Whatever you choose for the pilot term, it's worth a quick check of how it interacts with the charity registration before moving on. The order you tackle the grant application and the background checks in matters less than keeping each change small enough to undo. The detail that most often gets forgotten with session plans is who is responsible when it goes wrong. One risk I'd watch is that the background checks quietly becomes the bottleneck once the charity registration is under real pressure.
+
+User: Transport for students who live far from the library is still unsolved. Let's park it for now.
+
+Assistant: Clear, thanks. A small trial of safeguarding before the full version often shows problems that planning alone misses. One risk I'd watch is that the library room quietly becomes the bottleneck once session plans is under real pressure. I've seen a summer camp suggested for this kind of problem, mainly because it looks tidy on a diagram. If it helps, you could sketch the flow from safeguarding to the grant application on paper before committing to anything. The order you tackle the grant application and the volunteer rota in matters less than keeping each change small enough to undo. In practice the grant application tends to expose any vagueness left in safeguarding, which is useful if you catch it early.
+
+User: No tutor sits down with a student until their background check is cleared - no exceptions.
+
+Assistant: That makes sense. It can help to separate what the grant application must do from what would merely be nice, and treat safeguarding the same way. A sponsorship programme comes up a lot in articles, but the examples rarely match a setup like yours. People often underestimate how long the volunteer rota takes the first time, especially when the school referrals is involved. You might also consider how the pilot term would look to someone new, since they'll judge it without the history.
+
+User: Is there anything about student progress I'm likely to overlook? I'm asking because it came up again today.
+
+Assistant: Partnering with a university comes up a lot in articles, but the examples rarely match a setup like yours. You might also consider how student progress would look to someone new, since they'll judge it without the history. Keeping notes on why the grant application ended up the way it did will save time the next time someone questions it. I'd be cautious about letting session plans and student progress depend on each other more than they need to. I've seen partnering with a university suggested for this kind of problem, mainly because it looks tidy on a diagram. A small trial of student progress before the full version often shows problems that planning alone misses. It's worth writing down what 'done' means for session plans, so that the background checks doesn't drift while you're busy elsewhere.
+
+User: Can you walk me through how the background checks relates to the volunteer rota? Just the practical side.
+
+Assistant: Some people in a similar position reach for a summer camp, although it brings its own maintenance burden. Weekend sessions comes up a lot in articles, but the examples rarely match a setup like yours. A small trial of the background checks before the full version often shows problems that planning alone misses. Whatever you choose for session plans, it's worth a quick check of how it interacts with safeguarding before moving on. If it helps, you could sketch the flow from the pilot term to safeguarding on paper before committing to anything. The order you tackle the volunteer rota and the charity registration in matters less than keeping each change small enough to undo. You might also consider how the charity registration would look to someone new, since they'll judge it without the history.
+
+User: I'm lowering the group size from earlier - at most three students per tutor, five was too many to actually help anyone.
+
+Assistant: Right, I'll work with that. Whatever you choose for session plans, it's worth a quick check of how it interacts with the pilot term before moving on. It can help to separate what the school referrals must do from what would merely be nice, and treat the background checks the same way. The detail that most often gets forgotten with the volunteer rota is who is responsible when it goes wrong. If it helps, you could sketch the flow from the pilot term to the library room on paper before committing to anything. The order you tackle safeguarding and session plans in matters less than keeping each change small enough to undo.
+
+User: Can you walk me through how the volunteer rota relates to the charity registration? Just the practical side.
+
+Assistant: There's an argument for a summer camp, but it usually pays off only at a much larger scale than this. The order you tackle student progress and the volunteer rota in matters less than keeping each change small enough to undo. People often underestimate how long session plans takes the first time, especially when student progress is involved. A small trial of safeguarding before the full version often shows problems that planning alone misses. The detail that most often gets forgotten with the grant application is who is responsible when it goes wrong.
+
+User: Open item: we haven't decided how to measure whether students are improving.
+
+Assistant: Noted - I'll keep that in mind. I'd be cautious about letting the grant application and the volunteer rota depend on each other more than they need to. There's an argument for home visits, but it usually pays off only at a much larger scale than this. Some people in a similar position reach for exam-cram workshops, although it brings its own maintenance burden.
+
+User: Families never pay anything, not even a suggested donation.
+
+Assistant: Got it. Keeping notes on why student progress ended up the way it did will save time the next time someone questions it. Whatever you choose for session plans, it's worth a quick check of how it interacts with the school referrals before moving on. Some people in a similar position reach for a summer camp, although it brings its own maintenance burden. It can help to separate what session plans must do from what would merely be nice, and treat student progress the same way.
+
+User: Can you walk me through how the pilot term relates to the library room? I want to get this right before it's harder to change.
+
+Assistant: The detail that most often gets forgotten with student progress is who is responsible when it goes wrong. A useful question is what happens to session plans on the worst day of the year, not an ordinary one. Some people in a similar position reach for a sponsorship programme, although it brings its own maintenance burden. I've seen paid tutors suggested for this kind of problem, mainly because it looks tidy on a diagram. You might also consider how session plans would look to someone new, since they'll judge it without the history. When you think about the grant application, the main trade-off is usually between how simple it is to run and how much it can grow later. People often underestimate how long safeguarding takes the first time, especially when the school referrals is involved. Keeping notes on why session plans ended up the way it did will save time the next time someone questions it.
+
+User: Change to the session days I gave you before: it's Tuesday and Thursday evenings, the library is booked on Mondays.
+
+Assistant: Understood. You might also consider how the school referrals would look to someone new, since they'll judge it without the history. In practice the school referrals tends to expose any vagueness left in the charity registration, which is useful if you catch it early. There's an argument for exam-cram workshops, but it usually pays off only at a much larger scale than this. The order you tackle the charity registration and the background checks in matters less than keeping each change small enough to undo. Keeping notes on why the background checks ended up the way it did will save time the next time someone questions it.
+
+User: Is there anything about the grant application I'm likely to overlook? Especially for a setup this size.
+
+Assistant: I'd be cautious about letting safeguarding and session plans depend on each other more than they need to. The detail that most often gets forgotten with the charity registration is who is responsible when it goes wrong. Some people in a similar position reach for a sponsorship programme, although it brings its own maintenance burden. You might also consider how the library room would look to someone new, since they'll judge it without the history. The order you tackle the school referrals and the charity registration in matters less than keeping each change small enough to undo.

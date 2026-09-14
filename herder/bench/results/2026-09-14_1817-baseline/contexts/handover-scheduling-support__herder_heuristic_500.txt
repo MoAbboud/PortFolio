@@ -1,0 +1,12 @@
+## Project
+- [constraint] We don't have one, so we don't give one.
+- [constraint] Booking data is never passed from one customer account to another without written permission, even if they claim to be colleagues. Previously: Never share one customer's booking data with another customer, even inside the same company, without written permission.
+- [decision] Let's settle it - first response time target is four business hours.
+- [decision] The helpdesk tool we use is called Deskline.
+- [decision] Let's settle it - the on-call rota changes on Fridays.
+- [decision] Let's park it for now.
+## Session (most recent)
+- [open_thread] Something unresolved - we still need to decide whether weekend tickets get any response.
+- [open_thread] Assume I haven't read much about it.
+- [open_thread] One firm rule: support must not change a customer's calendar settings directly - we guide them to do it.
+- [tail] assistant: Clear, thanks. One risk I'd watch is that Deskline macros quietly becomes the bottleneck once the product board is under real pressure. People often underestimate how long the on-call rota takes the first time, especially when the daylight-saving bug is involved. Keeping notes on why the support queue ended up the way it did will save time the next time someone questions it. I've seen a chatbot for first-line support suggested for this kind of problem, mainly because it looks tidy on a diagram.

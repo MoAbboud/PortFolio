@@ -20,9 +20,9 @@ to be wrong it is changed here first and then in the code - by the author, delib
 the old decision kept beside the new one and the reason recorded. A decision that is only in
 somebody's head is a decision the next working session will make differently.
 
-**Stages 0 to 8 are done**, and the prototype runs in a browser: paste, derive, adjust, serve
-and checkpoint without a terminal. Stage 9 - the corpus and the baseline - is the current work:
-the harness exists, and the hand-written fact lists come next.
+**Stages 0 to 9 are done**: the prototype runs in a browser, and the baseline is recorded
+against 261 hand-written facts. Stage 10 - measured improvement, including the missed
+reversals the baseline exposed - is the current work.
 
 [05-tasks.md](05-tasks.md) is the authority on status and the only place test counts
 live, because the same status restated in three documents drifted in all three.

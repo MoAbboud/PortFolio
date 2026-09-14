@@ -2,10 +2,13 @@
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
 
-**Stages 0 to 8 are done, and the prototype exists** at `http://localhost:8000`. 428 tests
-pass. **Stage 9's harness is built and waiting on the one part that is the author's: the
-hand-written fact lists** for eight conversations, written at `/bench`. Then the baseline is
-run and recorded before anything is tuned. The UI stays bare until it is.
+**Stages 0 to 9 are done, and the baseline exists.** The prototype runs at
+`http://localhost:8000`; 428 tests pass. The author wrote 261 facts across eight conversations
+and the baseline was recorded on 2026-09-14 before anything was tuned:
+**herder recalls 0.36 of them at 11.4x compression and 0.32 at 28.3x**, against a raw tail at
+0.31 (using three times the tokens) and 0.07 at a comparable size. `naive_summary` is recorded
+as not yet a fair comparison - see stage 9. **Stage 10 - measured improvement - is next**, and
+the UI can stop being bare now that the baseline is in.
 
 **Two things are outstanding behind it, both measurement rather than code.** The full `local`
 run over all ten stage 4 transcripts still has not been done; the comparison recorded so far
@@ -466,8 +469,10 @@ first baseline, a new generator rather than stage 4's, and to write every fact h
       `bench/generate.py`, a new generator with different subjects and phrasing, because the
       heuristic was tuned on stage 4's conversations. Every turn unique; the app's own parser
       reads back every turn of all eight
-- [ ] A hand-written ground-truth fact list per conversation, 30 to 60 facts, tagged by kind.
-      **Written from the conversation, never from an extraction.** The author's, at
+- [x] A hand-written ground-truth fact list per conversation, 30 to 60 facts, tagged by kind.
+      **Written from the conversation, never from an extraction.** Done 2026-09-14 by the
+      author: **261 facts, 222 true and 39 false**, 30 to 37 per conversation, every one citing
+      the turns it came from. The author's, at
       `http://localhost:8000/bench` - a page showing the numbered conversation and nothing
       herder derived. Each fact is marked true or false; false facts (turned-down ideas,
       reversed decisions) are what hallucination is measured on
@@ -481,8 +486,17 @@ first baseline, a new generator rather than stage 4's, and to write every fact h
       run records the worker's; a second extractor is a second run)
 - [x] The answering model is the same local model for every method, with one versioned
       prompt (`bench/prompts/read.md`)
-- [ ] Results as files in `bench/results/`, committed - the harness writes them; none yet
-- [ ] **The baseline recorded before anything is tuned**
+- [x] Results as files in `bench/results/`, committed - `2026-09-14_1817-baseline`
+- [x] **The baseline recorded before anything is tuned.** 53 minutes, heuristic extractor.
+      **herder 0.36 recall at 11.4x compression (3,000 budget) and 0.32 at 28.3x (500)**,
+      against `truncate_tail` 0.31 at 3.7x and 0.07 at 25.2x, and `no_context` 0.00. At the
+      same actual context size - about 400 tokens - the brief recalls 0.32 where the raw tail
+      recalls 0.07. Against the project's target: the 20x holds, the 0.85 does not.
+- [!] **`naive_summary`'s number is not yet a fair comparison** and is recorded as unusable
+      rather than quoted: the summariser ignored the budget (107-319 tokens of the 3,000 it
+      was allowed, and identical at both budgets) and timed out on two of the eight
+      conversations. Fixing the comparator is a harness fix, not tuning herder, and the
+      re-run is recorded as its own labelled run beside this baseline
 - [x] The per-fact detail behind every number - the report's last section, every fact against
       every method, with the exact context each reader saw saved beside it
 

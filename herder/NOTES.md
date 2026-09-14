@@ -864,3 +864,53 @@ are exactly the kind of failure the baseline should count. Changing the extracto
 conversations before the baseline exists would be tuning against the benchmark.
 
 Expected time for the full baseline with the heuristic: roughly 30-60 minutes.
+
+## 2026-09-14 - stage 9: the baseline. The first number, and it is mixed
+
+Facts only; the reading is the author's. Run `bench/results/2026-09-14_1817-baseline`, 8
+conversations, **261 hand-written facts** (222 true, 39 false), heuristic extractor, one local
+reader (`qwen2.5:3b`) for every method. 53 minutes.
+
+| Method | Context size | Recall | Hallucination | Compression |
+| --- | --- | --- | --- | --- |
+| herder @ 3000 | ~900-1,150 tokens | **0.36** (80 of 222) | 0.10 (4 of 39) | 11.4x |
+| herder @ 500 | ~300-500 | **0.32** (70 of 222) | 0.13 (5 of 39) | 28.3x |
+| truncate_tail @ 3000 | ~2,950 | 0.31 (68 of 222) | 0.00 | 3.7x |
+| truncate_tail @ 500 | ~380-490 | 0.07 (16 of 222) | 0.00 | 25.2x |
+| naive_summary (both) | 107-319 | 0.03-0.04 (of 167) | 0.00 | - |
+| no_context | 0 | 0.00 | 0.00 | - |
+
+**At the same actual size the structured brief wins clearly**: ~400 tokens of brief recalls
+0.32 where ~400 tokens of raw tail recalls 0.07. Given four times the room (2,950 tokens) the
+raw tail reaches 0.31 - still below the brief's 0.36 at a third of the size.
+
+**Against the 20x/0.85 target: 28x compression, but 0.32 recall, not 0.85.** The compaction
+claim holds; the retention claim does not, with this extractor.
+
+### Two things that make naive_summary's number unusable as a comparison
+
+1. **It ignored the budget.** Asked for a summary of at most 2,250 words it wrote 107-319
+   tokens - 4 to 10% of the 3,000 it was allowed, and the 500 and 3,000 runs are the same size.
+2. **It failed on two conversations** (900-second timeout summarising a 6,000-token part), so
+   its rates are over 6 of 8.
+
+So "herder beats a plain summary 0.36 to 0.04" is not yet a fair claim and should not be made.
+What is fair: a plain summary from this model **at its natural length** carries almost nothing.
+
+### Where the recall goes, by kind (herder @ 3000)
+
+    constraint  0.59      open_thread 0.58      preference 0.43
+    decision    0.40      code_state  0.20      fact       0.18      identity 0.00
+
+The ordering the render was designed around holds: constraints and decisions survive, plain
+background facts and identity do not. `truncate_tail @ 3000` beats herder on `open_thread`
+(0.79 v 0.58) and `fact` (0.22 v 0.18) - recent verbatim text carries loose ends better.
+
+### Every hallucination was a reversal
+
+All nine false claims carried forward as true are the same failure: the user changed their
+mind and the brief kept the old value - "stock rounded to the nearest 100 grams", "reorder
+goes to Marisol only", "the on-call rota changes on Fridays", "backups offsite monthly",
+"sessions on Monday and Wednesday". This is the missed-reversal problem from stage 3,
+now measured rather than suspected. It is the top stage 10 item, and it is what the false
+facts were written to catch.
