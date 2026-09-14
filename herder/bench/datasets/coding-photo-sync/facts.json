@@ -1,0 +1,357 @@
+{
+  "conversation": "coding-photo-sync",
+  "format_version": 1,
+  "facts": [
+    {
+      "id": "f001",
+      "statement": "snapshelf is a command-line tool that copies photos from the family's phones onto a home NAS and sorts them into folders.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        1
+      ],
+      "note": ""
+    },
+    {
+      "id": "f002",
+      "statement": "snapshelf is written in Go so it ships as a single binary.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        69,
+        71
+      ],
+      "note": ""
+    },
+    {
+      "id": "f003",
+      "statement": "snapshelf is written in Python using the Pillow library to read EXIF dates.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        68,
+        69
+      ],
+      "note": ""
+    },
+    {
+      "id": "f004",
+      "statement": "The tool runs on the NAS itself on a schedule.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        105
+      ],
+      "note": ""
+    },
+    {
+      "id": "f005",
+      "statement": "The tool runs every hour.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        3,
+        105,
+        129
+      ],
+      "note": ""
+    },
+    {
+      "id": "f006",
+      "statement": "The tool runs every six hours.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        105,
+        129
+      ],
+      "note": ""
+    },
+    {
+      "id": "f007",
+      "statement": "snapshelf must never delete or modify an original file on a phone.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        7,
+        111
+      ],
+      "note": ""
+    },
+    {
+      "id": "f008",
+      "statement": "No photo may leave the house; the tool must not upload anything to a cloud service.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        107,
+        123
+      ],
+      "note": ""
+    },
+    {
+      "id": "f009",
+      "statement": "If the NAS disk is nearly full the tool stops cleanly and reports it rather than leaving a half-copied file behind.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        35,
+        137
+      ],
+      "note": ""
+    },
+    {
+      "id": "f010",
+      "statement": "Photos are sorted into folders by year and then month, like 2024/07.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        11
+      ],
+      "note": ""
+    },
+    {
+      "id": "f011",
+      "statement": "Photos with no EXIF date are filed using the file's modification time.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        43,
+        125
+      ],
+      "note": ""
+    },
+    {
+      "id": "f012",
+      "statement": "Photos with no EXIF date go into a folder called undated.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        125
+      ],
+      "note": ""
+    },
+    {
+      "id": "f013",
+      "statement": "Videos are copied too, into a separate top-level folder called video.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        97
+      ],
+      "note": ""
+    },
+    {
+      "id": "f014",
+      "statement": "Duplicates are detected by a SHA-256 hash of the file contents, not by filename.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        95
+      ],
+      "note": ""
+    },
+    {
+      "id": "f015",
+      "statement": "Seen hashes are stored in a plain text file that can be read by hand.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        17
+      ],
+      "note": ""
+    },
+    {
+      "id": "f016",
+      "statement": "Seen hashes are stored in a SQLite database.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        16,
+        17
+      ],
+      "note": ""
+    },
+    {
+      "id": "f017",
+      "statement": "Configuration lives in a TOML file at /etc/snapshelf/config.toml.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        59
+      ],
+      "note": ""
+    },
+    {
+      "id": "f018",
+      "statement": "The phones sync to the NAS over a share called family-drop.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        51
+      ],
+      "note": ""
+    },
+    {
+      "id": "f019",
+      "statement": "The NAS is a Synology DS220+ with two 4 TB disks.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        23
+      ],
+      "note": ""
+    },
+    {
+      "id": "f020",
+      "statement": "The photo library is currently about 180 GB.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        23
+      ],
+      "note": ""
+    },
+    {
+      "id": "f021",
+      "statement": "There are three phones in the house: two Android and one iPhone.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        55
+      ],
+      "note": ""
+    },
+    {
+      "id": "f022",
+      "statement": "The user's partner takes most of the videos.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        47
+      ],
+      "note": ""
+    },
+    {
+      "id": "f023",
+      "statement": "snapshelf has a web interface for browsing the sorted photos.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        84,
+        89
+      ],
+      "note": ""
+    },
+    {
+      "id": "f024",
+      "statement": "snapshelf only copies and sorts; browsing is left to Synology's own photo app.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        89
+      ],
+      "note": ""
+    },
+    {
+      "id": "f025",
+      "statement": "The duplicate check lives in internal/dedupe/dedupe.go, where Seen() hashes the file with SHA-256 and looks it up in a map.",
+      "kind": "code_state",
+      "truth": "true",
+      "turns": [
+        53
+      ],
+      "note": ""
+    },
+    {
+      "id": "f026",
+      "statement": "The copy step in internal/copy/copy.go writes to a temp name ending .partial and renames it on success.",
+      "kind": "code_state",
+      "truth": "true",
+      "turns": [
+        73
+      ],
+      "note": ""
+    },
+    {
+      "id": "f027",
+      "statement": "The user prefers fewer dependencies even if it means writing a bit more code.",
+      "kind": "preference",
+      "truth": "true",
+      "turns": [
+        63
+      ],
+      "note": ""
+    },
+    {
+      "id": "f028",
+      "statement": "The user wants log messages to be one line each, with no multi-line stack dumps.",
+      "kind": "preference",
+      "truth": "true",
+      "turns": [
+        29
+      ],
+      "note": ""
+    },
+    {
+      "id": "f029",
+      "statement": "The user wants Go idioms explained when they're used, as they are still fairly new to Go.",
+      "kind": "preference",
+      "truth": "true",
+      "turns": [
+        109
+      ],
+      "note": ""
+    },
+    {
+      "id": "f030",
+      "statement": "The user does not want a runtime installed on the NAS.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        69
+      ],
+      "note": ""
+    },
+    {
+      "id": "f031",
+      "statement": "How to handle two phones uploading the same photo at the same time is still untested.",
+      "kind": "open_thread",
+      "truth": "true",
+      "turns": [
+        113
+      ],
+      "note": ""
+    },
+    {
+      "id": "f032",
+      "statement": "How long to keep log files is still undecided.",
+      "kind": "open_thread",
+      "truth": "true",
+      "turns": [
+        117
+      ],
+      "note": ""
+    },
+    {
+      "id": "f033",
+      "statement": "How to handle iPhone Live Photos, which arrive as a pair of files, is still undecided.",
+      "kind": "open_thread",
+      "truth": "true",
+      "turns": [
+        133
+      ],
+      "note": ""
+    },
+    {
+      "id": "f034",
+      "statement": "Running hourly spins the disks up too often.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        129
+      ],
+      "note": ""
+    }
+  ]
+}

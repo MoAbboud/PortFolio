@@ -1,0 +1,328 @@
+{
+  "conversation": "handover-scheduling-support",
+  "format_version": 1,
+  "facts": [
+    {
+      "id": "f001",
+      "statement": "Slotwise is an appointment-scheduling product.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        1
+      ],
+      "note": ""
+    },
+    {
+      "id": "f002",
+      "statement": "The user is going on parental leave in two weeks and handing over the customer support queue.",
+      "kind": "identity",
+      "truth": "true",
+      "turns": [
+        1
+      ],
+      "note": ""
+    },
+    {
+      "id": "f003",
+      "statement": "The colleague taking over the queue is called Tomasz.",
+      "kind": "identity",
+      "truth": "true",
+      "turns": [
+        73
+      ],
+      "note": ""
+    },
+    {
+      "id": "f004",
+      "statement": "Slotwise has about 2,300 paying customers.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        71
+      ],
+      "note": ""
+    },
+    {
+      "id": "f005",
+      "statement": "The biggest customer is a dental group called BrightSmile Clinics.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        45
+      ],
+      "note": ""
+    },
+    {
+      "id": "f006",
+      "statement": "The busiest support day is Monday morning.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        43
+      ],
+      "note": ""
+    },
+    {
+      "id": "f007",
+      "statement": "The helpdesk tool is called Deskline.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        65
+      ],
+      "note": ""
+    },
+    {
+      "id": "f008",
+      "statement": "The support inbox is support@slotwise.example.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        53
+      ],
+      "note": ""
+    },
+    {
+      "id": "f009",
+      "statement": "Support can approve refunds under €50 without asking anyone.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        3,
+        21
+      ],
+      "note": ""
+    },
+    {
+      "id": "f010",
+      "statement": "Refunds above €50 go to finance.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        21
+      ],
+      "note": ""
+    },
+    {
+      "id": "f011",
+      "statement": "Tomasz can approve refunds of any size during the user's leave.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        20,
+        21
+      ],
+      "note": ""
+    },
+    {
+      "id": "f012",
+      "statement": "The first response target is eight business hours.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        15,
+        29,
+        107
+      ],
+      "note": ""
+    },
+    {
+      "id": "f013",
+      "statement": "The eight-hour response figure was last year's target.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        107
+      ],
+      "note": ""
+    },
+    {
+      "id": "f014",
+      "statement": "The on-call rota for urgent tickets runs weekly.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        59
+      ],
+      "note": ""
+    },
+    {
+      "id": "f015",
+      "statement": "The on-call rota changes on Fridays.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        83,
+        101
+      ],
+      "note": ""
+    },
+    {
+      "id": "f016",
+      "statement": "The on-call rota changes on Mondays.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        59,
+        101
+      ],
+      "note": ""
+    },
+    {
+      "id": "f017",
+      "statement": "The team changed the rota handover day last month.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        101
+      ],
+      "note": ""
+    },
+    {
+      "id": "f018",
+      "statement": "Booking data is never shared from one customer account to another without written permission, even between people claiming to be colleagues.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        33,
+        115
+      ],
+      "note": ""
+    },
+    {
+      "id": "f019",
+      "statement": "Support must not change a customer's calendar settings directly; customers are guided through it themselves.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        41,
+        109
+      ],
+      "note": ""
+    },
+    {
+      "id": "f020",
+      "statement": "Any suspected security issue is raised in the security channel within the hour.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        61,
+        119
+      ],
+      "note": ""
+    },
+    {
+      "id": "f021",
+      "statement": "Billing-tagged tickets go straight to the finance team and support does not answer them.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        37,
+        79
+      ],
+      "note": ""
+    },
+    {
+      "id": "f022",
+      "statement": "Billing tickets are moved into the support queue so everything is in one place.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        36,
+        37
+      ],
+      "note": ""
+    },
+    {
+      "id": "f023",
+      "statement": "Feature requests are logged in the product board rather than answered with promises.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        17
+      ],
+      "note": ""
+    },
+    {
+      "id": "f024",
+      "statement": "An auto-reply promises a fix date for the daylight-saving bug.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        8,
+        9
+      ],
+      "note": ""
+    },
+    {
+      "id": "f025",
+      "statement": "Support does not give fix dates it doesn't have.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        9
+      ],
+      "note": ""
+    },
+    {
+      "id": "f026",
+      "statement": "Template replies should be warm but brief in tone.",
+      "kind": "preference",
+      "truth": "true",
+      "turns": [
+        27
+      ],
+      "note": ""
+    },
+    {
+      "id": "f027",
+      "statement": "Replies should use the product's own terms, 'slots' and 'hosts', not 'appointments' and 'users'.",
+      "kind": "glossary",
+      "truth": "true",
+      "turns": [
+        67
+      ],
+      "note": ""
+    },
+    {
+      "id": "f028",
+      "statement": "The handover document is written as a checklist.",
+      "kind": "preference",
+      "truth": "true",
+      "turns": [
+        89
+      ],
+      "note": ""
+    },
+    {
+      "id": "f029",
+      "statement": "Whether weekend tickets get any response is still undecided.",
+      "kind": "open_thread",
+      "truth": "true",
+      "turns": [
+        93
+      ],
+      "note": ""
+    },
+    {
+      "id": "f030",
+      "statement": "There is an unresolved bug where recurring slots disappear after a daylight-saving change.",
+      "kind": "open_thread",
+      "truth": "true",
+      "turns": [
+        117
+      ],
+      "note": ""
+    },
+    {
+      "id": "f031",
+      "statement": "BrightSmile Clinics asked for a custom export and nobody has replied yet.",
+      "kind": "open_thread",
+      "truth": "true",
+      "turns": [
+        99
+      ],
+      "note": ""
+    }
+  ]
+}

@@ -1,0 +1,383 @@
+{
+  "conversation": "coding-bakery-inventory",
+  "format_version": 1,
+  "facts": [
+    {
+      "id": "f001",
+      "statement": "The head baker is called Marisol.",
+      "kind": "identity",
+      "truth": "true",
+      "turns": [
+        87
+      ],
+      "note": ""
+    },
+    {
+      "id": "f002",
+      "statement": "The service is an inventory system for Crumb & Co, a bakery chain.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        1
+      ],
+      "note": ""
+    },
+    {
+      "id": "f003",
+      "statement": "The chain has four shops and one central bakery that supplies them.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        1,
+        93
+      ],
+      "note": ""
+    },
+    {
+      "id": "f004",
+      "statement": "The service tracks flour, butter and packaging stock per shop.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        1
+      ],
+      "note": ""
+    },
+    {
+      "id": "f005",
+      "statement": "The service tells the head baker what to reorder.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        1
+      ],
+      "note": ""
+    },
+    {
+      "id": "f006",
+      "statement": "The service is written in Python with FastAPI.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        41
+      ],
+      "note": ""
+    },
+    {
+      "id": "f007",
+      "statement": "Stock levels are stored in SQLite, one file per deployment, on a single back-office server.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        79
+      ],
+      "note": ""
+    },
+    {
+      "id": "f008",
+      "statement": "The system uses PostgreSQL instead of SQLite.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        63
+      ],
+      "note": ""
+    },
+    {
+      "id": "f009",
+      "statement": "The system uses Redis as a cache in front of SQLite.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        49
+      ],
+      "note": ""
+    },
+    {
+      "id": "f010",
+      "statement": "The back-office server is a second-hand mini PC with 8 GB of RAM.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        7
+      ],
+      "note": ""
+    },
+    {
+      "id": "f011",
+      "statement": "No part of the system may call out to a cloud provider.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        103,
+        117
+      ],
+      "note": ""
+    },
+    {
+      "id": "f012",
+      "statement": "Stock quantities are never allowed to go negative, and a write that would cause one is refused.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        105,
+        139
+      ],
+      "note": ""
+    },
+    {
+      "id": "f013",
+      "statement": "Every stock change must record who made it and when.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        57,
+        133
+      ],
+      "note": ""
+    },
+    {
+      "id": "f014",
+      "statement": "Units are stored in grams for dry goods and in pieces for packaging.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        13
+      ],
+      "note": ""
+    },
+    {
+      "id": "f015",
+      "statement": "Stock is rounded to the nearest 100 grams.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        35,
+        129
+      ],
+      "note": ""
+    },
+    {
+      "id": "f016",
+      "statement": "Stock is kept exact to the gram.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        129
+      ],
+      "note": ""
+    },
+    {
+      "id": "f017",
+      "statement": "Each shop is identified by a short code: CRM1, CRM2, CRM3, CRM4.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        59
+      ],
+      "note": ""
+    },
+    {
+      "id": "f018",
+      "statement": "The busiest shop is CRM2, near the train station.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        29
+      ],
+      "note": ""
+    },
+    {
+      "id": "f019",
+      "statement": "Flour is delivered on Tuesdays and Fridays.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        25
+      ],
+      "note": ""
+    },
+    {
+      "id": "f020",
+      "statement": "Reorder suggestions reach the head baker by email.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        19
+      ],
+      "note": ""
+    },
+    {
+      "id": "f022",
+      "statement": "Reorder suggestions go to Marisol only.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        75,
+        121
+      ],
+      "note": ""
+    },
+    {
+      "id": "f023",
+      "statement": "Reorder emails go to both Marisol and the shop manager of the shop concerned.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        121
+      ],
+      "note": ""
+    },
+    {
+      "id": "f024",
+      "statement": "Reorder suggestions are generated once a night at 2am.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        51
+      ],
+      "note": ""
+    },
+    {
+      "id": "f026",
+      "statement": "The reorder email is the entire user interface for this version.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        113
+      ],
+      "note": ""
+    },
+    {
+      "id": "f027",
+      "statement": "A React dashboard lets each shop manager see their own stock, which shop managers log in to.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        112,
+        113
+      ],
+      "note": ""
+    },
+    {
+      "id": "f029",
+      "statement": "The nightly entry point is jobs/reorder.py, run by cron.",
+      "kind": "code_state",
+      "truth": "true",
+      "turns": [
+        31
+      ],
+      "note": ""
+    },
+    {
+      "id": "f030",
+      "statement": "main() loops over SHOPS, computing suggestions and emailing them per shop.",
+      "kind": "code_state",
+      "truth": "true",
+      "turns": [
+        31
+      ],
+      "note": ""
+    },
+    {
+      "id": "f031",
+      "statement": "adjust() in stock.py reads the current level and raises ValueError if the change would make stock negative.",
+      "kind": "code_state",
+      "truth": "true",
+      "turns": [
+        69
+      ],
+      "note": ""
+    },
+    {
+      "id": "f032",
+      "statement": "The user prefers plain functions over classes unless a class clearly earns its place.",
+      "kind": "preference",
+      "truth": "true",
+      "turns": [
+        3
+      ],
+      "note": ""
+    },
+    {
+      "id": "f033",
+      "statement": "The user wants type hints on every function signature.",
+      "kind": "preference",
+      "truth": "true",
+      "turns": [
+        99
+      ],
+      "note": ""
+    },
+    {
+      "id": "f034",
+      "statement": "The user wants code examples kept under twenty lines.",
+      "kind": "preference",
+      "truth": "true",
+      "turns": [
+        83
+      ],
+      "note": ""
+    },
+    {
+      "id": "f035",
+      "statement": "How to handle stock that expires is still undecided.",
+      "kind": "open_thread",
+      "truth": "true",
+      "turns": [
+        125
+      ],
+      "note": ""
+    },
+    {
+      "id": "f036",
+      "statement": "The reorder threshold per ingredient is still undecided.",
+      "kind": "open_thread",
+      "truth": "true",
+      "turns": [
+        141
+      ],
+      "note": ""
+    },
+    {
+      "id": "f037",
+      "statement": "Whether returns from shops go back into central stock is undecided.",
+      "kind": "open_thread",
+      "truth": "true",
+      "turns": [
+        145
+      ],
+      "note": ""
+    },
+    {
+      "id": "f038",
+      "statement": "Rounding hid real shortages, and bakers weigh precisely.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        129
+      ],
+      "note": ""
+    },
+    {
+      "id": "f039",
+      "statement": "SQLite is enough for four shops and avoids running a database server.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        63
+      ],
+      "note": ""
+    },
+    {
+      "id": "f040",
+      "statement": "Redis is one more thing to run on a tiny box, and the nightly job has all night anyway.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        49
+      ],
+      "note": ""
+    }
+  ]
+}

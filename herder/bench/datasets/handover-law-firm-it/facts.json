@@ -1,0 +1,369 @@
+{
+  "conversation": "handover-law-firm-it",
+  "format_version": 1,
+  "facts": [
+    {
+      "id": "f001",
+      "statement": "Harlow & Venn is a law firm with fourteen staff.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        1,
+        77
+      ],
+      "note": ""
+    },
+    {
+      "id": "f002",
+      "statement": "The user has been the firm's part-time IT person and is moving abroad.",
+      "kind": "identity",
+      "truth": "true",
+      "turns": [
+        1
+      ],
+      "note": ""
+    },
+    {
+      "id": "f003",
+      "statement": "A contractor called Ana Ruiz is taking over IT support.",
+      "kind": "identity",
+      "truth": "true",
+      "turns": [
+        1,
+        19
+      ],
+      "note": ""
+    },
+    {
+      "id": "f004",
+      "statement": "The managing partner is Eleanor Harlow.",
+      "kind": "identity",
+      "truth": "true",
+      "turns": [
+        115
+      ],
+      "note": ""
+    },
+    {
+      "id": "f005",
+      "statement": "The purpose of this work is to produce handover notes for the incoming contractor.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        1
+      ],
+      "note": ""
+    },
+    {
+      "id": "f006",
+      "statement": "Client files must never be copied onto a personal device, phone or USB stick.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        3,
+        159
+      ],
+      "note": ""
+    },
+    {
+      "id": "f007",
+      "statement": "The client-file rule is a professional conduct rule, not a preference.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        159
+      ],
+      "note": ""
+    },
+    {
+      "id": "f008",
+      "statement": "Nobody has local admin rights except the IT account.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        27
+      ],
+      "note": ""
+    },
+    {
+      "id": "f009",
+      "statement": "Senior associates are given local admin rights to cut down on small requests.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        26,
+        27
+      ],
+      "note": ""
+    },
+    {
+      "id": "f010",
+      "statement": "Admin passwords are kept only in the firm's password manager, never on paper or in email.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        41,
+        161
+      ],
+      "note": ""
+    },
+    {
+      "id": "f011",
+      "statement": "Password resets are only done after a call-back to the person's desk phone.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        39,
+        67
+      ],
+      "note": ""
+    },
+    {
+      "id": "f012",
+      "statement": "Staff reset their own passwords through a self-service portal.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        38,
+        39
+      ],
+      "note": ""
+    },
+    {
+      "id": "f013",
+      "statement": "The call-back rule has already stopped two phishing attempts.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        39
+      ],
+      "note": ""
+    },
+    {
+      "id": "f014",
+      "statement": "Any lost or stolen laptop is reported to the managing partner the same day.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        75,
+        147
+      ],
+      "note": ""
+    },
+    {
+      "id": "f015",
+      "statement": "The firm's files live on a Windows file server in the comms cupboard.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        49
+      ],
+      "note": ""
+    },
+    {
+      "id": "f016",
+      "statement": "The file server is six years old.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        7
+      ],
+      "note": ""
+    },
+    {
+      "id": "f017",
+      "statement": "The firm's files are moved to a cloud storage service to retire the old server.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        120,
+        121
+      ],
+      "note": ""
+    },
+    {
+      "id": "f018",
+      "statement": "The file server stays in place until the partners decide on cloud storage.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        121
+      ],
+      "note": ""
+    },
+    {
+      "id": "f019",
+      "statement": "Backups run every night to an encrypted external drive.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        99
+      ],
+      "note": ""
+    },
+    {
+      "id": "f020",
+      "statement": "Backups go to the offsite drive monthly.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        79,
+        141
+      ],
+      "note": ""
+    },
+    {
+      "id": "f021",
+      "statement": "Backups go to the offsite drive weekly.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        99,
+        141
+      ],
+      "note": ""
+    },
+    {
+      "id": "f022",
+      "statement": "The offsite schedule was changed to weekly because the insurer asked.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        141
+      ],
+      "note": ""
+    },
+    {
+      "id": "f023",
+      "statement": "All staff laptops run Windows 11 Pro.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        65
+      ],
+      "note": ""
+    },
+    {
+      "id": "f024",
+      "statement": "New starters get their laptop set up on their first morning.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        13,
+        155
+      ],
+      "note": ""
+    },
+    {
+      "id": "f025",
+      "statement": "New starters get laptops prepared the week before they join.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        93,
+        155
+      ],
+      "note": ""
+    },
+    {
+      "id": "f026",
+      "statement": "Pre-built laptops were abandoned because they went stale before the start date.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        155
+      ],
+      "note": ""
+    },
+    {
+      "id": "f027",
+      "statement": "Printer problems are escalated to the leasing company, not fixed in-house.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        127
+      ],
+      "note": ""
+    },
+    {
+      "id": "f028",
+      "statement": "The firm has two office printers.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        77
+      ],
+      "note": ""
+    },
+    {
+      "id": "f029",
+      "statement": "The internet line is a 500 Mb fibre connection.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        111
+      ],
+      "note": ""
+    },
+    {
+      "id": "f030",
+      "statement": "The user wants a short 'why' next to each rule so the contractor doesn't undo it.",
+      "kind": "preference",
+      "truth": "true",
+      "turns": [
+        85
+      ],
+      "note": ""
+    },
+    {
+      "id": "f031",
+      "statement": "The user wants anything urgent put at the top of each section.",
+      "kind": "preference",
+      "truth": "true",
+      "turns": [
+        95
+      ],
+      "note": ""
+    },
+    {
+      "id": "f032",
+      "statement": "The notes should be written for someone who knows IT but doesn't know this office.",
+      "kind": "preference",
+      "truth": "true",
+      "turns": [
+        129
+      ],
+      "note": ""
+    },
+    {
+      "id": "f033",
+      "statement": "Two laptops are still waiting for their Windows 11 upgrade.",
+      "kind": "open_thread",
+      "truth": "true",
+      "turns": [
+        133
+      ],
+      "note": ""
+    },
+    {
+      "id": "f034",
+      "statement": "The file server is due for replacement and no decision has been made on what replaces it.",
+      "kind": "open_thread",
+      "truth": "true",
+      "turns": [
+        139
+      ],
+      "note": ""
+    },
+    {
+      "id": "f035",
+      "statement": "The guest Wi-Fi setup has never been documented.",
+      "kind": "open_thread",
+      "truth": "true",
+      "turns": [
+        151
+      ],
+      "note": ""
+    }
+  ]
+}

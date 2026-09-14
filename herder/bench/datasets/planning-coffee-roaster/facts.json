@@ -1,0 +1,331 @@
+{
+  "conversation": "planning-coffee-roaster",
+  "format_version": 1,
+  "facts": [
+    {
+      "id": "f001",
+      "statement": "Hearth Roasters is a small coffee roastery with one café, planning a second location.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        1
+      ],
+      "note": ""
+    },
+    {
+      "id": "f002",
+      "statement": "The user owns the business jointly with their sister Priya, who handles the books.",
+      "kind": "identity",
+      "truth": "true",
+      "turns": [
+        23,
+        43,
+        131
+      ],
+      "note": ""
+    },
+    {
+      "id": "f003",
+      "statement": "The original café is on Mill Street and has been open for six years.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        85
+      ],
+      "note": ""
+    },
+    {
+      "id": "f004",
+      "statement": "The current café does roughly 350 transactions on a Saturday.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        17
+      ],
+      "note": ""
+    },
+    {
+      "id": "f005",
+      "statement": "The business roasts about 400 kg of coffee a month.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        97
+      ],
+      "note": ""
+    },
+    {
+      "id": "f006",
+      "statement": "The second location opens in the Eastgate neighbourhood.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        13,
+        49
+      ],
+      "note": ""
+    },
+    {
+      "id": "f007",
+      "statement": "The second location opens in the city centre.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        48,
+        49
+      ],
+      "note": ""
+    },
+    {
+      "id": "f008",
+      "statement": "City-centre rents would eat the margin, and Eastgate is where the existing regulars come from.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        49
+      ],
+      "note": ""
+    },
+    {
+      "id": "f009",
+      "statement": "The Eastgate unit used to be a bookshop.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        65
+      ],
+      "note": ""
+    },
+    {
+      "id": "f010",
+      "statement": "The new site is a café only; all roasting stays at the original site.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        93
+      ],
+      "note": ""
+    },
+    {
+      "id": "f011",
+      "statement": "The target opening month is June.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        9,
+        105,
+        119
+      ],
+      "note": ""
+    },
+    {
+      "id": "f012",
+      "statement": "The target opening month is September.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        105,
+        119
+      ],
+      "note": ""
+    },
+    {
+      "id": "f013",
+      "statement": "Builders can't start until spring, which pushed the opening back.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        119
+      ],
+      "note": ""
+    },
+    {
+      "id": "f014",
+      "statement": "The fit-out budget is £120,000.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        37,
+        79,
+        113
+      ],
+      "note": ""
+    },
+    {
+      "id": "f015",
+      "statement": "The fit-out budget is capped at £85,000.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        79,
+        113
+      ],
+      "note": ""
+    },
+    {
+      "id": "f016",
+      "statement": "The bank won't lend more than £85,000 for the fit-out without investors.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        113
+      ],
+      "note": ""
+    },
+    {
+      "id": "f017",
+      "statement": "The business will not take on outside investors; ownership stays with the user and their sister.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        23,
+        131
+      ],
+      "note": ""
+    },
+    {
+      "id": "f018",
+      "statement": "The business uses a franchise model to open several locations with less capital.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        32,
+        33
+      ],
+      "note": ""
+    },
+    {
+      "id": "f019",
+      "statement": "Every café is run by directly employed staff.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        33
+      ],
+      "note": ""
+    },
+    {
+      "id": "f020",
+      "statement": "All staff, including trainees, are paid at least the real Living Wage.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        67,
+        121
+      ],
+      "note": ""
+    },
+    {
+      "id": "f021",
+      "statement": "The lease must include a break clause no later than year three.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        99,
+        111
+      ],
+      "note": ""
+    },
+    {
+      "id": "f022",
+      "statement": "A dedicated manager is hired for the new café rather than the owner splitting their time.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        73
+      ],
+      "note": ""
+    },
+    {
+      "id": "f023",
+      "statement": "Opening hours are 7am to 4pm, seven days a week.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        89
+      ],
+      "note": ""
+    },
+    {
+      "id": "f024",
+      "statement": "The new café opens until 8pm with an evening menu.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        58,
+        59
+      ],
+      "note": ""
+    },
+    {
+      "id": "f025",
+      "statement": "Late hours burn out staff, and the business is a daytime café.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        59
+      ],
+      "note": ""
+    },
+    {
+      "id": "f026",
+      "statement": "The user wants numbers shown as ranges rather than single guesses.",
+      "kind": "preference",
+      "truth": "true",
+      "turns": [
+        3
+      ],
+      "note": ""
+    },
+    {
+      "id": "f027",
+      "statement": "The user wants risks stated bluntly.",
+      "kind": "preference",
+      "truth": "true",
+      "turns": [
+        27
+      ],
+      "note": ""
+    },
+    {
+      "id": "f028",
+      "statement": "The user prefers plain spreadsheets to specialised planning software.",
+      "kind": "preference",
+      "truth": "true",
+      "turns": [
+        53
+      ],
+      "note": ""
+    },
+    {
+      "id": "f029",
+      "statement": "Whether to serve food beyond pastries is undecided.",
+      "kind": "open_thread",
+      "truth": "true",
+      "turns": [
+        125
+      ],
+      "note": ""
+    },
+    {
+      "id": "f030",
+      "statement": "The name for the second café is undecided — same name or a variation.",
+      "kind": "open_thread",
+      "truth": "true",
+      "turns": [
+        135
+      ],
+      "note": ""
+    },
+    {
+      "id": "f031",
+      "statement": "A quote for the espresso machine service contract is still needed.",
+      "kind": "open_thread",
+      "truth": "true",
+      "turns": [
+        133
+      ],
+      "note": ""
+    }
+  ]
+}

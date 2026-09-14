@@ -1,0 +1,339 @@
+{
+  "conversation": "research-urban-heat",
+  "format_version": 1,
+  "facts": [
+    {
+      "id": "f001",
+      "statement": "The chapter is the literature review of a master's thesis on urban heat islands, focused on how street trees change surface temperatures.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        1
+      ],
+      "note": ""
+    },
+    {
+      "id": "f002",
+      "statement": "The supervisor is Dr. Okafor.",
+      "kind": "identity",
+      "truth": "true",
+      "turns": [
+        27
+      ],
+      "note": ""
+    },
+    {
+      "id": "f003",
+      "statement": "The thesis is due in May.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        17
+      ],
+      "note": ""
+    },
+    {
+      "id": "f004",
+      "statement": "The chapter's target length is 6,000 words.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        47
+      ],
+      "note": ""
+    },
+    {
+      "id": "f005",
+      "statement": "The review covers studies published from 2005 onwards.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        7,
+        33,
+        133
+      ],
+      "note": ""
+    },
+    {
+      "id": "f006",
+      "statement": "The review covers studies published from 2010 onwards.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        33,
+        133
+      ],
+      "note": ""
+    },
+    {
+      "id": "f007",
+      "statement": "The start year moved to 2010 because satellite data before that is too coarse.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        133
+      ],
+      "note": ""
+    },
+    {
+      "id": "f008",
+      "statement": "The chapter includes a meta-analysis of effect sizes.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        4,
+        5
+      ],
+      "note": ""
+    },
+    {
+      "id": "f009",
+      "statement": "A meta-analysis is out of scope because the studies measure too differently, and the supervisor agreed.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        5
+      ],
+      "note": ""
+    },
+    {
+      "id": "f010",
+      "statement": "The chapter is organised by cooling mechanism — shading, evapotranspiration, then albedo.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        75
+      ],
+      "note": ""
+    },
+    {
+      "id": "f011",
+      "statement": "The chapter is organised chronologically.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        66,
+        67,
+        75
+      ],
+      "note": ""
+    },
+    {
+      "id": "f012",
+      "statement": "A timeline structure would bury the argument, which works by mechanism.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        67
+      ],
+      "note": ""
+    },
+    {
+      "id": "f013",
+      "statement": "Satellite land-surface temperature studies and ground-station studies are discussed in separate sections.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        69
+      ],
+      "note": ""
+    },
+    {
+      "id": "f014",
+      "statement": "Citations use Harvard referencing.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        41,
+        99,
+        129
+      ],
+      "note": ""
+    },
+    {
+      "id": "f015",
+      "statement": "Citations use APA 7th edition.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        99,
+        129
+      ],
+      "note": ""
+    },
+    {
+      "id": "f016",
+      "statement": "The department requires APA 7th.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        129
+      ],
+      "note": ""
+    },
+    {
+      "id": "f017",
+      "statement": "Every temperature figure must state whether it is air temperature or surface temperature.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        55,
+        131
+      ],
+      "note": ""
+    },
+    {
+      "id": "f018",
+      "statement": "Mixing air and surface temperature figures is the recurring mistake the user sees in the literature.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        131
+      ],
+      "note": ""
+    },
+    {
+      "id": "f019",
+      "statement": "Only peer-reviewed sources count; preprints and grey literature stay out of the main argument.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        89,
+        109
+      ],
+      "note": ""
+    },
+    {
+      "id": "f020",
+      "statement": "Industry white papers are included to fill gaps in the recent evidence.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        36,
+        39
+      ],
+      "note": ""
+    },
+    {
+      "id": "f021",
+      "statement": "White papers are excluded as grey literature.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        39
+      ],
+      "note": ""
+    },
+    {
+      "id": "f022",
+      "statement": "The reference list for the chapter is capped at 60, on the supervisor's instruction.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        81,
+        113
+      ],
+      "note": ""
+    },
+    {
+      "id": "f023",
+      "statement": "The case-study city for the thesis is Valencia.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        19
+      ],
+      "note": ""
+    },
+    {
+      "id": "f024",
+      "statement": "Valencia's historic centre has very few street trees compared with the newer districts.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        101
+      ],
+      "note": ""
+    },
+    {
+      "id": "f025",
+      "statement": "The fieldwork used twelve temperature loggers placed on two streets.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        59
+      ],
+      "note": ""
+    },
+    {
+      "id": "f026",
+      "statement": "The user has already collected 41 papers in Zotero.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        105
+      ],
+      "note": ""
+    },
+    {
+      "id": "f027",
+      "statement": "The user prefers short paragraphs, four or five sentences at most.",
+      "kind": "preference",
+      "truth": "true",
+      "turns": [
+        25
+      ],
+      "note": ""
+    },
+    {
+      "id": "f028",
+      "statement": "The user wants the reasoning behind a suggestion, not just the suggestion.",
+      "kind": "preference",
+      "truth": "true",
+      "turns": [
+        43
+      ],
+      "note": ""
+    },
+    {
+      "id": "f029",
+      "statement": "The user would rather uncertainty be flagged than have Claude sound confident.",
+      "kind": "preference",
+      "truth": "true",
+      "turns": [
+        93
+      ],
+      "note": ""
+    },
+    {
+      "id": "f030",
+      "statement": "The section on tree species differences is still unwritten.",
+      "kind": "open_thread",
+      "truth": "true",
+      "turns": [
+        119
+      ],
+      "note": ""
+    },
+    {
+      "id": "f031",
+      "statement": "How to handle studies reporting percentages rather than degrees is undecided and parked.",
+      "kind": "open_thread",
+      "truth": "true",
+      "turns": [
+        123
+      ],
+      "note": ""
+    },
+    {
+      "id": "f032",
+      "statement": "Whether green roofs belong in this chapter or the next is undecided.",
+      "kind": "open_thread",
+      "truth": "true",
+      "turns": [
+        135
+      ],
+      "note": ""
+    }
+  ]
+}

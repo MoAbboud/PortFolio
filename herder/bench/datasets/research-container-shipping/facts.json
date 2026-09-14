@@ -1,0 +1,320 @@
+{
+  "conversation": "research-container-shipping",
+  "format_version": 1,
+  "facts": [
+    {
+      "id": "f001",
+      "statement": "The article is a long-form piece for a history magazine on how the shipping container changed ports and port cities.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        1
+      ],
+      "note": ""
+    },
+    {
+      "id": "f002",
+      "statement": "The piece is written for general readers, not maritime specialists.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        47
+      ],
+      "note": ""
+    },
+    {
+      "id": "f003",
+      "statement": "The working title is \"The Box That Emptied the Docks\".",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        75
+      ],
+      "note": ""
+    },
+    {
+      "id": "f004",
+      "statement": "The article must stay under 7,500 words, which is the magazine's hard limit.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        3,
+        121,
+        125
+      ],
+      "note": ""
+    },
+    {
+      "id": "f005",
+      "statement": "The article will be about 10,000 words.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        45,
+        121,
+        125
+      ],
+      "note": ""
+    },
+    {
+      "id": "f006",
+      "statement": "The article focuses on the years 1956 to 1980.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        11,
+        53
+      ],
+      "note": ""
+    },
+    {
+      "id": "f007",
+      "statement": "The scope extends to 1990 so the article covers the arrival of the biggest ships.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        52,
+        53
+      ],
+      "note": ""
+    },
+    {
+      "id": "f008",
+      "statement": "The story being told is the transition, which is finished by 1980.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        53
+      ],
+      "note": ""
+    },
+    {
+      "id": "f009",
+      "statement": "The three case-study ports are Newark, Felixstowe and Singapore.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        59,
+        129
+      ],
+      "note": ""
+    },
+    {
+      "id": "f010",
+      "statement": "Rotterdam is one of the three case-study ports.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        39,
+        59,
+        129
+      ],
+      "note": ""
+    },
+    {
+      "id": "f011",
+      "statement": "Rotterdam replaces Felixstowe as the European case study.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        82,
+        83
+      ],
+      "note": ""
+    },
+    {
+      "id": "f012",
+      "statement": "Felixstowe is kept because the user has done the archive work there and it suits a British readership.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        83
+      ],
+      "note": ""
+    },
+    {
+      "id": "f013",
+      "statement": "The user has visited the Felixstowe port archive twice.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        31
+      ],
+      "note": ""
+    },
+    {
+      "id": "f014",
+      "statement": "The article opens with the Ideal X leaving Newark in April 1956.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        107
+      ],
+      "note": ""
+    },
+    {
+      "id": "f015",
+      "statement": "The Ideal X sailed from Newark in April 1956.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        107
+      ],
+      "note": ""
+    },
+    {
+      "id": "f016",
+      "statement": "The article opens with an imagined scene of a docker's last day.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        36,
+        37
+      ],
+      "note": ""
+    },
+    {
+      "id": "f017",
+      "statement": "The article contains no invented dialogue and no reconstructed scenes.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        37,
+        69,
+        131
+      ],
+      "note": ""
+    },
+    {
+      "id": "f018",
+      "statement": "Every direct quotation must come from a primary source, not from another book.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        93,
+        119
+      ],
+      "note": ""
+    },
+    {
+      "id": "f019",
+      "statement": "Sidebars are used for technical explanations so the main narrative keeps moving.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        19
+      ],
+      "note": ""
+    },
+    {
+      "id": "f020",
+      "statement": "The magazine publishes six issues a year.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        25
+      ],
+      "note": ""
+    },
+    {
+      "id": "f021",
+      "statement": "The magazine is based in London.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        21
+      ],
+      "note": ""
+    },
+    {
+      "id": "f022",
+      "statement": "The user's editor at the magazine is James Whitcombe.",
+      "kind": "identity",
+      "truth": "true",
+      "turns": [
+        89
+      ],
+      "note": ""
+    },
+    {
+      "id": "f023",
+      "statement": "The deadline for the first draft is the end of March.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        65
+      ],
+      "note": ""
+    },
+    {
+      "id": "f024",
+      "statement": "The user's grandfather worked as a docker in Liverpool in the 1960s.",
+      "kind": "identity",
+      "truth": "true",
+      "turns": [
+        103
+      ],
+      "note": ""
+    },
+    {
+      "id": "f025",
+      "statement": "The user wants counter-arguments they might have missed pointed out.",
+      "kind": "preference",
+      "truth": "true",
+      "turns": [
+        7
+      ],
+      "note": ""
+    },
+    {
+      "id": "f026",
+      "statement": "Suggestions should be in British English.",
+      "kind": "preference",
+      "truth": "true",
+      "turns": [
+        21
+      ],
+      "note": ""
+    },
+    {
+      "id": "f027",
+      "statement": "The user prefers concrete numbers — tonnage and dates — to adjectives like 'huge' and 'soon'.",
+      "kind": "preference",
+      "truth": "true",
+      "turns": [
+        99
+      ],
+      "note": ""
+    },
+    {
+      "id": "f028",
+      "statement": "The ending is unsettled: either Singapore today or the empty London docks.",
+      "kind": "open_thread",
+      "truth": "true",
+      "turns": [
+        113
+      ],
+      "note": ""
+    },
+    {
+      "id": "f029",
+      "statement": "Whether the labour strikes get their own section is undecided.",
+      "kind": "open_thread",
+      "truth": "true",
+      "turns": [
+        117
+      ],
+      "note": ""
+    },
+    {
+      "id": "f030",
+      "statement": "Permission is still needed to use two photographs from the Felixstowe archive.",
+      "kind": "open_thread",
+      "truth": "true",
+      "turns": [
+        127
+      ],
+      "note": ""
+    }
+  ]
+}

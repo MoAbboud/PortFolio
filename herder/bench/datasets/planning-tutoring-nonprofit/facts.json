@@ -1,0 +1,330 @@
+{
+  "conversation": "planning-tutoring-nonprofit",
+  "format_version": 1,
+  "facts": [
+    {
+      "id": "f001",
+      "statement": "Open Desk is a small nonprofit offering free maths and reading tutoring to secondary school students in the founders' town.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        1
+      ],
+      "note": ""
+    },
+    {
+      "id": "f002",
+      "statement": "The town has three secondary schools.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        33
+      ],
+      "note": ""
+    },
+    {
+      "id": "f003",
+      "statement": "There are currently nine volunteer tutors signed up.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        55
+      ],
+      "note": ""
+    },
+    {
+      "id": "f004",
+      "statement": "Two of the founders are retired teachers.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        111
+      ],
+      "note": ""
+    },
+    {
+      "id": "f005",
+      "statement": "Tutoring is always free to families, with no fees and no suggested donations.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        11,
+        31,
+        137
+      ],
+      "note": ""
+    },
+    {
+      "id": "f006",
+      "statement": "Families who can afford it are charged a small fee to fund materials.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        30,
+        31
+      ],
+      "note": ""
+    },
+    {
+      "id": "f007",
+      "statement": "Students sign up through their school rather than directly.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        3
+      ],
+      "note": ""
+    },
+    {
+      "id": "f008",
+      "statement": "The first grant application is to the Riverside Community Fund.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        49
+      ],
+      "note": ""
+    },
+    {
+      "id": "f009",
+      "statement": "Open Desk registers as a charitable incorporated organisation.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        61
+      ],
+      "note": ""
+    },
+    {
+      "id": "f010",
+      "statement": "The pilot runs for one school term before the group expands.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        21
+      ],
+      "note": ""
+    },
+    {
+      "id": "f011",
+      "statement": "The pilot covers maths and reading only.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        39,
+        101
+      ],
+      "note": ""
+    },
+    {
+      "id": "f012",
+      "statement": "Science tutoring is offered from the start, since several volunteers studied it.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        36,
+        39
+      ],
+      "note": ""
+    },
+    {
+      "id": "f013",
+      "statement": "Science tutoring can come later, after the pilot.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        39
+      ],
+      "note": ""
+    },
+    {
+      "id": "f014",
+      "statement": "Sessions are held face to face at the public library.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        19,
+        67
+      ],
+      "note": ""
+    },
+    {
+      "id": "f015",
+      "statement": "Tutoring is delivered online over video to reach more students with the same volunteers.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        16,
+        19
+      ],
+      "note": ""
+    },
+    {
+      "id": "f016",
+      "statement": "Sessions run on Monday and Wednesday evenings.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        59,
+        67,
+        141
+      ],
+      "note": ""
+    },
+    {
+      "id": "f017",
+      "statement": "Sessions run on Tuesday and Thursday evenings.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        67,
+        141
+      ],
+      "note": ""
+    },
+    {
+      "id": "f018",
+      "statement": "The library is already booked on Mondays.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        141
+      ],
+      "note": ""
+    },
+    {
+      "id": "f019",
+      "statement": "The library has offered a room for free.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        83
+      ],
+      "note": ""
+    },
+    {
+      "id": "f020",
+      "statement": "Sessions only happen in public places, never in anyone's home.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        79,
+        115
+      ],
+      "note": ""
+    },
+    {
+      "id": "f021",
+      "statement": "Every tutor must pass a background check before working with students.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        93,
+        125
+      ],
+      "note": ""
+    },
+    {
+      "id": "f022",
+      "statement": "No tutor sits down with a student until their check is cleared, with no exceptions.",
+      "kind": "constraint",
+      "truth": "true",
+      "turns": [
+        125
+      ],
+      "note": ""
+    },
+    {
+      "id": "f023",
+      "statement": "Each tutor works with at most three students at a time.",
+      "kind": "decision",
+      "truth": "true",
+      "turns": [
+        75,
+        131
+      ],
+      "note": ""
+    },
+    {
+      "id": "f024",
+      "statement": "Each tutor takes up to five students.",
+      "kind": "decision",
+      "truth": "false",
+      "turns": [
+        95,
+        131
+      ],
+      "note": ""
+    },
+    {
+      "id": "f025",
+      "statement": "Five students per tutor was judged too many to help anyone properly.",
+      "kind": "fact",
+      "truth": "true",
+      "turns": [
+        131
+      ],
+      "note": ""
+    },
+    {
+      "id": "f026",
+      "statement": "The user wants reusable templates rather than one-off documents.",
+      "kind": "preference",
+      "truth": "true",
+      "turns": [
+        23
+      ],
+      "note": ""
+    },
+    {
+      "id": "f027",
+      "statement": "The user wants to hear what similar groups have done wrong, not just what worked.",
+      "kind": "preference",
+      "truth": "true",
+      "turns": [
+        105
+      ],
+      "note": ""
+    },
+    {
+      "id": "f028",
+      "statement": "Plans should be short bullet lists, because volunteers read on their phones.",
+      "kind": "preference",
+      "truth": "true",
+      "turns": [
+        113
+      ],
+      "note": ""
+    },
+    {
+      "id": "f029",
+      "statement": "Who the safeguarding lead will be is still undecided.",
+      "kind": "open_thread",
+      "truth": "true",
+      "turns": [
+        121
+      ],
+      "note": ""
+    },
+    {
+      "id": "f030",
+      "statement": "Transport for students who live far from the library is unsolved and parked.",
+      "kind": "open_thread",
+      "truth": "true",
+      "turns": [
+        123
+      ],
+      "note": ""
+    },
+    {
+      "id": "f031",
+      "statement": "How to measure whether students are improving is undecided.",
+      "kind": "open_thread",
+      "truth": "true",
+      "turns": [
+        135
+      ],
+      "note": ""
+    }
+  ]
+}
