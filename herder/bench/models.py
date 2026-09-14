@@ -75,8 +75,9 @@ class Summariser:
         parts = sections(body)
         self._map, self._reduce = parts["map"], parts["reduce"]
 
-    def summarise_part(self, text: str) -> CallOutcome:
-        return self._chat.chat([{"role": "system", "content": self._map}, {"role": "user", "content": text}], self.prompt_version)
+    def summarise_part(self, text: str, words: int) -> CallOutcome:
+        system = self._map.replace("{words}", str(words))
+        return self._chat.chat([{"role": "system", "content": system}, {"role": "user", "content": text}], self.prompt_version)
 
     def combine(self, summaries: list[str], words: int) -> CallOutcome:
         joined = "\n\n".join(f"Part {i + 1}:\n{s}" for i, s in enumerate(summaries))

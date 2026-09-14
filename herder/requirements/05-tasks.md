@@ -492,7 +492,12 @@ first baseline, a new generator rather than stage 4's, and to write every fact h
       against `truncate_tail` 0.31 at 3.7x and 0.07 at 25.2x, and `no_context` 0.00. At the
       same actual context size - about 400 tokens - the brief recalls 0.32 where the raw tail
       recalls 0.07. Against the project's target: the 20x holds, the 0.85 does not.
-- [!] **`naive_summary`'s number is not yet a fair comparison** and is recorded as unusable
+- [x] **`naive_summary` made a fair comparison** in `2026-09-14_1928-naive-summary-fixed`
+      (prompt v2, budget-sized length targets, 3,000-token parts): its summaries went from
+      107-319 tokens to 1,707-2,792 and its recall from 0.03 to 0.23, and **herder still wins
+      at both budgets** - 0.34 to 0.23 at 3,000 with fewer tokens used, 0.30 to 0.05 at 500.
+      One conversation still times out, so that comparison is over seven. As first run it was
+      not a fair comparison at all: and is recorded as unusable
       rather than quoted: the summariser ignored the budget (107-319 tokens of the 3,000 it
       was allowed, and identical at both budgets) and timed out on two of the eight
       conversations. Fixing the comparator is a harness fix, not tuning herder, and the
@@ -502,8 +507,15 @@ first baseline, a new generator rather than stage 4's, and to write every fact h
 
 ## Stage 10 - Iteration
 
-- [ ] At least three genuine attempts, each measured, each written into `NOTES.md` including
-      the ones that failed
+- [~] At least three genuine attempts, each measured, each written into `NOTES.md` including
+      the ones that failed. **Two so far. (a) The `local` extractor loses to the rules**
+      (`2026-09-14_2018-local-extractor`): recall 0.20 against 0.41, half the entries, 272 s a
+      conversation against 9 s - `mailman`'s model-loses-to-regex finding in another domain,
+      and the reason the three-extractor design exists. **(b) Extracting reversals worked**
+      (`2026-09-14_2011-reversal-rule`) - recall 0.36 -> 0.41 at 3,000 and 0.32 -> 0.36 at 500,
+      **wrong claims 0.10 -> 0.00**. The cause was not the merge step failing to supersede, as
+      assumed, but the reversal sentences matching no extraction rule at all, so nothing ever
+      contradicted the stale entry
 - [ ] Candidates in cost order: render ordering, tail reserve size, similarity threshold,
       chunk size, the extraction prompt, a larger quantisation, and whether the layer split
       earns its keep

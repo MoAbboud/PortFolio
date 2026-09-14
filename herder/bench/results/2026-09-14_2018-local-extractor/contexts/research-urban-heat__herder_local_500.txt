@@ -1,0 +1,7 @@
+## Project
+- [constraint] Preprints and grey literature stay out of the main argument - Preprints and grey literature are not to be included in the main argument, only peer-reviewed sources are allowed.
+- [code_state] Transcript parser lives in domain/transcript.py - The transcript parser is in domain/transcript.py and is staying there.
+- [fact] The reference list for this chapter is capped at 60 - The reference list for the chapter is limited to 60 entries.
+- [fact] The review covers 2010 onwards - The review covers data from 2010 onwards.
+## Session (most recent)
+- [tail] assistant: The order you tackle canopy cover and the shading section in matters less than keeping each change small enough to undo. I've seen a bibliometric map suggested for this kind of problem, mainly because it looks tidy on a diagram. Keeping notes on why the satellite studies ended up the way it did will save time the next time someone questions it. Some people in a similar position reach for cool pavements, although it brings its own maintenance burden. A common pattern is to look at canopy cover first, because it tends to shape the decisions around the shading section.

@@ -1,0 +1,6 @@
+## Project
+- [decision] No cloud backup in this tool - The tool does not upload anything anywhere, and all data stays on the home network.
+- [open_thread] What usually goes wrong with the TOML config? - The user is seeking advice on common issues with the TOML config, but has not yet provided a specific question or concern.
+- [fact] Tool runs on NAS with schedule every six hours - The tool runs on the NAS itself on a schedule, every six hours.
+## Session (most recent)
+- [tail] an argument for inotify watching, but it usually pays off only at a much larger scale than this. You might also consider how the EXIF date would look to someone new, since they'll judge it without the history. In practice the family-drop share tends to expose any vagueness left in the year/month folders, which is useful if you catch it early. Inotify watching comes up a lot in articles, but the examples rarely match a setup like yours. People often underestimate how long the family-drop share takes the first time, especially when the schedule is involved.

@@ -914,3 +914,80 @@ goes to Marisol only", "the on-call rota changes on Fridays", "backups offsite m
 "sessions on Monday and Wednesday". This is the missed-reversal problem from stage 3,
 now measured rather than suspected. It is the top stage 10 item, and it is what the false
 facts were written to catch.
+
+## 2026-09-14 - stage 10, first two attempts: a fair opponent, and the reversal rule
+
+### Attempt 0 (the harness, not herder): give naive_summary its budget
+
+Run `2026-09-14_1928-naive-summary-fixed`, prompt v2, parts cut from 6,000 to 3,000 tokens.
+The summaries went from 107-319 tokens to 1,707-2,792 at the 3,000 budget, and its recall from
+0.03 to 0.23. On the seven conversations both runs cover:
+
+| Method | Context used | Recall | Wrong claims |
+| --- | --- | --- | --- |
+| herder @ 3000 | 978 | **0.34** | 0.12 |
+| naive_summary @ 3000 | 1,298 | 0.23 | 0.09 |
+| truncate_tail @ 3000 | 2,965 | 0.31 | 0.00 |
+| herder @ 500 | 392 | **0.30** | 0.15 |
+| naive_summary @ 500 | 311 | 0.05 | 0.00 |
+| truncate_tail @ 500 | 439 | 0.08 | 0.00 |
+
+**The claim the project was built to test now holds against an opponent given a fair chance:**
+a structured brief beats a plain summary at the same budget, and by a wide margin at a tight
+one - while using fewer tokens than the summary does at 3,000. The summary still timed out on
+one conversation of eight, so this is seven.
+
+### Attempt 1: extract reversals (the first real change to herder)
+
+Run `2026-09-14_2011-reversal-rule`, all eight conversations, heuristic extractor:
+
+| | Recall | Wrong claims |
+| --- | --- | --- |
+| baseline @ 3000 | 0.36 (80/222) | 0.10 (4/39) |
+| **with the rule @ 3000** | **0.41 (92/222)** | **0.00 (0/39)** |
+| baseline @ 500 | 0.32 (70/222) | 0.13 (5/39) |
+| **with the rule @ 500** | **0.36 (81/222)** | **0.00 (0/39)** |
+
+**Every wrong claim is gone, and recall rose by twelve facts.** One change, measured.
+
+**The cause was not where I expected.** I assumed the merge step was failing to supersede. It
+was not reached: the sentences announcing a change matched no rule at all, so nothing was ever
+extracted to contradict the stale entry. "Scrap the rounding I mentioned earlier - keep stock
+exact to the gram" has no modal verb and no decision cue. The new rule looks for the *signal of
+a change* rather than the claim - change of plan, scrap that, correction, forget what I said,
+after all, is off, from earlier - and sits above every other rule, because a missed reversal is
+the one failure that makes a memory worse than no memory.
+
+Checked in the database afterwards: the reversal is now extracted, NLI reads contradiction in
+both directions, and the entry it replaced is `superseded`. That is the merge step working as
+designed on input it had never been given.
+
+**Still short of the target:** 0.41 against the 0.85 the project set itself. Compression holds
+at 11x and 28x. The next thing to measure is the `local` extractor on the same corpus.
+
+### Attempt 2: the local model as extractor. It loses, clearly
+
+Run `2026-09-14_2018-local-extractor`, same eight conversations, same reader, same facts.
+
+| Extractor | Recall @ 3000 | Recall @ 500 | Wrong claims | Entries kept | Time per conversation |
+| --- | --- | --- | --- | --- | --- |
+| heuristic + reversal rule | **0.41** | **0.36** | 0.00 | 14.2 | **9 s** |
+| local (qwen2.5:3b) | 0.20 | 0.14 | 0.00 | 7.1 | 272 s |
+
+**Thirty times slower, half the entries, half the recall.** Per kind it is behind everywhere:
+decisions 0.18 against 0.40, constraints 0.41 against 0.59, plain facts 0.09 against 0.18 -
+so it does not even fix the gap it was expected to fix, which was ordinary background facts.
+
+Two caveats, neither of which changes the conclusion: one chunk of one conversation timed out
+at 900 s (the cursor does not advance on a failed chunk, so that conversation is short some
+material), and 811 output tokens per call is a model writing plenty and having little of it
+survive lineage validation and merging.
+
+**This is the sibling project's finding again, in a different domain: a trained-or-large-ish
+model losing to rules.** `mailman` had a fine-tuned model lose to eleven lines of regular
+expressions on realistic documents; here a 3B instruction model loses to a list of cue phrases
+on conversations. Having both implementations is the only reason either sentence can be said
+with a number behind it, and it is the argument for the three-extractor design as built.
+
+What it does not say: that a model cannot do this. It says **this** model at this size, on a
+CPU, with this prompt, does worse than rules - and costs 30x the wall clock to do it.

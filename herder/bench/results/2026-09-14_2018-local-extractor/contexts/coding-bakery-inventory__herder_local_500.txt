@@ -1,0 +1,15 @@
+## Project
+- [decision] Reorder suggestions go to Marisol - Reorder suggestions are sent to Marisol, the head baker, rather than via email.
+- [code_state] Audit trail lives in domain/audit.py - The audit trail logic is in domain/audit.py and will remain there.
+- [code_state] Nightly job lives in domain/nightly.py - The nightly job logic is in domain/nightly.py and will remain there.
+- [code_state] Back-office server lives in domain/backoffice.py - The back-office server logic is in domain/backoffice.py and will remain there.
+- [code_state] SQLite file lives in domain/data/stock.db - The SQLite file for stock data is in domain/data/stock.db and will remain there.
+- [code_state] Reorder email lives in domain/email.py - The reorder email logic is in domain/email.py and will remain there.
+- [code_state] Shop codes live in domain/shop.py - The shop codes logic is in domain/shop.py and will remain there.
+- [code_state] Expiry dates live in domain/data/expiry.py - The expiry dates logic is in domain/data/expiry.py and will remain there.
+- [code_state] Rounding is kept to the gram - Rounding to the gram is kept and no exceptions are made.
+- [code_state] Stock quantities never go negative - Stock quantities are never allowed to go negative and are rejected if they do.
+- [code_state] Threshold for reorder is decided - The reorder threshold per ingredient is still undecided and needs to be worked out.
+- [code_state] Return from shops goes to central stock - The decision on whether returns from shops go back into central stock is still unresolved.
+## Session (most recent)
+- [tail] so that the reorder email doesn't drift while you're busy elsewhere. In practice expiry dates tends to expose any vagueness left in the nightly job, which is useful if you catch it early. I'd be cautious about letting the reorder email and the back-office server depend on each other more than they need to. There's an argument for barcode scanners, but it usually pays off only at a much larger scale than this. When you think about the audit trail, the main trade-off is usually between how simple it is to run and how much it can grow later.

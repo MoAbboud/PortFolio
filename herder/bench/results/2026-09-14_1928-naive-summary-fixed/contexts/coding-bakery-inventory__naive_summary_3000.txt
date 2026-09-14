@@ -1,0 +1,128 @@
+Certainly. To understand how the back-office server relates to expiry dates, let's break down the process:
+
+1. **Back-office Server and Stock Table Interaction**:
+   - The back-office server interacts with the stock table to manage and track stock levels for each shop.
+   - The stock table likely contains information about the quantity of each item (flour, butter, packaging) in stock, including expiry dates.
+
+2. **Expiry Dates and Stock Adjustments**:
+   - When a stock adjustment is made (e.g., due to a delivery or a stock take), the back-office server updates the stock table with the new quantities.
+   - The back-office server also needs to ensure that the expiry dates are correctly updated or flagged for items nearing their expiration.
+
+3. **Expiry Date Management**:
+   - The back-office server should have a mechanism to identify items that are close to their expiry date. This could involve querying the stock table for items with expiry dates that are within a certain number of days of the current date.
+   - The server might also need to send alerts or notifications to the head baker when items are approaching their expiry date, so they can take action (e.g., reordering or discarding the items).
+
+4. **Handling Expiry Dates**:
+   - The back-office server should handle expiry dates by:
+     - Updating the expiry dates in the stock table.
+     - Sending reminders or alerts to the head baker when items are close to their expiry date.
+     - Ensuring that the stock table is updated correctly to reflect any changes in expiry dates due to stock adjustments.
+
+5. **Practical Considerations**:
+   - **Data Integrity**: Ensure that the back-office server is robust enough to handle any issues that might arise with expiry dates, such as incorrect data entry or unexpected stock adjustments.
+   - **Performance**: Since the back-office server is a second-hand mini PC with 8 GB of RAM, ensure that the queries and updates related to expiry dates are optimized to avoid performance bottlenecks.
+   - **Testing**: Conduct thorough testing to ensure that the back-office server correctly handles expiry dates, especially under various scenarios (e.g., during peak times or when dealing with large datasets).
+
+By understanding these interactions, you can ensure that the back-office server is properly configured to manage expiry dates effectively, thereby maintaining the accuracy and reliability of the inventory system.
+
+Certainly. Here's a concise summary of how the nightly job relates to the SQLite file:
+
+1. **Nightly Job**: The nightly job is responsible for running nightly tasks, such as updating stock levels based on reorder emails and adjusting stock levels as needed. It's crucial for maintaining accurate stock levels.
+
+2. **SQLite File**: The SQLite file is where the nightly job reads and writes stock data. It serves as the primary storage for stock levels, expiry dates, and other relevant information.
+
+3. **Relationship**: The nightly job interacts with the SQLite file to read and write stock data. It ensures that stock levels are up-to-date and that expiry dates are correctly managed.
+
+4. **Key Points**:
+   - The nightly job reads from the SQLite file to fetch current stock levels.
+   - It writes to the SQLite file to update stock levels and expiry dates.
+   - It handles tasks like generating reorder suggestions and adjusting stock levels based on these tasks.
+
+5. **Maintenance**: Keeping the nightly job and the SQLite file in sync is important to avoid data inconsistencies. The nightly job should be designed to handle the SQLite file's limitations and ensure data integrity.
+
+This relationship ensures that the nightly job can perform its tasks efficiently and accurately, maintaining the integrity of the stock data stored in the SQLite file.
+
+Based on the conversation, other people handle the back-office server in a few key ways:
+
+1. **Event-Sourced Ledger**: Some use an event-sourced ledger, but this is typically for much larger systems. It's seen as a complex solution that doesn't fit the scale of this setup.
+
+2. **Microservices**: There's an argument for a microservice per shop, but this is usually for much larger systems. It's seen as a complex solution that doesn't fit the scale of this setup.
+
+3. **Hourly Reorder Runs**: Some use hourly reorder runs, but this is typically for much larger systems. It's seen as a complex solution that doesn't fit the scale of this setup.
+
+4. **Event-Driven Architecture**: Some use an event-driven architecture, but this is typically for much larger systems. It's seen as a complex solution that doesn't fit the scale of this setup.
+
+5. **Database Design**: The conversation suggests focusing on the database design, specifically the SQLite file and its interactions with other components like the shop codes, stock table, and nightly job. This includes:
+   - **Separating Concerns**: Separating what the SQLite file must do from what would merely be nice.
+   - **Quick Checks**: Quick checks of how the SQLite file interacts with other components like the shop codes and stock table.
+   - **Audit Trail**: Keeping notes on why the back-office server ended up the way it did to save time in the future.
+
+6. **Maintenance Burden**: There's a risk of letting the back-office server become a bottleneck once the SQLite file is under real pressure. This is a common concern in systems with a single small server.
+
+7. **Trade-offs**: The main trade-off is usually between how simple it is to run and how much it can grow later. This is a common consideration in system design.
+
+Given the constraints of this setup (no cloud services, four shops, and one central bakery), simpler solutions like event-driven architecture or microservices are not practical. The focus should be on the database design and the interactions between the SQLite file and other components. The key is to keep each change small enough to undo and to maintain a clear audit trail.
+
+The conversation highlights several key points and unresolved issues that need to be addressed for the system's design and implementation. Here's a summary of the main points and unresolved issues:
+
+### Key Points and Resolved Issues:
+1. **Stock Adjustment and Reorder Email**:
+   - The reorder email now goes to both Marisol and the shop manager of the concerned shop, not just Marisol alone.
+   - A small trial of the SQLite file before the full version often shows problems that planning alone misses.
+   - The stock table and back-office server need to be kept small enough to undo, and the order of tackling these components matters less than keeping each change small.
+
+2. **Audit Trail**:
+   - The audit trail must be kept small enough to undo, and the order of tackling the stock table and back-office server matters less than keeping each change small.
+   - The detail that most often gets forgotten with the stock table is who is responsible when it goes wrong.
+   - The detail that most often gets forgotten with the reorder email is who is responsible when it goes wrong.
+
+3. **Stock Table and Shop Codes**:
+   - A small trial of the shop codes before the full version often shows problems that planning alone misses.
+   - The detail that most often gets forgotten with the reorder email is who is responsible when it goes wrong.
+   - The detail that most often gets forgotten with the stock table is who is responsible when it goes wrong.
+
+4. **Expiry Dates and Stock Table**:
+   - Expiry dates tend to expose any vagueness left in the stock table, which is useful if you catch it early.
+   - The detail that most often gets forgotten with the stock table is who is responsible when it goes wrong.
+
+5. **Back-Office Server**:
+   - The back-office server tends to expose any vagueness left in the nightly job, which is useful if you catch it early.
+   - The detail that most often gets forgotten with the back-office server is who is responsible when it goes wrong.
+
+6. **Stock Table and Stock Adjustment**:
+   - The detail that most often gets forgotten with the stock adjustment is who is responsible when it goes wrong.
+
+### Unresolved Issues:
+1. **Stock Adjustment and Stock Table**:
+   - The detail that most often gets forgotten with the stock adjustment is who is responsible when it goes wrong.
+
+2. **Stock Table and Shop Codes**:
+   - The detail that most often gets forgotten with the shop codes is who is responsible when it goes wrong.
+
+3. **Stock Table and Expiry Dates**:
+   - The detail that most often gets forgotten with the expiry dates is who is responsible when it goes wrong.
+
+4. **Stock Table and Stock Adjustment**:
+   - The detail that most often gets forgotten with the stock adjustment is who is responsible when it goes wrong.
+
+5. **Stock Table and Stock Table**:
+   - The detail that most often gets forgotten with the stock table is who is responsible when it goes wrong.
+
+6. **Stock Table and Stock Table**:
+   - The detail that most often gets forgotten with the stock table is who is responsible when it goes wrong.
+
+### Summary of Actions:
+- **Stock Adjustment**: Ensure the stock adjustment is small enough to undo and keep the responsibility clear.
+- **Stock Table**: Ensure the stock table is small enough to undo and keep the responsibility clear.
+- **Shop Codes**: Ensure the shop codes are small enough to undo and keep the responsibility clear.
+- **Expiry Dates**: Ensure the expiry dates are small enough to undo and keep the responsibility clear.
+- **Back-Office Server**: Ensure the back-office server is small enough to undo and keep the responsibility clear.
+
+### Next Steps:
+- **Stock Adjustment**: Write down what "done" means for the stock adjustment to prevent drift.
+- **Stock Table**: Write down what "done" means for the stock table to prevent drift.
+- **Shop Codes**: Write down what "done" means for the shop codes to prevent drift.
+- **Expiry Dates**: Write down what "done" means for the expiry dates to prevent drift.
+- **Back-Office Server**: Write down what "done" means for the back-office server to prevent drift.
+
+By addressing these unresolved issues and ensuring that each change is small and reversible, the system can be more robust and maintainable.

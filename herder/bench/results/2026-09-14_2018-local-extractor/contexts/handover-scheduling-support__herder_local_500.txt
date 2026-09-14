@@ -1,0 +1,14 @@
+## Project
+- [constraint] No community forum - A community forum is not to be introduced.
+- [constraint] No outsourced support team - An outsourced support team is not to be introduced.
+- [constraint] No SLA credits - SLA credits are not to be introduced.
+- [constraint] No 24/7 coverage - 24/7 coverage is not to be introduced.
+- [constraint] No knowledge-base redesign - A knowledge-base redesign is not to be introduced.
+- [constraint] Weekend tickets do not get any response - Response to weekend tickets is not addressed, as per the user's statement.
+- [constraint] Response targets are four business hours - Response targets are set to four business hours, as per the user's correction.
+- [constraint] Booking data is never passed without written permission - Booking data is never passed from one customer account to another without written permission, as per the user's statement.
+- [constraint] Recurring slots disappear after daylight-saving change - A bug where recurring slots disappear after a daylight-saving change is unresolved, as per the user's statement.
+- [code_state] Deskline macros live in domain/transcript.py - Deskline macros are in domain/transcript.py and are staying there.
+- [code_state] Handover document written as a checklist - The handover document is to be written as a checklist, as per the user's statement.
+## Session (most recent)
+- [tail] assistant: Clear, thanks. One risk I'd watch is that Deskline macros quietly becomes the bottleneck once the product board is under real pressure. People often underestimate how long the on-call rota takes the first time, especially when the daylight-saving bug is involved. Keeping notes on why the support queue ended up the way it did will save time the next time someone questions it. I've seen a chatbot for first-line support suggested for this kind of problem, mainly because it looks tidy on a diagram.

@@ -1,0 +1,7 @@
+In the conversation, the user provided detailed insights into how the back-office server interacts with the stock table and expiry dates, as well as how the nightly job interacts with the SQLite file. The user also discussed the importance of maintaining a clear audit trail and separating concerns in the database design. Key points included the need for a small trial of the SQLite file and the importance of keeping the back-office server and stock table small enough to undo.
+
+The conversation also highlighted unresolved issues such as the responsibility for stock adjustments, stock table, shop codes, expiry dates, and the back-office server. The user recommended writing down what "done" means for each component to prevent drift and ensure maintainability.
+
+The main unresolved issues were related to the responsibility for stock adjustments, stock table, shop codes, expiry dates, and the back-office server. The user suggested writing down what "done" means for these components to prevent drift and ensure the system remains robust and maintainable.
+
+The next steps should involve writing down what "done" means for the stock adjustment, stock table, shop codes, expiry dates, and the back-office server to prevent drift and ensure the system's integrity and maintainability. This includes ensuring each change is small enough to undo and keeping the responsibility clear for each component.

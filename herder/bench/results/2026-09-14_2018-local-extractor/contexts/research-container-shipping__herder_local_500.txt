@@ -1,0 +1,6 @@
+## Project
+- [open_thread] Swap one of the ports I listed earlier: Felixstowe, not Rotterdam, alongside New - The ports have been swapped: Felixstowe is now alongside Newark and Singapore.
+- [open_thread] I won't dramatise: no made-up conversations and no scenes I can't document. - The requirement to avoid dramatized content and scenes that cannot be documented has been noted.
+## Session (most recent)
+- [open_thread] What to check about the dockers' unions before next week? - The user is seeking advice on what to check about the dockers' unions before next week, given the setup of the article. The assistant is providing guidance on the main trade-offs and risks to watch, as well as suggesting a few specific points to consider.
+- [tail] argument for a chapter on air freight, but it usually pays off only at a much larger scale than this. Whatever you choose for Malcom McLean, it's worth a quick check of how it interacts with the dockers' unions before moving on. People often underestimate how long the Ideal X takes the first time, especially when the dockers' unions is involved. In practice Newark tends to expose any vagueness left in break-bulk cargo, which is useful if you catch it early. Keeping notes on why Newark ended up the way it did will save time the next time someone questions it.

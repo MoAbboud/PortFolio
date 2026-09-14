@@ -1,0 +1,17 @@
+## Stable
+- [preference] Also, please be blunt about risks, I'd rather hear them now.
+- [preference] Small thing about how I work: I prefer plain spreadsheets to specialised planning software.
+## Project
+- [constraint] One firm rule: the lease must include a break clause no later than year three.
+- [decision] Okay, that's decided: the second location opens in the Eastgate neighbourhood.
+- [decision] We will not take on outside investors - the business stays fully owned by me and my sister.
+- [decision] Okay, that's decided: we're hiring a dedicated manager for the new café rather than splitting my time.
+- [decision] Going with this: it's a café only - all roasting stays at the original site.
+- [decision] Revising the fit-out budget from what I said earlier: it's capped at £85,000 now, the bank won't lend more without investors.
+- [decision] The June opening is off - builders can't start until spring, so the target is September.
+- [decision] Let's park it for now.
+## Session (most recent)
+- [open_thread] We haven't decided whether to serve food beyond pastries.
+- [open_thread] Assume I haven't read much about it.
+- [open_thread] Open item: I still need a quote for the espresso machine service contract.
+- [tail] assistant: Some people in a similar position reach for a wholesale push to restaurants, although it brings its own maintenance burden. The order you tackle the roasting schedule and Saturday trade in matters less than keeping each change small enough to undo. It can help to separate what the espresso machine must do from what would merely be nice, and treat the bank loan the same way. People often underestimate how long staffing costs takes the first time, especially when the new manager is involved. A small trial of the bank loan before the full version often shows problems that planning alone misses.

@@ -1,0 +1,25 @@
+## Stable
+- [preference] I like short paragraphs, four or five sentences at most.
+- [preference] Small thing about how I work: I'd rather you flag uncertainty than sound confident.
+## Project
+- [constraint] Non-negotiable: every temperature figure I quote must say whether it is air temperature or surface temperature.
+- [constraint] Whenever a number appears, it has to be clear if it's air or surface temperature - mixing them is the mistake I keep seeing.
+- [decision] Going with this: the review covers studies published from 2010 onwards only.
+- [decision] Going with this: the chapter's target length is 6,000 words.
+- [decision] Let's park it for now.
+- [decision] Correction on citation style - the department requires APA 7th, so Harvard is out.
+- [decision] I'm changing the start year I gave you earlier: the review now covers 2010 onwards, because the satellite data before that is too coarse.
+## Session (most recent)
+- [open_thread] Assume I haven't read much about it.
+- [open_thread] I haven't settled how to handle studies that only report percentages rather than degrees.
+- [open_thread] Something unresolved - I still need to decide whether green roofs belong in this chapter or the next one.
+- [tail] user: Correction on citation style - the department requires APA 7th, so Harvard is out.
+  assistant: Okay, that's a sensible call. Whatever you choose for the logger data, it's worth a quick check of how it interacts with the reference cap before moving on. One risk I'd watch is that the logger data quietly becomes the bottleneck once the ground stations is under real pressure. There's an argument for interviews with planners, but it usually pays off only at a much larger scale than this. When you think about canopy cover, the main trade-off is usually between how simple it is to run and how much it can grow later.
+  user: Whenever a number appears, it has to be clear if it's air or surface temperature - mixing them is the mistake I keep seeing.
+  assistant: Understood. A common pattern is to look at surface temperature first, because it tends to shape the decisions around the reference cap. The detail that most often gets forgotten with canopy cover is who is responsible when it goes wrong. In practice evapotranspiration tends to expose any vagueness left in surface temperature, which is useful if you catch it early.
+  user: I'm changing the start year I gave you earlier: the review now covers 2010 onwards, because the satellite data before that is too coarse.
+  assistant: Got it. It can help to separate what the satellite studies must do from what would merely be nice, and treat the Valencia case the same way. In practice air temperature tends to expose any vagueness left in surface temperature, which is useful if you catch it early. When you think about the Valencia case, the main trade-off is usually between how simple it is to run and how much it can grow later.
+  user: Something unresolved - I still need to decide whether green roofs belong in this chapter or the next one.
+  assistant: Okay, that's a sensible call. In practice the shading section tends to expose any vagueness left in surface temperature, which is useful if you catch it early. I'd be cautious about letting the shading section and the ground stations depend on each other more than they need to. When you think about the satellite studies, the main trade-off is usually between how simple it is to run and how much it can grow later. One risk I'd watch is that the ground stations quietly becomes the bottleneck once evapotranspiration is under real pressure. If it helps, you could sketch the flow from the reference cap to surface temperature on paper before committing to anything. There's an argument for interviews with planners, but it usually pays off only at a much larger scale than this.
+  user: Is there anything about the logger data I'm likely to overlook? Short answer is fine.
+  assistant: The order you tackle canopy cover and the shading section in matters less than keeping each change small enough to undo. I've seen a bibliometric map suggested for this kind of problem, mainly because it looks tidy on a diagram. Keeping notes on why the satellite studies ended up the way it did will save time the next time someone questions it. Some people in a similar position reach for cool pavements, although it brings its own maintenance burden. A common pattern is to look at canopy cover first, because it tends to shape the decisions around the shading section.

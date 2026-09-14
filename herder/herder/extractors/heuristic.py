@@ -50,6 +50,34 @@ _SPLIT = re.compile(r"(?<=[.!?])\s+|\n+")
 # decision's clothes and the constraint is the more useful half.
 RULES: list[tuple[str, str, str, float, re.Pattern[str]]] = [
     (
+        # **First, above everything.** A reversal is the one thing a memory must not miss: it
+        # is the only failure that makes the brief worse than no brief, because the stale
+        # claim is served with confidence. Added at stage 10 after the baseline measured it -
+        # every false claim herder carried forward was a reversal, and the cause was not the
+        # merge step but this one: the sentences that announced the change matched no rule at
+        # all, so nothing was ever extracted to contradict the entry it replaced.
+        #
+        #   "Scrap the rounding I mentioned earlier - keep stock exact to the gram"
+        #   "Change of plan on who gets the reorder email: it goes to both"
+        #   "Update the backup schedule I described earlier: the offsite drive is weekly now"
+        #
+        # None of those carries a modal verb or a decision cue. They carry a cue of their own,
+        # and it is the cue rather than the claim that this pattern looks for.
+        "decision",
+        "project",
+        "an explicit reversal of something said earlier",
+        0.66,
+        re.compile(
+            r"\b(change of plan|changed my mind|change to|scrap (?:that|the|what)|"
+            r"forget (?:that|the|what)|disregard|ignore what i said|correction|"
+            r"i'm changing|i am changing|revis(?:e|ing|ed)|swap (?:one|that|the)|"
+            r"no longer|after all|instead of what i said|from what i said|(?:from|than) (?:earlier|before)|"
+            r"(?:said|gave|mentioned|described|told you) (?:you )?(?:earlier|before)|"
+            r"(?:earlier|before) (?:is|was) (?:off|out|wrong)|is off\b)",
+            re.I,
+        ),
+    ),
+    (
         # First, and above `constraint`, because "we still need to pick X" is an unfinished
         # task wearing an obligation's clothes. Only the unambiguous markers of
         # incompleteness live here; the weaker ones are further down, below constraints.

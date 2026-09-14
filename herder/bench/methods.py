@@ -11,11 +11,11 @@ vendor instruction, which carries no memory. The other methods get no instructio
 the comparison is memory against memory at the same budget.
 
 **Why naive_summary is map-reduce.** A 10,000-token conversation does not fit the local
-model's usable context with room for instructions, so it is summarised in parts and the part
-summaries combined. That is still the plain approach - no structure, no entries - and it is
-what the afternoon build would have to do with this model. If the final summary is over
-budget it is cut at the budget and the result says so, rather than being allowed more room
-than the method it is compared against.
+model's usable context with room for instructions, so it is summarised in parts, and the parts
+are joined if they fit the budget or combined into one summary if they do not. That is still
+the plain approach - no structure, no entries, no marking of what was rejected - and it is what
+the afternoon build would have to do with this model. If the result is over budget it is cut,
+and the result says so, rather than being allowed more room than the methods beside it.
 """
 
 from __future__ import annotations
@@ -27,7 +27,13 @@ import httpx
 
 from herder.core.tokens import count_tokens, get_encoder
 
-SUMMARY_PART_TOKENS = 6_000
+# 3,000, not the 6,000 of the stage 9 baseline: two of eight conversations hit the 900-second
+# timeout summarising a 6,000-token part on this CPU, so that method had no context at all for
+# them. Smaller parts are more calls, each far shorter.
+SUMMARY_PART_TOKENS = 3_000
+# Words per token for English prose under cl100k, used to turn a token budget into the word
+# count a model actually follows.
+WORDS_PER_TOKEN = 0.75
 
 
 class MethodFailed(RuntimeError):
@@ -89,23 +95,41 @@ def summary_parts(conversation: str) -> list[str]:
     return ["\n\n".join(p) for p in parts if p]
 
 
-def map_summaries(conversation: str, summariser) -> tuple[list[str], float]:
-    """The part summaries, shared by every budget: the map step does not depend on the budget."""
+def map_summaries(conversation: str, summariser, largest_budget: int) -> tuple[list[str], float]:
+    """The part summaries, shared by every budget.
+
+    Each part is asked for its share of the largest budget. Version 1 asked for no length at
+    all and got 107 to 319 tokens for the whole conversation, whatever the budget - a summary
+    that never used the room it was being compared at.
+    """
     started = time.perf_counter()
+    parts = summary_parts(conversation)
+    words = max(40, int(largest_budget * WORDS_PER_TOKEN / len(parts)))
     out = []
-    for part in summary_parts(conversation):
-        call = summariser.summarise_part(part)
+    for part in parts:
+        call = summariser.summarise_part(part, words=words)
         if call.failed or not call.content:
             raise MethodFailed(f"summarising a part failed: {call.error or 'empty output'}")
-        out.append(call.content)
+        out.append(call.content.strip())
     return out, time.perf_counter() - started
 
 
 def naive_summary(part_summaries: list[str], map_seconds: float, budget: int, summariser) -> Context:
+    """The part summaries joined if they fit the budget, otherwise combined into one that does.
+
+    Joining is what an afternoon build would do when the summary already fits, and it keeps
+    every specific the map step captured. A reduce step is only worth its call - and its loss
+    of detail - when the parts are over budget.
+    """
     started = time.perf_counter()
-    # Words, because a model follows a word count far better than a token count; cl100k runs at
-    # roughly 0.75 words a token for English prose.
-    call = summariser.combine(part_summaries, words=max(20, int(budget * 0.75)))
+    joined = "\n\n".join(part_summaries)
+    if count_tokens(joined) <= budget:
+        return Context(
+            "naive_summary", budget, joined, count_tokens(joined), map_seconds,
+            {"parts": len(part_summaries), "reduced": False, "cut_to_budget": False},
+        )
+
+    call = summariser.combine(part_summaries, words=max(20, int(budget * WORDS_PER_TOKEN)))
     if call.failed or not call.content:
         raise MethodFailed(f"combining the summaries failed: {call.error or 'empty output'}")
     text = call.content.strip()
@@ -113,7 +137,7 @@ def naive_summary(part_summaries: list[str], map_seconds: float, budget: int, su
     text = _cut_to(text, budget, keep="start")
     return Context(
         "naive_summary", budget, text, count_tokens(text), map_seconds + time.perf_counter() - started,
-        {"parts": len(part_summaries), "cut_to_budget": over},
+        {"parts": len(part_summaries), "reduced": True, "cut_to_budget": over},
     )
 
 

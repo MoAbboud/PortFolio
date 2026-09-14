@@ -71,6 +71,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--label", default="trial", help="'baseline' requires complete fact lists")
     parser.add_argument("--budgets", default=",".join(map(str, DEFAULT_BUDGETS)))
     parser.add_argument("--conversations", default="", help="comma-separated names; default is all with facts")
+    parser.add_argument("--methods", default="", help="comma-separated: herder, naive_summary, truncate_tail, no_context")
     parser.add_argument("--resume", default=None, help="an existing run folder to continue")
     parser.add_argument("--api", default="http://localhost:8000")
     # For checking the harness itself on a scratch copy, so placeholder facts never sit beside
@@ -85,6 +86,7 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("set HERDER_KEY first. Get a key with: python -m herder bootstrap --email owner@localhost")
 
     budgets = sorted({int(b) for b in args.budgets.split(",") if b.strip()})
+    methods = {m.strip() for m in args.methods.split(",") if m.strip()} or {"herder", "naive_summary", "truncate_tail", "no_context"}
     wanted = {n.strip() for n in args.conversations.split(",") if n.strip()}
     conversations = []
     for folder in sorted(datasets.iterdir()):
@@ -126,6 +128,7 @@ def main(argv: list[str] | None = None) -> int:
             "summarise_prompt": summariser.prompt_version,
             "extractor": health.get("extractor", "unknown"),
             "budgets": budgets,
+            "methods": sorted(methods),
             "conversations": [m["name"] for m, _, _ in conversations],
             "facts": sum(len(f.facts) for _, _, f in conversations),
             "false_facts": sum(len(f.false_facts) for _, _, f in conversations),
@@ -171,20 +174,23 @@ def main(argv: list[str] | None = None) -> int:
             return context_file(run_dir, name, key).read_text(encoding="utf-8")
 
         # ---- build every context first, then read against each
-        keys: list[str] = ["no_context"]
-        if f"{name}|no_context" not in have_contexts:
-            keep(no_context(conversation, 0), "no_context")
+        keys: list[str] = []
+        if "no_context" in methods:
+            keys.append("no_context")
+            if f"{name}|no_context" not in have_contexts:
+                keep(no_context(conversation, 0), "no_context")
 
-        tail_keys = {b: f"truncate_tail @ {b}" for b in budgets}
-        for budget, key in tail_keys.items():
-            keys.append(key)
-            if f"{name}|{key}" not in have_contexts:
-                keep(truncate_tail(conversation, budget), key)
+        if "truncate_tail" in methods:
+            for budget in budgets:
+                key = f"truncate_tail @ {budget}"
+                keys.append(key)
+                if f"{name}|{key}" not in have_contexts:
+                    keep(truncate_tail(conversation, budget), key)
 
-        summary_keys = {b: f"naive_summary @ {b}" for b in budgets}
+        summary_keys = {b: f"naive_summary @ {b}" for b in budgets} if "naive_summary" in methods else {}
         if any(f"{name}|{k}" not in have_contexts for k in summary_keys.values()):
             try:
-                parts, map_seconds = map_summaries(conversation, summariser)
+                parts, map_seconds = map_summaries(conversation, summariser, largest_budget=max(budgets))
                 for budget, key in summary_keys.items():
                     if f"{name}|{key}" not in have_contexts:
                         keep(naive_summary(parts, map_seconds, budget, summariser), key)
@@ -192,7 +198,7 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"  ! naive_summary failed: {exc}")
         keys += [k for k in summary_keys.values() if f"{name}|{k}" in have_contexts]
 
-        herder_keys = {b: f"herder[{extractor}] @ {b}" for b in budgets}
+        herder_keys = {b: f"herder[{extractor}] @ {b}" for b in budgets} if "herder" in methods else {}
         if any(f"{name}|{k}" not in have_contexts for k in herder_keys.values()):
             try:
                 project_name = f"bench-{run_dir.name}-{name}"[:120]

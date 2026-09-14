@@ -8,6 +8,8 @@ is worse than forgetting them, because they get handed back later as established
 
 from __future__ import annotations
 
+import pytest
+
 from herder.core.ids import uuid7
 from herder.domain.chunking import Chunk, ChunkMessage
 from herder.extractors.heuristic import HeuristicExtractor
@@ -231,3 +233,45 @@ def test_a_demonstrative_followed_by_a_noun_survives() -> None:
     """"That approach" is resolvable enough; "that is" is not."""
     outcome = run(("user", "That approach must never be used for the hosted demo."))
     assert kinds(outcome) == ["constraint"]
+
+
+# ------------------------------------------------------------------ reversals (stage 10)
+
+
+@pytest.mark.parametrize(
+    "sentence",
+    [
+        "Scrap the rounding I mentioned earlier - keep stock exact to the gram.",
+        "Change of plan on who gets the reorder email: it goes to both Marisol and the shop manager.",
+        "Update the backup schedule I described earlier: the offsite drive is weekly now, not monthly.",
+        "Correction on citation style - the department requires APA 7th, so Harvard is out.",
+        "The June opening is off - builders cannot start until spring, so the target is September.",
+        "We are switching from Postgres to MySQL after all.",
+        "I am lowering the group size from earlier - at most three students per tutor.",
+        "Forget the 10,000 words I mentioned before - the limit is 7,500.",
+        "I have changed my mind about the schedule.",
+    ],
+)
+def test_a_reversal_is_extracted(sentence: str) -> None:
+    """The stage 9 baseline measured this: every false claim herder carried forward was a
+    reversal, and the cause was that the sentence announcing the change matched no rule, so
+    nothing was ever extracted to contradict the entry it replaced."""
+    outcome = run(("user", sentence))
+    assert outcome.candidates, f"nothing extracted from {sentence!r}"
+    assert outcome.candidates[0].kind == "decision"
+
+
+@pytest.mark.parametrize(
+    "sentence",
+    [
+        "We are going with Postgres for production instead of SQLite.",
+        "Stock quantities are never allowed to go negative.",
+        "I prefer plain functions over classes.",
+        "The chain has four shops and one central bakery.",
+        "The deadline is earlier than we thought.",
+    ],
+)
+def test_an_ordinary_sentence_is_not_called_a_reversal(sentence: str) -> None:
+    outcome = run(("user", sentence))
+    reversal = [c for c in outcome.candidates if c.confidence == 0.66]
+    assert not reversal, f"{sentence!r} was read as a reversal"

@@ -1,0 +1,67 @@
+The user and the assistant have outlined a comprehensive plan for setting up a secure and efficient IT infrastructure, particularly focusing on the guest Wi-Fi, password resets, and the comms cupboard. The key points and actions discussed include:
+
+1. **Guest Wi-Fi**:
+   - **Password Resets**: Password resets are only done after a call-back to the person's desk phone to ensure security and involve the user.
+   - **Interaction with Other Systems**: The guest Wi-Fi should be checked for compatibility with the password manager and other systems like the file server and offsite drive.
+   - **Responsibility**: Clearly define who is responsible for the guest Wi-Fi if it goes wrong and document their responsibilities.
+   - **Documentation**: Document what "done" means for the guest Wi-Fi to prevent drift.
+
+2. **Password Manager**:
+   - **Responsibility**: Admin passwords are kept only in the firm's password manager, never written down.
+   - **Interaction with Other Systems**: The password manager should be checked for compatibility with the guest Wi-Fi and other systems like the file server and offsite drive.
+   - **Documentation**: Document what "done" means for password resets to prevent drift.
+
+3. **Comms Cupboard**:
+   - **Interaction with Other Systems**: The comms cupboard should be checked for compatibility with the guest Wi-Fi, password manager, and other systems like the file server and offsite drive.
+   - **Responsibility**: Clearly define who is responsible for the comms cupboard if it goes wrong and document their responsibilities.
+   - **Documentation**: Document what "done" means for the comms cupboard to prevent drift.
+
+4. **Offsite Drive**:
+   - **Interaction with Other Systems**: The offsite drive should be checked for compatibility with the guest Wi-Fi, password manager, and other systems like the file server and comms cupboard.
+   - **Responsibility**: Clearly define who is responsible for the offsite drive if it goes wrong and document their responsibilities.
+   - **Documentation**: Document what "done" means for the offsite drive to prevent drift.
+
+5. **Windows 11 Upgrades**:
+   - **Interaction with Other Systems**: Windows 11 upgrades should be checked for compatibility with the guest Wi-Fi, password manager, and other systems like the file server and offsite drive.
+   - **Responsibility**: Clearly define who is responsible for Windows 11 upgrades if they go wrong and document their responsibilities.
+   - **Documentation**: Document what "done" means for Windows 11 upgrades to prevent drift.
+
+6. **New Starter Setup**:
+   - **Interaction with Other Systems**: New starter setup should be checked for compatibility with the guest Wi-Fi, password manager, and other systems like the file server and offsite drive.
+   - **Responsibility**: Clearly define who is responsible for new starter setup if it goes wrong and document their responsibilities.
+   - **Documentation**: Document what "done" means for new starter setup to prevent drift.
+
+7. **Printer Lease**:
+   - **Interaction with Other Systems**: The printer lease should be checked for compatibility with the guest Wi-Fi, password manager, and other systems like the file server and offsite drive.
+   - **Responsibility**: Clearly define who is responsible for the printer lease if it goes wrong and document their responsibilities.
+   - **Documentation**: Document what "done" means for the printer lease to prevent drift.
+
+8. **Thin Clients**:
+   - **Consideration**: Thin clients are suggested for this kind of problem, mainly because they look tidy on a diagram. However, the examples rarely match a setup like this one, so caution is advised.
+
+9. **Thin Clients**:
+   - **Consideration**: Thin clients are suggested for this kind of problem, mainly because they look tidy on a diagram. However, the examples rarely match a setup like this one, so caution is advised.
+
+10. **Windows 11 Pro**:
+    - **Decision**: All staff laptops run Windows 11 Pro.
+
+11. **Documentation**:
+    - **Specific Actions**: Write down what "done" means for each system and document their responsibilities. Ensure that each system is checked for compatibility with the guest Wi-Fi, password manager, and other systems.
+    - **Interaction with Other Systems**: Ensure that the guest Wi-Fi, password manager, and other systems like the file server and offsite drive are integrated and interact well with each other.
+    - **Responsibility**: Clearly define who is responsible for each system and document their responsibilities.
+    - **Documentation**: Document what "done" means for each system to prevent drift.
+
+12. **Future Considerations**:
+    - **Cloud Storage**: While the partners have not agreed to cloud storage, it might be worth considering a managed service provider for the Wi-Fi guest network setup. This can help ensure that the network is secure and compliant with any necessary regulations.
+    - **Managed Service Provider**: Explore the idea of a managed service provider for the Wi-Fi guest network setup. This can help streamline management and ensure consistent setup across different locations or environments.
+
+13. **Biometric Logins**:
+    - **Consideration**: Biometric logins are often suggested for password resets, but it's important to consider who is responsible when a password reset goes wrong. The assistant also suggests that Windows 11 upgrades could become a bottleneck if the nightly backup is under pressure.
+
+14. **Offsite Drive**:
+    - **Consideration**: The assistant recommends keeping the offsite drive separate from other tasks like the password manager. They suggest writing down what "done" means for the offsite drive, so that it doesn't drift while they're busy elsewhere.
+
+15. **VPN Hardware**:
+    - **Consideration**: The assistant mentions that managed service providers are often recommended in articles, but they suggest that it might not be suitable for the user's setup. They recommend looking at Windows 11 upgrades first, as it tends to shape the decisions around the nightly backup.
+
+In summary, the user and the assistant have agreed on several key points and actions to ensure a secure and efficient IT infrastructure, including the separation of tasks, writing down what "done" means for various components, and keeping notes on why certain decisions were made. They have also discussed the importance of compatibility, responsibility, and documentation to prevent drift and ensure that the IT setup is aligned with the organization's needs and regulations.

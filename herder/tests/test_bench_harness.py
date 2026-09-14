@@ -38,20 +38,45 @@ def test_summary_parts_cover_every_turn_and_stay_under_the_part_size(monkeypatch
 
 
 class FakeSummariser:
-    def __init__(self, combined: str) -> None:
-        self.combined = combined
+    def __init__(self, combined: str = "combined", part: str = "part summary") -> None:
+        self.combined, self.part = combined, part
+        self.asked_for: list[int] = []
+
+    def summarise_part(self, text, words):
+        from herder.core.verify_models import CallOutcome
+
+        self.asked_for.append(words)
+        return CallOutcome(model="fake", prompt_version="1", content=self.part)
 
     def combine(self, summaries, words):
         from herder.core.verify_models import CallOutcome
 
+        self.asked_for.append(words)
         return CallOutcome(model="fake", prompt_version="1", content=self.combined)
 
 
-def test_a_summary_over_budget_is_cut_and_says_so() -> None:
+def test_a_summary_over_budget_is_reduced_then_cut_and_says_so() -> None:
     """It is never given more room than the methods it is compared against."""
-    ctx = M.naive_summary(["part"], 1.0, budget=20, summariser=FakeSummariser("long " * 200))
+    ctx = M.naive_summary(["part " * 100], 1.0, budget=20, summariser=FakeSummariser(combined="long " * 200))
     assert ctx.tokens <= 20
-    assert ctx.detail["cut_to_budget"] is True
+    assert (ctx.detail["reduced"], ctx.detail["cut_to_budget"]) == (True, True)
+
+
+def test_part_summaries_that_already_fit_are_used_whole() -> None:
+    """A reduce step that is not needed only loses detail."""
+    summariser = FakeSummariser()
+    ctx = M.naive_summary(["one fact", "another fact"], 1.0, budget=500, summariser=summariser)
+    assert ctx.detail["reduced"] is False
+    assert "one fact" in ctx.text and "another fact" in ctx.text
+    assert summariser.asked_for == []
+
+
+def test_the_map_step_asks_for_the_budget_it_will_be_judged_at() -> None:
+    """Version 1 asked for no length and wrote 107 to 319 tokens whatever the budget."""
+    summariser = FakeSummariser()
+    parts, _ = M.map_summaries(CONVERSATION, summariser, largest_budget=3000)
+    assert summariser.asked_for and all(w >= 40 for w in summariser.asked_for)
+    assert sum(summariser.asked_for) <= int(3000 * M.WORDS_PER_TOKEN)
 
 
 def test_the_herder_client_waits_for_a_brief_that_covers_every_message() -> None:
