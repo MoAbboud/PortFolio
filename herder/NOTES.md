@@ -991,3 +991,22 @@ with a number behind it, and it is the argument for the three-extractor design a
 
 What it does not say: that a model cannot do this. It says **this** model at this size, on a
 CPU, with this prompt, does worse than rules - and costs 30x the wall clock to do it.
+
+### Tiering the facts, and a flaky test that was a real bug
+
+Facts now carry `essential` / `useful` / `incidental`, rated one click at a time in the
+authoring page, and the report gains a "Recall by how much the fact matters" section. **No
+statement changed**, so the recorded baseline stays comparable: the tier is a new field, facts
+written before it are `unrated` rather than defaulted, and unrated facts are left out of that
+one table.
+
+Why it is worth the hour of rating: under a budget no method can carry 261 facts and none
+should try, so a single recall counts "forgot which database production uses" and "forgot that
+flour arrives on Tuesdays" as the same miss. The rating question is fixed and is about the
+conversation, not about what a method missed - *if someone picked this up tomorrow with only
+these facts, would getting this wrong hurt?*
+
+**A test failed on a run where it had passed before, and it was not flaky-by-nature.** Two
+checkpoints written in one transaction share `created_at` to the microsecond, so ordering the
+integrity series by time alone returned them in either order. Ordered by `(created_at, id)`
+now; uuid7 ids are time-ordered, so they break the tie the way a clock would. Three runs green.

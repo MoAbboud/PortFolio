@@ -35,6 +35,9 @@ class Judged:
     kind: str
     truth: str  # the ground truth: "true" or "false"
     verdict: str  # the reader's: "true", "false", "not_stated", or "error"
+    # How much the fact matters: essential, useful, incidental - or unrated, which is what
+    # every row of a run recorded before the tiers existed carries.
+    importance: str = "unrated"
 
 
 @dataclass(frozen=True)

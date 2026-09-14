@@ -57,9 +57,15 @@ async def bench_list(request: Request, key: ApiKey = Depends(web_key)):
             continue
         meta = json.loads((folder / "meta.json").read_text(encoding="utf-8"))
         facts = F.load(DATASETS, folder.name)
-        rows.append({"meta": meta, "total": len(facts.facts), "false": len(facts.false_facts)})
+        rows.append({
+            "meta": meta, "total": len(facts.facts), "false": len(facts.false_facts),
+            "unrated": len(facts.unrated),
+        })
     written = sum(r["total"] for r in rows)
-    return page(request, "bench_list.html", rows=rows, target=F.TARGET_FACTS, written=written)
+    return page(
+        request, "bench_list.html", rows=rows, target=F.TARGET_FACTS, written=written,
+        unrated=sum(r["unrated"] for r in rows),
+    )
 
 
 @router.get("/bench/{name}", response_class=HTMLResponse)
@@ -69,9 +75,11 @@ async def bench_author(request: Request, name: str, key: ApiKey = Depends(web_ke
     facts = F.load(DATASETS, name)
     editing = next((f for f in facts.facts if f.id == request.query_params.get("edit")), None)
     counts = {kind: sum(f.kind == kind for f in facts.facts) for kind in F.KINDS}
+    tiers = {tier: sum(f.importance == tier for f in facts.facts) for tier in (*F.IMPORTANCE, F.UNRATED)}
     return page(
         request, "bench_author.html",
         meta=meta, turns=turns, facts=facts, editing=editing, kinds=F.KINDS, counts=counts, target=F.TARGET_FACTS,
+        importances=F.IMPORTANCE, unrated=F.UNRATED, tiers=tiers,
     )
 
 
@@ -90,6 +98,7 @@ async def bench_save_fact(request: Request, name: str, key: ApiKey = Depends(web
             truth=fields.get("truth", ""),
             turns=F.parse_turns(fields.get("turns", "")),
             note=fields.get("note", "").strip(),
+            importance=fields.get("importance", F.UNRATED),
         )
         F.validate(fact, turn_count=len(turns))
     except F.FactError as exc:
@@ -102,6 +111,25 @@ async def bench_save_fact(request: Request, name: str, key: ApiKey = Depends(web
         facts.facts.append(fact)
     F.save(DATASETS, facts)
     return redirect(with_notice(here, f"Saved {fact.id}. {len(facts.facts)} facts so far.") + "#form")
+
+
+@router.post("/bench/{name}/facts/{fact_id}/importance")
+async def bench_rate_fact(request: Request, name: str, fact_id: str, key: ApiKey = Depends(web_key)):
+    """One click per fact. Rating 261 of them through the edit form would not get done."""
+    _enabled()
+    _dataset(name)
+    fields = await form(request)
+    tier = fields.get("importance", "")
+    if tier not in F.IMPORTANCE:
+        return redirect(with_notice(f"/bench/{name}", f"unknown importance {tier!r}"))
+    facts = F.load(DATASETS, name)
+    for fact in facts.facts:
+        if fact.id == fact_id:
+            fact.importance = tier
+            F.save(DATASETS, facts)
+            break
+    remaining = len(F.load(DATASETS, name).unrated)
+    return redirect(with_notice(f"/bench/{name}", f"{fact_id} is {tier}. {remaining} left to rate.") + f"#{fact_id}")
 
 
 @router.post("/bench/{name}/facts/{fact_id}/delete")

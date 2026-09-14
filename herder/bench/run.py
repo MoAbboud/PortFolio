@@ -136,6 +136,7 @@ def main(argv: list[str] | None = None) -> int:
             # The fact lists as they were when the run started, so a later edit to a facts file
             # cannot change what an old report means.
             "statements": {m["name"]: {f.id: (f.statement, f.truth) for f in fl.facts} for m, _, fl in conversations},
+            "unrated_facts": sum(len(fl.unrated) for _, _, fl in conversations),
             "short_fact_lists": dict(short),
         }
         (run_dir / "run.json").write_text(json.dumps(run, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
@@ -222,7 +223,7 @@ def main(argv: list[str] | None = None) -> int:
                 verdict, call = reader.judge(text, fact.statement)
                 _append(judged_path, {
                     "conversation": name, "archetype": meta["archetype"], "method": key, "fact_id": fact.id,
-                    "kind": fact.kind, "truth": fact.truth, "verdict": verdict,
+                    "kind": fact.kind, "truth": fact.truth, "verdict": verdict, "importance": fact.importance,
                 })
                 have_verdicts.add(marker)
                 fresh += 1

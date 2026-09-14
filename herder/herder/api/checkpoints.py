@@ -210,7 +210,10 @@ async def integrity_series(
             .join(Injection, Injection.id == Checkpoint.injection_id)
             .join(BriefVersion, BriefVersion.id == Injection.brief_version_id)
             .where(BriefVersion.project_id == project.id)
-            .order_by(Checkpoint.created_at)
+            # By id as well as time: two checkpoints written in one transaction share a
+            # timestamp to the microsecond, and the series would come back in either order.
+            # uuid7 ids are time-ordered, so they break the tie the way a clock would.
+            .order_by(Checkpoint.created_at, Checkpoint.id)
         )
     ).all()
 

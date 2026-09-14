@@ -82,6 +82,25 @@ def write(run_dir: Path) -> Path:
         s = score(rows)
         lines.append(f"| {method_key} | " + " | ".join(str(s.by_kind[k]) if k in s.by_kind else "-" for k in run["kinds"]) + " |")
 
+    tiers = [t for t in ("essential", "useful", "incidental") if any(j.importance == t for j in judged)]
+    if tiers:
+        lines += [
+            "", "## Recall by how much the fact matters", "",
+            "Under a budget no method can carry every fact, and none should try. A blended recall counts",
+            "forgetting the database choice and forgetting which day flour arrives as the same miss.",
+            "",
+            "| Method | " + " | ".join(tiers) + " |", "| --- |" + " --- |" * len(tiers),
+        ]
+        for (method_key,), rows in sorted(by_method.items()):
+            cells = []
+            for tier in tiers:
+                mine = [r for r in rows if r.importance == tier]
+                cells.append(str(score(mine).recall) if mine else "-")
+            lines.append(f"| {method_key} | " + " | ".join(cells) + " |")
+        unrated = sum(1 for j in judged if j.importance == "unrated") // max(1, len({j.method for j in judged}))
+        if unrated:
+            lines += ["", f"{unrated} facts are not rated and are left out of this table only."]
+
     lines += ["", "## Every fact", "", "`T` true, `F` false, `-` not stated, `!` reader error. The first column is the ground truth."]
     methods = [k for k, _ in keys]
     for (conversation,), rows in sorted(group(judged, "conversation").items()):

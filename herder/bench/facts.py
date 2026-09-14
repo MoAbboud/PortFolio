@@ -13,6 +13,15 @@ A fact is one claim, as a sentence that stands on its own, with:
   carries a rejected idea forward as settled is the failure a memory system must not have.
 - `turns` - the turn numbers (1-based) where it is established or rejected, so a miss can be
   traced back to the conversation without re-reading all of it.
+- `importance` - `essential`, `useful` or `incidental`, added after the first baseline. Under a
+  token budget no method can carry every fact and none should try, so a blended recall counts
+  "forgot which database production uses" and "forgot that flour arrives on Tuesdays" as the
+  same miss. Reporting recall per tier separates a system that prioritises badly from one that
+  is merely full. Facts written before the tiers are `unrated` until a person rates them.
+
+  **The tier answers one question, asked before looking at any result**: if someone picked this
+  conversation up tomorrow with only the fact list, would getting this wrong hurt? Rating by
+  what a method happened to miss would be marking your own homework.
 """
 
 from __future__ import annotations
@@ -25,6 +34,9 @@ KINDS = (
     "decision", "constraint", "preference", "identity", "fact", "open_thread", "code_state", "artifact_ref", "glossary",
 )
 TRUTHS = ("true", "false")
+UNRATED = "unrated"
+# Ordered from most to least important; `unrated` is not a tier, it is the absence of one.
+IMPORTANCE = ("essential", "useful", "incidental")
 FORMAT_VERSION = 1
 # The plan asks for 30 to 60. Fewer is allowed while writing, and the harness says so loudly.
 TARGET_FACTS = 30
@@ -42,6 +54,7 @@ class Fact:
     truth: str
     turns: list[int] = field(default_factory=list)
     note: str = ""
+    importance: str = UNRATED
 
 
 @dataclass
@@ -58,6 +71,10 @@ class FactList:
     def false_facts(self) -> list[Fact]:
         return [f for f in self.facts if f.truth == "false"]
 
+    @property
+    def unrated(self) -> list[Fact]:
+        return [f for f in self.facts if f.importance == UNRATED]
+
 
 def validate(fact: Fact, turn_count: int) -> None:
     if not fact.statement.strip():
@@ -68,6 +85,8 @@ def validate(fact: Fact, turn_count: int) -> None:
         raise FactError(f"unknown kind {fact.kind!r}; expected one of {', '.join(KINDS)}")
     if fact.truth not in TRUTHS:
         raise FactError("truth is 'true' or 'false'")
+    if fact.importance not in (*IMPORTANCE, UNRATED):
+        raise FactError(f"importance is one of {', '.join(IMPORTANCE)}")
     bad = [t for t in fact.turns if not 1 <= t <= turn_count]
     if bad:
         raise FactError(f"turn numbers out of range (1-{turn_count}): {bad}")

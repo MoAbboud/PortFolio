@@ -4,10 +4,11 @@
 {% block body %}
 <h1>Benchmark fact lists</h1>
 <p>Eight made-up conversations. For each one, read it and write down the facts it establishes - this is the answer key the benchmark scores every method against. Aim for about {{ target }} per conversation.</p>
-<p class="meta">{{ written }} facts written so far, of about {{ target * rows|length }}.</p>
+<p class="meta">{{ written }} facts written so far, of about {{ target * rows|length }}.
+{% if unrated %}<strong>{{ unrated }} still need a tier</strong> - open a conversation and use the essential / useful / incidental buttons under each fact.{% endif %}</p>
 <div class="scroll">
 <table>
-  <tr><th>Conversation</th><th>Topic</th><th>Size</th><th>Facts written</th><th>Of which false</th></tr>
+  <tr><th>Conversation</th><th>Topic</th><th>Size</th><th>Facts written</th><th>Of which false</th><th>Not yet tiered</th></tr>
   {% for r in rows %}
   <tr>
     <td><a href="/bench/{{ r.meta.name }}">{{ r.meta.title }}</a></td>
@@ -15,6 +16,7 @@
     <td>{{ "{:,}".format(r.meta.tokens) }} tokens, {{ r.meta.turns }} turns</td>
     <td>{{ r.total }}{% if r.total >= target %} <strong>done</strong>{% endif %}</td>
     <td>{{ r.false }}</td>
+    <td>{% if r.unrated %}{{ r.unrated }}{% else %}done{% endif %}</td>
   </tr>
   {% endfor %}
 </table>

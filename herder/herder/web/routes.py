@@ -384,7 +384,7 @@ async def pack_page(
     version = await session.get(BriefVersion, injection.brief_version_id)
     project = await owned_project(session, version.project_id, key)
     checkpoints = (
-        await session.execute(select(Checkpoint).where(Checkpoint.injection_id == injection.id).order_by(Checkpoint.created_at.desc()))
+        await session.execute(select(Checkpoint).where(Checkpoint.injection_id == injection.id).order_by(Checkpoint.created_at.desc(), Checkpoint.id.desc()))
     ).scalars().all()
     pending = (
         await session.execute(

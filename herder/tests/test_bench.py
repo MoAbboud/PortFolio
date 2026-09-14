@@ -116,3 +116,30 @@ def test_the_benchmark_conversations_are_not_the_stage_4_ones() -> None:
     new = {line for d in DATASETS.iterdir() if (d / "conversation.txt").exists()
            for line in (d / "conversation.txt").read_text(encoding="utf-8").splitlines() if len(line) > 40}
     assert not (old & new)
+
+
+# ------------------------------------------------------------------ how much a fact matters
+
+
+def test_a_fact_written_before_the_tiers_is_unrated_not_guessed() -> None:
+    """Defaulting an unrated fact into a tier would invent a judgement nobody made."""
+    fact = F.Fact("f001", "Stock is in SQLite.", "decision", "true")
+    assert fact.importance == F.UNRATED
+    F.validate(fact, turn_count=5)
+
+
+def test_an_unknown_importance_is_refused() -> None:
+    with pytest.raises(F.FactError):
+        F.validate(F.Fact("f001", "x", "fact", "true", importance="critical"), turn_count=5)
+
+
+def test_the_tier_round_trips_and_unrated_ones_are_listed(tmp_path) -> None:
+    (tmp_path / "demo").mkdir()
+    facts = F.FactList("demo", [
+        F.Fact("f001", "Production uses MySQL.", "decision", "true", importance="essential"),
+        F.Fact("f002", "Flour arrives on Tuesdays.", "fact", "true"),
+    ])
+    F.save(tmp_path, facts)
+    again = F.load(tmp_path, "demo")
+    assert again.facts[0].importance == "essential"
+    assert [f.id for f in again.unrated] == ["f002"]

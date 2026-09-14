@@ -99,3 +99,19 @@ async def test_creating_a_project_through_the_api(client, account):
     assert created.json()["name"] == "bench-demo"
     again = await client.post("/v1/projects", json={"name": "bench-demo"})
     assert again.status_code == 409
+
+
+async def test_one_click_rates_a_fact_and_counts_what_is_left(browser, datasets):
+    await browser.post("/bench/demo-convo/facts", data={"statement": "Stock is in SQLite.", "kind": "decision", "truth": "true", "turns": "1"})
+    await browser.post("/bench/demo-convo/facts", data={"statement": "No Redis.", "kind": "constraint", "truth": "true", "turns": "3"})
+
+    response = await browser.post("/bench/demo-convo/facts/f001/importance", data={"importance": "essential"})
+
+    assert F.load(datasets, "demo-convo").facts[0].importance == "essential"
+    assert "1%20left%20to%20rate" in response.headers["location"]
+
+
+async def test_an_unknown_tier_is_refused(browser, datasets):
+    await browser.post("/bench/demo-convo/facts", data={"statement": "Stock is in SQLite.", "kind": "decision", "truth": "true", "turns": "1"})
+    await browser.post("/bench/demo-convo/facts/f001/importance", data={"importance": "critical"})
+    assert F.load(datasets, "demo-convo").facts[0].importance == "unrated"

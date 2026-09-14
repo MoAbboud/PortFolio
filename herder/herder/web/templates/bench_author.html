@@ -49,18 +49,38 @@
       </p>
       <p><input type="text" name="turns" placeholder="Turn numbers, e.g. 12, 88" value="{{ editing.turns|join(', ') if editing else '' }}"></p>
       <p><input type="text" name="note" placeholder="Note to yourself (optional)" value="{{ editing.note if editing else '' }}"></p>
+      <p>How much it matters:
+        <select name="importance">
+          <option value="{{ unrated }}"{% if not editing or editing.importance == unrated %} selected{% endif %}>not rated yet</option>
+          {% for i in importances %}<option value="{{ i }}"{% if editing and editing.importance == i %} selected{% endif %}>{{ i }}</option>{% endfor %}
+        </select>
+      </p>
       <p><button>{% if editing %}Save changes{% else %}Add fact{% endif %}</button>{% if editing %} <a href="/bench/{{ meta.name }}">cancel</a>{% endif %}</p>
     </form>
 
     <h2 id="facts">Facts ({{ facts.facts|length }})</h2>
     <p class="meta">{% for k, n in counts.items() if n %}{{ k }} {{ n }}{% if not loop.last %} &middot; {% endif %}{% endfor %}</p>
+    <p class="meta">
+      {% for tier, n in tiers.items() %}{{ tier }} {{ n }}{% if not loop.last %} &middot; {% endif %}{% endfor %}
+      {% if tiers[unrated] %}<br><strong>{{ tiers[unrated] }} still to rate.</strong> Ask one question of each: if someone
+      picked this conversation up tomorrow with only these facts, would getting it wrong hurt? Yes and it would hurt a lot
+      is <em>essential</em>; yes but survivable is <em>useful</em>; a passing detail is <em>incidental</em>.{% endif %}
+    </p>
     {% for f in facts.facts|reverse %}
-    <div class="card">
-      <div class="meta">{{ f.id }} &middot; {{ f.kind }} &middot; <strong>{{ f.truth }}</strong>{% if f.turns %} &middot; turns {% for n in f.turns %}<a href="#t{{ n }}">{{ n }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}</div>
+    <div class="card" id="{{ f.id }}">
+      <div class="meta">{{ f.id }} &middot; {{ f.kind }} &middot; <strong>{{ f.truth }}</strong> &middot; {{ f.importance }}{% if f.turns %} &middot; turns {% for n in f.turns %}<a href="#t{{ n }}">{{ n }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}</div>
       <div>{{ f.statement }}</div>
       {% if f.note %}<div class="meta">{{ f.note }}</div>{% endif %}
-      <a href="?edit={{ f.id }}#form">edit</a>
-      <form class="inline" method="post" action="/bench/{{ meta.name }}/facts/{{ f.id }}/delete"><button>delete</button></form>
+      <div>
+        {% for i in importances %}
+        <form class="inline" method="post" action="/bench/{{ meta.name }}/facts/{{ f.id }}/importance">
+          <input type="hidden" name="importance" value="{{ i }}">
+          <button{% if f.importance == i %} disabled{% endif %}>{{ i }}</button>
+        </form>
+        {% endfor %}
+        <a href="?edit={{ f.id }}#form">edit</a>
+        <form class="inline" method="post" action="/bench/{{ meta.name }}/facts/{{ f.id }}/delete"><button>delete</button></form>
+      </div>
     </div>
     {% else %}
     <p>None yet.</p>

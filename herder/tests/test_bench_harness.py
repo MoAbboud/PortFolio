@@ -126,3 +126,29 @@ def test_the_report_shows_counts_every_fact_and_each_archetype(tmp_path) -> None
     assert "| coding | truncate_tail @ 500 |" in report
     assert "10.0x" in report
     assert "f002 Uses Redis." in report
+
+
+def test_the_report_breaks_recall_down_by_how_much_a_fact_matters(tmp_path) -> None:
+    run = {
+        "label": "t", "started": "2026-09-14T00:00:00+00:00", "commit": "abc", "model": "m", "read_prompt": "1",
+        "summarise_prompt": "1", "extractor": "heuristic", "budgets": [500], "conversations": ["c1"], "facts": 3,
+        "false_facts": 0, "kinds": ["decision"],
+        "statements": {"c1": {"f001": ["Essential one.", "true"], "f002": ["Incidental one.", "true"], "f003": ["Unrated one.", "true"]}},
+    }
+    (tmp_path / "run.json").write_text(json.dumps(run))
+    (tmp_path / "contexts.jsonl").write_text(
+        json.dumps({"key": "herder @ 500", "conversation": "c1", "conversation_tokens": 5000, "tokens": 500, "build_seconds": 1}) + "\n"
+    )
+    rows = [
+        {"conversation": "c1", "archetype": "coding", "method": "herder @ 500", "fact_id": "f001", "kind": "decision", "truth": "true", "verdict": "true", "importance": "essential"},
+        {"conversation": "c1", "archetype": "coding", "method": "herder @ 500", "fact_id": "f002", "kind": "decision", "truth": "true", "verdict": "not_stated", "importance": "incidental"},
+        {"conversation": "c1", "archetype": "coding", "method": "herder @ 500", "fact_id": "f003", "kind": "decision", "truth": "true", "verdict": "not_stated"},
+    ]
+    (tmp_path / "judged.jsonl").write_text("\n".join(json.dumps(r) for r in rows) + "\n")
+
+    report = write_report(tmp_path).read_text(encoding="utf-8")
+
+    assert "Recall by how much the fact matters" in report
+    assert "| essential | incidental |" in report
+    assert "1.00 (1 of 1) | 0.00 (0 of 1)" in report
+    assert "1 facts are not rated" in report
