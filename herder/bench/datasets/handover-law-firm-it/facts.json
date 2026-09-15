@@ -391,13 +391,13 @@
     },
     {
       "id": "f035",
-      "statement": "The guest Wi-Fi setup has never been documented.",
+      "statement": "The user never finished documenting the guest Wi-Fi setup.",
       "kind": "open_thread",
       "truth": "true",
       "turns": [
         151
       ],
-      "note": "",
+      "note": "Corrected 2026-09-15 (answer-key audit): was \"The guest Wi-Fi setup has never been documented.\" Turn 151: \"I never finished documenting the Wi-Fi guest network setup\" - started, not absent.",
       "importance": "useful"
     }
   ]

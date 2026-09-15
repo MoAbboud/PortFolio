@@ -125,12 +125,12 @@
       "id": "f011",
       "statement": "Rotterdam replaces Felixstowe as the European case study.",
       "kind": "decision",
-      "truth": "true",
+      "truth": "false",
       "turns": [
         82,
         83
       ],
-      "note": "",
+      "note": "Corrected 2026-09-15 (answer-key audit): was true. Turn 82 is the assistant proposing Rotterdam; turn 83 the user refuses it (\"I'm keeping Felixstowe, not Rotterdam\"), and turn 129 confirms Felixstowe. Statement unchanged.",
       "importance": "useful"
     },
     {

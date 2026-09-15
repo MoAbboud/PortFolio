@@ -42,8 +42,14 @@ DEFAULT_BUDGETS = (500, 3000)
 
 
 def _commit() -> str:
+    """The commit, marked `+uncommitted` when tracked files differ from it - a run made on
+    changed code would otherwise name a commit that does not contain what was measured."""
     try:
-        return subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+        head = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+        dirty = subprocess.run(
+            ["git", "status", "--porcelain", "--untracked-files=no"], capture_output=True, text=True, check=True
+        ).stdout.strip()
+        return f"{head}+uncommitted" if dirty else head
     except Exception:
         return "unknown"
 

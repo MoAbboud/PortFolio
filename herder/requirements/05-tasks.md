@@ -3,7 +3,7 @@
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
 
 **Stages 0 to 9 are done, and the baseline exists.** The prototype runs at
-`http://localhost:8000`; 453 tests pass (stage 10 in progress - see its section). The author wrote 261 facts across eight conversations
+`http://localhost:8000`; 474 tests pass (stage 10 in progress - see its section). The author wrote 261 facts across eight conversations
 and the baseline was recorded on 2026-09-14 before anything was tuned:
 **herder recalls 0.36 of them at 11.4x compression and 0.32 at 28.3x**, against a raw tail at
 0.31 (using three times the tokens) and 0.07 at a comparable size. `naive_summary` is recorded
@@ -507,8 +507,12 @@ first baseline, a new generator rather than stage 4's, and to write every fact h
 
 ## Stage 10 - Iteration
 
-- [~] At least three genuine attempts, each measured, each written into `NOTES.md` including
-      the ones that failed. **Two so far. (a) The `local` extractor loses to the rules**
+- [x] At least three genuine attempts, each measured, each written into `NOTES.md` including
+      the ones that failed. **Three. (c) General rules for sentences with no cue word, rules-v2**
+      (`2026-09-15_1608-general-rules`): recall 0.41 -> 0.68 at 3,000 (essential 0.55 -> 0.78)
+      and 0.36 -> 0.43 at 500, but open threads at 500 fell 0.46 -> 0.08 and one wrong claim
+      came back (a stale plain statement not superseded). Built from ordinary English, never
+      the benchmark generator's lead-ins - a test enforces it. The earlier two: (a) The `local` extractor loses to the rules**
       (`2026-09-14_2018-local-extractor`): recall 0.20 against 0.41, half the entries, 272 s a
       conversation against 9 s - `mailman`'s model-loses-to-regex finding in another domain,
       and the reason the three-extractor design exists. **(b) Extracting reversals worked**
@@ -523,6 +527,12 @@ first baseline, a new generator rather than stage 4's, and to write every fact h
       attempt at improvement - an instrument. With the reversal rule herder recalls **0.55 of
       essential facts** at 3,000 (59 of 108), 0.33 useful, 0.16 incidental; `truncate_tail @
       3000` is flat at 0.31 / 0.33 / 0.24. 453 tests pass
+- [x] The answer key audited blind (eight reviewers shown no results, every proposal verified
+      against the turns): 3 of 261 facts corrected, each with its evidence in the fact's `note`
+      - shipping f011 truth true -> false, law-firm f035 reworded, photo-sync f020 turns. Key now
+      221 true / 40 false. Reference run on it: `2026-09-15_1650-general-rules-corrected-key`,
+      recall 0.68 / 0.43, wrong claims 2 of 40 / 0 of 40. **Two identical runs give identical
+      verdicts (518 pairs, 0 different)** - the reader is deterministic
 - [ ] Candidates in cost order: render ordering, tail reserve size, similarity threshold,
       chunk size, the extraction prompt, a larger quantisation, and whether the layer split
       earns its keep

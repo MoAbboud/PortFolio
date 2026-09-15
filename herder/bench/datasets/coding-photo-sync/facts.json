@@ -227,9 +227,9 @@
       "kind": "fact",
       "truth": "true",
       "turns": [
-        23
+        33
       ],
-      "note": "",
+      "note": "Corrected 2026-09-15 (answer-key audit): turns were [23]. The 180 GB figure is in turn 33; turn 23 is the NAS model (f019).",
       "importance": "incidental"
     },
     {

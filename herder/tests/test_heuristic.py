@@ -129,7 +129,7 @@ def test_short_fragments_are_ignored() -> None:
 
 def test_it_reports_itself_and_costs_no_model_tokens() -> None:
     outcome = run(("user", "We are going with Postgres for production instead of SQLite."))
-    assert outcome.model == "rules-v1"
+    assert outcome.model == "rules-v2"
     assert outcome.output_tokens == 0
     assert outcome.failed is False
     # No inference happened, so there is no prompt/generation split to report.
@@ -275,3 +275,85 @@ def test_an_ordinary_sentence_is_not_called_a_reversal(sentence: str) -> None:
     outcome = run(("user", sentence))
     reversal = [c for c in outcome.candidates if c.confidence == 0.66]
     assert not reversal, f"{sentence!r} was read as a reversal"
+
+
+# ------------------------------------------------- stage 10, attempt 3: sentences with no cue
+
+
+@pytest.mark.parametrize(
+    "sentence",
+    ["No database.", "No franchising.", "Nothing leaves the office network.", "Nobody gets local admin rights.",
+     "Only peer-reviewed sources count."],
+)
+def test_a_prohibition_carried_by_its_determiner_is_a_constraint(sentence: str) -> None:
+    """Including the short ones: "No franchising." is under the 20-character floor and is a
+    whole constraint."""
+    outcome = run(("user", sentence))
+    assert kinds(outcome) == ["constraint"]
+
+
+@pytest.mark.parametrize("sentence", ["No thanks.", "No problem at all.", "No, the limit stays as it is."])
+def test_no_as_an_answer_or_a_stock_phrase_is_not_a_prohibition(sentence: str) -> None:
+    outcome = run(("user", sentence))
+    assert "constraint" not in kinds(outcome)
+
+
+def test_a_negated_verb_is_a_constraint_only_with_its_verb() -> None:
+    assert kinds(run(("user", "Support doesn't answer billing tickets at all."))) == ["constraint"]
+    trailing = run(("user", "It looks fine right up until the day it does not."))
+    assert "constraint" not in kinds(trailing)
+
+
+@pytest.mark.parametrize(
+    "sentence",
+    [
+        "The thesis is due in May.",
+        "Duplicates are detected by a hash of the file contents.",
+        "Opening hours will be 7am to 4pm, seven days a week.",
+        "I'm building the inventory service for a bakery chain.",
+    ],
+)
+def test_a_plain_statement_is_a_fact(sentence: str) -> None:
+    outcome = run(("user", sentence))
+    assert kinds(outcome) == ["fact"]
+    assert outcome.candidates[0].layer == "project"
+
+
+@pytest.mark.parametrize(
+    "sentence",
+    [
+        "Is the thesis due in May?",                        # a question
+        "Can you explain how the hash is computed?",         # a request
+        "That's fine by me for the moment.",                # a pronoun pointing at the assistant
+        "Here is the compose file as it stands today:",     # introduces pasted material
+        "A short answer is fine for this one.",             # about the reply, not memory
+        "I'm wondering whether the schedule is right.",     # musing, not a statement
+        "I want to understand the boundary rather than be told it is handled.",  # a request
+    ],
+)
+def test_what_is_not_a_plain_statement(sentence: str) -> None:
+    assert "fact" not in kinds(run(("user", sentence)))
+
+
+def test_no_benchmark_generator_lead_in_carries_signal_on_its_own() -> None:
+    """Attempt 3 was bound by one rule, chosen by the author: **general English only, never the
+    benchmark generator's phrasing.** The generator wraps planted claims in fixed lead-ins
+    ("Final answer on that one:", "Non-negotiable:"), and a rule keyed on them would raise the
+    score by memorising the generator rather than reading conversations.
+
+    Each lead-in is wrapped around a clause that matches nothing by itself. If the wrapped
+    sentence matches, the lead-in is the signal. The few allowed matches come from cue words
+    written at stage 2 (2026-09-08), before the generator existed (2026-09-13).
+    """
+    from bench import generate as G
+
+    neutral_l, neutral_s = "the blue folder sits by the door", "The blue folder sits by the door."
+    assert run(("user", neutral_s)).candidates == []
+
+    pre_existing = {"Okay, that's decided: {l}", "Let's settle it - {l}", "Going with this: {l}", "{s} Let's park it for now."}
+    wraps = G.DECISION_WRAPS + G.CONSTRAINT_WRAPS + G.PREFERENCE_WRAPS + G.FACT_WRAPS + G.THREAD_WRAPS
+    carrying = [
+        wrap for wrap in wraps
+        if wrap not in pre_existing and run(("user", wrap.format(l=neutral_l, s=neutral_s))).candidates
+    ]
+    assert carrying == []

@@ -1037,3 +1037,101 @@ Facts, not readings: herder's recall falls with the tier (0.55 / 0.33 / 0.16); t
 does not (0.31 / 0.33 / 0.24). The reversal rule's whole gain at 3,000 was 9 essential facts and
 3 useful ones, nothing incidental. The summary also favours essential facts (0.33 against 0.14).
 The incidental column is 25 facts, so one fact moves it by 0.04.
+
+### Attempt 3: general rules for sentences with no cue word (rules-v2)
+
+Run `2026-09-15_1608-general-rules`, herder only, commit `cb65135+uncommitted`, 10 minutes.
+Compared with attempt 1 (`2026-09-14_2011-reversal-rule`), the last herder run. Same corpus,
+reader and facts.
+
+What changed: three rules in the heuristic, built from ordinary English and **not** from the
+benchmark generator's lead-in phrases (a test fails if any lead-in carries signal on its own) -
+prohibitions opening with No / Nothing / Nobody / Only, short ones included; "doesn't / won't /
+may not" only with a verb after; and, last, plain statements ("The thesis is due in May."), kind
+`fact`. Found by listing the 49 essential facts attempt 1 missed: all were in user turns, about 40
+matched no rule, and 35 of the 49 were decisions and constraints, not plain facts.
+
+| Measure | Attempt 1 @ 3000 | **Attempt 3 @ 3000** | Attempt 1 @ 500 | **Attempt 3 @ 500** |
+| --- | --- | --- | --- | --- |
+| Recall | 0.41 (92 of 222) | **0.68 (151)** | 0.36 (81) | **0.43 (96)** |
+| Wrong claims (false facts judged true) | 0.00 (0 of 39) | 0.03 (1) | 0.00 (0) | 0.00 (0) |
+| Contradicted true facts | 0.03 (6) | 0.05 (12) | 0.04 (8) | 0.06 (14) |
+| Compression | 10.9x | 9.1x | 25.8x | 22.9x |
+| Time to build a context | 9 s | 29 s | 9 s | 29 s |
+| Essential | 0.55 (59 of 108) | **0.78 (84)** | 0.49 (53) | 0.59 (64) |
+| Useful | 0.33 (29 of 89) | 0.60 (53) | 0.27 (24) | 0.28 (25) |
+| Incidental | 0.16 (4 of 25) | 0.56 (14) | 0.16 (4) | 0.28 (7) |
+
+By kind @ 3000, attempt 1 -> attempt 3: decision 0.52 -> 0.77, constraint 0.62 -> 0.81, preference
+0.35 -> 0.48, identity 0.00 -> 0.60, fact 0.27 -> 0.64, open_thread 0.58 -> 0.75, code_state 0.20
+-> 0.20. By archetype @ 3000 (true facts recalled): coding 25 -> 42 of 61, handover 18 -> 35 of 56,
+planning 28 -> 34 of 52, research 21 -> 40 of 53.
+
+**Costs, as measured:**
+
+- **At 500 tokens open threads collapse: 0.46 (11 of 24) -> 0.08 (2 of 24).** 29 facts recalled
+  in attempt 1 are not recalled in attempt 3, 21 of them at 500 (8 at 3,000) - mostly open threads and
+  things near them in the brief. The budget binds at 500 now; it did not before.
+- **One wrong claim, and it is a reversal again on a new path.** "The case-study ports are
+  Newark, Rotterdam and Singapore." (turn 39) is now extracted as a plain fact and sits in the
+  brief beside its correction (turn 129) instead of being superseded, so f010 "Rotterdam is one
+  of the three case-study ports" is judged true.
+- **Contradictions 6 -> 12 at 3000.** Several are not caused by the new rules: the rota lines
+  (Fridays, then a Monday correction) and the tutoring "Previously:" line were already in the
+  attempt 1 briefs, where the same facts were judged true. The reader answers differently when
+  the surrounding brief is longer. The "Previously:" line is a render artefact worth a look: it
+  prints the older text of a merged entry, and when the older text *agrees* with the newer the
+  reader reads it as withdrawn (f021 background checks, f023 group size).
+- Build time 9 -> 29 s per conversation: more entries through embedding and NLI.
+
+**Found while checking, and not changed:** f011 in research-container-shipping, "Rotterdam
+replaces Felixstowe as the European case study", is marked `true`, citing turns 82-83. Turn 82
+is the assistant proposing it and turn 83 is the user turning it down ("I'm keeping Felixstowe,
+not Rotterdam"), and f009 and f012 say Felixstowe stays. It reads as an answer-key error. The
+fact list is the author's, so it is flagged here rather than edited.
+
+**Caveat on the size of the jump.** The benchmark's user turns were written by a generator, and
+its planted claims are clean one-clause sentences - exactly what a plain-statement rule reads
+best. Real chat is messier. The stage 4 corpus gained only 7 distinct entries from these rules,
+which says the rules are not noisy, but says nothing about how much they would catch there.
+A held-out set in different wording is the way to find out.
+
+### The answer key audited, and the reader turns out to be deterministic
+
+All 261 facts were checked against the conversations by eight independent reviewers, one per
+conversation, shown **no run results** - so errors that happened to help herder were as likely to
+be found as errors that hurt it. Every proposal was then verified against the turns before
+anything changed. 258 facts untouched; 3 corrected; 6 flagged as "unsure" and left alone as fair
+paraphrases. Each corrected fact's `note` records the old value and the evidence.
+
+| Conversation | Fact | Change | Evidence |
+| --- | --- | --- | --- |
+| research-container-shipping | f011 "Rotterdam replaces Felixstowe as the European case study." | truth true -> **false** | turn 82 is the assistant proposing it; turn 83 the user refuses; turn 129 confirms Felixstowe |
+| handover-law-firm-it | f035 | "The guest Wi-Fi setup has never been documented." -> **"The user never finished documenting the guest Wi-Fi setup."** | turn 151: "I never finished documenting the Wi-Fi guest network setup" |
+| coding-photo-sync | f020 (180 GB library) | turns [23] -> **[33]** | not scored |
+
+The key is now 221 true facts and 40 false (was 222 / 39). Recorded runs are not edited; each keeps
+the key it was judged against in its own `run.json`.
+
+**Reference run on the corrected key:** `2026-09-15_1650-general-rules-corrected-key`, the attempt 3
+code unchanged, herder only, 6 minutes.
+
+| Measure | @ 3000 | @ 500 |
+| --- | --- | --- |
+| Recall | 0.68 (150 of 221) | 0.43 (96 of 221) |
+| Wrong claims | **0.05 (2 of 40)** | 0.00 (0 of 40) |
+| Contradicted true facts | 0.05 (12 of 221) | 0.05 (12 of 221) |
+| Essential / useful / incidental | 0.78 (84/108) / 0.59 (52/88) / 0.56 (14/25) | 0.59 (64) / 0.28 (25) / 0.28 (7) |
+
+**The correction moved herder's numbers the wrong way for herder**: with f011 now a false fact, the
+brief's stale "The case-study ports are Newark, Rotterdam and Singapore" makes the reader accept it,
+so wrong claims at 3,000 go from 1 of 39 to 2 of 40 - both from the same unsuperseded statement.
+
+**The reader is deterministic.** Comparing this run with `2026-09-15_1608-general-rules` on the 259
+facts whose wording and truth did not change: **518 verdict pairs, 0 different**, and all 16 contexts
+the same token count. Two identical runs give identical verdicts. So a verdict changes between runs
+only when the context the reader is given changes - the flips noted under attempt 3 (the rota and
+"Previously:" lines) are sensitivity to the surrounding brief, not chance.
+
+**A correction to attempt 3's costs:** its "build time 9 -> 29 s" was the first run after a worker
+restart. This run, identical code and identical output, took 9 s. Cold caches, not the rules.

@@ -37,6 +37,13 @@ _PATHY = re.compile(r"[\w./-]+\.(py|ts|tsx|js|sql|md|json|yml|yaml|toml|cfg|html
 # crude - this is a baseline, and a sentence splitter is not the interesting part.
 _SPLIT = re.compile(r"(?<=[.!?])\s+|\n+")
 
+# Used twice: as a rule below, and to let its short sentences under the length floor.
+_PROHIBITION_OPENING = re.compile(
+    r"^(?:no|nothing|nobody|no one|none of|only)\s+"
+    r"(?!thanks\b|problem\b|worries\b|idea\b|rush\b|need\b|pressure\b|way\b|doubt\b)[a-z]",
+    re.I,
+)
+
 # Order is priority order: the first pattern that matches a sentence wins, and the order runs
 # from most specific signal to least.
 #
@@ -117,13 +124,33 @@ RULES: list[tuple[str, str, str, float, re.Pattern[str]]] = [
         ),
     ),
     (
+        # A prohibition carried by the determiner rather than a modal: "No database.", "Nothing
+        # leaves the back-office network", "Nobody on the team is paid below the Living Wage",
+        # "Only peer-reviewed sources count". Added at stage 10, attempt 3, after the missed
+        # essential facts showed a dozen such sentences matching no rule. Ordinary English, not
+        # any conversation generator's phrasing - `test_heuristic.py` checks that.
+        #
+        # "No," with a comma is an answer to a question, not a determiner, and is left alone;
+        # so are the stock phrases where "no" carries no rule ("no thanks", "no problem").
+        # These are the one kind allowed under the short-sentence floor: "No franchising." is
+        # fifteen characters and a whole constraint.
+        "constraint",
+        "project",
+        "a prohibition or limit stated by its determiner",
+        0.60,
+        _PROHIBITION_OPENING,
+    ),
+    (
         "constraint",
         "project",
         "modal obligation or prohibition",
         0.62,
         re.compile(
             r"\b(must not|must|never|always|cannot|can't|can not|do not|don't|has to|have to|"
-            r"needs to|need to|required|mandatory|under no circumstances|only ever)\b",
+            r"needs to|need to|required|mandatory|under no circumstances|only ever|no more than)\b"
+            # A negated third-person or future verb is a rule only with its verb: "support
+            # doesn't answer billing tickets" is one, "until the day it does not." is not.
+            r"|\b(?:doesn't|does not|won't|will not|may not)\s+[a-z]",
             re.I,
         ),
     ),
@@ -147,6 +174,40 @@ RULES: list[tuple[str, str, str, float, re.Pattern[str]]] = [
         re.compile(
             r"\b(todo|to do|next step|still need|still have to|remaining|open question|"
             r"not yet|we should|haven't|have not|later on|come back to)\b",
+            re.I,
+        ),
+    ),
+    (
+        # **Last, and the weakest signal.** A plain statement of how things are: "The thesis is
+        # due in May." / "Duplicates are detected by a SHA-256 hash of the file contents." /
+        # "I'm building the inventory service for a bakery chain." Added at stage 10, attempt
+        # 3: the missed essential facts were overwhelmingly user sentences like these, carrying
+        # no cue word at all, and every rule above is a cue word.
+        #
+        # It is a fact because nothing in the sentence says more than that, and a fact renders
+        # after constraints and decisions - so if it is noise, it competes only with other
+        # facts for the budget. Excluded: questions; requests to the assistant; sentences whose
+        # subject is a bare pronoun pointing back at the assistant's turn ("that's fine");
+        # sentences ending in a colon, which introduce pasted material rather than state
+        # anything; and talk about the reply itself ("short answer is fine"), which is an
+        # instruction for one message, not memory.
+        "fact",
+        "project",
+        "a plain statement of how things are",
+        0.45,
+        re.compile(
+            r"^(?!(?:can|could|would|should|do|does|did|what|why|how|when|where|which|who|please|"
+            r"tell me|explain|give me|show me|help me|walk me|remind me|assume|let me|thanks|"
+            r"thank you|ok|okay|yes|sure|great|hmm|that(?:'s| is| was)|it(?:'s| is| was)|"
+            r"this(?:'s| is| was)|those|these|they(?:'re| are)|"
+            # A request in the first person is still a request.
+            r"i want (?:to (?:understand|know|see|learn)|you|your)|i'd like (?:to|you|your|help)|i would like)\b)"
+            r"(?!.*[?:]\s*$)"
+            r"(?!.*\b(?:answer|reply|response)\b)"
+            # Musing is not a statement, whichever branch below it would otherwise match.
+            r"(?!(?:i'm|i am|we're|we are)\s+(?:thinking|wondering|trying|hoping|looking|curious|asking|guessing|not sure)\b)"
+            r"(?:(?:i'm|i am|we're|we are|i've been|we've been)\s+\w+ing\b"
+            r"|(?=.*\b(?:is|are|will be|stays|goes|runs|lives|opens|uses)\b))",
             re.I,
         ),
     ),
@@ -191,13 +252,17 @@ _REFUSAL_WITH_ANAPHOR = re.compile(
 _EMPTY_RATHER = re.compile(r"\b(?:i'd|i would)\s+rather\s+not\s*(?:[,.!;]|$|thanks|thank you)", re.I)
 
 MIN_SENTENCE_CHARS = 20
+# The floor for a sentence that opens with a prohibiting determiner ("No database.").
+MIN_PROHIBITION_CHARS = 10
 
 
 class HeuristicExtractor:
     """No weights, no GPU, no network. Runs in milliseconds."""
 
     name = NAME
-    model = "rules-v1"
+    # rules-v2: stage 10 attempt 3 - prohibiting determiners, verb-anchored negation, plain
+    # statements. The attempt 1 reversal rule shipped without a bump and is part of v1 runs.
+    model = "rules-v2"
 
     def check_ready(self) -> None:
         return None
@@ -217,7 +282,9 @@ class HeuristicExtractor:
 
             for raw in _SPLIT.split(body):
                 sentence = raw.strip()
-                if len(sentence) < MIN_SENTENCE_CHARS:
+                if len(sentence) < MIN_SENTENCE_CHARS and not (
+                    len(sentence) >= MIN_PROHIBITION_CHARS and _PROHIBITION_OPENING.search(sentence)
+                ):
                     continue
 
                 if (
