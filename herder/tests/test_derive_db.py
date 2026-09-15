@@ -263,6 +263,39 @@ async def test_a_contradiction_both_ways_supersedes_and_retires_the_old(session,
     assert old_id not in version.included_entry_ids
 
 
+async def _one_sided_second_round(session, account, text: str):
+    """A stored decision, then a candidate the NLI reads as contradiction one way only."""
+    project = await seeded(session, account)
+    await run(session, project, FakeExtractor([candidate(text="The case-study ports are Newark, Rotterdam and Singapore.")]))
+    old_id = (
+        await session.execute(select(Entry.id).where(Entry.project_id == project.id, Entry.kind == "decision"))
+    ).scalars().one()
+    await ingest_paste(session, account["workspace"].id, text="User: about the ports again.", vendor="claude")
+    await session.refresh(project)
+    second = await run(session, project, FakeExtractor([candidate(text=text)]), nli=FakeNli(NEUTRAL, CONTRADICTION))
+    old = await session.get(Entry, old_id)
+    await session.refresh(old)
+    return second, old
+
+
+async def test_a_candidate_announcing_a_change_retires_what_it_contradicts_one_way(session, account):
+    """Stage 10: the benchmark served "Newark, Rotterdam and Singapore" beside the correction that
+    replaced it, because the NLI read the correction neutral in one direction. A sentence that says
+    it is changing something is evidence enough for one strong direction."""
+    second, old = await _one_sided_second_round(
+        session, account, "Swap one of the ports I listed earlier: it's Felixstowe, not Rotterdam."
+    )
+    assert second.superseded == 1 and second.reversals == 1
+    assert old.status == "superseded"
+
+
+async def test_without_a_change_cue_one_direction_is_still_not_enough(session, account):
+    """The both-directions rule stands for everything else - NLI invents one-sided contradictions."""
+    second, old = await _one_sided_second_round(session, account, "The ports include Felixstowe as well.")
+    assert second.superseded == 0 and second.reversals == 0
+    assert old.status == "active"
+
+
 async def test_nothing_similar_enough_is_never_adjudicated(session, account):
     """Similarity is the cheap filter; adjudication is the model call."""
     project = await seeded(session, account)

@@ -3,7 +3,7 @@
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
 
 **Stages 0 to 9 are done, and the baseline exists.** The prototype runs at
-`http://localhost:8000`; 474 tests pass (stage 10 in progress - see its section). The author wrote 261 facts across eight conversations
+`http://localhost:8000`; 484 tests pass (stage 10 in progress - see its section). The author wrote 261 facts across eight conversations
 and the baseline was recorded on 2026-09-14 before anything was tuned:
 **herder recalls 0.36 of them at 11.4x compression and 0.32 at 28.3x**, against a raw tail at
 0.31 (using three times the tokens) and 0.07 at a comparable size. `naive_summary` is recorded
@@ -533,6 +533,13 @@ first baseline, a new generator rather than stage 4's, and to write every fact h
       221 true / 40 false. Reference run on it: `2026-09-15_1650-general-rules-corrected-key`,
       recall 0.68 / 0.43, wrong claims 2 of 40 / 0 of 40. **Two identical runs give identical
       verdicts (518 pairs, 0 different)** - the reader is deterministic
+- [x] Attempt 4 - a correction retires what it corrects (`2026-09-15_1708-reversal-merge`): a
+      candidate carrying a change cue supersedes on one strong direction of contradiction (>= 0.9),
+      full sentence or claim after its lead-in. Wrong claims 2 of 40 -> 0 at 3,000; recall 150 -> 152
+      and 96 -> 98. Cost seen once: a partial change retiring the agreeing half (photo-sync f004)
+- [x] Attempt 5 - attempt 3's reply-talk exclusion blocked every sentence containing "answer"
+      (`2026-09-15_1718-answer-exclusion-fix`): recall 152 -> 156 at 3,000 (essential 0.81), 98 -> 98
+      at 500, wrong claims still 0. Open threads at 500 still 0.08 - next
 - [ ] Candidates in cost order: render ordering, tail reserve size, similarity threshold,
       chunk size, the extraction prompt, a larger quantisation, and whether the layer split
       earns its keep

@@ -49,6 +49,31 @@ edited. Added at stage 7, because an adjuster whose changes the next derive quie
 worse than no adjuster. Against a held entry, `update` becomes `duplicate` (the wording stays
 theirs) and `supersede` becomes `conflict` (both kept, and the person is asked).
 
+## A candidate that announces its own change
+
+Added at stage 10, after the benchmark kept serving stale claims beside their corrections.
+"Swap one of the ports I listed earlier: it's Felixstowe, not Rotterdam, alongside Newark and
+Singapore" against "The case-study ports are Newark, Rotterdam and Singapore" reads **neutral
+both ways** to `nli-deberta-v3-base`; "Correction on the rota handover day - it switches on
+Mondays, not Fridays" reads neutral one way and contradiction 1.00 the other. The lead-in clause
+makes no claim of its own and dilutes the one that follows, and "X, not Y" corrections are hard
+for a model this size. So the both-directions rule, right for ordinary candidates, kept the
+stale entry alive.
+
+A sentence carrying a **change cue** ("change of plan", "correction", "swap", "I said earlier")
+is independent evidence that something changed - the user said so. For such a candidate only:
+matches are checked for a contradiction **before** anything else, one direction is enough if it
+is strong (`REVERSAL_CONTRADICTION`), and the claim after a leading ":" or " - " is judged as well
+as the full sentence. Nothing else changes: a candidate with no cue goes through exactly the
+rules above, removed entries still fall to the hard rule below, and a held entry still becomes a
+conflict rather than being overruled.
+
+The known cost, measured on hand-picked pairs before building: a change cue plus a confident
+one-sided contradiction can retire an entry that was only *partly* changed ("Change of plan on
+who gets the reorder email: both Marisol and the shop manager" against "the head baker gets
+reorder suggestions by email" - the recipients changed, the channel did not). The old rule
+already superseded that pair; this one does not fix it.
+
 ## The hard rule
 
 **A candidate matching a removed entry is dropped.** Not merged, not re-created. Derivation
@@ -59,6 +84,7 @@ makes the adjuster trustworthy, and it is tested end to end.
 
 from __future__ import annotations
 
+import re
 import uuid
 from dataclasses import dataclass
 from enum import StrEnum
@@ -66,6 +92,26 @@ from enum import StrEnum
 ENTAILMENT = "entailment"
 CONTRADICTION = "contradiction"
 NEUTRAL = "neutral"
+
+# The cue of a change rather than the claim. Shared with the heuristic extractor's reversal rule,
+# so "extracted as a reversal" and "merged as a reversal" cannot drift apart - and it applies to
+# a candidate from any extractor, because it reads the text, not how the text was produced.
+CHANGE_CUE = re.compile(
+    r"\b(change of plan|changed my mind|change to|scrap (?:that|the|what)|"
+    r"forget (?:that|the|what)|disregard|ignore what i said|correction|"
+    r"i'm changing|i am changing|revis(?:e|ing|ed)|swap (?:one|that|the)|"
+    r"no longer|after all|instead of what i said|from what i said|(?:from|than) (?:earlier|before)|"
+    r"(?:said|gave|mentioned|described|told you) (?:you )?(?:earlier|before)|"
+    r"(?:earlier|before) (?:is|was) (?:off|out|wrong)|is off\b)",
+    re.I,
+)
+
+# How confident a single direction must be to count, for a candidate that announces a change. High,
+# because it replaces the second direction as the safeguard against NLI's invented contradictions.
+REVERSAL_CONTRADICTION = 0.9
+
+# A short lead-in ending in ":" or " - " before the claim itself.
+_LEAD_IN = re.compile(r"^[^:]{3,80}?(?::\s+|\s+-\s+)(?P<claim>.{12,})$", re.S)
 
 
 class Verdict(StrEnum):
@@ -174,6 +220,39 @@ def decide_against(match: Match, forward: Label, backward: Label, floor: float) 
         )
 
     return Decision(Verdict.DISTINCT, match, "neither entails the other")
+
+
+def announces_change(text: str) -> bool:
+    return bool(CHANGE_CUE.search(text))
+
+
+def claim_of(text: str) -> str:
+    """The claim after a short lead-in ("Correction on the rota - it switches on Mondays" ->
+    "it switches on Mondays"), or the text unchanged when there is no lead-in."""
+    found = _LEAD_IN.match(text.strip())
+    return found.group("claim") if found else text.strip()
+
+
+def decide_reversal(match: Match, readings: list[tuple[Label, Label]]) -> Decision | None:
+    """For a candidate that announces a change: does it retire this match?
+
+    `readings` are (forward, backward) NLI results over one or more versions of the pair - the
+    full sentences, and their claims. None means "not a reversal of this entry": the caller then
+    falls back to `decide_against`, so every other rule, the hard rule included, still applies.
+    """
+    if match.status == "removed":
+        # Left to `decide_against`, which drops the candidate. A reversal is not a way around it.
+        return None
+    strong = any(
+        label.label == CONTRADICTION and label.score >= REVERSAL_CONTRADICTION
+        for pair in readings
+        for label in pair
+    )
+    if not strong:
+        return None
+    if match.held:
+        return Decision(Verdict.CONFLICT, match, "announces a change to an entry a person holds: kept both, asking")
+    return Decision(Verdict.SUPERSEDE, match, "announces a change and contradicts the stored entry")
 
 
 def merged_text(existing: str, candidate: str) -> str:

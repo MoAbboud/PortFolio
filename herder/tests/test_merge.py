@@ -15,10 +15,49 @@ from herder.domain.merge import (
     Label,
     Match,
     Verdict,
+    announces_change,
     choose_match,
+    claim_of,
     decide_against,
+    decide_reversal,
     merged_text,
 )
+
+
+# ------------------------------------------------------- a candidate announcing a change (stage 10)
+
+
+def test_a_strong_one_sided_contradiction_retires_the_entry_for_a_reversal() -> None:
+    decision = decide_reversal(match(), [(label(NEUTRAL, 0.99), label(CONTRADICTION, 0.97))])
+    assert decision is not None and decision.verdict is Verdict.SUPERSEDE
+
+
+def test_any_reading_can_carry_it_the_full_sentence_or_the_claim() -> None:
+    full, claim = (label(NEUTRAL, 0.99), label(NEUTRAL, 0.95)), (label(NEUTRAL, 0.99), label(CONTRADICTION, 0.99))
+    assert decide_reversal(match(), [full, claim]).verdict is Verdict.SUPERSEDE
+
+
+def test_a_weak_contradiction_is_not_enough_even_for_a_reversal() -> None:
+    """The high bar replaces the second direction as the guard against invented contradictions."""
+    assert decide_reversal(match(), [(label(CONTRADICTION, 0.6), label(NEUTRAL, 0.99))]) is None
+
+
+def test_a_reversal_of_a_held_entry_asks_instead_of_overruling() -> None:
+    held = Match(entry_id=uuid7(), status="active", title="t", text="x", similarity=0.9, held=True)
+    assert decide_reversal(held, [(label(CONTRADICTION, 0.99), label(NEUTRAL, 0.9))]).verdict is Verdict.CONFLICT
+
+
+def test_a_reversal_leaves_a_removed_entry_to_the_hard_rule() -> None:
+    """None sends it back to `decide_against`, which drops the candidate. No way around removal."""
+    assert decide_reversal(match(status="removed"), [(label(CONTRADICTION, 0.99), label(CONTRADICTION, 0.99))]) is None
+
+
+def test_the_change_cue_and_the_claim() -> None:
+    assert announces_change("Correction on the rota handover day - it switches on Mondays, not Fridays.")
+    assert not announces_change("The on-call rota changes on Fridays.")
+    assert claim_of("Correction on the rota handover day - it switches on Mondays.") == "it switches on Mondays."
+    assert claim_of("Swap one of the ports I listed earlier: it's Felixstowe, not Rotterdam.") == "it's Felixstowe, not Rotterdam."
+    assert claim_of("The case-study ports are Newark, Rotterdam and Singapore.") == "The case-study ports are Newark, Rotterdam and Singapore."
 
 FLOOR = 0.5
 

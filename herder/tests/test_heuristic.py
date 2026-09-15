@@ -311,6 +311,9 @@ def test_a_negated_verb_is_a_constraint_only_with_its_verb() -> None:
         "Duplicates are detected by a hash of the file contents.",
         "Opening hours will be 7am to 4pm, seven days a week.",
         "I'm building the inventory service for a bakery chain.",
+        # The reply-talk exclusion once blocked any sentence containing "answer" (attempt 5).
+        "My final answer is that the service runs on FastAPI.",
+        "The response time target is four business hours.",
     ],
 )
 def test_a_plain_statement_is_a_fact(sentence: str) -> None:

@@ -26,7 +26,17 @@ from herder.core.embeddings import embedding_text
 from herder.core.ids import uuid7
 from herder.core.tokens import count_tokens
 from herder.domain.chunking import Chunk, ChunkMessage, chunk_messages
-from herder.domain.merge import Decision, Match, Verdict, choose_match, decide_against, merged_text
+from herder.domain.merge import (
+    Decision,
+    Match,
+    Verdict,
+    announces_change,
+    choose_match,
+    claim_of,
+    decide_against,
+    decide_reversal,
+    merged_text,
+)
 from herder.domain.render import RenderableEntry, render_brief
 from herder.models import (
     BriefVersion,
@@ -62,6 +72,9 @@ class DeriveRun:
     updated: int = 0
     superseded: int = 0
     conflicts: int = 0
+    # Supersedes and conflicts that came from a candidate announcing its own change. A subset of
+    # `superseded` + `conflicts`, counted so a run shows how much the reversal path decided.
+    reversals: int = 0
     dropped_removed: int = 0
     dropped_lineage: int = 0
     below_floor: int = 0
@@ -774,7 +787,21 @@ async def derive_project(
             )
 
             decision = Decision(Verdict.CREATE, None, "nothing similar enough to adjudicate")
-            for match in matches:
+            if matches and announces_change(candidate.text):
+                # A candidate that says it changes something looks for what it retires before
+                # anything else can claim it as a duplicate. See `decide_reversal`.
+                for match in matches:
+                    readings = [nli.both_ways(candidate.text, match.text)]
+                    claims = (claim_of(candidate.text), claim_of(match.text))
+                    if claims != (candidate.text.strip(), match.text.strip()):
+                        readings.append(nli.both_ways(*claims))
+                    reversal = decide_reversal(match, readings)
+                    if reversal is not None:
+                        decision = reversal
+                        run.reversals += 1
+                        break
+
+            for match in matches if decision.verdict is Verdict.CREATE else []:
                 forward, backward = nli.both_ways(candidate.text, match.text)
                 decision = decide_against(match, forward, backward, nli_floor)
                 if decision.below_floor:

@@ -1135,3 +1135,79 @@ only when the context the reader is given changes - the flips noted under attemp
 
 **A correction to attempt 3's costs:** its "build time 9 -> 29 s" was the first run after a worker
 restart. This run, identical code and identical output, took 9 s. Cold caches, not the rules.
+
+### Attempt 4: a correction retires what it corrects (merge step)
+
+Run `2026-09-15_1708-reversal-merge`, herder only, 6 minutes. Compared with the reference
+`2026-09-15_1650-general-rules-corrected-key`. Same corpus, reader, corrected key.
+
+**The cause, measured with the app's own models.** "Swap one of the ports I listed earlier: it's
+Felixstowe, not Rotterdam, alongside Newark and Singapore" against "The case-study ports are Newark,
+Rotterdam and Singapore": similarity 0.689, NLI **neutral 1.00 / neutral 0.95** -> distinct, so both
+stayed active. "Correction on the rota handover day - it switches on Mondays, not Fridays": neutral
+0.56 / contradiction 1.00 -> distinct. The same claims without their lead-in clause read contradiction
+both ways. Supersede required contradiction in both directions, and a lead-in that makes no claim of
+its own dilutes the one that does.
+
+**The change.** For a candidate carrying a change cue ("change of plan", "correction", "swap", "I said
+earlier" - the same cue the extractor's reversal rule uses, now defined once in the merge domain), the
+matches are checked for a retirement first: **one direction of contradiction at >= 0.9**, on the full
+sentences or on the claims after a leading ":" / " - ", is enough. Held entries still become a conflict;
+removed entries still fall to the hard rule; candidates without a cue go through the old rules untouched.
+
+| Measure | Reference @ 3000 | **Attempt 4 @ 3000** | Reference @ 500 | **Attempt 4 @ 500** |
+| --- | --- | --- | --- | --- |
+| Recall | 0.68 (150 of 221) | **0.69 (152)** | 0.43 (96) | **0.44 (98)** |
+| Wrong claims | 0.05 (2 of 40) | **0.00 (0)** | 0.00 (0) | 0.00 (0) |
+| Contradicted true facts | 0.05 (12) | 0.05 (10) | 0.05 (12) | 0.05 (12) |
+| Essential / useful / incidental | 0.78 / 0.59 / 0.56 | 0.77 (83) / 0.61 (54) / 0.60 (15) | 0.59 / 0.28 / 0.28 | 0.59 (64) / 0.30 (26) / 0.32 (8) |
+
+12 verdicts moved; with the reader deterministic, each is a change in what the brief carried. **7
+better** (shipping f011 and f010 no longer accepted; support f017, tutoring f018, shipping f018 no
+longer contradicted; photo-sync f018, support f003, coffee f028 now found), **2 worse**, 3 neither.
+
+The two worse, both explained from the database:
+
+- **photo-sync f004 "The tool runs on the NAS itself on a schedule"** - "Let's not run it hourly after
+  all" retired "For the record, the tool runs on the NAS itself on a schedule, every six hours": the
+  model reads hourly against six hours as a contradiction though both sentences agree on six hours, and
+  "on the NAS on a schedule" went with it. The partial-change cost named before building.
+- **shipping f009 "The three case-study ports are Newark, Felixstowe and Singapore"** - the stale
+  Rotterdam entry is now retired, which removed the other half of the pair the reader had combined. The
+  sentence that states f009 directly (turn 59, "Final answer on that one: ...") is never extracted,
+  because attempt 3's plain-statement rule excludes any sentence containing "answer". That is a bug in
+  attempt 3, fixed and measured separately as attempt 5.
+
+**Also visible in the database, not caused by this change:** supersedes from the ordinary
+both-directions rule between sentences that agree - "No evening opening." retired by "Opening hours
+will be 7am to 4pm, seven days a week."; "the on-call rota for urgent tickets is weekly, changing on
+Mondays" retired by "the on-call rota changes on Fridays", itself later corrected. NLI reading
+agreement as contradiction is a merge-step failure with no error message.
+
+### Attempt 5: the plain-statement rule was blocking every sentence with "answer" in it
+
+Run `2026-09-15_1718-answer-exclusion-fix`, herder only, 7 minutes. Compared with attempt 4.
+
+Attempt 3's exclusion for talk about the reply ("short answer is fine") was written as *any sentence
+containing answer / reply / response*, so "Final answer on that one: the service is written in Python
+with FastAPI" and seven sentences like it were never extracted. Narrowed to the reply itself
+("short / long / brief / quick / detailed / full / your answer", "answer is fine"). The stage 4 corpus
+has no such sentences; 8 benchmark sentences are unblocked, and two of them are claims later reversed
+(the GBP 120,000 budget, the 10,000-word article) - so the run also tested attempt 4 on inputs it had
+not seen.
+
+| Measure | Attempt 4 @ 3000 | **Attempt 5 @ 3000** | Attempt 4 @ 500 | **Attempt 5 @ 500** |
+| --- | --- | --- | --- | --- |
+| Recall | 0.69 (152 of 221) | **0.71 (156)** | 0.44 (98) | 0.44 (98) |
+| Wrong claims | 0.00 (0 of 40) | 0.00 (0) | 0.00 | 0.00 |
+| Contradicted true facts | 0.05 (10) | 0.04 (9) | 0.05 (12) | 0.05 (12) |
+| Essential / useful / incidental | 0.77 (83) / 0.61 (54) / 0.60 (15) | **0.81 (88)** / 0.60 (53) / 0.60 (15) | 0.59 (64) / 0.30 (26) / 0.32 (8) | 0.61 (66) / 0.28 (25) / 0.28 (7) |
+
+21 verdicts moved: 13 better, 7 worse, 1 neither. Better includes both attempt 4 regressions recovering
+(photo-sync f004, shipping f009) and the directly stated facts (bakery f006 FastAPI, f017 shop codes,
+photo-sync f013 video folder, support f008 inbox). **The two reversed claims did not come back:** wrong
+claims stayed 0 of 40, so attempt 4's retirement held on them. Of the 7 worse, 4 are at 500 tokens (more
+entries competing for the same small brief) and 3 at 3,000 in photo-sync (f016, f018, f031, now not
+stated) - not traced.
+
+Open threads at 500 are still 0.08 (2 of 24).

@@ -23,6 +23,7 @@ import time
 
 from herder.domain.chunking import Chunk
 from herder.domain.hashing import normalise
+from herder.domain.merge import CHANGE_CUE
 from herder.extractors.base import make_title
 from herder.schemas.extraction import Candidate, ExtractionOutcome
 
@@ -74,15 +75,8 @@ RULES: list[tuple[str, str, str, float, re.Pattern[str]]] = [
         "project",
         "an explicit reversal of something said earlier",
         0.66,
-        re.compile(
-            r"\b(change of plan|changed my mind|change to|scrap (?:that|the|what)|"
-            r"forget (?:that|the|what)|disregard|ignore what i said|correction|"
-            r"i'm changing|i am changing|revis(?:e|ing|ed)|swap (?:one|that|the)|"
-            r"no longer|after all|instead of what i said|from what i said|(?:from|than) (?:earlier|before)|"
-            r"(?:said|gave|mentioned|described|told you) (?:you )?(?:earlier|before)|"
-            r"(?:earlier|before) (?:is|was) (?:off|out|wrong)|is off\b)",
-            re.I,
-        ),
+        # Defined in the merge domain, which uses the same cue to decide what a reversal retires.
+        CHANGE_CUE,
     ),
     (
         # First, and above `constraint`, because "we still need to pick X" is an unfinished
@@ -203,7 +197,11 @@ RULES: list[tuple[str, str, str, float, re.Pattern[str]]] = [
             # A request in the first person is still a request.
             r"i want (?:to (?:understand|know|see|learn)|you|your)|i'd like (?:to|you|your|help)|i would like)\b)"
             r"(?!.*[?:]\s*$)"
-            r"(?!.*\b(?:answer|reply|response)\b)"
+            # About the reply itself - "a short answer is fine", "your reply". Not any sentence with
+            # the word in it: "my final answer is that it runs on FastAPI" states a decision, and
+            # the broad form blocked every such sentence (found at stage 10, attempt 5).
+            r"(?!.*\b(?:short|long|brief|quick|detailed|full|your)\s+(?:answer|reply|response)\b)"
+            r"(?!.*\b(?:answer|reply|response)\s+is\s+fine\b)"
             # Musing is not a statement, whichever branch below it would otherwise match.
             r"(?!(?:i'm|i am|we're|we are)\s+(?:thinking|wondering|trying|hoping|looking|curious|asking|guessing|not sure)\b)"
             r"(?:(?:i'm|i am|we're|we are|i've been|we've been)\s+\w+ing\b"
