@@ -1010,3 +1010,30 @@ these facts, would getting this wrong hurt?*
 checkpoints written in one transaction share `created_at` to the microsecond, so ordering the
 integrity series by time alone returned them in either order. Ordered by `(created_at, id)`
 now; uuid7 ids are time-ordered, so they break the tie the way a clock would. Three runs green.
+
+### Recall per tier, for every run so far
+
+All 261 facts rated on 2026-09-15: **136 essential, 100 useful, 25 incidental**. The four runs
+were judged before that, so their tiers were filled afterwards by fact id (`python -m
+bench.report <run> --tiers-from bench/datasets`, reports in `bench/results/rescored/`). No
+verdict was re-run; every statement and truth value was checked identical to what each run
+judged first, and the re-score refuses otherwise. True facts only, so the columns count 108 /
+89 / 25 (the naive_summary runs cover fewer conversations).
+
+| Run | Method | Essential | Useful | Incidental |
+| --- | --- | --- | --- | --- |
+| baseline | herder @ 3000 | 0.46 (50 of 108) | 0.29 (26 of 89) | 0.16 (4 of 25) |
+| baseline | herder @ 500 | 0.40 (43 of 108) | 0.27 (24 of 89) | 0.12 (3 of 25) |
+| baseline | truncate_tail @ 3000 | 0.31 (33 of 108) | 0.33 (29 of 89) | 0.24 (6 of 25) |
+| baseline | truncate_tail @ 500 | 0.11 (12 of 108) | 0.03 (3 of 89) | 0.04 (1 of 25) |
+| naive-summary-fixed | naive_summary @ 3000 | 0.33 (32 of 96) | 0.14 (11 of 79) | 0.10 (2 of 21) |
+| naive-summary-fixed | naive_summary @ 500 | 0.07 (7 of 96) | 0.03 (2 of 79) | 0.00 (0 of 21) |
+| reversal-rule | herder @ 3000 | **0.55 (59 of 108)** | 0.33 (29 of 89) | 0.16 (4 of 25) |
+| reversal-rule | herder @ 500 | 0.49 (53 of 108) | 0.27 (24 of 89) | 0.16 (4 of 25) |
+| local-extractor | herder[local] @ 3000 | 0.24 (26 of 108) | 0.18 (16 of 89) | 0.08 (2 of 25) |
+| local-extractor | herder[local] @ 500 | 0.16 (17 of 108) | 0.12 (11 of 88) | 0.08 (2 of 25) |
+
+Facts, not readings: herder's recall falls with the tier (0.55 / 0.33 / 0.16); the raw tail's
+does not (0.31 / 0.33 / 0.24). The reversal rule's whole gain at 3,000 was 9 essential facts and
+3 useful ones, nothing incidental. The summary also favours essential facts (0.33 against 0.14).
+The incidental column is 25 facts, so one fact moves it by 0.04.

@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import httpx
 import pytest
 
+from bench import facts as FACTS
 from bench import methods as M
+from bench.report import RescoreError
+from bench.report import main as report_main
 from bench.report import write as write_report
 from herder.core.tokens import count_tokens
 
@@ -152,3 +156,68 @@ def test_the_report_breaks_recall_down_by_how_much_a_fact_matters(tmp_path) -> N
     assert "| essential | incidental |" in report
     assert "1.00 (1 of 1) | 0.00 (0 of 1)" in report
     assert "1 facts are not rated" in report
+
+
+def _pre_tier_run(root, statements: dict) -> Path:
+    """A run as it was recorded before the tiers: every judged row without an importance."""
+    run_dir = root / "old-run"
+    run_dir.mkdir()
+    run = {
+        "label": "old", "started": "2026-09-14T00:00:00+00:00", "commit": "abc", "model": "m", "read_prompt": "1",
+        "summarise_prompt": "1", "extractor": "heuristic", "budgets": [500], "conversations": ["c1"], "facts": 2,
+        "false_facts": 0, "kinds": ["decision"], "statements": {"c1": statements},
+    }
+    (run_dir / "run.json").write_text(json.dumps(run))
+    (run_dir / "contexts.jsonl").write_text(
+        json.dumps({"key": "herder @ 500", "conversation": "c1", "conversation_tokens": 5000, "tokens": 500, "build_seconds": 1}) + "\n"
+    )
+    rows = [
+        {"conversation": "c1", "archetype": "coding", "method": "herder @ 500", "fact_id": "f001", "kind": "decision", "truth": "true", "verdict": "true"},
+        {"conversation": "c1", "archetype": "coding", "method": "herder @ 500", "fact_id": "f002", "kind": "decision", "truth": "true", "verdict": "not_stated"},
+    ]
+    (run_dir / "judged.jsonl").write_text("\n".join(json.dumps(r) for r in rows) + "\n")
+    (run_dir / "report.md").write_text("the recorded report\n")
+    return run_dir
+
+
+def _rated(datasets, first_statement: str = "Uses SQLite.") -> None:
+    (datasets / "c1").mkdir(parents=True)
+    FACTS.save(datasets, FACTS.FactList("c1", [
+        FACTS.Fact("f001", first_statement, "decision", "true", importance="essential"),
+        FACTS.Fact("f002", "Flour comes on Tuesdays.", "fact", "true", importance="incidental"),
+    ]))
+
+
+def test_a_run_judged_before_the_tiers_is_rescored_from_the_current_fact_lists(tmp_path) -> None:
+    run_dir = _pre_tier_run(tmp_path, {"f001": ["Uses SQLite.", "true"], "f002": ["Flour comes on Tuesdays.", "true"]})
+    _rated(tmp_path / "datasets")
+    out = tmp_path / "rescored" / "old-run.md"
+
+    report = write_report(run_dir, tiers_from=tmp_path / "datasets", out=out).read_text(encoding="utf-8")
+
+    assert "**Re-scored.**" in report
+    assert "| essential | incidental |" in report
+    assert "1.00 (1 of 1) | 0.00 (0 of 1)" in report
+    assert "not rated" not in report
+    # The recorded run is untouched.
+    assert (run_dir / "report.md").read_text() == "the recorded report\n"
+    assert "importance" not in (run_dir / "judged.jsonl").read_text()
+
+
+def test_a_rescore_is_refused_when_a_fact_changed_since_the_run(tmp_path) -> None:
+    run_dir = _pre_tier_run(tmp_path, {"f001": ["Uses SQLite.", "true"], "f002": ["Flour comes on Tuesdays.", "true"]})
+    _rated(tmp_path / "datasets", first_statement="Uses SQLite for everything.")
+
+    with pytest.raises(RescoreError, match="c1 f001"):
+        write_report(run_dir, tiers_from=tmp_path / "datasets", out=tmp_path / "x.md")
+    assert not (tmp_path / "x.md").exists()
+
+
+def test_the_rescore_command_will_not_write_inside_the_run_folder(tmp_path) -> None:
+    run_dir = _pre_tier_run(tmp_path, {"f001": ["Uses SQLite.", "true"], "f002": ["Flour comes on Tuesdays.", "true"]})
+    _rated(tmp_path / "datasets")
+
+    code = report_main([str(run_dir), "--tiers-from", str(tmp_path / "datasets"), "--out", str(run_dir / "tiers.md")])
+
+    assert code == 2
+    assert not (run_dir / "tiers.md").exists()

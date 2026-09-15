@@ -3,7 +3,7 @@
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
 
 **Stages 0 to 9 are done, and the baseline exists.** The prototype runs at
-`http://localhost:8000`; 428 tests pass. The author wrote 261 facts across eight conversations
+`http://localhost:8000`; 453 tests pass (stage 10 in progress - see its section). The author wrote 261 facts across eight conversations
 and the baseline was recorded on 2026-09-14 before anything was tuned:
 **herder recalls 0.36 of them at 11.4x compression and 0.32 at 28.3x**, against a raw tail at
 0.31 (using three times the tokens) and 0.07 at a comparable size. `naive_summary` is recorded
@@ -516,6 +516,13 @@ first baseline, a new generator rather than stage 4's, and to write every fact h
       **wrong claims 0.10 -> 0.00**. The cause was not the merge step failing to supersede, as
       assumed, but the reversal sentences matching no extraction rule at all, so nothing ever
       contradicted the stale entry
+- [x] Facts tiered `essential` / `useful` / `incidental` (the author rated all 261: 136 / 100 /
+      25), and every earlier run re-scored per tier by re-reading its verdicts -
+      `python -m bench.report <run> --tiers-from bench/datasets`, written to
+      `bench/results/rescored/`, refused if any fact differs from what the run judged. Not an
+      attempt at improvement - an instrument. With the reversal rule herder recalls **0.55 of
+      essential facts** at 3,000 (59 of 108), 0.33 useful, 0.16 incidental; `truncate_tail @
+      3000` is flat at 0.31 / 0.33 / 0.24. 453 tests pass
 - [ ] Candidates in cost order: render ordering, tail reserve size, similarity threshold,
       chunk size, the extraction prompt, a larger quantisation, and whether the layer split
       earns its keep
