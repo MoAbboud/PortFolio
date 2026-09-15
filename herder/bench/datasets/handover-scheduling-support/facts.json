@@ -10,7 +10,8 @@
       "turns": [
         1
       ],
-      "note": ""
+      "note": "",
+      "importance": "useful"
     },
     {
       "id": "f002",
@@ -20,7 +21,8 @@
       "turns": [
         1
       ],
-      "note": ""
+      "note": "",
+      "importance": "useful"
     },
     {
       "id": "f003",
@@ -30,7 +32,8 @@
       "turns": [
         73
       ],
-      "note": ""
+      "note": "",
+      "importance": "useful"
     },
     {
       "id": "f004",
@@ -40,7 +43,8 @@
       "turns": [
         71
       ],
-      "note": ""
+      "note": "",
+      "importance": "incidental"
     },
     {
       "id": "f005",
@@ -50,7 +54,8 @@
       "turns": [
         45
       ],
-      "note": ""
+      "note": "",
+      "importance": "useful"
     },
     {
       "id": "f006",
@@ -60,7 +65,8 @@
       "turns": [
         43
       ],
-      "note": ""
+      "note": "",
+      "importance": "incidental"
     },
     {
       "id": "f007",
@@ -70,7 +76,8 @@
       "turns": [
         65
       ],
-      "note": ""
+      "note": "",
+      "importance": "useful"
     },
     {
       "id": "f008",
@@ -80,7 +87,8 @@
       "turns": [
         53
       ],
-      "note": ""
+      "note": "",
+      "importance": "essential"
     },
     {
       "id": "f009",
@@ -91,7 +99,8 @@
         3,
         21
       ],
-      "note": ""
+      "note": "",
+      "importance": "essential"
     },
     {
       "id": "f010",
@@ -101,7 +110,8 @@
       "turns": [
         21
       ],
-      "note": ""
+      "note": "",
+      "importance": "essential"
     },
     {
       "id": "f011",
@@ -112,7 +122,8 @@
         20,
         21
       ],
-      "note": ""
+      "note": "",
+      "importance": "essential"
     },
     {
       "id": "f012",
@@ -124,7 +135,8 @@
         29,
         107
       ],
-      "note": ""
+      "note": "",
+      "importance": "useful"
     },
     {
       "id": "f013",
@@ -134,7 +146,8 @@
       "turns": [
         107
       ],
-      "note": ""
+      "note": "",
+      "importance": "useful"
     },
     {
       "id": "f014",
@@ -144,7 +157,8 @@
       "turns": [
         59
       ],
-      "note": ""
+      "note": "",
+      "importance": "essential"
     },
     {
       "id": "f015",
@@ -155,7 +169,8 @@
         83,
         101
       ],
-      "note": ""
+      "note": "",
+      "importance": "useful"
     },
     {
       "id": "f016",
@@ -166,7 +181,8 @@
         59,
         101
       ],
-      "note": ""
+      "note": "",
+      "importance": "essential"
     },
     {
       "id": "f017",
@@ -176,7 +192,8 @@
       "turns": [
         101
       ],
-      "note": ""
+      "note": "",
+      "importance": "incidental"
     },
     {
       "id": "f018",
@@ -187,7 +204,8 @@
         33,
         115
       ],
-      "note": ""
+      "note": "",
+      "importance": "essential"
     },
     {
       "id": "f019",
@@ -198,7 +216,8 @@
         41,
         109
       ],
-      "note": ""
+      "note": "",
+      "importance": "essential"
     },
     {
       "id": "f020",
@@ -209,7 +228,8 @@
         61,
         119
       ],
-      "note": ""
+      "note": "",
+      "importance": "essential"
     },
     {
       "id": "f021",
@@ -220,7 +240,8 @@
         37,
         79
       ],
-      "note": ""
+      "note": "",
+      "importance": "essential"
     },
     {
       "id": "f022",
@@ -231,7 +252,8 @@
         36,
         37
       ],
-      "note": ""
+      "note": "",
+      "importance": "essential"
     },
     {
       "id": "f023",
@@ -241,7 +263,8 @@
       "turns": [
         17
       ],
-      "note": ""
+      "note": "",
+      "importance": "essential"
     },
     {
       "id": "f024",
@@ -252,7 +275,8 @@
         8,
         9
       ],
-      "note": ""
+      "note": "",
+      "importance": "essential"
     },
     {
       "id": "f025",
@@ -262,7 +286,8 @@
       "turns": [
         9
       ],
-      "note": ""
+      "note": "",
+      "importance": "essential"
     },
     {
       "id": "f026",
@@ -272,7 +297,8 @@
       "turns": [
         27
       ],
-      "note": ""
+      "note": "",
+      "importance": "useful"
     },
     {
       "id": "f027",
@@ -282,7 +308,8 @@
       "turns": [
         67
       ],
-      "note": ""
+      "note": "",
+      "importance": "useful"
     },
     {
       "id": "f028",
@@ -292,7 +319,8 @@
       "turns": [
         89
       ],
-      "note": ""
+      "note": "",
+      "importance": "incidental"
     },
     {
       "id": "f029",
@@ -302,7 +330,8 @@
       "turns": [
         93
       ],
-      "note": ""
+      "note": "",
+      "importance": "essential"
     },
     {
       "id": "f030",
@@ -312,7 +341,8 @@
       "turns": [
         117
       ],
-      "note": ""
+      "note": "",
+      "importance": "essential"
     },
     {
       "id": "f031",
@@ -322,7 +352,8 @@
       "turns": [
         99
       ],
-      "note": ""
+      "note": "",
+      "importance": "essential"
     }
   ]
 }
