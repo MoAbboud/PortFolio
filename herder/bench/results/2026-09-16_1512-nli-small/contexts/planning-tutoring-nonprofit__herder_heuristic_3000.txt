@@ -1,0 +1,30 @@
+## Project
+- [constraint] No online sessions for the pilot.
+- [constraint] Non-negotiable: sessions only happen in public places, never in anyone's home.
+- [constraint] Open item: we need to agree who is the safeguarding lead.
+- [constraint] No tutor sits down with a student until their background check is cleared - no exceptions. Previously: Every tutor must pass a background check before working with students.
+- [constraint] Tutoring is always free to families - no fees, no suggested donations.
+- [decision] Okay, that's decided: students sign up through their school, not directly.
+- [decision] Going with this: the pilot runs for one school term before we expand.
+- [decision] After mulling it over: we'll register as a charitable incorporated organisation.
+- [decision] Let's park it for now.
+- [decision] I'm lowering the group size from earlier - at most three students per tutor, five was too many to actually help anyone. Previously: Okay, that's decided: each tutor works with at most three students at a time.
+- [decision] Change to the session days I gave you before: it's Tuesday and Thursday evenings, the library is booked on Mondays. Previously: Going with this: sessions are on Monday and Wednesday evenings.
+- [fact] Our first grant application is to the Riverside Community Fund.
+- [fact] Some background: there are currently nine volunteer tutors signed up.
+- [fact] Two of the founders are retired teachers.
+- [fact] Transport for students who live far from the library is still unsolved.
+## Session (most recent)
+- [open_thread] Not yet - maths and reading only for the pilot term, science can come later.
+- [open_thread] Assume I haven't read much about it.
+- [open_thread] Open item: we haven't decided how to measure whether students are improving.
+- [tail] user: Open item: we haven't decided how to measure whether students are improving.
+  assistant: Noted - I'll keep that in mind. I'd be cautious about letting the grant application and the volunteer rota depend on each other more than they need to. There's an argument for home visits, but it usually pays off only at a much larger scale than this. Some people in a similar position reach for exam-cram workshops, although it brings its own maintenance burden.
+  user: Families never pay anything, not even a suggested donation.
+  assistant: Got it. Keeping notes on why student progress ended up the way it did will save time the next time someone questions it. Whatever you choose for session plans, it's worth a quick check of how it interacts with the school referrals before moving on. Some people in a similar position reach for a summer camp, although it brings its own maintenance burden. It can help to separate what session plans must do from what would merely be nice, and treat student progress the same way.
+  user: Can you walk me through how the pilot term relates to the library room? I want to get this right before it's harder to change.
+  assistant: The detail that most often gets forgotten with student progress is who is responsible when it goes wrong. A useful question is what happens to session plans on the worst day of the year, not an ordinary one. Some people in a similar position reach for a sponsorship programme, although it brings its own maintenance burden. I've seen paid tutors suggested for this kind of problem, mainly because it looks tidy on a diagram. You might also consider how session plans would look to someone new, since they'll judge it without the history. When you think about the grant application, the main trade-off is usually between how simple it is to run and how much it can grow later. People often underestimate how long safeguarding takes the first time, especially when the school referrals is involved. Keeping notes on why session plans ended up the way it did will save time the next time someone questions it.
+  user: Change to the session days I gave you before: it's Tuesday and Thursday evenings, the library is booked on Mondays.
+  assistant: Understood. You might also consider how the school referrals would look to someone new, since they'll judge it without the history. In practice the school referrals tends to expose any vagueness left in the charity registration, which is useful if you catch it early. There's an argument for exam-cram workshops, but it usually pays off only at a much larger scale than this. The order you tackle the charity registration and the background checks in matters less than keeping each change small enough to undo. Keeping notes on why the background checks ended up the way it did will save time the next time someone questions it.
+  user: Is there anything about the grant application I'm likely to overlook? Especially for a setup this size.
+  assistant: I'd be cautious about letting safeguarding and session plans depend on each other more than they need to. The detail that most often gets forgotten with the charity registration is who is responsible when it goes wrong. Some people in a similar position reach for a sponsorship programme, although it brings its own maintenance burden. You might also consider how the library room would look to someone new, since they'll judge it without the history. The order you tackle the school referrals and the charity registration in matters less than keeping each change small enough to undo.

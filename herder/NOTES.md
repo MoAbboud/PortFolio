@@ -1261,3 +1261,54 @@ batching, thread scheduling - not sampling. The honest reading:
   2 of 40 to 0 and the retirement is visible in the database; attempt 5 unblocked 8 named sentences and
   recovered specific facts. Attempt 3 (+59 facts) is far outside the floor.
 - Any future attempt claiming less than about 5 facts of improvement needs repeated runs, not one.
+
+### Choosing the NLI checkpoint: a labelled pair set, and a swap that did not earn its place
+
+The merge step's verdicts come from an NLI cross-encoder, and stage 10 measured two failures it makes
+on real conversations: a correction read as neutral against the claim it replaces, and two compatible
+sentences read as a contradiction. Both are properties of the checkpoint, so the checkpoint is worth
+choosing rather than inheriting.
+
+`bench/nli_pairs.json` holds 30 labelled pairs in eight shapes, and the split matters: **20 written
+pairs, hand-made for the file, are the only ones a model may be chosen on**, and 10 observed pairs -
+the real failures from benchmark runs - are scored separately, because choosing on those would be
+selecting on the test set. `python -m bench.nli_compare` scores a checkpoint through herder's own merge
+rules, so a number is the verdict herder would reach rather than a raw label.
+
+| Checkpoint | written | observed | s/pair | Outcome |
+| --- | --- | --- | --- | --- |
+| `cross-encoder/nli-deberta-v3-base` (current) | 15/20 | 7/10 | 0.27 | kept |
+| `cross-encoder/nli-deberta-v3-small` | 17/20 | 7/10 | 0.13 | **tried and rejected - see below** |
+| `MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli` | 18/20 | 7/10 | 1.48 | 5x slower; ANLI puts a non-commercial claim on the weights. Reference only |
+| `MoritzLaurer/deberta-v3-base-zeroshot-v2.0-c` | refused | - | - | **binary head** - cannot express contradiction, so it cannot produce `supersede` |
+| `tals/albert-base-vitaminc-mnli` | 9/20 | 4/10 | 0.16 | revision-trained, wrong on reversals here |
+| `tals/albert-xlarge-vitaminc-mnli` | 12/20 | 4/10 | 2.56 | same |
+
+**The pair set is a proxy, so the winner went to the benchmark** (`2026-09-16_1512-nli-small`, herder
+only, 6 minutes). Recall 153 of 221 at 3,000 against 156 - inside the +/- 4 noise floor, so no signal
+there. The supersedes are where the answer was, and the swap **fixed one bad merge, lost one good one,
+and created a new one**:
+
+- fixed: "the on-call rota for urgent tickets is weekly, changing on Mondays" is no longer retired by
+  the older "the rota changes on Fridays";
+- lost: "sessions are on Monday and Wednesday evenings" is **no longer** retired by the correction that
+  moves them to Tuesday and Thursday, so the stale entry survives;
+- new: "the article focuses on the years 1956 to 1980" retired by "the piece is written for general
+  readers" - two unrelated claims.
+
+**Kept the current checkpoint.** Two fewer errors on twenty hand-written pairs did not survive contact
+with real conversations, which is the whole reason the pair set is a proxy and the benchmark is the
+test. Recorded as a dead end rather than deleted.
+
+**Two things the comparison changed anyway.** Fact-verification checkpoints label their head
+`supports` / `refutes` / `not enough info`; `LABEL_ALIASES` in `core/nli.py` now maps those three names
+explicitly onto entailment / contradiction / neutral, and anything outside the table is still refused -
+without it the entire family trained on *revised claims* is unusable. And `HERDER_NLI_MODEL` is now a
+Compose variable for api and worker, so the checkpoint is deployment configuration rather than a
+constant.
+
+**What the comparison says about training.** The VitaminC checkpoints score 6/6 on compatible pairs and
+3/3 on open-item-about-a-claim - the two shapes every general NLI model fails - and then call a plain
+reversal neutral, because they are trained on document evidence against a claim rather than on two
+short sentences. So the data may be the right material and the checkpoints are not the right models:
+a fine-tune on VitaminC plus WANLI, from a clean-licence checkpoint, is the next thing worth measuring.

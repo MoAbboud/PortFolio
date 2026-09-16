@@ -29,6 +29,22 @@ log = logging.getLogger("herder.nli")
 
 EXPECTED_LABELS = {CONTRADICTION, ENTAILMENT, NEUTRAL}
 
+# Fact-verification checkpoints (the FEVER and VitaminC line) use the same three distinctions under
+# different names. The mapping is written out rather than guessed at, and anything not in this table
+# is still refused: "supports" means the evidence entails the claim, "refutes" means it contradicts
+# it, and "not enough info" is neutral. Added at stage 10 while comparing checkpoints, because the
+# revision-trained models - the ones built on claims that change, which is this project's hardest
+# merge case - all ship these names.
+LABEL_ALIASES = {
+    "supports": ENTAILMENT,
+    "support": ENTAILMENT,
+    "refutes": CONTRADICTION,
+    "refute": CONTRADICTION,
+    "not enough info": NEUTRAL,
+    "not_enough_info": NEUTRAL,
+    "nei": NEUTRAL,
+}
+
 
 class NliUnavailable(RuntimeError):
     """The model cannot be loaded or does not look like an NLI model."""
@@ -82,10 +98,12 @@ class CrossEncoderNli:
             )
 
         labels = {int(k): str(v).strip().lower() for k, v in raw.items()}
+        labels = {index: LABEL_ALIASES.get(name, name) for index, name in labels.items()}
         if set(labels.values()) != EXPECTED_LABELS:
             raise NliUnavailable(
                 f"{sorted(labels.values())} does not look like an NLI head. Expected exactly "
-                f"{sorted(EXPECTED_LABELS)}."
+                f"{sorted(EXPECTED_LABELS)}, or the fact-verification names "
+                f"{sorted(LABEL_ALIASES)}."
             )
         return labels
 

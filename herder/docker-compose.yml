@@ -30,6 +30,9 @@ services:
       DATABASE_URL: postgresql+asyncpg://herder:herder@db:5432/herder
       HERDER_EXTRACTOR: ${HERDER_EXTRACTOR:-heuristic}
       HERDER_MODEL_DIR: /models
+      # The merge step's NLI checkpoint. Compared on labelled pairs in bench/nli_pairs.json
+      # (python -m bench.nli_compare); a checkpoint whose head is not three-label is refused.
+      HERDER_NLI_MODEL: ${HERDER_NLI_MODEL:-cross-encoder/nli-deberta-v3-base}
       # Ollama runs on the host, not in this container. Without this the container looks
       # for it at its own localhost and finds nothing.
       HERDER_OLLAMA_URL: ${HERDER_OLLAMA_URL:-http://host.docker.internal:11434}
@@ -55,6 +58,9 @@ services:
       DATABASE_URL: postgresql+asyncpg://herder:herder@db:5432/herder
       HERDER_EXTRACTOR: ${HERDER_EXTRACTOR:-heuristic}
       HERDER_MODEL_DIR: /models
+      # The merge step's NLI checkpoint. Compared on labelled pairs in bench/nli_pairs.json
+      # (python -m bench.nli_compare); a checkpoint whose head is not three-label is refused.
+      HERDER_NLI_MODEL: ${HERDER_NLI_MODEL:-cross-encoder/nli-deberta-v3-base}
       HERDER_OLLAMA_URL: ${HERDER_OLLAMA_URL:-http://host.docker.internal:11434}
     extra_hosts:
       - "host.docker.internal:host-gateway"

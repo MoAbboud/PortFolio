@@ -1,0 +1,21 @@
+## Stable
+- [preference] Also, please be blunt about risks, I'd rather hear them now.
+- [preference] Small thing about how I work: I prefer plain spreadsheets to specialised planning software.
+## Project
+- [constraint] No franchising.
+- [constraint] One firm rule: the lease must include a break clause no later than year three.
+- [constraint] Nobody on the team is paid below the real Living Wage, trainees included - that's non-negotiable.
+- [constraint] We will not take on outside investors - the business stays fully owned by me and my sister.
+- [constraint] No investors, whatever the plan ends up costing.
+- [decision] Okay, that's decided: the second location opens in the Eastgate neighbourhood.
+- [decision] Okay, that's decided: we're hiring a dedicated manager for the new café rather than splitting my time.
+- [decision] Going with this: it's a café only - all roasting stays at the original site.
+- [decision] Revising the fit-out budget from what I said earlier: it's capped at £85,000 now, the bank won't lend more without investors.
+- [decision] The June opening is off - builders can't start until spring, so the target is September.
+- [decision] Let's park it for now.
+- [fact] We're planning a second location and I want to think through the plan with you, including the numbers.
+- [fact] Not the city centre - the rents would eat the margin and Eastgate is where our regulars already come from.
+- [fact] After mulling it over: the fit-out budget is capped at £85,000.
+- [fact] The original café is on Mill Street and has been open for six years.
+## Session (most recent)
+- [tail] assistant: Some people in a similar position reach for a wholesale push to restaurants, although it brings its own maintenance burden. The order you tackle the roasting schedule and Saturday trade in matters less than keeping each change small enough to undo. It can help to separate what the espresso machine must do from what would merely be nice, and treat the bank loan the same way. People often underestimate how long staffing costs takes the first time, especially when the new manager is involved. A small trial of the bank loan before the full version often shows problems that planning alone misses.
