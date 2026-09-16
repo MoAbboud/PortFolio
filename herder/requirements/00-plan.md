@@ -22,7 +22,17 @@ Finished, for the purpose of this project, when four things are true:
 3. The README carries the compression ratio and the integrity score produced by the harness
    in this repository, beside the same numbers for a plain summary and for tail truncation,
    including the runs where herder did not win.
-4. It is hosted somewhere with a link that can go on an application.
+4. The README stands on its own: a reader who never runs it understands the problem, the
+   method, the numbers and the limitations.
+
+**Hosting is no longer one of herder's four conditions.** The author decided to host the whole
+`PortFol` repository rather than this app alone, so a public link is a portfolio-level task with
+its own shape - one server, several apps, shared decisions about domains and what a visitor may
+do. Deploying herder by itself would settle those questions in the wrong place. Stage 11 is
+therefore split: **the README is required and stage 11 keeps it; hosting becomes optional here**
+and is carried by the portfolio. What was written about it - pgvector narrowing the free tiers,
+a quantised model fitting none of them, the likely read-only demo - still applies wherever it
+lands, and none of it is deleted.
 
 There are no dates in this plan. Stages are ordered by what each one needs from the one
 before it.
@@ -50,7 +60,7 @@ flowchart LR
     S4 --> S5
     S7 --> S8
     S8 --> S9
-    S10 --> S11[11. Host it,<br/>write the README]
+    S10 --> S11[11. Write the README<br/>hosting optional]
     S11 --> S12[12. Browser<br/>extension]
     S11 --> S13[13. MCP door]
     S11 --> S14[14. Hardening,<br/>self-host]
@@ -69,7 +79,7 @@ flowchart LR
 | 8 | Minimal web UI | **The demo exists.** Adjuster with three columns, the brief, a checkpoint detail page, a lineage panel. Bare. No styling pass |
 | 9 | Corpus and baseline | Twenty synthetic conversations with hand-written ground-truth fact lists, a harness that runs `herder`, `naive_summary` and `truncate_tail` at the same budget, and **a recorded baseline** |
 | 10 | Iteration | At least three genuine attempts at improvement, each measured, each written down, including the ones that failed |
-| 11 | Host it, write the README | A public link, and a README with the problem, the diagram, the numbers, the dead ends and the limitations |
+| 11 | Write the README (hosting optional) | A README with the problem, the diagram, the numbers, the dead ends and the limitations. **The public link moved to the portfolio**, which is hosted as one thing; hosting herder alone is optional and is kept below as guidance for whoever does it |
 | 12 | Browser extension | Optional. ChatGPT and Claude adapters with DOM fixture tests, the observer, batching and retry, the popup, and the `in_chat` checkpoint |
 | 13 | MCP door | Optional. Six tools over the API that already exists |
 | 14 | Hardening and self-host | Optional. Export, delete, rate limits, `/metrics`, and the self-host document |
@@ -207,7 +217,7 @@ layers earn their keep at all.
 | Are six probes enough to be a number | Stage 6 | Six probes gives a score with a granularity of about 0.08. That may be too coarse to detect the improvements stage 10 is looking for, and more probes mean a longer checkpoint |
 | Compound or per-probe for in-chat checkpoints | Stage 12 | One numbered message is less noise in the user's chat; separate messages grade more cleanly. Default is compound |
 | Should the default project be per workspace or per vendor | Stage 1 | Per workspace is the current answer. Per vendor would auto-separate work that happens to be split across tools, which may be right or may be exactly wrong |
-| Where does it host, and what runs there | Stage 11 | Part of the deliverable, so not optional, and harder than it was. A container plus a hosted PostgreSQL **with pgvector** is already a smaller set of free tiers than plain PostgreSQL; a quantised model of several gigabytes fits none of them, exactly as `fallacysuspect`'s 255 MB DistilBERT does not fit a 512 MB tier. The likely answer is that the hosted demo runs the `heuristic` extractor over pre-derived data, or does no derivation at all and is read-only |
+| Where does it host, and what runs there | **Portfolio, not stage 11** | **No longer herder's question**: the whole repository is hosted as one thing, so this is answered once for every app rather than here. The constraints still hold wherever it lands, and they are harder than they were. A container plus a hosted PostgreSQL **with pgvector** is already a smaller set of free tiers than plain PostgreSQL; a quantised model of several gigabytes fits none of them, exactly as `fallacysuspect`'s 255 MB DistilBERT does not fit a 512 MB tier. The likely answer is that the hosted demo runs the `heuristic` extractor over pre-derived data, or does no derivation at all and is read-only |
 | What is a visitor to the hosted demo allowed to do | Stage 11 | The reason changed but the answer probably did not. It is no longer that a paste box spends tokens; it is that a free tier has neither the memory to hold a quantised model nor the CPU to run a derive while anyone waits. Likely a read-only demo over a pre-derived project, with the paste box disabled or served by the `heuristic` extractor |
 | Does export and delete have to exist before hosting | Stage 11 | If the hosted demo is read-only and single-account, nobody else's data is at risk and stage 14 can carry them. If visitors can create accounts, they are required before the link goes anywhere |
 | Product name and domain | Stage 11 | herder is the working name |

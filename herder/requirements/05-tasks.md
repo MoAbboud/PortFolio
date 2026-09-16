@@ -15,7 +15,7 @@ Wrong claims: 0.00, against the summary's 0.09.** The baseline before stage 10 w
 **The instrument's limit, measured:** two runs of the same code differ on about 3.4% of verdicts
 (18 of 522) even on byte-identical briefs, so the noise floor is roughly +/- 4 facts.
 
-**Stage 11 - hosting and the README - is the remaining deliverable.** Stage 10's open candidates are the
+**Stage 11 is now the README alone - hosting moved to the portfolio, which is hosted as one thing.** Stage 10's open candidates are the
 500-token budget (the render ordering) and the bad merges recorded in `NOTES.md`.
 
 Stages are ordered by dependency, not by calendar. **Each one ends in something that runs and
@@ -560,16 +560,23 @@ first baseline, a new generator rather than stage 4's, and to write every fact h
 - [ ] One change at a time. The count reported beside every percentage
 - [ ] The dead ends kept and written up
 
-## Stage 11 - Host it, write the README
+## Stage 11 - Write the README (hosting optional)
 
-- [ ] A host with PostgreSQL **and pgvector** - a smaller set of free tiers than plain
-      PostgreSQL, and the thing to check first
-- [ ] The demo seeded. A link that opens on an empty project demonstrates nothing
-- [ ] What a visitor may do, decided and enforced. Not because a paste box spends money any
-      more, but because a free tier cannot hold the model or spare the CPU
+**The author decided to host the whole `PortFol` repository as one thing, not this app on its
+own**, so the public link is a portfolio-level task and the hosting half of this stage is now
+optional here. The README is not: it is what a reader who never runs herder actually reads, and
+it is the only place the numbers, the dead ends and the caveats are stated together.
+
 - [ ] README: the problem, the architecture diagram, the numbers beside `naive_summary` and
       `truncate_tail`, the dead ends, the limitations, and the circular-measurement caveat
       stated plainly
+- [ ] The measured limits of the instrument in the README too: the reader disagrees with itself
+      on about 3.4% of verdicts between runs, so differences of a fact or two are not findings
+- [ ] Optional, and only when the portfolio is hosted: a host with PostgreSQL **and pgvector** -
+      a smaller set of free tiers than plain PostgreSQL, and the thing to check first
+- [ ] Optional: the demo seeded. A link that opens on an empty project demonstrates nothing
+- [ ] Optional: what a visitor may do, decided and enforced. Not because a paste box spends money
+      any more, but because a free tier cannot hold the model or spare the CPU
 
 ## Stage 12 - Browser extension (optional)
 
