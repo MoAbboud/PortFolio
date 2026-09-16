@@ -560,9 +560,12 @@ first baseline, a new generator rather than stage 4's, and to write every fact h
       own pairs weighted to 9%, one epoch. Fixed three real bad merges and lost three real
       reversals; wrong claims still 1. **Not adopted.** Across both runs, fine-tuning moved the
       model's operating point rather than improving its judgement - see `NOTES.md`
-- [ ] The `open_thread` rule in the merge step: an unfinished item never supersedes an entry of
-      another kind. The one real win v2 produced, available deterministically. **A merge-verdict
-      decision - his to make before it is built**
+- [!] ~~The `open_thread` rule in the merge step~~ - **checked and not worth building as proposed.**
+      Across all 56 benchmark projects, 0 of 101 supersedes came from an `open_thread` candidate: the
+      laptops item it was meant to fix is extracted as a `fact` ("Something unresolved - two laptops
+      are still waiting..." matches no open-thread cue, and "unresolved" cannot become one - it is a
+      benchmark generator lead-in the attempt 3 test forbids). Fixing that case would take a cue change
+      plus the rule, for about one fact, inside the noise floor. Recorded in `NOTES.md`
 - [ ] Candidates in cost order: render ordering, tail reserve size, similarity threshold,
       chunk size, the extraction prompt, a larger quantisation, and whether the layer split
       earns its keep

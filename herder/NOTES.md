@@ -1399,6 +1399,14 @@ real ones ("we are using the annexe, not the boardroom") need an inference step 
 **Kept the base checkpoint.** Both trained models stay on disk (`models/nli-herder-v1/`, `-v2/`).
 
 **What this points at instead.** v2's one clean real-world win - the laptops open item no longer
-retiring the fact - is available without a model: a rule that an `open_thread` candidate never
-supersedes an entry of another kind, proposed on 2026-09-16 and not yet built because it is a
-merge-verdict decision. Deterministic, testable, and explainable in an interview in one sentence.
+retiring the fact - looked available without a model: a rule that an `open_thread` candidate never
+supersedes an entry of another kind.
+
+**Correction, checked before building it: the rule would change nothing.** Across all 56 benchmark
+projects in the database, **0 of 101 supersedes** came from an `open_thread` candidate. The laptops
+sentence - "Something unresolved - two laptops are still waiting for their Windows 11 upgrade." - is
+extracted as a **`fact`** by the plain-statement rule, because neither "unresolved" nor "still waiting"
+is an open-thread cue. And "unresolved" cannot become one: "Something unresolved -" is one of the
+benchmark generator's lead-ins, which the attempt 3 test forbids the rules to key on. So the case needs
+an extraction change *and* the merge rule, to recover about one fact - inside the +/- 4 noise floor. Not
+built. The lesson is the method one: query the thing a rule is supposed to fix before writing the rule.
