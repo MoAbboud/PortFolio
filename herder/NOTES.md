@@ -1312,3 +1312,42 @@ constant.
 reversal neutral, because they are trained on document evidence against a claim rather than on two
 short sentences. So the data may be the right material and the checkpoints are not the right models:
 a fine-tune on VitaminC plus WANLI, from a clean-licence checkpoint, is the next thing worth measuring.
+
+### The trained merge model: better where it was aimed, and it lost a reversal
+
+`training/nli/train_nli.ipynb` fine-tuned `cross-encoder/nli-deberta-v3-base` on 90,328 pairs -
+VitaminC claim-versus-claim contradictions, WANLI, and 400 hand-written pairs - on a free T4. Weights at
+`models/nli-herder-v1/` (738 MB), label order preserved.
+
+**On the labelled pairs it did what it was built to do.**
+
+| | written | observed | compatible | open_item | unrelated | reversal plain | reversal lead-in | refinement |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| base | 15/20 | 7/10 | 2/6 | 1/3 | 1/2 | 4/4 | 6/6 | 3/3 |
+| trained | **18/20** | 6/10 | **5/6** | **2/3** | **2/2** | 3/4 | 5/6 | 2/3 |
+
+**On the benchmark it did not** (`2026-09-16_1908-nli-trained`, herder only, against
+`2026-09-15_1718-answer-exclusion-fix`): recall 153 of 221 against 156 - inside the noise floor - and
+**wrong claims 0 of 40 -> 1 of 40**, which is the number this project cares about most.
+
+The supersedes say exactly what happened. The trained model made 11 where the base made 14:
+
+- **fixed:** "No evening opening." is no longer retired by "Opening hours will be 7am to 4pm" - the
+  false contradiction it was trained to stop; and the NAS schedule entry survives "Let's not run it
+  hourly after all", the partial-change over-reach from attempt 4;
+- **still wrong:** the laptops open item still retires "all staff laptops run Windows 11 Pro";
+- **lost:** "Forget the 10,000 words I mentioned before - the magazine's limit is 7,500" no longer
+  retires "the article will be about 10,000 words", so a claim the user reversed is served as settled.
+  That single miss is the wrong claim.
+
+Verdict counts: 8 better, 12 worse, 1 neither. **Kept the base checkpoint**; the trained one stays on
+disk and is recorded here.
+
+**Why it lost the reversals, and it is a flaw in the training data rather than in the method.** The
+hand-written `changed` pairs are plain ("The parts store opens at nine in the morning now."), and the
+VitaminC claim pairs are plain claims from Wikipedia. **Nothing in 90,328 pairs looks like "Forget the
+10,000 words I mentioned before - the limit is 7,500": a lead-in clause that announces a change and
+then states it.** The model was taught the two failures it was aimed at and, with no examples of the
+shape it used to get right, drifted on it. The fix for a second attempt is concrete: generate reversal
+pairs *with* announcing lead-ins, and keep a share of the training set on the shapes the base model
+already handles, so an improvement cannot quietly cost one.

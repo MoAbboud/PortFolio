@@ -551,6 +551,11 @@ first baseline, a new generator rather than stage 4's, and to write every fact h
       byte-identical contexts between two runs of the same code. Noise floor about +/- 4 facts, so
       attempts 4 and 5 are inside it on recall and rest on their mechanisms instead. Any future
       attempt claiming less than ~5 facts needs repeated runs
+- [x] A trained merge model, first attempt (`training/`, `2026-09-16_1908-nli-trained`): fine-tuned
+      on VitaminC claim pairs + WANLI + 400 hand-written pairs. **18/20 on the labelled pairs against
+      the base model's 15/20** and it fixed two real bad merges, but it lost the "Forget the 10,000
+      words" reversal and served a stale claim, so **the base checkpoint was kept**. Cause found: no
+      training pair has a lead-in clause announcing a change. Second attempt is specified in `NOTES.md`
 - [ ] Candidates in cost order: render ordering, tail reserve size, similarity threshold,
       chunk size, the extraction prompt, a larger quantisation, and whether the layer split
       earns its keep
