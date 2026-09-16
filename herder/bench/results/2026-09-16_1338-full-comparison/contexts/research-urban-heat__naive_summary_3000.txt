@@ -1,0 +1,126 @@
+Based on the conversation, here are the key points and decisions the user should keep in mind for structuring their literature review chapter on urban heat islands, focusing on how street trees change surface temperatures:
+
+### Structuring the Chapter:
+1. **Reference Cap:**
+   - **Start Date:** 2005.
+   - **Focus:** Studies published from 2010 onwards.
+   - **Note:** The user prefers Harvard referencing style.
+
+2. **Ground Stations:**
+   - **Approach:** Short and practical.
+   - **Note:** The user should check the logger data before next week, as it could become a bottleneck once the shading section is under pressure.
+
+3. **Shading Section:**
+   - **Approach:** Keep it simple and small enough to undo.
+   - **Note:** The user should check how the shading section interacts with the Valencia case before moving on.
+
+4. **Valencia Case:**
+   - **Approach:** Keep it separate from other sections.
+   - **Note:** The user should check how the Valencia case interacts with the logger data before moving on.
+
+5. **Evapotranspiration:**
+   - **Approach:** Keep it separate from other sections.
+   - **Note:** The user should check how evapotranspiration interacts with the reference cap before moving on.
+
+6. **Satellite Studies:**
+   - **Approach:** Keep them separate from other sections.
+   - **Note:** The user should check how the satellite studies interact with the Valencia case before moving on.
+
+7. **Canopy Cover:**
+   - **Approach:** Keep it separate from other sections.
+   - **Note:** The user should check how canopy cover interacts with the reference cap before moving on.
+
+8. **Air Temperature:**
+   - **Approach:** Keep it separate from other sections.
+   - **Note:** The user should check how air temperature interacts with the Valencia case before moving on.
+
+9. **White Papers:**
+   - **Decision:** Not to include, as they are grey literature and stay out of the review.
+
+10. **Literature Review Protocol:**
+    - **Decision:** Not to use, as it looks tidy on a diagram but doesn't match the user's setup.
+
+### Practical Steps:
+- **Sketch Flow Diagrams:** Sketch the flow from one section to another on paper before committing to anything.
+- **Keep Notes:** Write down what "done" means for each section to avoid drift.
+- **Interviews with Planners:** Consider including interviews with planners, as they often come up in articles but rarely match the user's setup.
+- **Meta-Analysis:** Avoid using a meta-analysis, as it brings its own maintenance burden and isn't relevant to the user's scope.
+
+### Final Notes:
+- **Harvard Referencing:** The user will use Harvard referencing style for their thesis.
+- **Dr. Okafor:** The thesis is due in May, and the case-study city is Valencia.
+
+By keeping these points in mind, the user can maintain a structured and focused literature review chapter on urban heat islands, ensuring all sections are properly integrated and understood.
+
+Given the context so far, there are a few key points to consider regarding surface temperature:
+
+1. **Chronological Structure**: Since your chapter is organized by cooling mechanisms (shading, evapotranspiration, then albedo), it might be beneficial to maintain a similar structure for surface temperature. This can help readers follow the progression of your analysis and ensure consistency in how you present the data.
+
+2. **Interaction with Other Sections**: Surface temperature should be checked for how it interacts with other sections like shading, evapotranspiration, and albedo. This interaction is crucial because surface temperature can influence the decisions made in other sections, and vice versa. Ensuring these interactions are clear and well-documented will help maintain the integrity of your analysis.
+
+3. **Vagueness and Trade-offs**: Surface temperature often exposes any vagueness left in other sections. It's important to document why surface temperature ended up the way it did, as this can save time in future revisions. Additionally, consider the trade-offs involved in running surface temperature, such as the simplicity of the model versus its potential for growth and complexity.
+
+4. **Responsibility and Maintenance**: As mentioned earlier, it's important to note who is responsible for any issues that arise with surface temperature. This can help in identifying potential bottlenecks or areas that might need more attention.
+
+5. **Maintenance Burden**: Remote sensing of albedo can be a maintenance-heavy process. If you decide to include it, ensure that you understand its implications and how it fits into your overall analysis.
+
+6. **Ground Stations**: Since you've already noted the importance of the ground stations, it's worth reinforcing their role in your analysis. Ground stations are often the primary source of data for surface temperature, and understanding their performance and limitations is crucial.
+
+7. **Evapotranspiration**: Since evapotranspiration tends to shape the decisions around surface temperature, it's important to ensure that your analysis of surface temperature is well-integrated with your work on evapotranspiration. This integration can help clarify the overall impact of surface temperature on your analysis.
+
+8. **Chronological vs. Mechanistic**: Given that your chapter is organized by cooling mechanisms, it might be more intuitive to maintain this structure for surface temperature as well. This can help readers follow the logical progression of your analysis and ensure that each section is presented in a way that supports the overall narrative.
+
+By keeping these points in mind, you can ensure that your surface temperature analysis is thorough, well-integrated with other sections, and clearly documented. This will help maintain the integrity of your analysis and make it easier to review and revise.
+
+A sensible first step on air temperature would be to conduct a small trial before committing to a full version. This trial can help identify any potential issues or problems that might arise, allowing you to address them early on and prevent them from becoming significant later. Additionally, you could sketch the flow from surface temperature to air temperature on paper before making a final decision. This visual representation can help clarify the process and ensure that each step is understood and accounted for. 
+
+Given your constraint of having a reference list capped at 60, you might also consider how the Valencia case interacts with air temperature. Understanding how the Valencia case influences air temperature can provide valuable context and help you make informed decisions about the direction of your analysis. 
+
+Lastly, you should write down what "done" means for the reference cap, so that the ground stations do not drift while you are busy elsewhere. This will help maintain consistency and clarity throughout your work.
+
+The conversation highlights several key points and areas of focus for the user's work, particularly concerning the structure and approach to different sections of the document. Here's a summary of the main points and areas of concern:
+
+1. **Ground Stations and Surface Temperature**:
+   - The user is still unsure about how to handle the ground stations section. The assistant suggests looking at surface temperature first, as it tends to shape decisions around the reference cap.
+   - The assistant recommends keeping notes on why the logger data ended up the way it did, as this will save time for future reference.
+
+2. **Evapotranspiration**:
+   - The user is still undecided on how to handle evapotranspiration. The assistant recommends separating what must be done from what would merely be nice, and treating evapotranspiration the same way.
+   - The assistant suggests looking at surface temperature first, as it tends to expose any vagueness left in evapotranspiration.
+
+3. **Shading Section and Surface Temperature**:
+   - The user needs to decide whether the green roofs section should be in the current chapter or the next one. The assistant recommends keeping each change small enough to undo and looking at surface temperature first, as it tends to expose any vagueness left in the shading section.
+
+4. **Logger Data**:
+   - The user needs to decide how to handle the logger data. The assistant recommends looking at surface temperature first, as it tends to shape decisions around the reference cap.
+   - The assistant suggests keeping notes on why the satellite studies ended up the way it did, as this will save time for future reference.
+
+5. **Canopy Cover and Shading Section**:
+   - The user needs to decide whether canopy cover and the shading section should be handled together or separately. The assistant recommends keeping each change small enough to undo and looking at surface temperature first, as it tends to expose any vagueness left in the shading section.
+
+6. **Satellite Studies**:
+   - The user needs to decide how to handle satellite studies. The assistant recommends looking at surface temperature first, as it tends to expose any vagueness left in the satellite studies.
+
+7. **Evapotranspiration and Surface Temperature**:
+   - The assistant recommends looking at surface temperature first, as it tends to expose any vagueness left in evapotranspiration.
+
+8. **Green Roofs**:
+   - The user needs to decide whether green roofs belong in the current chapter or the next one. The assistant recommends looking at surface temperature first, as it tends to shape decisions around the shading section.
+
+9. **Citation Style**:
+   - The user needs to ensure that the citation style is APA 7th, as the department requires it. The assistant suggests keeping notes on why the satellite studies ended up the way it did, as this will save time for future reference.
+
+10. **Air and Surface Temperature**:
+    - The user needs to ensure that any number appearing in the document is clear if it's air or surface temperature, as mixing them is a common mistake.
+
+In summary, the user needs to focus on the following areas:
+- Ground Stations and Surface Temperature: Decide how to handle the ground stations and ensure notes are kept on the logger data.
+- Evapotranspiration: Decide how to handle evapotranspiration and ensure notes are kept on the satellite studies.
+- Shading Section and Surface Temperature: Decide whether canopy cover and the shading section should be handled together or separately.
+- Logger Data: Decide how to handle the logger data and ensure notes are kept on the satellite studies.
+- Canopy Cover and Shading Section: Decide whether canopy cover and the shading section should be handled together or separately.
+- Satellite Studies: Decide how to handle satellite studies and ensure notes are kept on the satellite studies.
+- Evapotranspiration and Surface Temperature: Decide how to handle evapotranspiration and ensure notes are kept on the satellite studies.
+- Green Roofs: Decide whether green roofs belong in the current chapter or the next one.
+- Citation Style: Ensure the citation style is APA 7th.
+- Air and Surface Temperature: Ensure notes are kept on the logger data and ensure numbers are clear if they are air or surface temperature.

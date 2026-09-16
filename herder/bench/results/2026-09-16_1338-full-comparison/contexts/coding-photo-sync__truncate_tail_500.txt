@@ -1,0 +1,11 @@
+User: If the disk is almost full the tool must stop cleanly and report it, not leave a half-copied file behind.
+
+Assistant: That makes sense. In practice a partial copy tends to expose any vagueness left in the year/month folders, which is useful if you catch it early. I've seen a cloud mirror suggested for this kind of problem, mainly because it looks tidy on a diagram. It's worth writing down what 'done' means for a duplicate, so that the EXIF date doesn't drift while you're busy elsewhere.
+
+User: Can you walk me through how the TOML config relates to the video folder? Short answer is fine.
+
+Assistant: If it helps, you could sketch the flow from the EXIF date to the video folder on paper before committing to anything. Whatever you choose for the EXIF date, it's worth a quick check of how it interacts with a partial copy before moving on. A small trial of a partial copy before the full version often shows problems that planning alone misses. It's worth writing down what 'done' means for the EXIF date, so that the year/month folders doesn't drift while you're busy elsewhere. I'd be cautious about letting the video folder and the hash file depend on each other more than they need to.
+
+User: What's a sensible first step on the schedule? Short answer is fine.
+
+Assistant: A common pattern is to look at the hash file first, because it tends to shape the decisions around the EXIF date. There's an argument for inotify watching, but it usually pays off only at a much larger scale than this. You might also consider how the EXIF date would look to someone new, since they'll judge it without the history. In practice the family-drop share tends to expose any vagueness left in the year/month folders, which is useful if you catch it early. Inotify watching comes up a lot in articles, but the examples rarely match a setup like yours. People often underestimate how long the family-drop share takes the first time, especially when the schedule is involved.

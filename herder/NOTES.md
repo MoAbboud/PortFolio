@@ -1211,3 +1211,53 @@ entries competing for the same small brief) and 3 at 3,000 in photo-sync (f016, 
 stated) - not traced.
 
 Open threads at 500 are still 0.08 (2 of 24).
+
+### The full comparison, on the corrected key with the current code
+
+Run `2026-09-16_1338-full-comparison`, all four methods, both budgets, eight conversations, 62 minutes.
+Every number below comes from **one run**: same reader, same prompts, same answer key (221 true facts,
+40 false). This is the run the README's claim rests on - the previous all-methods run was the baseline,
+made before stage 10 with herder at 0.36.
+
+| Method | Context | Recall | Wrong claims | Contradicted | Compression |
+| --- | --- | --- | --- | --- | --- |
+| **herder @ 3000** | 1,214 tokens avg | **0.70 (154 of 221)** | **0.00 (0 of 40)** | 0.05 (10) | 9.1x |
+| naive_summary @ 3000 | 2,115 | 0.21 (41 of 195) | 0.09 (3 of 35) | 0.01 (2) | 5.2x |
+| truncate_tail @ 3000 | 2,967 | 0.31 (69 of 221) | 0.00 | 0.00 (1) | 3.7x |
+| **herder @ 500** | 486 | **0.45 (99 of 221)** | 0.00 | 0.04 (8) | 22.7x |
+| naive_summary @ 500 | 425 | 0.05 (10 of 195) | 0.00 | 0.01 (1) | 26.1x |
+| truncate_tail @ 500 | 438 | 0.07 (16 of 221) | 0.00 | 0.00 | 25.2x |
+| no_context | 0 | 0.00 | 0.00 | 0.00 | - |
+
+By tier at 3,000: herder **0.81 / 0.58 / 0.60** (essential / useful / incidental), naive_summary
+0.30 / 0.14 / 0.05, truncate_tail 0.31 / 0.34 / 0.24.
+
+**What can now be claimed from one run.** At a 3,000-token budget herder recalls **3.3x** what a plain
+summary does while using **57% of its tokens**, and 2.2x what raw recent text does using 41% of its
+tokens. At 500 tokens it recalls 6-9x either alternative. On the facts the author marked essential the
+gap is widest: 0.81 against 0.30 and 0.31. herder is the only method above 0.10 at the small budget.
+
+**What still cannot.** The project's own target was 0.85 at 20x; this is 0.70 at 9.1x, and 0.45 at 22.7x.
+`naive_summary` failed on `planning-coffee-roaster` again (a part timed out at 900 s), so its rates are
+over 7 conversations - 195 true facts, not 221. Its wrong-claim rate, 3 of 35, is the only non-zero one
+in the run: a summary carries reversed claims forward as settled, which is the failure herder's
+supersede path exists to prevent.
+
+### Correction: the reader is only deterministic under identical conditions
+
+The section above ("the reader is deterministic", 0 of 518 verdicts differing) was measured on two
+herder-only runs made minutes apart in one session. This run repeats that comparison across a machine
+restart, with the summariser interleaved on the same Ollama instance: **18 of 522 verdicts differ,
+3.4%**, on contexts that are byte-identical (all 16 checked). 5 moved toward the truth, 8 away, 5
+between wrong answers. Net effect on the headline: 156 -> 154 recalled at 3,000.
+
+Temperature is 0 and no sampling seed is set, so this is numeric variation - prompt-cache state,
+batching, thread scheduling - not sampling. The honest reading:
+
+- **The noise floor is about +/- 4 facts (0.02 recall) between runs**, not zero. Two runs made back to
+  back can agree exactly and still not prove determinism.
+- Attempt 4 (+2 facts) and attempt 5 (+4 facts) are **within** that floor on recall alone. Both are still
+  supported, but by their mechanisms rather than by the recall delta: attempt 4 took wrong claims from
+  2 of 40 to 0 and the retirement is visible in the database; attempt 5 unblocked 8 named sentences and
+  recovered specific facts. Attempt 3 (+59 facts) is far outside the floor.
+- Any future attempt claiming less than about 5 facts of improvement needs repeated runs, not one.

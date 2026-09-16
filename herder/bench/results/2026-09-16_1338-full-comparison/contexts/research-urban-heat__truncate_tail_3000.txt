@@ -1,0 +1,79 @@
+User: Final answer on that one: I'm using APA 7th edition for citations.
+
+Assistant: Clear, thanks. There's an argument for a bibliometric map, but it usually pays off only at a much larger scale than this. In practice the satellite studies tends to expose any vagueness left in evapotranspiration, which is useful if you catch it early. A small trial of surface temperature before the full version often shows problems that planning alone misses. It's worth writing down what 'done' means for evapotranspiration, so that surface temperature doesn't drift while you're busy elsewhere. People often underestimate how long air temperature takes the first time, especially when evapotranspiration is involved. You might also consider how the logger data would look to someone new, since they'll judge it without the history. Keeping notes on why surface temperature ended up the way it did will save time the next time someone questions it.
+
+User: Valencia's historic centre has very few street trees compared with the newer districts.
+
+Assistant: Okay, that's a sensible call. In practice the Valencia case tends to expose any vagueness left in surface temperature, which is useful if you catch it early. One risk I'd watch is that the shading section quietly becomes the bottleneck once the Valencia case is under real pressure. Some people in a similar position reach for a bibliometric map, although it brings its own maintenance burden. The detail that most often gets forgotten with the shading section is who is responsible when it goes wrong.
+
+User: Is there anything about the satellite studies I'm likely to overlook? Especially for a setup this size.
+
+Assistant: A useful question is what happens to the shading section on the worst day of the year, not an ordinary one. When you think about surface temperature, the main trade-off is usually between how simple it is to run and how much it can grow later. In practice air temperature tends to expose any vagueness left in the satellite studies, which is useful if you catch it early. If it helps, you could sketch the flow from air temperature to surface temperature on paper before committing to anything. It's worth writing down what 'done' means for the shading section, so that evapotranspiration doesn't drift while you're busy elsewhere.
+
+User: Context you might need: I've already collected 41 papers in Zotero.
+
+Assistant: That makes sense. I've seen remote sensing of albedo suggested for this kind of problem, mainly because it looks tidy on a diagram. A common pattern is to look at the ground stations first, because it tends to shape the decisions around the logger data. In practice canopy cover tends to expose any vagueness left in surface temperature, which is useful if you catch it early. There's an argument for water features, but it usually pays off only at a much larger scale than this.
+
+User: How do other people handle the logger data? I keep going back and forth on it.
+
+Assistant: It's worth writing down what 'done' means for evapotranspiration, so that the reference cap doesn't drift while you're busy elsewhere. I'd be cautious about letting surface temperature and the reference cap depend on each other more than they need to. I've seen water features suggested for this kind of problem, mainly because it looks tidy on a diagram. A small trial of the reference cap before the full version often shows problems that planning alone misses. In practice the reference cap tends to expose any vagueness left in canopy cover, which is useful if you catch it early. When you think about the shading section, the main trade-off is usually between how simple it is to run and how much it can grow later. The detail that most often gets forgotten with air temperature is who is responsible when it goes wrong. A common pattern is to look at the satellite studies first, because it tends to shape the decisions around the logger data.
+
+User: Reminder for myself and you: preprints and grey literature stay out of the main argument, peer-reviewed work only.
+
+Assistant: Good, that simplifies things. If it helps, you could sketch the flow from the shading section to evapotranspiration on paper before committing to anything. When you think about evapotranspiration, the main trade-off is usually between how simple it is to run and how much it can grow later. In practice the Valencia case tends to expose any vagueness left in air temperature, which is useful if you catch it early.
+
+User: What's a sensible first step on the reference cap? Short answer is fine.
+
+Assistant: One risk I'd watch is that the logger data quietly becomes the bottleneck once the Valencia case is under real pressure. You might also consider how the reference cap would look to someone new, since they'll judge it without the history. When you think about the ground stations, the main trade-off is usually between how simple it is to run and how much it can grow later. It's worth writing down what 'done' means for the logger data, so that surface temperature doesn't drift while you're busy elsewhere. Some people in a similar position reach for a systematic review protocol, although it brings its own maintenance burden. I've seen water features suggested for this kind of problem, mainly because it looks tidy on a diagram.
+
+User: The reference list for this chapter is capped at 60, that's firm.
+
+Assistant: That makes sense. If it helps, you could sketch the flow from the satellite studies to canopy cover on paper before committing to anything. It can help to separate what the Valencia case must do from what would merely be nice, and treat air temperature the same way. I've seen remote sensing of albedo suggested for this kind of problem, mainly because it looks tidy on a diagram. A common pattern is to look at the reference cap first, because it tends to shape the decisions around the shading section.
+
+User: What's a sensible first step on air temperature? I keep going back and forth on it.
+
+Assistant: You might also consider how evapotranspiration would look to someone new, since they'll judge it without the history. Keeping notes on why the logger data ended up the way it did will save time the next time someone questions it. A small trial of canopy cover before the full version often shows problems that planning alone misses. It can help to separate what evapotranspiration must do from what would merely be nice, and treat the shading section the same way. I've seen a bibliometric map suggested for this kind of problem, mainly because it looks tidy on a diagram. People often underestimate how long evapotranspiration takes the first time, especially when surface temperature is involved. When you think about the Valencia case, the main trade-off is usually between how simple it is to run and how much it can grow later. Some people in a similar position reach for a systematic review protocol, although it brings its own maintenance burden.
+
+User: What usually goes wrong with the ground stations? I keep going back and forth on it.
+
+Assistant: In practice the satellite studies tends to expose any vagueness left in air temperature, which is useful if you catch it early. There's an argument for remote sensing of albedo, but it usually pays off only at a much larger scale than this. When you think about the logger data, the main trade-off is usually between how simple it is to run and how much it can grow later. People often underestimate how long the satellite studies takes the first time, especially when surface temperature is involved. I'd be cautious about letting the shading section and surface temperature depend on each other more than they need to. I've seen interviews with planners suggested for this kind of problem, mainly because it looks tidy on a diagram. Remote sensing of albedo comes up a lot in articles, but the examples rarely match a setup like yours.
+
+User: Open item: the section on tree species differences is still unwritten.
+
+Assistant: Got it. Keeping notes on why surface temperature ended up the way it did will save time the next time someone questions it. Whatever you choose for the shading section, it's worth a quick check of how it interacts with the reference cap before moving on. The detail that most often gets forgotten with the shading section is who is responsible when it goes wrong.
+
+User: How would you approach evapotranspiration? I keep going back and forth on it.
+
+Assistant: It can help to separate what surface temperature must do from what would merely be nice, and treat evapotranspiration the same way. People often underestimate how long the reference cap takes the first time, especially when the shading section is involved. In practice evapotranspiration tends to expose any vagueness left in canopy cover, which is useful if you catch it early. The detail that most often gets forgotten with the logger data is who is responsible when it goes wrong. When you think about the shading section, the main trade-off is usually between how simple it is to run and how much it can grow later. Some people in a similar position reach for cool pavements, although it brings its own maintenance burden. Remote sensing of albedo comes up a lot in articles, but the examples rarely match a setup like yours. There's an argument for a chronological structure, but it usually pays off only at a much larger scale than this.
+
+User: I haven't settled how to handle studies that only report percentages rather than degrees. Let's park it for now.
+
+Assistant: Understood. A common pattern is to look at the logger data first, because it tends to shape the decisions around the Valencia case. I've seen a systematic review protocol suggested for this kind of problem, mainly because it looks tidy on a diagram. In practice the satellite studies tends to expose any vagueness left in the logger data, which is useful if you catch it early.
+
+User: Any thoughts on the satellite studies given everything so far? I keep going back and forth on it.
+
+Assistant: I'd be cautious about letting the reference cap and air temperature depend on each other more than they need to. You might also consider how evapotranspiration would look to someone new, since they'll judge it without the history. If it helps, you could sketch the flow from air temperature to surface temperature on paper before committing to anything. The detail that most often gets forgotten with the reference cap is who is responsible when it goes wrong. A useful question is what happens to the Valencia case on the worst day of the year, not an ordinary one. A small trial of the Valencia case before the full version often shows problems that planning alone misses. The order you tackle the satellite studies and evapotranspiration in matters less than keeping each change small enough to undo.
+
+User: What should I check about the logger data before next week? I keep going back and forth on it.
+
+Assistant: A systematic review protocol comes up a lot in articles, but the examples rarely match a setup like yours. A useful question is what happens to the satellite studies on the worst day of the year, not an ordinary one. People often underestimate how long the shading section takes the first time, especially when the satellite studies is involved. Some people in a similar position reach for cool pavements, although it brings its own maintenance burden. I've seen water features suggested for this kind of problem, mainly because it looks tidy on a diagram. A small trial of the Valencia case before the full version often shows problems that planning alone misses.
+
+User: Correction on citation style - the department requires APA 7th, so Harvard is out.
+
+Assistant: Okay, that's a sensible call. Whatever you choose for the logger data, it's worth a quick check of how it interacts with the reference cap before moving on. One risk I'd watch is that the logger data quietly becomes the bottleneck once the ground stations is under real pressure. There's an argument for interviews with planners, but it usually pays off only at a much larger scale than this. When you think about canopy cover, the main trade-off is usually between how simple it is to run and how much it can grow later.
+
+User: Whenever a number appears, it has to be clear if it's air or surface temperature - mixing them is the mistake I keep seeing.
+
+Assistant: Understood. A common pattern is to look at surface temperature first, because it tends to shape the decisions around the reference cap. The detail that most often gets forgotten with canopy cover is who is responsible when it goes wrong. In practice evapotranspiration tends to expose any vagueness left in surface temperature, which is useful if you catch it early.
+
+User: I'm changing the start year I gave you earlier: the review now covers 2010 onwards, because the satellite data before that is too coarse.
+
+Assistant: Got it. It can help to separate what the satellite studies must do from what would merely be nice, and treat the Valencia case the same way. In practice air temperature tends to expose any vagueness left in surface temperature, which is useful if you catch it early. When you think about the Valencia case, the main trade-off is usually between how simple it is to run and how much it can grow later.
+
+User: Something unresolved - I still need to decide whether green roofs belong in this chapter or the next one.
+
+Assistant: Okay, that's a sensible call. In practice the shading section tends to expose any vagueness left in surface temperature, which is useful if you catch it early. I'd be cautious about letting the shading section and the ground stations depend on each other more than they need to. When you think about the satellite studies, the main trade-off is usually between how simple it is to run and how much it can grow later. One risk I'd watch is that the ground stations quietly becomes the bottleneck once evapotranspiration is under real pressure. If it helps, you could sketch the flow from the reference cap to surface temperature on paper before committing to anything. There's an argument for interviews with planners, but it usually pays off only at a much larger scale than this.
+
+User: Is there anything about the logger data I'm likely to overlook? Short answer is fine.
+
+Assistant: The order you tackle canopy cover and the shading section in matters less than keeping each change small enough to undo. I've seen a bibliometric map suggested for this kind of problem, mainly because it looks tidy on a diagram. Keeping notes on why the satellite studies ended up the way it did will save time the next time someone questions it. Some people in a similar position reach for cool pavements, although it brings its own maintenance burden. A common pattern is to look at canopy cover first, because it tends to shape the decisions around the shading section.

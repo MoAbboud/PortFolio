@@ -2,19 +2,21 @@
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
 
-**Stages 0 to 9 are done, and the baseline exists.** The prototype runs at
-`http://localhost:8000`; 484 tests pass (stage 10 in progress - see its section). The author wrote 261 facts across eight conversations
-and the baseline was recorded on 2026-09-14 before anything was tuned:
-**herder recalls 0.36 of them at 11.4x compression and 0.32 at 28.3x**, against a raw tail at
-0.31 (using three times the tokens) and 0.07 at a comparable size. `naive_summary` is recorded
-as not yet a fair comparison - see stage 9. **Stage 10 - measured improvement - is next**, and
-the UI can stop being bare now that the baseline is in.
+**Stages 0 to 9 are done and stage 10 has run five measured attempts.** The prototype runs at
+`http://localhost:8000`; 484 tests pass. The author wrote 261 facts across eight conversations; three
+were corrected in a blind audit on 2026-09-15, so the key is 221 true and 40 false.
 
-**Two things are outstanding behind it, both measurement rather than code.** The full `local`
-run over all ten stage 4 transcripts still has not been done; the comparison recorded so far
-is one transcript, and no figure should be read as if it had been. And stage 4's 9.0x
-compression figure predates the stage 5 render fix, which cut briefs by 15 to 27 per cent, so
-it is understated and has not been re-measured.
+**The current numbers, all from one run** (`2026-09-16_1338-full-comparison`, every method judged by the
+same reader on the same key): **herder recalls 0.70 of the facts at a 3,000-token budget in 1,214 tokens
+(9.1x compression), against a plain summary at 0.21 in 2,115 tokens and raw recent text at 0.31 in 2,967;
+at 500 tokens, 0.45 against 0.05 and 0.07. On the facts marked essential, 0.81 against 0.30 and 0.31.
+Wrong claims: 0.00, against the summary's 0.09.** The baseline before stage 10 was 0.36 at 3,000.
+
+**The instrument's limit, measured:** two runs of the same code differ on about 3.4% of verdicts
+(18 of 522) even on byte-identical briefs, so the noise floor is roughly +/- 4 facts.
+
+**Stage 11 - hosting and the README - is the remaining deliverable.** Stage 10's open candidates are the
+500-token budget (the render ordering) and the bad merges recorded in `NOTES.md`.
 
 Stages are ordered by dependency, not by calendar. **Each one ends in something that runs and
 can be checked from PowerShell.** If a stage cannot be verified that way, it is not finished.
@@ -540,6 +542,15 @@ first baseline, a new generator rather than stage 4's, and to write every fact h
 - [x] Attempt 5 - attempt 3's reply-talk exclusion blocked every sentence containing "answer"
       (`2026-09-15_1718-answer-exclusion-fix`): recall 152 -> 156 at 3,000 (essential 0.81), 98 -> 98
       at 500, wrong claims still 0. Open threads at 500 still 0.08 - next
+- [x] The full four-method comparison on the corrected key with the current code
+      (`2026-09-16_1338-full-comparison`): **herder 0.70 (154/221) at 3,000 in 1,214 tokens against
+      naive_summary 0.21 in 2,115 and truncate_tail 0.31 in 2,967; 0.45 against 0.05 and 0.07 at 500;
+      essential 0.81 against 0.30 and 0.31; wrong claims 0.00 against naive_summary's 0.09.** This is
+      the run the README's numbers come from
+- [!] **The reader is not deterministic across conditions**: 18 of 522 verdicts (3.4%) differ on
+      byte-identical contexts between two runs of the same code. Noise floor about +/- 4 facts, so
+      attempts 4 and 5 are inside it on recall and rest on their mechanisms instead. Any future
+      attempt claiming less than ~5 facts needs repeated runs
 - [ ] Candidates in cost order: render ordering, tail reserve size, similarity threshold,
       chunk size, the extraction prompt, a larger quantisation, and whether the layer split
       earns its keep

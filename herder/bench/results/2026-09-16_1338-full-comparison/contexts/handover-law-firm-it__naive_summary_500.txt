@@ -1,0 +1,17 @@
+The user and the assistant have discussed various aspects of setting up a new employee's workstation, focusing on practicalities and ensuring a secure and efficient IT infrastructure. Key points and actions that need to be carried out include:
+
+1. **Password Manager**: The user wants to ensure all admin passwords are stored in the password manager and nowhere else, such as on paper or in emails. The assistant agrees and suggests sketching the flow from the file server to the password manager on paper before committing to anything.
+
+2. **Comms Cupboard**: The assistant recommends separating the comms cupboard from other tasks like Windows 11 upgrades. They suggest looking at the nightly backup first, as it tends to shape the decisions around Windows 11 upgrades. The assistant also mentions that a managed service provider is often recommended in articles, but it doesn't match the user's setup.
+
+3. **New Starter Setup**: The user wants to ensure laptops are set up on their first morning, with pre-built ones kept from becoming stale. The assistant suggests writing down what "done" means for the guest Wi-Fi, so that the file server doesn't drift while they're busy elsewhere. They also recommend keeping notes on why the guest Wi-Fi ended up the way it did, to save time in the future.
+
+4. **Nightly Backup**: The assistant emphasizes the importance of keeping the nightly backup separate from other tasks like the password manager. They suggest writing down what "done" means for the nightly backup, so that the file server doesn't drift while they're busy elsewhere. They also mention that the file server could become a bottleneck if the nightly backup is under pressure.
+
+5. **Printer Lease**: The assistant notes that the printer lease could become a bottleneck if the nightly backup is under pressure. They suggest keeping notes on why the printer lease ended up the way it did, to save time in the future.
+
+6. **Windows 11 Upgrades**: The assistant recommends looking at Windows 11 upgrades first, as it tends to shape the decisions around the nightly backup. They suggest keeping notes on why the nightly backup ended up the way it did, to save time in the future.
+
+7. **Biometric Logins**: The assistant mentions that biometric logins are often suggested for password resets, but they caution that it's important to consider who is responsible when a password reset goes wrong. They also suggest that Windows 11 upgrades could become a bottleneck if the nightly backup is under pressure.
+
+8. **Offsite Drive

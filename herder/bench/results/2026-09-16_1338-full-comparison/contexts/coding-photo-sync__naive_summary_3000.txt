@@ -1,0 +1,113 @@
+Certainly, let's walk through how the year/month folders relate to the family-drop share in your setup.
+
+### Year/Month Folders
+The year/month folders are a way to organize photos by year and month. For example, photos taken in July 2024 would be stored in the folder `2024/07`. This structure helps in quickly identifying and accessing photos from specific time periods.
+
+### Family-Drop Share
+The family-drop share is a Synology NAS feature that allows you to drop files directly into the NAS without having to go through the NAS's file management interface. This can be particularly useful for transferring files from external devices like phones.
+
+### How They Relate
+1. **File Transfer and Organization**:
+   - **Family-Drop Share**: When you use the family-drop share, files are directly dropped into the NAS. This means that the files are already in the NAS's file system.
+   - **Year/Month Folders**: After the files are dropped into the NAS, you can then organize them into year/month folders. This allows you to keep the files in their original location (where they were dropped) while also having a structured directory for easy access.
+
+2. **Organizing Photos**:
+   - **Family-Drop Share**: You can use the family-drop share to transfer photos from your family's phones directly to the NAS. This ensures that the files are already in the NAS's file system.
+   - **Year/Month Folders**: Once the files are in the NAS, you can then create year/month folders to organize them. This helps in keeping the files in their original location while also making them easily accessible.
+
+3. **Example Workflow**:
+   - **Step 1**: Use the family-drop share to transfer photos from the phones to the NAS. This step is straightforward and doesn't require any additional setup.
+   - **Step 2**: After the files are in the NAS, create year/month folders to organize them. For example, if you have photos taken in July 2024, you would create a folder named `2024/07` and move the relevant files into this folder.
+   - **Step 3**: Continue this process for other months and years as needed.
+
+### Summary
+- **Family-Drop Share**: Directly transfers files to the NAS.
+- **Year/Month Folders**: Organizes files into structured directories for easy access.
+
+By using the family-drop share, you ensure that the files are already in the NAS, making it easier to organize them into year/month folders for better management and accessibility.
+
+The user and the assistant have been discussing the setup of a cloud mirror system, specifically focusing on the configuration and operations related to the year/month folders, hash file, and family-drop share. Here's a summary of the key points discussed:
+
+1. **Year/Month Folders:**
+   - The assistant suggests watching for the year/month folders becoming a bottleneck once the video folder is under pressure.
+   - The assistant recommends checking how the year/month folders interact with the family-drop share, as this can expose any vagueness in the schedule.
+   - The assistant also notes that the year/month folders tend to expose any issues with the family-drop share, which is useful if caught early.
+
+2. **Hash File:**
+   - The assistant recommends keeping notes on why the hash file ended up the way it did, as this can save time in the future.
+   - The assistant suggests a small trial of the hash file before the full version to identify potential issues.
+
+3. **Family-Drop Share:**
+   - The assistant recommends considering how the family-drop share would look to someone new, as they would judge it without the history.
+   - The assistant notes that the order of tackling a partial copy and the hash file should be kept small enough to undo, rather than depending on each other more than necessary.
+
+4. **TOML Config:**
+   - The assistant recommends writing down what "done" means for the family-drop share, as this can prevent drift over time.
+   - The assistant suggests a small trial of the family-drop share before the full version to identify potential issues.
+
+5. **Copy Step:**
+   - The user has a copy step that writes to a temporary file and renames it at the end. The assistant notes that this is a sensible approach.
+
+6. **Year/Month Folders (Revisited):**
+   - The assistant recommends checking the year/month folders before next week, noting that they should interact with the family-drop share and expose any vagueness in the schedule.
+
+In summary, the assistant provided specific recommendations for each component of the system, emphasizing the importance of testing, documentation, and interaction between components to ensure robust and maintainable configurations.
+
+The conversation covers various aspects of handling duplicates, particularly in the context of a tool that runs on a NAS and manages files on a schedule. Here's a summary of the key points discussed:
+
+### Duplicate Handling:
+- **Year/Month Folders**: The user is advised to use year/month folders to expose any vagueness in the TOML config early. This helps in catching issues early and simplifies the decision-making process.
+- **Hash File**: The hash file is used to compare file contents, not filenames. The user should check how the hash file interacts with other components like the log file and schedule.
+- **EXIF Date**: The EXIF date is used to determine the file's creation date. The user should document why the EXIF date is set the way it is to avoid future confusion.
+- **Log File**: The log file records actions taken by the tool. The user should ensure it is simple to run and doesn't grow too large, as it can become a bottleneck.
+- **Family-Drop Share**: The family-drop share is used to store files. The user should ensure it is simple to manage and doesn't drift over time.
+- **Video Folder**: The video folder is used to store video files. The user should ensure it is separate from other folders and doesn't depend on the EXIF date or other components more than necessary.
+- **Schedule**: The schedule determines when the tool runs. The user should ensure it is simple to run and doesn't cause bottlenecks.
+- **Partial Copy**: The user should perform a small trial of the tool before running it in full to catch any issues early.
+
+### Specific Tools and Practices:
+- **Inotify Watching**: Advised against due to its maintenance burden.
+- **Rsync**: Recommended for larger setups.
+- **Cloud Mirroring**: Not recommended due to maintenance burden.
+- **Face Recognition**: Not recommended for this scale.
+- **Thumbnail Generation**: Not recommended for this scale.
+- **Docker Containers**: Not recommended for this scale.
+- **SnapShelf**: Not recommended as it only copies and sorts files.
+- **Go Idioms**: The user should explain Go idioms when using them, as they are new to the user.
+
+### Practical Considerations:
+- **Read-Only Phones**: The tool should treat the original files on phones as read-only.
+- **Maintenance Burden**: The user should be cautious about introducing tools or practices that add unnecessary maintenance burden.
+
+### Summary:
+The user should focus on ensuring the tool is simple to run, doesn't grow too large, and doesn't cause bottlenecks. They should document decisions and ensure consistency across different components. The user should also perform small trials and sketch out flow diagrams to ensure everything works as expected. Finally, they should explain Go idioms to ensure they understand the codebase.
+
+The conversation highlights several key points and decisions that need to be made for the user's photo management system. Here's a summary of the main points and actions that need to be carried out:
+
+1. **Testing Two Phones Upload Simultaneously**: The user needs to test what happens when two phones upload the same photo at the same time. This involves setting up a test environment where two devices upload photos simultaneously and observing the results.
+
+2. **Handling Family-Drop Share**: The user needs to decide how to handle the family-drop share, which is a shared folder used for family photo backups. Key considerations include:
+   - **Log Files**: The user needs to decide how long to keep log files, which record the history of changes made to the system.
+   - **EXIF Date**: The user needs to decide how to handle photos without EXIF dates, deciding whether to place them in a "undated" folder or use the modification time.
+   - **TOML Config**: The user needs to decide who is responsible for the TOML config, which is a configuration file used to define the system's settings.
+   - **Schedule**: The user needs to decide on a schedule for the system, considering how often to run the system and what to do if the disk is almost full.
+
+3. **Handling Live Photos**: The user needs to decide what to do with Live Photos from the iPhone, which are two files that need to be handled together.
+
+4. **Handling Partial Copies**: The user needs to decide how to handle partial copies, which are incomplete copies of data. This involves deciding how to clean up and report if the disk is almost full.
+
+5. **Handling Year/Month Folders**: The user needs to decide how to handle the year/month folders, which are used to organize data by year and month. This involves deciding who is responsible for the year/month folders and how to handle any issues that arise.
+
+6. **Handling Video Folder**: The user needs to decide how to handle the video folder, which is used to store video data. This involves deciding how to handle the video folder and its relationship with other parts of the system.
+
+7. **Handling Inotify Watching**: The user needs to decide whether to use inotify watching, which is a tool for monitoring file system events. This involves deciding how inotify watching fits into the system and whether it is necessary.
+
+8. **Handling Cloud Mirror**: The user needs to decide whether to use a cloud mirror, which is a backup system that stores data on the cloud. This involves deciding how the cloud mirror fits into the system and whether it is necessary.
+
+9. **Handling Hash File**: The user needs to decide how to handle the hash file, which is used to verify the integrity of the data. This involves deciding how the hash file fits into the system and whether it is necessary.
+
+10. **Handling Mobile Companion App**: The user needs to decide whether to use a mobile companion app, which is a mobile application that can be used to manage the system. This involves deciding how the mobile companion app fits into the system and whether it is necessary.
+
+11. **Handling Rust Rewrite**: The user needs to decide whether to rewrite the system in Rust, which is a programming language. This involves deciding how Rust rewriting fits into the system and whether it is necessary.
+
+In summary, the user needs to make decisions about various aspects of the system, including how to handle different types of data, how to manage the system's schedule, and how to handle different types of files. These decisions will help to ensure that the system is robust, reliable, and easy to use.
