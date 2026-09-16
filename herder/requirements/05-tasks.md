@@ -582,9 +582,11 @@ own**, so the public link is a portfolio-level task and the hosting half of this
 optional here. The README is not: it is what a reader who never runs herder actually reads, and
 it is the only place the numbers, the dead ends and the caveats are stated together.
 
-- [ ] README: the problem, the architecture diagram, the numbers beside `naive_summary` and
+- [~] README: the problem, the architecture diagram, the numbers beside `naive_summary` and
       `truncate_tail`, the dead ends, the limitations, and the circular-measurement caveat
-      stated plainly
+      stated plainly. **Drafted 2026-09-16** from `2026-09-16_1338-full-comparison` and `NOTES.md`;
+      two sections are marked for the author to write (the three design calls, and what surprised
+      him) and stay open until he does
 - [ ] The measured limits of the instrument in the README too: the reader disagrees with itself
       on about 3.4% of verdicts between runs, so differences of a fact or two are not findings
 - [ ] Optional, and only when the portfolio is hosted: a host with PostgreSQL **and pgvector** -
