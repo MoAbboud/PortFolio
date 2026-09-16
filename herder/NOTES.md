@@ -1351,3 +1351,54 @@ then states it.** The model was taught the two failures it was aimed at and, wit
 shape it used to get right, drifted on it. The fix for a second attempt is concrete: generate reversal
 pairs *with* announcing lead-ins, and keep a share of the training set on the shapes the base model
 already handles, so an improvement cannot quietly cost one.
+
+### The second trained merge model, and what both runs actually taught
+
+v2 added 250 lead-in reversal pairs (and guards that a change cue alone is not a replacement), weighted
+the hand-written pairs 8x (0.7% of training -> 9.0%), and trained one epoch instead of two. The
+prediction, written before training: v2 is right if it keeps v1's fixes **and** gets the "Forget the
+10,000 words" reversal back with wrong claims at 0.
+
+**It did not.** `2026-09-16_2140-nli-trained-v2`: recall 152 of 221 at 3,000 (reference 156, inside
+the noise floor), 94 at 500 (98), **wrong claims still 1 of 40 - the same 10,000-word article**, and
+against the reference 11 verdicts better and **25 worse**.
+
+| Merge in the benchmark | base | v1 | v2 |
+| --- | --- | --- | --- |
+| "No evening opening." retired by the opening hours (wrong) | retired | kept | kept |
+| NAS schedule retired by "not hourly after all" (wrong) | retired | kept | kept |
+| laptops open item retiring "all laptops run Windows 11 Pro" (wrong) | retired | retired | **kept** |
+| "Forget the 10,000 words ... the limit is 7,500" (right) | superseded | lost | lost |
+| Rotterdam -> Felixstowe (right) | superseded | superseded | **lost** |
+| modification time -> `undated` folder (right) | superseded | superseded | **lost** |
+
+v2 fixed three wrong merges and lost three right ones. The scores say why - the strongest contradiction
+herder's merge step would see for each pair:
+
+| Pair | base | v1 | v2 |
+| --- | --- | --- | --- |
+| 10,000 words (true reversal) | 1.00 | 0.81 | 0.57 |
+| ports (true reversal) | 1.00 | 0.00 | 0.00 |
+| EXIF rule (true reversal) | 1.00 | 0.94 | 0.50 |
+| opening hours (false) | 1.00 | 0.00 | 0.00 |
+| laptops (false) | 1.00 | 0.88 | 0.56 |
+| NAS schedule (false) | 1.00 | 0.00 | 0.00 |
+
+**The base model reads contradiction at 1.00 on all six** - it is confident and it does not
+discriminate; the merge step's two-directions rule and change cue are doing the discriminating. **The
+fine-tuned models are not better at telling the two groups apart, they are less sure about everything.**
+In v2 the true 10,000-word reversal scores 0.57 and the false laptops merge scores 0.56. No threshold
+separates those, and choosing one on these six pairs would be choosing it on the benchmark.
+
+So the honest finding across both runs: **fine-tuning on this data moved the model's operating point -
+fewer supersedes, right and wrong alike - rather than improving its judgement.** Adding data aimed at a
+shape (v2's lead-in pairs) did not teach the shape either: v2 scored 4/6 on lead-in reversals in the
+labelled pairs against the base's 6/6, because every generated pair swaps a value directly, while the
+real ones ("we are using the annexe, not the boardroom") need an inference step no template demanded.
+
+**Kept the base checkpoint.** Both trained models stay on disk (`models/nli-herder-v1/`, `-v2/`).
+
+**What this points at instead.** v2's one clean real-world win - the laptops open item no longer
+retiring the fact - is available without a model: a rule that an `open_thread` candidate never
+supersedes an entry of another kind, proposed on 2026-09-16 and not yet built because it is a
+merge-verdict decision. Deterministic, testable, and explainable in an interview in one sentence.

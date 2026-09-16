@@ -556,6 +556,13 @@ first baseline, a new generator rather than stage 4's, and to write every fact h
       the base model's 15/20** and it fixed two real bad merges, but it lost the "Forget the 10,000
       words" reversal and served a stale claim, so **the base checkpoint was kept**. Cause found: no
       training pair has a lead-in clause announcing a change. Second attempt is specified in `NOTES.md`
+- [x] A trained merge model, second attempt (`2026-09-16_2140-nli-trained-v2`): lead-in reversal pairs,
+      own pairs weighted to 9%, one epoch. Fixed three real bad merges and lost three real
+      reversals; wrong claims still 1. **Not adopted.** Across both runs, fine-tuning moved the
+      model's operating point rather than improving its judgement - see `NOTES.md`
+- [ ] The `open_thread` rule in the merge step: an unfinished item never supersedes an entry of
+      another kind. The one real win v2 produced, available deterministically. **A merge-verdict
+      decision - his to make before it is built**
 - [ ] Candidates in cost order: render ordering, tail reserve size, similarity threshold,
       chunk size, the extraction prompt, a larger quantisation, and whether the layer split
       earns its keep

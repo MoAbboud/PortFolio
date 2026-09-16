@@ -94,10 +94,22 @@ advice; it is the reasoning behind a default, written down so it can be challeng
 | --- | --- | --- | --- | --- |
 | base | `cross-encoder/nli-deberta-v3-base`, untouched | 15/20 | reference | running |
 | v1 | VitaminC + WANLI + 400 hand-written pairs at 1x, 2 epochs | 18/20 | fixed two bad merges, **lost the "Forget the 10,000 words" reversal**, wrong claims 0 -> 1 | not adopted |
-| v2 | + 250 lead-in reversal pairs and their guards, hand-written pairs at 8x (9% of train), 1 epoch | - | - | to be run |
+| v2 | + 250 lead-in reversal pairs and their guards, hand-written pairs at 8x (9% of train), 1 epoch | 17/20 (observed 8/10) | fixed three bad merges (hours, NAS, laptops), **lost three right ones** (10,000 words, Rotterdam, EXIF); wrong claims still 1 | not adopted |
 
-v1 taught the two failures it was shown and drifted on the shape it was not shown. v2 exists to test
-exactly that diagnosis: if it keeps v1's fixes and gets the reversal back, the cause was the data.
+v1 taught the two failures it was shown and drifted on the shape it was not shown. v2 tested that
+diagnosis and **disproved it**: with the missing shape added, the reversal still did not come back.
+
+**What the two runs show together.** The base model scores contradiction at 1.00 on true reversals and
+false merges alike - confident and undiscriminating, with the merge step's rules doing the
+discriminating. The fine-tuned models are not better at separating the two groups; they are less sure
+about everything. In v2 a true reversal scores 0.57 and a false merge 0.56. Fine-tuning on this data
+moved the operating point - fewer supersedes, right and wrong alike - instead of improving judgement.
+The full table is in `NOTES.md`.
+
+A third attempt along the same lines is not recommended without a different idea. The two variables not
+yet tried are a larger base (`cross-encoder/nli-deberta-v3-large`, same Apache-2.0 lineage) and training
+pairs that demand inference ("using the annexe" contradicts "held in the boardroom") rather than direct
+value swaps.
 
 From Git Bash, set `MSYS_NO_PATHCONV=1` before `HERDER_NLI_MODEL=/models/...`, or the path is rewritten
 into a Windows one and the worker refuses it.
