@@ -6,13 +6,20 @@ upgrade." retired "all staff laptops run Windows 11 Pro." Both are true. The sec
 *about* the first, and a memory that deletes the settled fact when someone mentions an exception has
 lost the thing worth keeping.
 
-Five relations are generated, all in herder's own shape (two short claims):
+Eight relations are generated, all in herder's own shape (two short claims):
 
-- `open_item`    an unfinished item about a claim                  -> neutral       (distinct, keep both)
-- `coexisting`   another attribute of the same subject, also true  -> neutral       (distinct)
-- `unrelated`    two claims with nothing in common                 -> neutral       (distinct)
-- `restatement`  the same claim said again                         -> entailment    (duplicate)
-- `changed`      the same attribute given a new value              -> contradiction (supersede)
+- `open_item`            an unfinished item about a claim                  -> neutral       (distinct, keep both)
+- `coexisting`           another attribute of the same subject, also true  -> neutral       (distinct)
+- `unrelated`            two claims with nothing in common                 -> neutral       (distinct)
+- `restatement`          the same claim said again                         -> entailment    (duplicate)
+- `changed`              the same attribute given a new value              -> contradiction (supersede)
+- `announced_change`     a lead-in announcing a change, then a new value   -> contradiction (supersede)
+- `announced_elsewhere`  a lead-in announcing a change to something else   -> neutral       (distinct)
+- `announced_same`       a lead-in that lands back on the held value       -> entailment    (duplicate)
+
+The three `announced_*` shapes were added for the second training run, after the first lost a real
+reversal ("Forget the 10,000 words I mentioned before - the limit is 7,500") because no training pair
+had a lead-in at all.
 
 `changed` and `restatement` are here so the file cannot teach "anything similar is neutral": the model
 has to keep the distinction between an exception, a restatement and a replacement, which is the point.
@@ -86,6 +93,34 @@ CHANGED_FRAMES = [
     "{subject} {attribute} {new}, not {value}.",
 ]
 
+# Added for the second training run. The first model lost "Forget the 10,000 words I mentioned before -
+# the limit is 7,500" because nothing in its data had this shape: a lead-in that announces a change,
+# then the new value. Every frame here carries a cue from `herder.domain.merge.CHANGE_CUE`, so the pair
+# exercises the same reversal path the merge step takes - and `tests/test_training_data.py` checks both
+# that, and that no frame opens the way a benchmark reversal does. The cue vocabulary is ordinary
+# English; the benchmark's own openers ("Swap one of the ... I listed earlier", "Update the ... I
+# described earlier") are deliberately not copied.
+ANNOUNCED_FRAMES = [
+    "Small correction: {subject} {attribute} {new}, not {value}.",
+    "I've changed my mind - {subject} {attribute} {new}.",
+    "Ignore what I said about {subject}: {subject} {attribute} {new} instead.",
+    "Disregard my earlier note - {subject} {attribute} {new}.",
+    "Scrap that plan; {subject} {attribute} {new} from now on.",
+    "What I told you before was wrong: {subject} {attribute} {new}.",
+    "Revised arrangement: {subject} {attribute} {new}.",
+]
+
+# The guard the first run needed and did not have: a change cue is not a verdict. An announcement that
+# changes a *different* attribute leaves the claim standing (the NAS-schedule over-reach from attempt
+# 4), and an announcement that lands back on the same value agrees with it.
+ANNOUNCED_ELSEWHERE_FRAMES = [
+    "Small correction: {sibling}.",
+    "I've changed my mind about one thing - {sibling}.",
+]
+ANNOUNCED_SAME_FRAMES = [
+    "After all, {subject} {attribute} {value}.",
+]
+
 
 def build(seed: int = 11) -> list[dict]:
     random.seed(seed)
@@ -142,6 +177,42 @@ def build(seed: int = 11) -> list[dict]:
                     "label": "contradiction",
                     "source": "open_items",
                     "shape": "changed",
+                }
+            )
+
+        # A change announced by a lead-in, then the new value: this replaces the claim.
+        for frame in ANNOUNCED_FRAMES:
+            rows.append(
+                {
+                    "a": frame.format(subject=subject, attribute=attribute, new=new, value=value),
+                    "b": claim,
+                    "label": "contradiction",
+                    "source": "open_items",
+                    "shape": "announced_change",
+                }
+            )
+
+        # A change announced about something else: the claim stands.
+        for frame in ANNOUNCED_ELSEWHERE_FRAMES:
+            rows.append(
+                {
+                    "a": frame.format(sibling=sibling),
+                    "b": claim,
+                    "label": "neutral",
+                    "source": "open_items",
+                    "shape": "announced_elsewhere",
+                }
+            )
+
+        # A change announced that lands on the value already held: agreement, not replacement.
+        for frame in ANNOUNCED_SAME_FRAMES:
+            rows.append(
+                {
+                    "a": frame.format(subject=subject, attribute=attribute, value=value),
+                    "b": claim,
+                    "label": "entailment",
+                    "source": "open_items",
+                    "shape": "announced_same",
                 }
             )
 

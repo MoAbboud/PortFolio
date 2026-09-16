@@ -174,6 +174,13 @@ def main(argv: list[str] | None = None) -> int:
         help="keep the natural label mix. By default the majority label is capped at the size of the "
         "second largest, because the VitaminC pairing produces contradictions only",
     )
+    parser.add_argument(
+        "--own-repeat",
+        type=int,
+        default=8,
+        help="how many times the hand-written training pairs are repeated. The first run used 1 and they "
+        "were 0.7%% of the set",
+    )
     parser.add_argument("--seed", type=int, default=7)
     args = parser.parse_args(argv)
 
@@ -193,21 +200,23 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  {len(wanli):,} rows")
     sources += wanli
 
-    print("hand-written open-item pairs ...")
+    print("hand-written pairs ...")
     mine = own_pairs()
     print(f"  {len(mine):,} rows")
-    sources += mine
 
     if not args.no_swap:
         swapped = swap_symmetric(sources)
-        print(f"symmetric swapped copies (contradiction and neutral only): {len(swapped):,}")
+        mine_swapped = swap_symmetric(mine)
+        print(f"symmetric swapped copies (contradiction and neutral only): {len(swapped) + len(mine_swapped):,}")
         sources += swapped
+        mine += mine_swapped
 
     # Contamination, checked and reported rather than assumed.
     bench = benchmark_sentences()
-    before = len(sources)
-    sources = [p for p in sources if normalise(p["a"]) not in bench and normalise(p["b"]) not in bench]
-    print(f"contamination check against {len(bench):,} benchmark sentences: {before - len(sources)} dropped")
+    clean = lambda rows: [p for p in rows if normalise(p["a"]) not in bench and normalise(p["b"]) not in bench]
+    before = len(sources) + len(mine)
+    sources, mine = clean(sources), clean(mine)
+    print(f"contamination check against {len(bench):,} benchmark sentences: {before - len(sources) - len(mine)} dropped")
 
     # Balance. Every VitaminC pair is a contradiction by construction, so without this the model
     # would meet three contradictions for every neutral and learn to say "supersede" - the failure
@@ -230,6 +239,23 @@ def main(argv: list[str] | None = None) -> int:
     random.shuffle(sources)
     dev = sources[: args.dev_size]
     train = sources[args.dev_size :]
+
+    # The hand-written pairs, weighted. In the first run they were 647 of 90,328 rows - 0.7% - and the
+    # shapes they carry are the ones the public corpora do not. Two orderings matter here:
+    #   - added AFTER balancing, so the contradiction cap cannot throw them away;
+    #   - split into train and dev BEFORE repeating, so no copy of a dev pair sits in train and
+    #     flatters the dev score.
+    random.shuffle(mine)
+    own_dev_size = max(1, len(mine) // 10)
+    own_dev, own_train = mine[:own_dev_size], mine[own_dev_size:]
+    dev += own_dev
+    train += own_train * args.own_repeat
+    random.shuffle(train)
+    random.shuffle(dev)
+    print(
+        f"hand-written pairs: {len(own_dev)} to dev, {len(own_train)} to train x{args.own_repeat} = "
+        f"{len(own_train) * args.own_repeat:,} rows ({len(own_train) * args.own_repeat / max(1, len(train)):.1%} of train)"
+    )
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -259,6 +285,7 @@ def main(argv: list[str] | None = None) -> int:
                 },
                 "excluded": {"anli": "CC BY-NC - would put a non-commercial claim on the weights"},
                 "swapped_copies": not args.no_swap,
+                "own_repeat": args.own_repeat,
                 "dev_size": args.dev_size,
             },
             indent=2,

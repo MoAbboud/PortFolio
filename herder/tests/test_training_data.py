@@ -44,6 +44,44 @@ def test_the_hand_written_pairs_cover_every_relation_the_merge_step_needs() -> N
     assert ("changed", CONTRADICTION) in shapes    # this one really does replace it
 
 
+def test_the_second_run_shapes_are_present() -> None:
+    """Added after the first trained model lost a reversal that had a lead-in."""
+    shapes = {(p["shape"], p["label"]) for p in build_open_items()}
+    assert ("announced_change", CONTRADICTION) in shapes
+    assert ("announced_elsewhere", NEUTRAL) in shapes     # a cue is not a verdict
+    assert ("announced_same", ENTAILMENT) in shapes       # a cue that lands on the held value agrees
+
+
+def test_every_announced_pair_carries_the_merge_steps_change_cue() -> None:
+    """If a frame did not match `CHANGE_CUE`, herder would never send that shape down the reversal
+    path, and training on it would teach a case the merge step never asks about."""
+    from herder.domain.merge import announces_change
+
+    announced = [p for p in build_open_items() if p["shape"].startswith("announced")]
+    assert announced
+    missing = [p["a"] for p in announced if not announces_change(p["a"])]
+    assert missing == []
+
+
+def test_no_announced_pair_opens_the_way_a_benchmark_reversal_does() -> None:
+    """The cue vocabulary is ordinary English; the benchmark's own openers are not to be copied.
+    Same principle as attempt 3's lead-in test: learn the language, not the answer key's phrasing."""
+    import re
+
+    from herder.domain.merge import announces_change
+
+    openers = set()
+    for sentence in benchmark_sentences():
+        if announces_change(sentence):
+            openers.add(re.split(r":|\s-\s", sentence, maxsplit=1)[0].strip())
+    assert openers, "found no benchmark reversals - the guard would pass vacuously"
+
+    for pair in build_open_items():
+        if pair["shape"].startswith("announced"):
+            text = normalise(pair["a"])
+            assert not any(text.startswith(opener) for opener in openers), pair["a"]
+
+
 def test_only_the_symmetric_labels_are_swapped() -> None:
     """Contradiction holds both ways; entailment does not, and swapping it would teach the model that
     a refinement is a duplicate - the distinction the merge step depends on."""

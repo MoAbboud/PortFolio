@@ -19,7 +19,7 @@ to a stored one. Six off-the-shelf checkpoints were measured on `bench/nli_pairs
 | File | What it is |
 | --- | --- |
 | `nli/build_dataset.py` | Builds the training set from public corpora plus the hand-written pairs. Runs locally or in the notebook |
-| `nli/open_items.py` | The 400 pairs no public corpus provides, generated from templates: an open item about a claim, two attributes true at once, a restatement, a replacement, and unrelated claims |
+| `nli/open_items.py` | The 650 pairs no public corpus provides, generated from templates in eight relations - including a change announced by a lead-in, and the guards that a cue alone is not a replacement |
 | `nli/train_nli.ipynb` | The Colab notebook: clone, build, fine-tune, score on the labelled pairs, download the weights |
 | `nli/data/` | The built dataset. **Gitignored** - see the licence note below |
 
@@ -88,16 +88,30 @@ What share-alike actually touches:
 the false contradiction and does nothing for `supersede`, the more valuable half. Nothing here is legal
 advice; it is the reasoning behind a default, written down so it can be challenged.
 
+### Runs so far
+
+| Run | Recipe | Labelled pairs (written) | Benchmark | Outcome |
+| --- | --- | --- | --- | --- |
+| base | `cross-encoder/nli-deberta-v3-base`, untouched | 15/20 | reference | running |
+| v1 | VitaminC + WANLI + 400 hand-written pairs at 1x, 2 epochs | 18/20 | fixed two bad merges, **lost the "Forget the 10,000 words" reversal**, wrong claims 0 -> 1 | not adopted |
+| v2 | + 250 lead-in reversal pairs and their guards, hand-written pairs at 8x (9% of train), 1 epoch | - | - | to be run |
+
+v1 taught the two failures it was shown and drifted on the shape it was not shown. v2 exists to test
+exactly that diagnosis: if it keeps v1's fixes and gets the reversal back, the cause was the data.
+
+From Git Bash, set `MSYS_NO_PATHCONV=1` before `HERDER_NLI_MODEL=/models/...`, or the path is rewritten
+into a Windows one and the worker refuses it.
+
 ### Using the result
 
-Unpack the notebook's zip into `herder/models/nli-herder-v1/` (gitignored, like every other weight),
+Unpack the notebook's zip into `herder/models/nli-herder-v2/` (gitignored, like every other weight),
 then point the stack at it - the checkpoint is deployment configuration:
 
 ```powershell
-$env:HERDER_NLI_MODEL = "/models/nli-herder-v1"
+$env:HERDER_NLI_MODEL = "/models/nli-herder-v2"
 docker compose up -d --no-deps worker
-python -m bench.nli_compare --models ./models/nli-herder-v1
-python -m bench.run --label nli-trained --methods herder
+python -m bench.nli_compare --models ./models/nli-herder-v2,./models/nli-herder-v1,cross-encoder/nli-deberta-v3-base
+python -m bench.run --label nli-trained-v2 --methods herder
 ```
 
 Judge it on the `written` pairs and on the **supersedes in the database**, not on recall: the reader
