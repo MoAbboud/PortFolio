@@ -4,16 +4,31 @@
 gets thrown away. From requirements/03-architecture.md:
 
     pinned first
-    then by layer:  stable, project, session
-    then by kind:   constraint, decision, open_thread, code_state,
-                    preference, identity, glossary, fact, artifact_ref
+    then by priority:  constraint                  0
+                       decision                    1
+                       open_thread                 2
+                       preference, identity        3
+                       code_state                  4
+                       glossary, fact              5
+                       artifact_ref                6
+    then by layer:     stable, project, session    (a tie-breaker, not the first key)
     then by last_seen descending
+
+**Priority before layer since 2026-09-16, the author's decision.** Until then the sort was layer
+first, then kind - and the heuristic extracts open threads into the `session` layer, so every
+project-layer entry, down to an incidental `fact`, was considered before any open thread. At a
+500-token budget the eight benchmark briefs held 35 plain facts and 2 open threads, and
+open-thread recall had fallen from 0.46 to 0.08 once more facts were extracted. The layer still
+decides where an entry *reads* (the sections below) and still breaks ties, so a stable preference
+comes before a project one; it no longer decides what matters most.
 
 Constraints come before facts because a model that has been told the constraints can behave
 correctly without knowing every fact, and one that has the facts but not the constraints
 cannot. The session tail gets a reserved share rather than competing on equal terms, because
 verbatim recent text is what makes a resumed conversation feel continuous and it would
-otherwise lose every tie to a durable entry.
+otherwise lose every tie to a durable entry. **How large that share is, is a parameter**
+(`tail_reserve`), set from `HERDER_BRIEF_TAIL_RESERVE`, because at a small budget a quarter of it is
+about two turns of verbatim text competing with every open thread.
 
 **Two different orderings live in here and conflating them would be a bug.** The sort above
 is the order entries are *considered in* as the budget is spent, so what survives follows
@@ -33,8 +48,11 @@ import uuid
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 
-# Fraction of the budget held back for the verbatim session tail.
-TAIL_RESERVE = 0.25
+# Default fraction of the budget held back for the verbatim session tail. The caller may pass
+# its own; see `render_brief`. 0.25 until 2026-09-16; 0.10 since, measured together with the
+# priority table: recall at a 500-token budget 98 -> 119 of 221, and the same recall at 3,000 in a
+# brief of 772 tokens instead of 1,214. `core/config.py` must carry the same number (a test checks).
+TAIL_RESERVE = 0.10
 
 LAYER_ORDER = ("stable", "project", "session")
 LAYER_HEADINGS = {
@@ -43,17 +61,22 @@ LAYER_HEADINGS = {
     "session": "## Session (most recent)",
 }
 
-KIND_ORDER = (
-    "constraint",
-    "decision",
-    "open_thread",
-    "code_state",
-    "preference",
-    "identity",
-    "glossary",
-    "fact",
-    "artifact_ref",
-)
+# What matters most, whatever its layer. Lower is considered first. Equal numbers are equal
+# priority and fall through to the layer, then to recency.
+PRIORITY = {
+    "constraint": 0,
+    "decision": 1,
+    "open_thread": 2,
+    "preference": 3,
+    "identity": 3,
+    "code_state": 4,
+    "glossary": 5,
+    "fact": 5,
+    "artifact_ref": 6,
+}
+
+# The kind vocabulary, in priority order - the table above is written in that order.
+KIND_ORDER = tuple(PRIORITY)
 
 TAIL_KIND = "tail"
 
@@ -88,10 +111,11 @@ class RenderedBrief:
 
 
 def _sort_key(entry: RenderableEntry) -> tuple:
+    priority = PRIORITY.get(entry.kind, max(PRIORITY.values()) + 1)
     layer = LAYER_ORDER.index(entry.layer) if entry.layer in LAYER_ORDER else len(LAYER_ORDER)
-    kind = KIND_ORDER.index(entry.kind) if entry.kind in KIND_ORDER else len(KIND_ORDER)
-    # `not pinned` sorts False (0) first, so pins lead. Newest last_seen first within a tie.
-    return (not entry.pinned, layer, kind, -entry.last_seen_at.timestamp())
+    # `not pinned` sorts False (0) first, so pins lead. Then priority, then layer as the
+    # tie-breaker, then newest last_seen first.
+    return (not entry.pinned, priority, layer, -entry.last_seen_at.timestamp())
 
 
 def _one_line(text: str) -> str:
@@ -176,13 +200,20 @@ def render_brief(
     count: Callable[[str], int],
     tail_text: str | None = None,
     tail_entry_id: uuid.UUID | None = None,
+    tail_reserve: float = TAIL_RESERVE,
 ) -> RenderedBrief:
-    """Render active and pinned entries into a brief of at most `budget_tokens`."""
+    """Render active and pinned entries into a brief of at most `budget_tokens`.
+
+    `tail_reserve` is the fraction of the budget held for the verbatim tail. Zero is allowed and
+    means the tail is dropped; one or more would leave nothing for the entries and is refused.
+    """
     if budget_tokens < 1:
         raise ValueError("budget_tokens must be positive")
+    if not 0 <= tail_reserve < 1:
+        raise ValueError("tail_reserve is a fraction of the budget, at least 0 and below 1")
 
-    tail_reserve = int(budget_tokens * TAIL_RESERVE) if tail_text else 0
-    body_budget = budget_tokens - tail_reserve
+    tail_tokens = int(budget_tokens * tail_reserve) if tail_text else 0
+    body_budget = budget_tokens - tail_tokens
 
     result = RenderedBrief(text="", budget_tokens=budget_tokens)
     ordered = sorted((e for e in entries if e.kind != TAIL_KIND), key=_sort_key)
@@ -236,7 +267,7 @@ def render_brief(
             block = format_tail(candidate)
             return count(f"{heading}\n{block}" if heading else block)
 
-        fitted, truncated = _truncate_tail(tail_text.strip(), tail_reserve, tail_cost)
+        fitted, truncated = _truncate_tail(tail_text.strip(), tail_tokens, tail_cost)
         if fitted:
             if heading:
                 parts.append(heading)

@@ -1,0 +1,17 @@
+In the conversation, the user and the assistant discussed various aspects of their project, particularly focusing on the back-office server, the SQLite file, and the nightly job. The user was considering how to handle stock adjustments, expiry dates, and deliveries, and the assistant provided valuable insights and recommendations.
+
+The assistant began by explaining the role of the back-office server in managing stock adjustments and how it affects expiry dates. They noted that detailed notes on how expiry dates are set and managed are crucial for understanding their rationale and for saving time when questions arise. The assistant also recommended testing the back-office server before implementing it fully to identify potential issues.
+
+For the SQLite file, the assistant suggested that the nightly job runs a script to update the file with the latest stock levels, ensuring consistency with current stock adjustments. They emphasized the importance of data integrity and performance, recommending thorough testing to catch any issues early.
+
+The user and the assistant also discussed the nightly job and its interaction with the SQLite file. The assistant recommended that the nightly job runs at a fixed time to minimize impact on the system and that it should be thoroughly tested in a test environment.
+
+The conversation then shifted to the user's project, where the assistant provided guidance on several key points. They suggested using barcode scanners for smaller setups, but recommended microservices per shop for larger, more complex systems. The assistant recommended sketching out the flow from the stock table to the back-office server on paper before making any decisions.
+
+The user needed to decide how to handle stock adjustments, expiry dates, and deliveries. The assistant recommended starting with the stock table and looking at the reorder email first, as these tend to shape the decisions around the audit trail. They also recommended keeping notes on who is responsible when a stock adjustment goes wrong and how the audit trail interacts with the back-office server.
+
+The assistant provided further advice on the back-office server, suggesting keeping notes on who is responsible when the back-office server goes wrong and checking how it interacts with the reorder email. They also recommended considering an event-sourced ledger, but noted that examples rarely match the user's setup and it usually pays off only at a much larger scale.
+
+The assistant recommended looking at microservices per shop, but again emphasized that examples rarely match the user's setup and it usually pays off only at a much larger scale. They also suggested starting with the stock table and looking at the reorder email first to shape decisions around the audit trail.
+
+In summary, the user and the assistant discussed the back-office server,

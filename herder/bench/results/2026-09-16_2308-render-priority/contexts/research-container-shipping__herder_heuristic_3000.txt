@@ -1,0 +1,35 @@
+## Stable
+- [preference] Also, I like it when you point out a counter-argument I might have missed.
+- [preference] A preference, while I think of it - I prefer concrete numbers to adjectives - tonnage and dates over 'huge' and 'soon'.
+## Project
+- [constraint] No imagined scenes.
+- [constraint] Quotes have to come from primary sources; lifting a quotation from someone else's book isn't acceptable.
+- [constraint] The magazine will not take anything over 7,500 words, so that ceiling holds whatever else changes.
+- [constraint] I won't dramatise: no made-up conversations and no scenes I can't document.
+- [decision] Let's settle it - the article focuses on the years 1956 to 1980.
+- [decision] Let's settle it - sidebars are used for technical explanations so the main narrative keeps moving.
+- [decision] Let's settle it - the piece is written for general readers, not maritime specialists.
+- [decision] Going with this: the working title is "The Box That Emptied the Docks".
+- [decision] Forget the 10,000 words I mentioned before - the magazine's limit is 7,500 and I'm writing to that.
+- [decision] Let's park it for now.
+- [decision] Swap one of the ports I listed earlier: it's Felixstowe, not Rotterdam, alongside Newark and Singapore.
+- [fact] I'm writing a long-form article for a history magazine on how the shipping container changed ports and port cities.
+- [fact] A preference, while I think of it - keep your suggestions in British English, the magazine is based in London.
+- [fact] The story I'm telling is the transition, and that's done by 1980.
+- [fact] Final answer on that one: the three case-study ports are Newark, Felixstowe and Singapore.
+- [fact] In case it matters, the deadline for the first draft is the end of March.
+- [fact] I'm keeping Felixstowe, not Rotterdam - I've done the archive work there and it suits a British readership.
+- [fact] Context you might need: my editor at the magazine is James Whitcombe.
+- [fact] After mulling it over: it opens with the Ideal X leaving Newark in April 1956.
+## Session (most recent)
+- [open_thread] Assume I haven't read much about it.
+- [open_thread] Open item: I haven't decided whether to include the labour strikes as their own section.
+- [open_thread] I still need permission to use two photographs from the Felixstowe archive.
+- [tail] user: I still need permission to use two photographs from the Felixstowe archive. Let's park it for now.
+  assistant: Got it. Some people in a similar position reach for a timeline graphic, although it brings its own maintenance burden. A small trial of the word limit before the full version often shows problems that planning alone misses. Whatever you choose for the Ideal X, it's worth a quick check of how it interacts with Malcom McLean before moving on. If it helps, you could sketch the flow from Newark to the Ideal X on paper before committing to anything. There's an argument for a focus on shipbuilding, but it usually pays off only at a much larger scale than this.
+  user: Swap one of the ports I listed earlier: it's Felixstowe, not Rotterdam, alongside Newark and Singapore.
+  assistant: Right, I'll work with that. I've seen a focus on shipbuilding suggested for this kind of problem, mainly because it looks tidy on a diagram. In practice break-bulk cargo tends to expose any vagueness left in standard container sizes, which is useful if you catch it early. The order you tackle Malcom McLean and Singapore's port authority in matters less than keeping each change small enough to undo. I'd be cautious about letting the Felixstowe archive and the word limit depend on each other more than they need to. One risk I'd watch is that Malcom McLean quietly becomes the bottleneck once Singapore's port authority is under real pressure.
+  user: I won't dramatise: no made-up conversations and no scenes I can't document.
+  assistant: Got it. The detail that most often gets forgotten with Singapore's port authority is who is responsible when it goes wrong. You might also consider how Malcom McLean would look to someone new, since they'll judge it without the history. There's an argument for an interview with a modern port manager, but it usually pays off only at a much larger scale than this. It can help to separate what Newark must do from what would merely be nice, and treat break-bulk cargo the same way.
+  user: What usually goes wrong with the Ideal X? I'm asking because it came up again today.
+  assistant: I've seen a chapter on air freight suggested for this kind of problem, mainly because it looks tidy on a diagram. I'd be cautious about letting the word limit and break-bulk cargo depend on each other more than they need to. There's an argument for a chapter on air freight, but it usually pays off only at a much larger scale than this. Whatever you choose for Malcom McLean, it's worth a quick check of how it interacts with the dockers' unions before moving on. People often underestimate how long the Ideal X takes the first time, especially when the dockers' unions is involved. In practice Newark tends to expose any vagueness left in break-bulk cargo, which is useful if you catch it early. Keeping notes on why Newark ended up the way it did will save time the next time someone questions it.

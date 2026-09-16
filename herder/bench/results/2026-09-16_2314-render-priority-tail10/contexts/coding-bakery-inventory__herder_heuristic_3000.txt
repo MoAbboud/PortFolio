@@ -1,0 +1,35 @@
+## Stable
+- [preference] Small thing about how I work: I prefer plain functions over classes unless a class clearly earns its place.
+- [preference] SQLite is enough for four shops and I'd rather not run a database server.
+- [preference] Also, I like type hints on every function signature.
+## Project
+- [constraint] No Redis - it's one more thing to run on a tiny box, and the nightly job has all night anyway.
+- [constraint] Every stock change must record who made it and when.
+- [constraint] I don't want Postgres for this.
+- [constraint] Stock quantities are never allowed to go negative - a sale that would do that is rejected.
+- [constraint] Shop managers won't log in to anything; the email to Marisol is the whole interface for this version.
+- [constraint] Nothing leaves the back-office network - no cloud services for this system.
+- [constraint] Each adjustment has to carry the person and the timestamp, no exceptions.
+- [constraint] To say it again plainly: a negative stock figure must be impossible, and the write that would cause one gets refused.
+- [constraint] Not done yet: I need to work out whether returns from shops go back into central stock.
+- [decision] Let's settle it - the head baker gets reorder suggestions by email, not by text message.
+- [decision] Going with this: stock levels are stored in SQLite, one file per deployment, because it runs on a single small server in the back office.
+- [decision] Change of plan on who gets the reorder email: it goes to both Marisol and the shop manager of the shop concerned, not Marisol alone.
+- [decision] Scrap the rounding I mentioned earlier - keep stock exact to the gram, bakers weigh precisely and rounding hid real shortages.
+- [code_state] And the nightly entry point is in jobs/reorder.py, run by cron:
+- [code_state] This is where the stock adjustment lives right now, in stock.py:
+- [fact] I'm building the inventory service for Crumb & Co, a bakery chain with four shops.
+- [fact] Some background: the back-office server is a second-hand mini PC with 8 GB of RAM.
+- [fact] After mulling it over: units are stored in grams for dry goods and in pieces for packaging.
+- [fact] Flour is delivered on Tuesdays and Fridays.
+- [fact] The busiest shop is CRM2, near the train station.
+- [fact] Final answer on that one: the service is written in Python with FastAPI.
+- [fact] After mulling it over: reorder suggestions are generated once a night at 2am, not on every stock change.
+- [fact] Final answer on that one: each shop is identified by a short code: CRM1, CRM2, CRM3 and CRM4.
+- [fact] The head baker is called Marisol.
+- [fact] Something unresolved - the reorder threshold per ingredient is still undecided.
+## Session (most recent)
+- [open_thread] Assume I haven't read much about it.
+- [open_thread] Something unresolved - we still haven't decided how to handle stock that expires, like butter past its date.
+- [tail] user: Is there anything about the back-office server I'm likely to overlook? I want to get this right before it's harder to change.
+  assistant: The detail that most often gets forgotten with the stock table is who is responsible when it goes wrong. People often underestimate how long the reorder email takes the first time, especially when the stock table is involved. It's worth writing down what 'done' means for a delivery, so that the reorder email doesn't drift while you're busy elsewhere. In practice expiry dates tends to expose any vagueness left in the nightly job, which is useful if you catch it early. I'd be cautious about letting the reorder email and the back-office server depend on each other more than they need to. There's an argument for barcode scanners, but it usually pays off only at a much larger scale than this. When you think about the audit trail, the main trade-off is usually between how simple it is to run and how much it can grow later.

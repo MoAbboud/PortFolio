@@ -84,6 +84,9 @@ class Settings(BaseSettings):
     derive_max_age_seconds: int = 600
     brief_budget_tokens: int = 3000
     session_tail_tokens: int = 1200
+    # The share of a brief's budget held back for the verbatim tail. Must equal
+    # domain.render.TAIL_RESERVE - see the reasoning and the measurement there.
+    brief_tail_reserve: float = 0.10
     # 0.50, not the 0.86 the specification named. Measured on 2026-09-10 against
     # all-minilm over eleven labelled pairs, and the finding was that **no threshold
     # separates them cleanly** - "No Redis" against "we will not introduce a message

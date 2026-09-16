@@ -1,0 +1,18 @@
+## Project
+- [constraint] Just so it's clear: the originals on the phones are read-only as far as this tool is concerned, it never deletes or edits them.
+- [constraint] Not done yet: I need to test what happens when two phones upload the same photo at the same time.
+- [constraint] Everything stays on the home network; this tool must not upload anything anywhere.
+- [constraint] If the disk is almost full the tool must stop cleanly and report it, not leave a half-copied file behind.
+- [constraint] Non-negotiable: snapshelf must never delete or modify an original file on a phone.
+- [constraint] No database.
+- [constraint] Non-negotiable: it has to keep working when the NAS disk is nearly full - it stops copying and says so, rather than failing halfway.
+- [constraint] I don't want Python here - the single Go binary is the point, I don't want a runtime on the NAS.
+- [constraint] No web interface.
+- [decision] Actually, change how undated photos are handled: if there's no EXIF date, put the photo in a folder called undated instead of guessing from the modification time.
+- [decision] Let's not run it hourly after all - the disks spin up too often.
+- [decision] Okay, that's decided: photos are sorted into folders by year and then month, like 2024/07.
+## Session (most recent)
+- [open_thread] Open item: we still need to decide how long to keep the log files.
+- [open_thread] Open item: I haven't worked out what to do with Live Photos from the iPhone, which come as a pair of files.
+- [open_thread] Assume I haven't read much about it.
+- [tail] EXIF date. There's an argument for inotify watching, but it usually pays off only at a much larger scale than this. You might also consider how the EXIF date would look to someone new, since they'll judge it without the history. In practice the family-drop share tends to expose any vagueness left in the year/month folders, which is useful if you catch it early. Inotify watching comes up a lot in articles, but the examples rarely match a setup like yours. People often underestimate how long the family-drop share takes the first time, especially when the schedule is involved.

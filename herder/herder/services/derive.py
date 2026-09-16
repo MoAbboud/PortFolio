@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from herder.core.config import get_settings
 from herder.core.embeddings import embedding_text
 from herder.core.ids import uuid7
 from herder.core.tokens import count_tokens
@@ -643,6 +644,7 @@ async def render_project(
         count_tokens,
         tail_text=tail_text,
         tail_entry_id=tail_id,
+        tail_reserve=get_settings().brief_tail_reserve,
     )
 
     covered = (

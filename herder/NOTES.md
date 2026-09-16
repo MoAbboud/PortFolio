@@ -1410,3 +1410,39 @@ is an open-thread cue. And "unresolved" cannot become one: "Something unresolved
 benchmark generator's lead-ins, which the attempt 3 test forbids the rules to key on. So the case needs
 an extraction change *and* the merge rule, to recover about one fact - inside the +/- 4 noise floor. Not
 built. The lesson is the method one: query the thing a rule is supposed to fix before writing the rule.
+
+### Attempt 6: the render order, and the smaller recent-turns reserve
+
+**Why open threads vanished at 500 tokens.** The render sorted by layer first, then by kind, and open
+threads are extracted into the `session` layer - so every `project` entry, down to an incidental fact,
+was spent before any open thread. Across the eight 500-token briefs: **35 plain facts, 2 open threads.**
+Attempt 3's plain-statement rule had added the facts; that is where open-thread recall at 500 went from
+0.46 to 0.08.
+
+**The author's decision:** one explicit priority table - constraint, decision, open thread, preference
+and identity, code state, fact - with layer only as a tie-breaker, **and** the share of the budget held
+for verbatim recent turns cut from 25% to 10%. Previewed offline first (the real renderer over the real
+entries reproduced today's composition exactly), then measured as two runs so the effects separate.
+
+| Measure | reference | table only | **table + 10% reserve** |
+| --- | --- | --- | --- |
+| Recall @ 500 | 0.44 (98 of 221) | 0.45 (99) | **0.54 (119)** |
+| Essential / useful / incidental @ 500 | 66 / 25 / 7 | 62 / 31 / 6 | **72 / 39 / 8** |
+| Open threads @ 500 | 2 of 24 | 13 | 13 |
+| Verdicts vs reference @ 500 | - | 21 better, 21 worse | **25 better, 4 worse** |
+| Recall @ 3000 | 0.71 (156) | 0.70 (154) | 0.70 (154) |
+| Brief size @ 3000 | 1,214 tokens | 1,214 | **772** |
+| Compression @ 3000 | 9.1x | 9.1x | **14.3x** |
+| Wrong claims | 0 of 40 | 0 | 0 |
+
+Runs: `2026-09-16_2308-render-priority`, `2026-09-16_2314-render-priority-tail10`, against
+`2026-09-15_1718-answer-exclusion-fix`.
+
+**The table alone was a trade, not a gain**: open threads went from 2 to 13, and the budget they took
+came out of essential facts and preferences, so recall stayed flat. **The smaller reserve is what made
+the room**: at 500 tokens a quarter of the budget is about two verbatim turns, and giving that space to
+entries added 21 facts - five times the noise floor - most of them essential or useful. At 3,000 tokens
+recall held (a 2-fact difference is noise) in a brief 37% smaller.
+
+Adopted: `TAIL_RESERVE = 0.10` in `domain/render.py`, the same default in `core/config.py` (a test
+keeps them equal), `HERDER_BRIEF_TAIL_RESERVE` in Compose and `.env.example`.

@@ -33,6 +33,8 @@ services:
       # The merge step's NLI checkpoint. Compared on labelled pairs in bench/nli_pairs.json
       # (python -m bench.nli_compare); a checkpoint whose head is not three-label is refused.
       HERDER_NLI_MODEL: ${HERDER_NLI_MODEL:-cross-encoder/nli-deberta-v3-base}
+      # The share of a brief held for the verbatim recent turns. See herder/domain/render.py.
+      HERDER_BRIEF_TAIL_RESERVE: ${HERDER_BRIEF_TAIL_RESERVE:-0.10}
       # Ollama runs on the host, not in this container. Without this the container looks
       # for it at its own localhost and finds nothing.
       HERDER_OLLAMA_URL: ${HERDER_OLLAMA_URL:-http://host.docker.internal:11434}
@@ -61,6 +63,8 @@ services:
       # The merge step's NLI checkpoint. Compared on labelled pairs in bench/nli_pairs.json
       # (python -m bench.nli_compare); a checkpoint whose head is not three-label is refused.
       HERDER_NLI_MODEL: ${HERDER_NLI_MODEL:-cross-encoder/nli-deberta-v3-base}
+      # The share of a brief held for the verbatim recent turns. See herder/domain/render.py.
+      HERDER_BRIEF_TAIL_RESERVE: ${HERDER_BRIEF_TAIL_RESERVE:-0.10}
       HERDER_OLLAMA_URL: ${HERDER_OLLAMA_URL:-http://host.docker.internal:11434}
     extra_hosts:
       - "host.docker.internal:host-gateway"

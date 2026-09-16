@@ -566,6 +566,12 @@ first baseline, a new generator rather than stage 4's, and to write every fact h
       are still waiting..." matches no open-thread cue, and "unresolved" cannot become one - it is a
       benchmark generator lead-in the attempt 3 test forbids). Fixing that case would take a cue change
       plus the rule, for about one fact, inside the noise floor. Recorded in `NOTES.md`
+- [x] Attempt 6 - the render order (his decision) and the recent-turns reserve
+      (`2026-09-16_2308-render-priority`, `2026-09-16_2314-render-priority-tail10`): one priority
+      table with layer as a tie-breaker, reserve 25% -> 10%. **Recall at 500 0.44 -> 0.54** (98 ->
+      119 of 221; essential 66 -> 72), the same recall at 3,000 in a 772-token brief instead of
+      1,214 (**9.1x -> 14.3x**), wrong claims still 0. The table alone was flat; the reserve made the
+      room. 506 tests pass
 - [ ] Candidates in cost order: render ordering, tail reserve size, similarity threshold,
       chunk size, the extraction prompt, a larger quantisation, and whether the layer split
       earns its keep

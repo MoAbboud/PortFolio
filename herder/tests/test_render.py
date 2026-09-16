@@ -15,6 +15,7 @@ from herder.core.ids import uuid7
 from herder.domain.render import (
     KIND_ORDER,
     LAYER_ORDER,
+    PRIORITY,
     RenderableEntry,
     format_entry,
     render_brief,
@@ -90,6 +91,43 @@ def test_a_pin_wins_inclusion_but_still_reads_in_its_own_layer() -> None:
     assert result.text.index("a constraint") < result.text.index("pinned one")
 
 
+def test_an_open_thread_outranks_a_project_fact_when_the_budget_is_tight() -> None:
+    """The author's decision of 2026-09-16: priority before layer.
+
+    Open threads are extracted into the session layer. With layer first, every project fact was
+    spent before any open thread, and at 500 tokens the benchmark briefs held 35 plain facts and 2
+    open threads. What survives a tight budget now follows what matters most.
+    """
+    thread = entry(kind="open_thread", layer="session", title="who covers weekends is undecided")
+    facts = [entry(kind="fact", layer="project", title=f"background fact number {i}") for i in range(5)]
+    result = render([*facts, thread], budget=12)
+
+    assert thread.id in result.included_entry_ids
+    assert any(f.id in result.excluded_entry_ids for f in facts)
+
+
+def test_a_constraint_still_outranks_an_open_thread() -> None:
+    thread = entry(kind="open_thread", layer="session", title="an open question here")
+    constraint = entry(kind="constraint", layer="project", title="never store card numbers")
+    # constraint line 6 words + "## Project" 2 = 8 fits in 10; the thread would need 10 more.
+    result = render([thread, constraint], budget=10)
+
+    assert constraint.id in result.included_entry_ids
+    assert thread.id in result.excluded_entry_ids
+
+
+def test_the_layer_breaks_a_tie_between_equal_priorities() -> None:
+    """Layer is no longer the first key, but it still decides between equals: a preference about
+    the user outlives one about this project."""
+    project_pref = entry(kind="preference", layer="project", title="project preference here")
+    stable_pref = entry(kind="preference", layer="stable", title="stable preference here")
+    # each costs 5 words plus a 2-word heading, so only one fits in 8.
+    result = render([project_pref, stable_pref], budget=8)
+
+    assert stable_pref.id in result.included_entry_ids
+    assert project_pref.id in result.excluded_entry_ids
+
+
 def test_recency_breaks_a_tie() -> None:
     old = entry(kind="fact", title="older", minutes_ago=99)
     new = entry(kind="fact", title="newer", minutes_ago=1)
@@ -163,6 +201,9 @@ def test_no_entries_renders_an_empty_brief() -> None:
 
 
 # ------------------------------------------------------------------ the tail
+#
+# The mechanics tests below pin `tail_reserve=0.25` explicitly: they test truncation and
+# overhead with budgets sized for that share, not what the default share is.
 
 
 def test_the_tail_is_appended_and_gets_its_reserve() -> None:
@@ -178,7 +219,7 @@ def test_the_tail_is_appended_and_gets_its_reserve() -> None:
 def test_the_tail_is_truncated_from_the_front_keeping_the_most_recent() -> None:
     """The end of the tail is what makes a resumed session feel continuous."""
     tail = "\n".join(f"line {i} of the conversation" for i in range(40))
-    result = render([entry()], budget=60, tail_text=tail)
+    result = render([entry()], budget=60, tail_text=tail, tail_reserve=0.25)
 
     assert result.tail_truncated is True
     assert "line 39" in result.text
@@ -187,7 +228,7 @@ def test_the_tail_is_truncated_from_the_front_keeping_the_most_recent() -> None:
 
 def test_a_single_tail_line_longer_than_the_reserve_drops_leading_words() -> None:
     tail = " ".join(f"word{i}" for i in range(200))
-    result = render([entry()], budget=40, tail_text=tail)
+    result = render([entry()], budget=40, tail_text=tail, tail_reserve=0.25)
 
     assert result.tail_included is True
     assert "word199" in result.text
@@ -202,6 +243,31 @@ def test_the_tail_reserve_does_not_starve_when_there_is_no_tail() -> None:
     assert len(without.included_entry_ids) >= len(with_tail.included_entry_ids)
 
 
+def test_the_tail_reserve_is_a_parameter() -> None:
+    """A smaller reserve leaves more of a small budget for entries."""
+    entries = [entry(kind="decision", title=f"decision number {i} made") for i in range(40)]
+    tail = "\n".join(f"line {i} of the conversation" for i in range(40))
+    # 200 words: a quarter leaves 150 for entries, a tenth leaves 180 and still fits a tail line.
+    quarter = render(entries, budget=200, tail_text=tail, tail_reserve=0.25)
+    tenth = render(entries, budget=200, tail_text=tail, tail_reserve=0.10)
+
+    included = lambda r: len([i for i in r.included_entry_ids if i in {e.id for e in entries}])
+    assert included(tenth) > included(quarter)
+    assert tenth.tail_included
+
+
+def test_a_zero_reserve_drops_the_tail() -> None:
+    result = render([entry()], budget=40, tail_text="something recent", tail_reserve=0.0)
+    assert result.tail_included is False
+    assert "something recent" not in result.text
+
+
+@pytest.mark.parametrize("reserve", [-0.1, 1.0, 1.5])
+def test_a_reserve_outside_zero_to_one_is_refused(reserve: float) -> None:
+    with pytest.raises(ValueError, match="tail_reserve"):
+        render([entry()], budget=40, tail_text="x", tail_reserve=reserve)
+
+
 def test_a_multi_line_tail_stays_inside_its_own_list_item() -> None:
     """The same defect `_one_line` fixed for entries, on the one entry it does not touch.
 
@@ -210,7 +276,7 @@ def test_a_multi_line_tail_stays_inside_its_own_list_item() -> None:
     they read as orphaned text belonging to no item. Found in the real loop-demo brief.
     """
     tail = "user: first thing\nassistant: ok\nuser: last thing"
-    result = render([entry(kind="constraint")], budget=100, tail_text=tail)
+    result = render([entry(kind="constraint")], budget=100, tail_text=tail, tail_reserve=0.25)
 
     lines = result.text.splitlines()
     start = next(i for i, line in enumerate(lines) if line.startswith("- [tail]"))
@@ -225,7 +291,7 @@ def test_the_tail_block_fits_its_reserve_with_its_heading_and_bullet() -> None:
     budget = 400
     entries = [entry(kind="fact", title=f"entry number {i} padding") for i in range(30)]
     tail = "\n".join(f"user: line {i} of the conversation" for i in range(40))
-    result = render_brief(entries, budget, len, tail_text=tail)
+    result = render_brief(entries, budget, len, tail_text=tail, tail_reserve=0.25)
 
     assert result.tail_included is True
     section = result.text[result.text.index("## Session") :]
@@ -299,6 +365,16 @@ def test_a_genuinely_different_title_still_prints_both() -> None:
 
 def test_the_vocabularies_match_the_data_model() -> None:
     assert LAYER_ORDER == ("stable", "project", "session")
-    assert KIND_ORDER[0] == "constraint"
+    assert KIND_ORDER[:3] == ("constraint", "decision", "open_thread")
     assert KIND_ORDER[-1] == "artifact_ref"
     assert "tail" not in KIND_ORDER
+    assert set(KIND_ORDER) == set(PRIORITY)
+
+
+def test_the_render_default_and_the_setting_agree() -> None:
+    """Two defaults for one number would drift: the domain function would render one share in
+    tests and the product another. Same shape as the embedding-dimension check."""
+    from herder.core.config import Settings
+    from herder.domain.render import TAIL_RESERVE
+
+    assert Settings(_env_file=None).brief_tail_reserve == TAIL_RESERVE

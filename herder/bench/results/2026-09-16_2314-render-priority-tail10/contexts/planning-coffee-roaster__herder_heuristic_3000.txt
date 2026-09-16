@@ -1,0 +1,27 @@
+## Stable
+- [preference] Also, please be blunt about risks, I'd rather hear them now.
+- [preference] Small thing about how I work: I prefer plain spreadsheets to specialised planning software.
+## Project
+- [constraint] No franchising.
+- [constraint] One firm rule: the lease must include a break clause no later than year three.
+- [constraint] Nobody on the team is paid below the real Living Wage, trainees included - that's non-negotiable.
+- [constraint] We will not take on outside investors - the business stays fully owned by me and my sister.
+- [constraint] No investors, whatever the plan ends up costing.
+- [decision] Okay, that's decided: the second location opens in the Eastgate neighbourhood.
+- [decision] Okay, that's decided: we're hiring a dedicated manager for the new café rather than splitting my time.
+- [decision] Going with this: it's a café only - all roasting stays at the original site.
+- [decision] Let's park it for now.
+- [fact] We're planning a second location and I want to think through the plan with you, including the numbers.
+- [fact] Not the city centre - the rents would eat the margin and Eastgate is where our regulars already come from.
+- [fact] The original café is on Mill Street and has been open for six years.
+- [fact] Opening hours will be 7am to 4pm, seven days a week.
+- [fact] Revising the fit-out budget from what I said earlier: it's capped at £85,000 now, the bank won't lend more without investors. Previously: After mulling it over: the fit-out budget is capped at £85,000.
+- [fact] The June opening is off - builders can't start until spring, so the target is September. Previously: After mulling it over: the target opening month is September.
+- [fact] The name for the second café is undecided - same name or a variation.
+## Session (most recent)
+- [open_thread] We haven't decided whether to serve food beyond pastries.
+- [open_thread] Assume I haven't read much about it.
+- [open_thread] Open item: I still need a quote for the espresso machine service contract.
+- [tail] assistant: A useful question is what happens to the new manager on the worst day of the year, not an ordinary one. When you think about the bank loan, the main trade-off is usually between how simple it is to run and how much it can grow later. A pop-up trial comes up a lot in articles, but the examples rarely match a setup like yours. You might also consider how the lease would look to someone new, since they'll judge it without the history. It can help to separate what the roasting schedule must do from what would merely be nice, and treat the cash flow forecast the same way. One risk I'd watch is that the cash flow forecast quietly becomes the bottleneck once the new manager is under real pressure.
+  user: What's a sensible first step on the Eastgate unit? I'm asking because it came up again today.
+  assistant: Some people in a similar position reach for a wholesale push to restaurants, although it brings its own maintenance burden. The order you tackle the roasting schedule and Saturday trade in matters less than keeping each change small enough to undo. It can help to separate what the espresso machine must do from what would merely be nice, and treat the bank loan the same way. People often underestimate how long staffing costs takes the first time, especially when the new manager is involved. A small trial of the bank loan before the full version often shows problems that planning alone misses.

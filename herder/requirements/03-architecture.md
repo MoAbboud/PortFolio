@@ -241,15 +241,22 @@ fill the store with near-identical tails. It is one entry per project, rewritten
 ```
 render(project, budget):
     order:  pinned first
-            then by layer:  stable, project, session
-            then by kind:   constraint, decision, open_thread, code_state,
-                            preference, identity, glossary, fact, artifact_ref
+            then by priority:  constraint 0, decision 1, open_thread 2,
+                               preference and identity 3, code_state 4,
+                               glossary and fact 5, artifact_ref 6
+            then by layer:     stable, project, session   (a tie-breaker)
             then by last_seen descending
-    reserve 25% of the budget for the tail
+    reserve HERDER_BRIEF_TAIL_RESERVE of the budget for the tail (default 25%)
     take entries in order until the remaining budget is spent
     append the tail, truncating it from the front if it does not fit
     record what was included and what was excluded
 ```
+
+**Priority before layer is the author's decision of stage 10.** The original rule sorted by layer
+first, and because open threads are extracted into the session layer, every project entry - down to
+an incidental fact - was spent before any open thread; at a 500-token budget the benchmark briefs
+held 35 plain facts and 2 open threads. The layer still decides where an entry reads in the brief
+and still breaks ties between equal priorities.
 
 The ordering is the whole design of the render step, because ordering is what decides what
 gets cut. Constraints and decisions come before facts because a model that has been told the
