@@ -80,6 +80,13 @@ KIND_ORDER = tuple(PRIORITY)
 
 TAIL_KIND = "tail"
 
+# The residue's marker and its own section, at the very bottom. Named honestly rather than
+# dressed up as a kind: these sentences were not classified, and a model reading the brief should
+# weigh them below everything above them. Calling them `fact` would have been a lie the reader
+# could not see through.
+RESIDUE_KIND = "unsorted"
+RESIDUE_HEADING = "## Also said (unsorted, lowest confidence)"
+
 
 @dataclass(frozen=True)
 class RenderableEntry:
@@ -105,6 +112,11 @@ class RenderedBrief:
     budget_tokens: int = 0
     tail_included: bool = False
     tail_truncated: bool = False
+    # How many residue sentences were printed, and how many were offered. Reported because a
+    # residue that is always empty and a residue that is always full are different failures,
+    # and neither shows up in `included`/`excluded`, which count entries.
+    residue_included: int = 0
+    residue_offered: int = 0
     # True when pinned entries alone exceeded the budget. The pins win - the user asked for
     # them explicitly - but the brief says so rather than pretending it fitted.
     over_budget: bool = False
@@ -201,11 +213,17 @@ def render_brief(
     tail_text: str | None = None,
     tail_entry_id: uuid.UUID | None = None,
     tail_reserve: float = TAIL_RESERVE,
+    residue: Sequence[str] | None = None,
 ) -> RenderedBrief:
     """Render active and pinned entries into a brief of at most `budget_tokens`.
 
     `tail_reserve` is the fraction of the budget held for the verbatim tail. Zero is allowed and
     means the tail is dropped; one or more would leave nothing for the entries and is refused.
+
+    `residue` is user sentences no entry carries, oldest first (see `domain/residue.py`). They are
+    spent **only on budget left over once every entry and the tail are placed**, so they can never
+    displace an entry and the priority ordering above is untouched. Pass None or an empty sequence
+    for the behaviour this function had before 2026-09-17.
     """
     if budget_tokens < 1:
         raise ValueError("budget_tokens must be positive")
@@ -279,6 +297,30 @@ def render_brief(
                 result.included_entry_ids.append(tail_entry_id)
         elif tail_entry_id is not None:
             result.excluded_entry_ids.append(tail_entry_id)
+
+    if residue:
+        result.residue_offered = len(residue)
+        spare = budget_tokens - used
+        chosen: list[str] = []
+        # Newest first while choosing, because an older uncovered sentence is the more likely
+        # of the two to have been overtaken by something that did become an entry. Printed
+        # oldest first afterwards, because a brief that jumps backwards in time reads as though
+        # the order means something.
+        for sentence in reversed(residue):
+            line = f"- [{RESIDUE_KIND}] {_one_line(sentence)}"
+            cost = count(line) + (count(RESIDUE_HEADING) if not chosen else 0)
+            if cost > spare:
+                # Skip rather than stop, the opposite of the entry loop above. There the order
+                # is a priority and skipping would invert it; here the order is only recency,
+                # nothing outranks anything, and one long sentence should not end the section.
+                continue
+            chosen.append(line)
+            spare -= cost
+        if chosen:
+            parts.append(RESIDUE_HEADING)
+            parts.extend(reversed(chosen))
+            result.residue_included = len(chosen)
+            used = budget_tokens - spare
 
     result.text = "\n".join(p for p in parts if p != "")
     result.token_count = count(result.text)

@@ -32,7 +32,7 @@ from pathlib import Path
 from bench import facts as F
 from bench.generate import DATASETS
 from bench.metrics import Judged
-from bench.methods import HerderApi, MethodFailed, map_summaries, naive_summary, no_context, truncate_tail
+from bench.methods import HerderApi, MethodFailed, map_summaries, naive_summary, no_context, truncate_tail, user_turns
 from bench.models import Reader, Summariser
 from bench.report import write as write_report
 from herder.core.tokens import count_tokens
@@ -77,7 +77,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--label", default="trial", help="'baseline' requires complete fact lists")
     parser.add_argument("--budgets", default=",".join(map(str, DEFAULT_BUDGETS)))
     parser.add_argument("--conversations", default="", help="comma-separated names; default is all with facts")
-    parser.add_argument("--methods", default="", help="comma-separated: herder, naive_summary, truncate_tail, no_context")
+    parser.add_argument("--methods", default="", help="comma-separated: herder, naive_summary, truncate_tail, user_turns, no_context")
     parser.add_argument("--resume", default=None, help="an existing run folder to continue")
     parser.add_argument("--api", default="http://localhost:8000")
     # For checking the harness itself on a scratch copy, so placeholder facts never sit beside
@@ -92,7 +92,7 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("set HERDER_KEY first. Get a key with: python -m herder bootstrap --email owner@localhost")
 
     budgets = sorted({int(b) for b in args.budgets.split(",") if b.strip()})
-    methods = {m.strip() for m in args.methods.split(",") if m.strip()} or {"herder", "naive_summary", "truncate_tail", "no_context"}
+    methods = {m.strip() for m in args.methods.split(",") if m.strip()} or {"herder", "naive_summary", "truncate_tail", "user_turns", "no_context"}
     wanted = {n.strip() for n in args.conversations.split(",") if n.strip()}
     conversations = []
     for folder in sorted(datasets.iterdir()):
@@ -193,6 +193,13 @@ def main(argv: list[str] | None = None) -> int:
                 keys.append(key)
                 if f"{name}|{key}" not in have_contexts:
                     keep(truncate_tail(conversation, budget), key)
+
+        if "user_turns" in methods:
+            for budget in budgets:
+                key = f"user_turns @ {budget}"
+                keys.append(key)
+                if f"{name}|{key}" not in have_contexts:
+                    keep(user_turns(conversation, budget), key)
 
         summary_keys = {b: f"naive_summary @ {b}" for b in budgets} if "naive_summary" in methods else {}
         if any(f"{name}|{k}" not in have_contexts for k in summary_keys.values()):

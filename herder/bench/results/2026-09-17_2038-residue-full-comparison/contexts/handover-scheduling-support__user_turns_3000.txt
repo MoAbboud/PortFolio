@@ -1,0 +1,119 @@
+User: I'm going on parental leave in two weeks and handing the customer support queue for Slotwise, our appointment-scheduling product, to a colleague. I want to use this chat to get everything they need written down properly.
+
+User: After mulling it over: refunds under €50 can be approved by support without asking anyone.
+
+User: What usually goes wrong with Deskline macros? I'm asking because it came up again today.
+
+User: How would you approach response targets? I keep going back and forth on it.
+
+User: No promised dates. We don't have one, so we don't give one.
+
+User: How would you approach the refund limit? Assume I haven't read much about it.
+
+User: Can you walk me through how the product board relates to response targets? Assume I haven't read much about it.
+
+User: Let's settle it - the first response target is eight business hours.
+
+User: For the record, feature requests are logged in the product board, not answered with promises.
+
+User: What should I check about the on-call rota before next week?
+
+User: No, the €50 limit stays. Anything bigger goes to finance, same as when I'm here.
+
+User: How do other people handle the on-call rota? I want to get this right before it's harder to change.
+
+User: Can you walk me through how response targets relates to the daylight-saving bug? Short answer is fine.
+
+User: A preference, while I think of it - keep the tone of any template replies warm but brief.
+
+User: Let's settle it - first response time target is four business hours.
+
+User: Is there anything about the on-call rota I'm likely to overlook? Short answer is fine.
+
+User: Never share one customer's booking data with another customer, even inside the same company, without written permission. That's not up for debate.
+
+User: How would you approach response targets? Especially for a setup this size.
+
+User: Billing stays with finance. Support doesn't answer billing tickets.
+
+User: How would you approach the refund limit?
+
+User: One firm rule: support must not change a customer's calendar settings directly - we guide them to do it.
+
+User: In case it matters, the busiest support day is Monday morning.
+
+User: Context you might need: our biggest customer is a dental group called BrightSmile Clinics.
+
+User: Any thoughts on BrightSmile Clinics given everything so far? Especially for a setup this size.
+
+User: How do other people handle the on-call rota? Especially for a setup this size.
+
+User: What should I check about the on-call rota before next week? I keep going back and forth on it.
+
+User: Final answer on that one: the support inbox is support@slotwise.example.
+
+User: How do other people handle BrightSmile Clinics?
+
+User: Can you walk me through how billing tickets relates to the refund limit? Assume I haven't read much about it.
+
+User: Let's settle it - the on-call rota for urgent tickets is weekly, changing on Mondays.
+
+User: Any suspected security issue goes to the security channel within the hour. That's not up for debate.
+
+User: Can you walk me through how billing tickets relates to the daylight-saving bug? I keep going back and forth on it.
+
+User: The helpdesk tool we use is called Deskline.
+
+User: Also, use the product's own terms - 'slots' and 'hosts', not 'appointments' and 'users'.
+
+User: How would you approach the on-call rota? Assume I haven't read much about it.
+
+User: Context you might need: slotwise has about 2,300 paying customers.
+
+User: Some background: my colleague taking over is called Tomasz.
+
+User: What usually goes wrong with billing tickets? Short answer is fine.
+
+User: How would you approach the security channel? I keep going back and forth on it.
+
+User: For the record, tickets tagged billing go straight to the finance team, support doesn't answer them.
+
+User: How do other people handle Deskline macros? I'm asking because it came up again today.
+
+User: Let's settle it - the on-call rota changes on Fridays.
+
+User: How do other people handle BrightSmile Clinics? Just the practical side.
+
+User: Is there anything about the daylight-saving bug I'm likely to overlook? Just the practical side.
+
+User: I want the handover document written as a checklist.
+
+User: How do other people handle billing tickets? I'm asking because it came up again today.
+
+User: Something unresolved - we still need to decide whether weekend tickets get any response.
+
+User: How do other people handle the security channel? Short answer is fine.
+
+User: What usually goes wrong with the refund limit? Especially for a setup this size.
+
+User: BrightSmile Clinics asked for a custom export and nobody has replied yet. Let's park it for now.
+
+User: Correction on the rota handover day - it switches on Mondays, not Fridays, since the team changed it last month.
+
+User: What should I check about the refund limit before next week? Assume I haven't read much about it.
+
+User: What's a sensible first step on the product board?
+
+User: Tighten the response target I gave earlier: it's four business hours now, the eight-hour figure was from last year.
+
+User: We don't edit someone's calendar settings for them; we walk them through doing it themselves.
+
+User: Is there anything about the security channel I'm likely to overlook?
+
+User: How do other people handle billing tickets? I want to get this right before it's harder to change.
+
+User: Booking data is never passed from one customer account to another without written permission, even if they claim to be colleagues.
+
+User: Something unresolved - there's an unresolved bug where recurring slots disappear after a daylight-saving change.
+
+User: A possible security problem gets raised in the security channel inside an hour, whatever else is going on.

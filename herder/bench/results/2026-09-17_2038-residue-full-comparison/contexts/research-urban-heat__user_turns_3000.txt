@@ -1,0 +1,137 @@
+User: I'm writing the literature review chapter of my master's thesis on urban heat islands, focused on how street trees change surface temperatures. I want your help structuring it and keeping track of what I decide along the way.
+
+User: How do other people handle air temperature? I keep going back and forth on it.
+
+User: I'm not doing a meta-analysis - the studies measure too differently and my supervisor agreed it's out of scope.
+
+User: For the record, the review starts from 2005.
+
+User: How do other people handle the ground stations? Short answer is fine.
+
+User: How would you approach the ground stations? Short answer is fine.
+
+User: Is there anything about the reference cap I'm likely to overlook? Just the practical side.
+
+User: What usually goes wrong with the ground stations?
+
+User: The thesis is due in May.
+
+User: After mulling it over: the case-study city for the thesis is Valencia.
+
+User: Is there anything about the logger data I'm likely to overlook? Assume I haven't read much about it.
+
+User: What's a sensible first step on the reference cap? Especially for a setup this size.
+
+User: I like short paragraphs, four or five sentences at most.
+
+User: My supervisor is Dr. Okafor.
+
+User: What should I check about the satellite studies before next week? Just the practical side.
+
+User: How would you approach evapotranspiration? I want to get this right before it's harder to change.
+
+User: Going with this: the review covers studies published from 2010 onwards only.
+
+User: Is there anything about surface temperature I'm likely to overlook?
+
+User: What should I check about the shading section before next week? I'm asking because it came up again today.
+
+User: No white papers. They're grey literature and they stay out.
+
+User: Final answer on that one: I'll use Harvard referencing.
+
+User: A preference, while I think of it - please give me the reasoning behind a suggestion, not just the suggestion.
+
+User: What usually goes wrong with the satellite studies? Short answer is fine.
+
+User: Going with this: the chapter's target length is 6,000 words.
+
+User: Is there anything about air temperature I'm likely to overlook? Short answer is fine.
+
+User: How do other people handle the Valencia case? Just the practical side.
+
+User: What should I check about air temperature before next week?
+
+User: Non-negotiable: every temperature figure I quote must say whether it is air temperature or surface temperature.
+
+User: Is there anything about the ground stations I'm likely to overlook?
+
+User: Context you might need: my fieldwork used twelve temperature loggers placed on two streets.
+
+User: What usually goes wrong with the shading section? Especially for a setup this size.
+
+User: Is there anything about the Valencia case I'm likely to overlook? I want to get this right before it's harder to change.
+
+User: Is there anything about the Valencia case I'm likely to overlook?
+
+User: No, not chronologically. By mechanism is how my argument works, a timeline would bury it.
+
+User: Satellite land-surface temperature studies and ground-station studies are discussed in separate sections.
+
+User: What should I check about evapotranspiration before next week?
+
+User: What should I check about canopy cover before next week? I keep going back and forth on it.
+
+User: After mulling it over: the chapter is organised by cooling mechanism - shading, evapotranspiration, then albedo - rather than chronologically.
+
+User: Any thoughts on surface temperature given everything so far? I'm asking because it came up again today.
+
+User: What usually goes wrong with the logger data? I want to get this right before it's harder to change.
+
+User: Non-negotiable: my supervisor wants no more than 60 references in this chapter.
+
+User: What's a sensible first step on the reference cap?
+
+User: How do other people handle the logger data? Assume I haven't read much about it.
+
+User: What's a sensible first step on the satellite studies? Assume I haven't read much about it.
+
+User: Non-negotiable: only peer-reviewed sources count - no preprints and no grey literature in the main argument.
+
+User: How do other people handle the ground stations? Assume I haven't read much about it.
+
+User: Small thing about how I work: I'd rather you flag uncertainty than sound confident.
+
+User: How do other people handle the logger data? I want to get this right before it's harder to change.
+
+User: Is there anything about the ground stations I'm likely to overlook? I want to get this right before it's harder to change.
+
+User: Final answer on that one: I'm using APA 7th edition for citations.
+
+User: Valencia's historic centre has very few street trees compared with the newer districts.
+
+User: Is there anything about the satellite studies I'm likely to overlook? Especially for a setup this size.
+
+User: Context you might need: I've already collected 41 papers in Zotero.
+
+User: How do other people handle the logger data? I keep going back and forth on it.
+
+User: Reminder for myself and you: preprints and grey literature stay out of the main argument, peer-reviewed work only.
+
+User: What's a sensible first step on the reference cap? Short answer is fine.
+
+User: The reference list for this chapter is capped at 60, that's firm.
+
+User: What's a sensible first step on air temperature? I keep going back and forth on it.
+
+User: What usually goes wrong with the ground stations? I keep going back and forth on it.
+
+User: Open item: the section on tree species differences is still unwritten.
+
+User: How would you approach evapotranspiration? I keep going back and forth on it.
+
+User: I haven't settled how to handle studies that only report percentages rather than degrees. Let's park it for now.
+
+User: Any thoughts on the satellite studies given everything so far? I keep going back and forth on it.
+
+User: What should I check about the logger data before next week? I keep going back and forth on it.
+
+User: Correction on citation style - the department requires APA 7th, so Harvard is out.
+
+User: Whenever a number appears, it has to be clear if it's air or surface temperature - mixing them is the mistake I keep seeing.
+
+User: I'm changing the start year I gave you earlier: the review now covers 2010 onwards, because the satellite data before that is too coarse.
+
+User: Something unresolved - I still need to decide whether green roofs belong in this chapter or the next one.
+
+User: Is there anything about the logger data I'm likely to overlook? Short answer is fine.

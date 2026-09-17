@@ -76,6 +76,37 @@ def truncate_tail(conversation: str, budget: int) -> Context:
     return Context("truncate_tail", budget, text, count_tokens(text), time.perf_counter() - started, {"turns_kept": len(kept)})
 
 
+# ------------------------------------------------------------------------ user_turns
+
+
+def user_turns(conversation: str, budget: int) -> Context:
+    """The most recent USER turns to the budget. The control `truncate_tail` cannot be.
+
+    `truncate_tail` spends its budget on both speakers, and a chat transcript is about half
+    assistant text, so half of every tail budget goes on material herder never reads. That
+    makes the herder-against-tail gap two effects added together - selecting sentences, and
+    dropping the assistant - with no way to tell which did the work.
+
+    This method takes the second effect alone: no rules, no kinds, no merge, no ordering,
+    nothing but "keep what the user said, most recent first". Whatever herder scores above
+    THIS is what extraction, merge and priority ordering are worth. It is the baseline a
+    reviewer asks for first, and it is deliberately the strongest cheap one available - a
+    weak control flatters the system it is measuring.
+    """
+    started = time.perf_counter()
+    turns = [t for t in _turns(conversation) if t.lstrip().lower().startswith("user:")]
+    kept: list[str] = []
+    for turn in reversed(turns):
+        if count_tokens("\n\n".join([turn, *kept])) > budget:
+            break
+        kept.insert(0, turn)
+    text = "\n\n".join(kept) if kept else _cut_to("\n\n".join(turns), budget, keep="end")
+    return Context(
+        "user_turns", budget, text, count_tokens(text), time.perf_counter() - started,
+        {"turns_kept": len(kept), "turns_available": len(turns)},
+    )
+
+
 # ------------------------------------------------------------------------ no_context
 
 

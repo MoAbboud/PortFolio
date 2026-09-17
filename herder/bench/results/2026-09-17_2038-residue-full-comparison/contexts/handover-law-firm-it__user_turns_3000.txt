@@ -1,0 +1,163 @@
+User: I've been the part-time IT person for Harlow & Venn, a law firm with fourteen staff, and I'm moving abroad. A contractor is taking over and I want to get the handover notes right with your help.
+
+User: Client files must never be copied onto a personal device or a USB stick. That's not up for debate.
+
+User: How would you approach the nightly backup? Especially for a setup this size.
+
+User: In case it matters, the file server is six years old.
+
+User: What's a sensible first step on the comms cupboard? Just the practical side.
+
+User: What usually goes wrong with password resets? I keep going back and forth on it.
+
+User: For the record, new starters get their laptop set up on their first morning, not before.
+
+User: What usually goes wrong with the comms cupboard? Just the practical side.
+
+User: What usually goes wrong with the comms cupboard? Especially for a setup this size.
+
+User: The contractor taking over is called Ana Ruiz.
+
+User: Can you walk me through how password resets relates to Windows 11 upgrades? Short answer is fine.
+
+User: How do other people handle the nightly backup? Just the practical side.
+
+User: What usually goes wrong with the nightly backup? Especially for a setup this size.
+
+User: No local admin for anyone except the IT account. It's not worth the risk.
+
+User: What usually goes wrong with the file server? Especially for a setup this size.
+
+User: Any thoughts on new starter setup given everything so far? Especially for a setup this size.
+
+User: What should I check about the offsite drive before next week? I'm asking because it came up again today.
+
+User: Is there anything about the guest Wi-Fi I'm likely to overlook? Short answer is fine.
+
+User: Can you walk me through how the guest Wi-Fi relates to the file server? I want to get this right before it's harder to change.
+
+User: No self-service resets. The call-back to the desk phone stays, it's stopped two phishing attempts.
+
+User: One firm rule: admin passwords are kept only in the firm's password manager, never written down.
+
+User: Is there anything about the password manager I'm likely to overlook? Short answer is fine.
+
+User: Can you walk me through how the printer lease relates to the nightly backup? I'm asking because it came up again today.
+
+User: How would you approach the offsite drive? I'm asking because it came up again today.
+
+User: Okay, that's decided: the firm's files live on a Windows file server in the comms cupboard.
+
+User: How would you approach the printer lease? Short answer is fine.
+
+User: What's a sensible first step on password resets?
+
+User: How would you approach Windows 11 upgrades? I want to get this right before it's harder to change.
+
+User: How do other people handle new starter setup?
+
+User: How would you approach the offsite drive? I want to get this right before it's harder to change.
+
+User: What's a sensible first step on the guest Wi-Fi? Especially for a setup this size.
+
+User: Is there anything about the password manager I'm likely to overlook? Especially for a setup this size.
+
+User: Let's settle it - all staff laptops run Windows 11 Pro.
+
+User: Password resets are only done after a call-back to the person's desk phone.
+
+User: How would you approach the comms cupboard?
+
+User: Any thoughts on the guest Wi-Fi given everything so far? I keep going back and forth on it.
+
+User: What's a sensible first step on new starter setup? Especially for a setup this size.
+
+User: This is a hard requirement - any lost or stolen laptop is reported to the managing partner the same day.
+
+User: In case it matters, the firm has fourteen staff and two office printers.
+
+User: Let's settle it - backups go to the offsite drive monthly.
+
+User: Any thoughts on new starter setup given everything so far? Short answer is fine.
+
+User: How would you approach the file server? I'm asking because it came up again today.
+
+User: Also, I like a short 'why' next to each rule so the contractor doesn't undo it.
+
+User: What's a sensible first step on Windows 11 upgrades? I keep going back and forth on it.
+
+User: Any thoughts on the comms cupboard given everything so far? Especially for a setup this size.
+
+User: What should I check about the guest Wi-Fi before next week? Assume I haven't read much about it.
+
+User: New starters get laptops prepared the week before they join.
+
+User: Small thing about how I work: put anything urgent at the top of each section.
+
+User: How do other people handle the comms cupboard? Especially for a setup this size.
+
+User: Final answer on that one: backups run every night to an encrypted external drive and weekly to an offsite drive.
+
+User: What usually goes wrong with password resets? Short answer is fine.
+
+User: Is there anything about the nightly backup I'm likely to overlook? Short answer is fine.
+
+User: Can you walk me through how password resets relates to the comms cupboard? I want to get this right before it's harder to change.
+
+User: What should I check about the printer lease before next week? Especially for a setup this size.
+
+User: What's a sensible first step on the comms cupboard?
+
+User: Context you might need: the internet line is a 500 Mb fibre connection.
+
+User: What should I check about the nightly backup before next week? Especially for a setup this size.
+
+User: Some background: the managing partner is Eleanor Harlow.
+
+User: Any thoughts on new starter setup given everything so far?
+
+User: Can you walk me through how the file server relates to the password manager? Assume I haven't read much about it.
+
+User: Not in this handover - the partners haven't agreed to cloud storage, so the server stays until they decide.
+
+User: How would you approach the file server? Just the practical side.
+
+User: Is there anything about password resets I'm likely to overlook? Especially for a setup this size.
+
+User: Printer problems are escalated to the leasing company, not fixed in-house.
+
+User: Also, write the notes for someone who knows IT but doesn't know this office.
+
+User: How would you approach the printer lease? I'm asking because it came up again today.
+
+User: Something unresolved - two laptops are still waiting for their Windows 11 upgrade.
+
+User: Any thoughts on the offsite drive given everything so far? I want to get this right before it's harder to change.
+
+User: Is there anything about the printer lease I'm likely to overlook? I keep going back and forth on it.
+
+User: Open item: the file server is due for replacement and no decision has been made on what replaces it.
+
+User: Update the backup schedule I described earlier: the offsite drive is weekly now, not monthly, after the insurer asked.
+
+User: What should I check about the nightly backup before next week? I want to get this right before it's harder to change.
+
+User: What's a sensible first step on password resets? Just the practical side.
+
+User: If a laptop goes missing, the managing partner hears about it that same day.
+
+User: What's a sensible first step on new starter setup? I keep going back and forth on it.
+
+User: Open item: I never finished documenting the Wi-Fi guest network setup.
+
+User: Any thoughts on the password manager given everything so far? I want to get this right before it's harder to change.
+
+User: Change the new-starter process from what I said - laptops are set up on their first morning, pre-built ones kept going stale.
+
+User: Can you walk me through how new starter setup relates to the guest Wi-Fi? Just the practical side.
+
+User: No client file goes onto a personal phone, laptop or USB stick - that's a professional conduct rule, not a preference.
+
+User: The admin passwords live in the password manager and nowhere else; not on paper, not in an email.
+
+User: How do other people handle the comms cupboard? Just the practical side.

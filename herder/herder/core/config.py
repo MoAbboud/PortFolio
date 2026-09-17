@@ -87,6 +87,12 @@ class Settings(BaseSettings):
     # The share of a brief's budget held back for the verbatim tail. Must equal
     # domain.render.TAIL_RESERVE - see the reasoning and the measurement there.
     brief_tail_reserve: float = 0.10
+    # Spend budget left over after every entry and the tail on user sentences no entry carries.
+    # Added 2026-09-17, when the harness showed the brief using 22-31% of a 3,000-token budget
+    # with nothing excluded, while 73% of user sentences were dropped at extraction. A switch
+    # rather than a constant so that the run before and the run after are the same binary -
+    # see domain/residue.py. Off reproduces every result up to 2026-09-16 exactly.
+    brief_residue: bool = True
     # 0.50, not the 0.86 the specification named. Measured on 2026-09-10 against
     # all-minilm over eleven labelled pairs, and the finding was that **no threshold
     # separates them cleanly** - "No Redis" against "we will not introduce a message

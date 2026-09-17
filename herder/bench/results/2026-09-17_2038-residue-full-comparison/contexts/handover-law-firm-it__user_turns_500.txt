@@ -1,0 +1,43 @@
+User: Not in this handover - the partners haven't agreed to cloud storage, so the server stays until they decide.
+
+User: How would you approach the file server? Just the practical side.
+
+User: Is there anything about password resets I'm likely to overlook? Especially for a setup this size.
+
+User: Printer problems are escalated to the leasing company, not fixed in-house.
+
+User: Also, write the notes for someone who knows IT but doesn't know this office.
+
+User: How would you approach the printer lease? I'm asking because it came up again today.
+
+User: Something unresolved - two laptops are still waiting for their Windows 11 upgrade.
+
+User: Any thoughts on the offsite drive given everything so far? I want to get this right before it's harder to change.
+
+User: Is there anything about the printer lease I'm likely to overlook? I keep going back and forth on it.
+
+User: Open item: the file server is due for replacement and no decision has been made on what replaces it.
+
+User: Update the backup schedule I described earlier: the offsite drive is weekly now, not monthly, after the insurer asked.
+
+User: What should I check about the nightly backup before next week? I want to get this right before it's harder to change.
+
+User: What's a sensible first step on password resets? Just the practical side.
+
+User: If a laptop goes missing, the managing partner hears about it that same day.
+
+User: What's a sensible first step on new starter setup? I keep going back and forth on it.
+
+User: Open item: I never finished documenting the Wi-Fi guest network setup.
+
+User: Any thoughts on the password manager given everything so far? I want to get this right before it's harder to change.
+
+User: Change the new-starter process from what I said - laptops are set up on their first morning, pre-built ones kept going stale.
+
+User: Can you walk me through how new starter setup relates to the guest Wi-Fi? Just the practical side.
+
+User: No client file goes onto a personal phone, laptop or USB stick - that's a professional conduct rule, not a preference.
+
+User: The admin passwords live in the password manager and nowhere else; not on paper, not in an email.
+
+User: How do other people handle the comms cupboard? Just the practical side.

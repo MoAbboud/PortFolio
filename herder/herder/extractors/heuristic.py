@@ -24,19 +24,17 @@ import time
 from herder.domain.chunking import Chunk
 from herder.domain.hashing import normalise
 from herder.domain.merge import CHANGE_CUE
+from herder.domain.sentences import split_sentences, strip_fences
 from herder.extractors.base import make_title
 from herder.schemas.extraction import Candidate, ExtractionOutcome
 
 NAME = "heuristic"
 
-# Fenced code is pulled out before sentence splitting - a code block is not prose and
-# splitting it on full stops produces nonsense - but its presence is a signal in itself.
-_FENCE = re.compile(r"```.*?```", re.DOTALL)
 _PATHY = re.compile(r"[\w./-]+\.(py|ts|tsx|js|sql|md|json|yml|yaml|toml|cfg|html|css|sh|ps1)\b")
 
-# Sentence boundaries: terminal punctuation followed by space, or a line break. Deliberately
-# crude - this is a baseline, and a sentence splitter is not the interesting part.
-_SPLIT = re.compile(r"(?<=[.!?])\s+|\n+")
+# Fence-stripping and sentence splitting moved to `domain/sentences.py` on 2026-09-17, so the
+# residue step splits identically - two splitters would make "which sentences did extraction
+# miss" meaningless. Same regexes, same behaviour; the reasoning is in that module.
 
 # Used twice: as a rule below, and to let its short sentences under the length floor.
 _PROHIBITION_OPENING = re.compile(
@@ -275,11 +273,10 @@ class HeuristicExtractor:
             if message.role != "user":
                 continue
 
-            body = _FENCE.sub(" ", message.content)
-            has_code = body != message.content or bool(_PATHY.search(message.content))
+            body, had_fence = strip_fences(message.content)
+            has_code = had_fence or bool(_PATHY.search(message.content))
 
-            for raw in _SPLIT.split(body):
-                sentence = raw.strip()
+            for sentence in split_sentences(body):
                 if len(sentence) < MIN_SENTENCE_CHARS and not (
                     len(sentence) >= MIN_PROHIBITION_CHARS and _PROHIBITION_OPENING.search(sentence)
                 ):

@@ -1,0 +1,27 @@
+The conversation highlights the intricate interactions between the back-office server, the stock table, and the nightly job, particularly in relation to expiry dates and stock adjustments. The key points and unresolved issues have been summarized, providing a clear path forward for addressing these challenges. The main points include:
+
+1. **Stock Adjustment and Reorder Email**: The reorder email now includes both Marisol and the shop manager, ensuring accountability. A small trial of the SQLite file before the full version often reveals issues missed by planning alone.
+
+2. **Audit Trail**: The audit trail must be kept small enough to undo and the order of tackling components matters less than keeping each change small. The detail that most often gets forgotten is who is responsible when things go wrong.
+
+3. **Stock Table and Shop Codes**: A small trial of the shop codes before the full version often shows problems missed by planning alone. The detail that most often gets forgotten is who is responsible when things go wrong.
+
+4. **Expiry Dates and Stock Table**: Expiry dates expose any vagueness left in the stock table, which is useful if caught early. The detail that most often gets forgotten is who is responsible when things go wrong.
+
+5. **Back-Office Server**: The back-office server exposes any vagueness left in the nightly job, which is useful if caught early. The detail that most often gets forgotten is who is responsible when things go wrong.
+
+6. **Stock Table and Stock Adjustment**: The detail that most often gets forgotten is who is responsible when things go wrong.
+
+The unresolved issues include:
+1. **Stock Adjustment**: Ensuring the stock adjustment is small enough to undo and keeping the responsibility clear.
+2. **Stock Table**: Ensuring the stock table is small enough to undo and keeping the responsibility clear.
+3. **Shop Codes**: Ensuring the shop codes are small enough to undo and keeping the responsibility clear.
+4. **Expiry Dates**: Ensuring the expiry dates are small enough to undo and keeping the responsibility clear.
+5. **Back-Office Server**: Ensuring the back-office server is small enough to undo and keeping the responsibility clear.
+
+The summary of actions includes:
+- **Stock Adjustment**: Write down what "done" means to prevent drift.
+- **Stock Table**: Write down what "done" means to prevent drift.
+- **Shop Codes**: Write down what "done" means to prevent drift.
+- **Expiry Dates**: Write down what "done" means to prevent drift.
+-

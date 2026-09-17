@@ -1,0 +1,43 @@
+User: What should I check about a duplicate before next week? I want to get this right before it's harder to change.
+
+User: Can you walk me through how the video folder relates to the EXIF date? I want to get this right before it's harder to change.
+
+User: How would you approach the hash file?
+
+User: For the record, the tool runs on the NAS itself on a schedule, every six hours.
+
+User: This is a hard requirement - no photo ever leaves the house - no cloud backup in this tool.
+
+User: A preference, while I think of it - explain Go idioms when you use them, I'm still fairly new to Go.
+
+User: Just so it's clear: the originals on the phones are read-only as far as this tool is concerned, it never deletes or edits them.
+
+User: Not done yet: I need to test what happens when two phones upload the same photo at the same time.
+
+User: How do other people handle the family-drop share? Short answer is fine.
+
+User: Open item: we still need to decide how long to keep the log files.
+
+User: Can you walk me through how a duplicate relates to the family-drop share?
+
+User: What should I check about the TOML config before next week? Short answer is fine.
+
+User: Everything stays on the home network; this tool must not upload anything anywhere.
+
+User: Actually, change how undated photos are handled: if there's no EXIF date, put the photo in a folder called undated instead of guessing from the modification time.
+
+User: Can you walk me through how the video folder relates to a partial copy? Especially for a setup this size.
+
+User: Let's not run it hourly after all - the disks spin up too often. Every six hours is the schedule.
+
+User: What usually goes wrong with the year/month folders? Just the practical side.
+
+User: Open item: I haven't worked out what to do with Live Photos from the iPhone, which come as a pair of files.
+
+User: How do other people handle the schedule? Short answer is fine.
+
+User: If the disk is almost full the tool must stop cleanly and report it, not leave a half-copied file behind.
+
+User: Can you walk me through how the TOML config relates to the video folder? Short answer is fine.
+
+User: What's a sensible first step on the schedule? Short answer is fine.

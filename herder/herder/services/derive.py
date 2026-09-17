@@ -39,6 +39,8 @@ from herder.domain.merge import (
     merged_text,
 )
 from herder.domain.render import RenderableEntry, render_brief
+from herder.domain.residue import ResidueSentence, uncovered
+from herder.domain.sentences import split_sentences, strip_fences
 from herder.models import (
     BriefVersion,
     Conversation,
@@ -587,6 +589,43 @@ async def age_and_propose(session: AsyncSession, project: Project, run: DeriveRu
         run.promotions_suggested += 1
 
 
+async def _residue_for(session: AsyncSession, project_id: uuid.UUID) -> list[str]:
+    """User sentences this project's entries do not carry, oldest first.
+
+    Computed at render time from the stored messages rather than kept as rows. It is derived
+    data - the same messages and the same entries always give the same answer - and a table
+    would have to be invalidated on every merge, every adjustment and every removal, which is
+    three more ways to serve a claim the user deleted.
+
+    **Every entry's text is fetched, whatever its status.** An active entry means the sentence is
+    already in the brief; a superseded one means the claim was replaced; a removed one means the
+    user deleted it and `merge.py`'s hard rule says it never comes back. All three suppress.
+    """
+    texts = (
+        await session.execute(
+            select(EntryRevision.text_)
+            .join(Entry, (Entry.id == EntryRevision.entry_id) & (Entry.current_revision == EntryRevision.revision))
+            .where(Entry.project_id == project_id)
+        )
+    ).scalars().all()
+
+    messages = (
+        await session.execute(
+            select(Message.id, Message.content)
+            .join(Conversation, Conversation.id == Message.conversation_id)
+            .where(Conversation.project_id == project_id, Message.role == "user")
+            .order_by(Conversation.id, Message.seq)
+        )
+    ).all()
+
+    sentences: list[ResidueSentence] = []
+    for message_id, content in messages:
+        body, _ = strip_fences(content)
+        sentences.extend(ResidueSentence(text=s, message_id=message_id) for s in split_sentences(body))
+
+    return [s.text for s in uncovered(sentences, texts)]
+
+
 async def render_project(
     session: AsyncSession,
     project: Project,
@@ -638,13 +677,17 @@ async def render_project(
             )
         )
 
+    settings = get_settings()
+    residue = await _residue_for(session, project.id) if settings.brief_residue else None
+
     rendered = render_brief(
         entries,
         effective_budget,
         count_tokens,
         tail_text=tail_text,
         tail_entry_id=tail_id,
-        tail_reserve=get_settings().brief_tail_reserve,
+        tail_reserve=settings.brief_tail_reserve,
+        residue=residue,
     )
 
     covered = (

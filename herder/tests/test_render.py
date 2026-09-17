@@ -378,3 +378,49 @@ def test_the_render_default_and_the_setting_agree() -> None:
     from herder.domain.render import TAIL_RESERVE
 
     assert Settings(_env_file=None).brief_tail_reserve == TAIL_RESERVE
+
+
+# ------------------------------------------------------------------ the residue
+
+# Added 2026-09-17 with `domain/residue.py`. The governing invariant is that the residue spends
+# only what is left over, so every ordering assertion above has to survive it being switched on.
+
+
+def test_residue_fills_budget_left_over_after_the_entries():
+    brief = render([entry(text="a stated decision", kind="decision")], budget=50,
+                   residue=["an uncovered sentence from the user"])
+    assert "[unsorted] an uncovered sentence from the user" in brief.text
+    assert brief.residue_included == 1
+    assert brief.residue_offered == 1
+
+
+def test_residue_never_displaces_an_entry_when_the_budget_binds():
+    entries = [entry(kind="constraint", title=f"constraint number {n}") for n in range(8)]
+    tight = render(entries, budget=12, residue=["an uncovered sentence " * 5])
+    # Whatever fitted, it is entries; the residue got nothing, and nothing was pushed out for it.
+    assert tight.residue_included == 0
+    assert "[unsorted]" not in tight.text
+    assert tight.included_entry_ids == render(entries, budget=12).included_entry_ids
+
+
+def test_residue_off_renders_exactly_what_it_did_before():
+    entries = [entry(kind="decision"), entry(kind="fact"), entry(kind="constraint")]
+    assert render(entries, budget=200, residue=None).text == render(entries, budget=200).text
+    assert render(entries, budget=200, residue=[]).text == render(entries, budget=200).text
+
+
+def test_residue_prints_oldest_first_but_keeps_the_newest_when_it_cannot_all_fit():
+    # Budget leaves room for roughly two of the three, and the two kept are the later ones,
+    # printed in the order they were said.
+    brief = render([entry(kind="decision", title="d")], budget=22,
+                   residue=["sentence one here", "sentence two here", "sentence three here"])
+    assert brief.residue_offered == 3
+    kept = [line for line in brief.text.splitlines() if "[unsorted]" in line]
+    assert kept == sorted(kept, key=lambda line: ["one", "two", "three"].index(line.split()[-2]))
+    assert "sentence three here" in brief.text
+
+
+def test_a_brief_with_a_residue_still_fits_its_budget():
+    brief = render([entry(kind="fact")], budget=40, residue=[f"uncovered sentence {n}" for n in range(30)])
+    assert brief.token_count <= 40
+    assert brief.residue_included > 0
