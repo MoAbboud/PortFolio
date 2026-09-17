@@ -90,17 +90,64 @@ its versions, lineage per entry, and checkpoint results.
 
 ### Why it is built this way
 
-> **To be written by the author.** The three design calls an interviewer will probe, in your own
-> words:
->
-> - **The render ordering** - why constraints come before decisions and decisions before facts, and
->   why the most recent turns get a reserved share rather than competing.
-> - **The merge verdicts** - why four verdicts rather than two; why an unreadable verdict falls back
->   to `distinct` rather than `duplicate`; why a removed entry is never resurrected; why a correction
->   may retire an entry on one direction of contradiction while everything else needs both.
-> - **The integrity weighting** - why checkpoint probes come from three places (in the brief, cut by
->   the budget, never extracted) and why a system that only probed the first would look good while
->   dropping almost everything.
+Three decisions carry most of the design, and each is a judgement about what it costs to be wrong in
+each direction rather than a detail of implementation.
+
+**The render ordering decides what gets thrown away, so it is the design.** Entries are considered in
+one priority order - constraints, then decisions, then open threads, then preferences and identity,
+then code state, then plain facts - and the budget is spent down that list. Constraints come first
+because a model that knows the rules can behave correctly without knowing every fact, while one that
+has the facts and not the rules cannot: it will cheerfully suggest the thing you ruled out in the third
+message. Open threads rank above facts because an unfinished decision is the reason you are coming back
+to the conversation at all.
+
+The ordering used to be by layer first - what is durable about the user, then the project, then this
+session - with kind only breaking ties inside a layer. That was wrong at small budgets and the
+benchmark showed it: open threads live in the session layer, so every project fact, down to the most
+incidental, was spent before any of them, and a 500-token brief held 35 plain facts and 2 open threads.
+Priority now comes first and the layer only breaks ties, which is also why a stable preference still
+beats a project one. The same measurement changed the share held back for verbatim recent turns, from a
+quarter of the budget to a tenth: recent text is what makes a resumed conversation feel continuous, but
+at 500 tokens a quarter buys about two turns of it, and those tokens carry far more when spent on
+entries - recall at that budget went from 0.44 to 0.54.
+
+**The merge verdicts are four because two would lose information in a way nobody would see.** A new
+claim can repeat what is stored (duplicate), say the same thing with more detail (update), replace it
+(supersede), or be about something else (distinct). Collapsing update into duplicate silently throws
+away the detail; collapsing it into distinct grows the memory until compaction stops meaning anything.
+The verdict comes from running an entailment model in both directions, because the asymmetry is the
+whole point: A entailing B while B does not entail A is exactly "more specific", and that is what
+separates a refinement from a repetition.
+
+Two rules in there matter more than the taxonomy. **When the model cannot make up its mind, the verdict
+is `distinct`, not `duplicate`** - the cost of being wrong is a near-duplicate entry the user can see
+and delete, while the other default silently discards something new, and a memory that loses things
+quietly is worse than one that is occasionally untidy. **A claim that matches something the user removed
+is dropped, never merged and never re-created**: derivation runs repeatedly over material that repeats
+itself, so without that rule you delete an entry, the next derive brings it back, and you delete it
+forever. That single behaviour decides whether the adjuster can be trusted at all.
+
+The one asymmetry: a sentence that announces its own change - "correction", "change of plan", "I said
+earlier" - may retire an entry on one strong contradiction, where everything else needs contradiction
+in both directions. The two-direction rule exists because entailment models invent confident
+contradictions between unrelated sentences, and the announcement is independent evidence that something
+changed. That came from the benchmark too: every wrong claim the early version carried forward was a
+decision that had been reversed, and the correction was being read as unrelated.
+
+**The integrity score is weighted so that a brief cannot look good by dropping everything.** A
+checkpoint asks the model questions from three places: entries that are in the brief, entries that
+existed but did not fit the budget, and raw messages no entry covers. In the brief is weighted 1.0 and
+the other two 0.5, because they measure different failures. Failing a probe on something that is in the
+brief means the context did not transmit, which is the system not working. Failing one on something the
+budget cut is compression doing its job and should pull the score down without dominating it. Failing
+one on material extraction never captured is the hole no other measurement can see. A score that only
+asked about what it included would rate an almost-empty brief highly, which is the score most systems
+report.
+
+Grading is entailment rather than a model rating itself out of ten, and a reading the model is not
+confident about is recorded as inconclusive rather than rounded to right or wrong. Both roundings are
+lies in opposite directions, and a score built partly on guesses cannot be told apart from one built on
+measurements.
 
 ## How it is measured
 
@@ -150,8 +197,27 @@ Kept on purpose. Each one is in [NOTES.md](NOTES.md) with its numbers.
   18 of 522 verdicts. Two back-to-back runs had agreed on all 518, which had been taken as proof;
   it was not.
 
-> **To be written by the author:** what surprised you, what you would do differently, and which of
-> these you would lead with in an interview.
+**What surprised me.** I expected the local language model to beat the rules at extraction, and I
+expected a better entailment model to beat the one I started with. Neither happened, and both failures
+were only visible because the alternatives were built behind one interface and measured on the same
+corpus. The second surprise was more uncomfortable: a checkpoint that scored well on the labelled pairs
+I had written could still make the product worse on real conversations, three separate times. Test
+cases I wrote myself turned out to be a weaker instrument than eight conversations I had never tuned
+against.
+
+The one I would lead with is smaller and it changed how I read every number afterwards: two runs of
+identical code, on briefs that were byte-for-byte the same, disagreed on 3.4% of the grader's verdicts.
+Before that I had two runs agree exactly and had taken it as proof of determinism. It was not proof, it
+was a coincidence of conditions, and about four facts of every result is instrument noise. Several
+changes I would otherwise have claimed as improvements sit inside that band, and they are reported as
+"no measurable difference" instead.
+
+**What I would do differently.** I would write the benchmark conversations by hand, or at least in more
+than one voice. They came from a generator, so their claims are cleaner and more uniform than real chat,
+which flatters a rule-based extractor and makes 0.68 less transferable than it looks. I would also have
+built the instrument before the improvements rather than alongside them: the fact tiers, the blind audit
+of the answer key and the noise-floor measurement all arrived after results I had already interpreted
+without them.
 
 ## Limitations
 
@@ -201,7 +267,7 @@ python -m venv .venv
 .\.venv\Scripts\python -m pytest -q
 ```
 
-497 tests. The ones that need the database skip when it is not running.
+506 tests. The ones that need the database skip when it is not running.
 
 ### The benchmark
 
