@@ -13,30 +13,33 @@ tool, and a benchmark in this repository measures how much of the conversation s
 
 Eight long synthetic conversations, 221 true facts and 40 false ones written by hand, and four ways
 of carrying a conversation forward - all judged by the same local model on the same answer key, in
-one run (`bench/results/2026-09-16_1338-full-comparison`).
+one run (`bench/results/2026-09-16_2321-full-comparison-render`).
 
 | Method | Budget | Tokens used | Recall | Wrong claims | Compression |
 | --- | --- | --- | --- | --- | --- |
-| **herder** | 3,000 | 1,214 | **0.70** (154 of 221) | **0 of 40** | 9.1x |
-| plain summary | 3,000 | 2,115 | 0.21 (41 of 195) | 3 of 35 | 5.2x |
-| most recent text | 3,000 | 2,967 | 0.31 (69 of 221) | 0 of 40 | 3.7x |
-| **herder** | 500 | 486 | **0.45** (99 of 221) | 0 of 40 | 22.7x |
-| plain summary | 500 | 425 | 0.05 (10 of 195) | 0 of 35 | 26.1x |
+| **herder** | 3,000 | 772 | **0.68** (150 of 221) | **0 of 40** | 14.3x |
+| plain summary | 3,000 | 2,084 | 0.20 (39 of 195) | 3 of 35 | 5.3x |
+| most recent text | 3,000 | 2,967 | 0.32 (70 of 221) | 0 of 40 | 3.7x |
+| **herder** | 500 | 484 | **0.54** (119 of 221) | **0 of 40** | 22.8x |
+| plain summary | 500 | 421 | 0.04 (8 of 195) | 0 of 35 | 26.3x |
 | most recent text | 500 | 438 | 0.07 (16 of 221) | 0 of 40 | 25.2x |
 | nothing | - | 0 | 0.00 | 0 | - |
 
-- At a 3,000-token budget herder carries **3.3 times** what a plain summary does while using **57% of
-  its tokens**, and 2.2 times what the most recent text does in 41% of its tokens.
-- On the facts rated **essential** the gap is widest: **0.81** against 0.30 and 0.31.
-- It is the only method that still works at 500 tokens.
+- At a 3,000-token budget herder carries **3.4 times** what a plain summary does while using **37% of
+  its tokens**, and 2.1 times what the most recent text does in 26% of its tokens.
+- **At 500 tokens it recalls 0.54 where the alternatives manage 0.07 and 0.04** - eight to thirteen
+  times as much, from a brief 23 times smaller than the conversation.
+- On the facts rated **essential** the gap is widest: **0.81** against 0.29 and 0.31 at 3,000 tokens,
+  and **0.68** against 0.11 and 0.06 at 500.
 - It is the only method in the run that never carried a claim forward after the user had reversed it.
   The plain summary did so three times.
 
-**What this does not show.** The project's own target was 0.85 recall at 20x compression; this is
-0.70 at 9.1x. The summary timed out on one conversation, so its rates cover seven of eight. The
-conversations were generated, and their claims are cleaner than real chat. And the judge disagrees
-with itself on about 3.4% of verdicts between runs, so a difference of a few facts is noise - see
-[Limitations](#limitations).
+**What this does not show.** The project's own target was 0.85 recall at 20x compression; this is 0.68
+at 14.3x, and 0.54 at 22.8x. The summary timed out on one conversation, so its rates cover seven of
+eight. The conversations were generated, and their claims are cleaner than real chat. The judge
+disagrees with itself on about 3.4% of verdicts between runs, so a difference of a few facts is noise -
+and this run was interrupted by a machine restart and resumed, so its verdicts come from two sessions
+of that judge. See [Limitations](#limitations).
 
 ## The problem
 
@@ -152,14 +155,15 @@ Kept on purpose. Each one is in [NOTES.md](NOTES.md) with its numbers.
 
 ## Limitations
 
-- **Short of its own target.** 0.70 at 9.1x, not 0.85 at 20x.
+- **Short of its own target.** 0.68 at 14.3x, or 0.54 at 22.8x - not 0.85 at 20x.
 - **Eight synthetic conversations.** The claims in them are clean single clauses, which suits a
   rule-based extractor; real chat is messier, and no held-out set in different wording has been
   measured. Every rate is reported with its count for that reason.
 - **The judge is a 3-billion-parameter local model.** It is strict, which lowers every method equally,
   and it varies by about four facts between runs.
-- **The small budget is the weak point.** At 500 tokens, open threads are almost always crowded out
-  (2 of 24 recalled).
+- **The small budget is still the weaker one**, though less so than it was: ordering entries by
+  priority and cutting the verbatim reserve from a quarter of the budget to a tenth took recall at 500
+  tokens from 0.44 to 0.54, and open threads there from 2 of 24 to 13.
 - **Extraction is rules over English cue phrases.** A bare "yes, do that" carries nothing, because the
   content lives in the assistant's turn, which is never read.
 - **The merge model sometimes reads agreement as contradiction** - "No evening opening." retired by

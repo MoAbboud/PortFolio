@@ -1446,3 +1446,31 @@ recall held (a 2-fact difference is noise) in a brief 37% smaller.
 
 Adopted: `TAIL_RESERVE = 0.10` in `domain/render.py`, the same default in `core/config.py` (a test
 keeps them equal), `HERDER_BRIEF_TAIL_RESERVE` in Compose and `.env.example`.
+
+### The comparison re-run on the new render, and the numbers the README now carries
+
+`2026-09-16_2321-full-comparison-render`, all four methods, both budgets, same answer key.
+
+| Method | Budget | Tokens | Recall | Wrong claims | Compression |
+| --- | --- | --- | --- | --- | --- |
+| **herder** | 3,000 | 772 | **0.68** (150 of 221) | 0 of 40 | 14.3x |
+| plain summary | 3,000 | 2,084 | 0.20 (39 of 195) | 3 of 35 | 5.3x |
+| most recent text | 3,000 | 2,967 | 0.32 (70 of 221) | 0 of 40 | 3.7x |
+| **herder** | 500 | 484 | **0.54** (119 of 221) | 0 of 40 | 22.8x |
+| plain summary | 500 | 421 | 0.04 (8 of 195) | 0 of 35 | 26.3x |
+| most recent text | 500 | 438 | 0.07 (16 of 221) | 0 of 40 | 25.2x |
+
+By tier at 3,000: herder 0.81 / 0.57 / 0.52 against the summary's 0.29 / 0.13 / 0.05 and the raw
+tail's 0.31 / 0.34 / 0.24. At 500: herder 0.68 / 0.43 / 0.32 against 0.06 / 0.03 / 0.00 and
+0.11 / 0.03 / 0.04.
+
+**What changed against the previous comparison** (herder 0.70 at 9.1x, 0.45 at 500): at 3,000 the
+recall is the same within noise from a brief 37% smaller, and **at 500 it went 0.45 -> 0.54**. The
+comparators moved by one or two facts, which is the noise floor and a useful check that nothing else
+drifted.
+
+**Two caveats recorded rather than smoothed over.** The run was interrupted by a machine restart and
+resumed, so its verdicts come from two sessions of a judge known to vary by about 3.4% - the reason
+herder reads 150 here and 154 in the herder-only run of the same code. And the kill lost exactly one
+buffered verdict (`herder @ 500`, tutoring f006, a false fact); it was judged afterwards with the same
+reader and prompt and appended, so every denominator is 40 again. No existing verdict was touched.

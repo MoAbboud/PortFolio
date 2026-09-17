@@ -1,0 +1,11 @@
+User: Booking data is never passed from one customer account to another without written permission, even if they claim to be colleagues.
+
+Assistant: Good, that simplifies things. A useful question is what happens to the support queue on the worst day of the year, not an ordinary one. Whatever you choose for the support queue, it's worth a quick check of how it interacts with the product board before moving on. A common pattern is to look at the refund limit first, because it tends to shape the decisions around the product board. I've seen an outsourced support team suggested for this kind of problem, mainly because it looks tidy on a diagram. One risk I'd watch is that the support queue quietly becomes the bottleneck once the refund limit is under real pressure.
+
+User: Something unresolved - there's an unresolved bug where recurring slots disappear after a daylight-saving change.
+
+Assistant: Understood. A useful question is what happens to Deskline macros on the worst day of the year, not an ordinary one. The order you tackle the refund limit and the product board in matters less than keeping each change small enough to undo. When you think about BrightSmile Clinics, the main trade-off is usually between how simple it is to run and how much it can grow later.
+
+User: A possible security problem gets raised in the security channel inside an hour, whatever else is going on.
+
+Assistant: Clear, thanks. One risk I'd watch is that Deskline macros quietly becomes the bottleneck once the product board is under real pressure. People often underestimate how long the on-call rota takes the first time, especially when the daylight-saving bug is involved. Keeping notes on why the support queue ended up the way it did will save time the next time someone questions it. I've seen a chatbot for first-line support suggested for this kind of problem, mainly because it looks tidy on a diagram.
