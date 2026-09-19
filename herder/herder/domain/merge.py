@@ -255,6 +255,62 @@ def decide_reversal(match: Match, readings: list[tuple[Label, Label]]) -> Decisi
     return Decision(Verdict.SUPERSEDE, match, "announces a change and contradicts the stored entry")
 
 
+def reversal_strength(readings: list[tuple[Label, Label]]) -> tuple[float, float]:
+    """How strongly a set of readings says "this entry is what changed", as (two_way, one_way).
+
+    `two_way` is the best, over the readings, of the WEAKER direction when both directions read
+    contradiction - zero if no single reading contradicts both ways. `one_way` is the strongest
+    single contradiction anywhere, the only thing `decide_reversal` itself looks at.
+
+    Compared as a tuple, so two-way evidence always outranks one-way evidence and one-way only
+    breaks ties between matches that have no two-way reading at all. See `pick_reversal`.
+    """
+    two_way = max(
+        (
+            min(forward.score, backward.score)
+            for forward, backward in readings
+            if forward.label == CONTRADICTION and backward.label == CONTRADICTION
+        ),
+        default=0.0,
+    )
+    one_way = max(
+        (label.score for pair in readings for label in pair if label.label == CONTRADICTION),
+        default=0.0,
+    )
+    return two_way, one_way
+
+
+def pick_reversal(options: list[tuple[Decision, tuple[float, float]]]) -> Decision | None:
+    """Of the matches a change-announcing candidate could retire, the one it most clearly reverses.
+
+    **Why this exists (2026-09-18).** The derive loop used to take the FIRST match, in similarity
+    order, that `decide_reversal` accepted. Similarity says which stored entry is *about the same
+    thing*; it does not say which one *the candidate contradicts*, and a correction is about the
+    same thing as both the claim it replaces and the claim it agrees with. Measured on
+    `coding-photo-sync` in `2026-09-18_2003-verbs-and-residue`:
+
+        candidate  "Let's not run it hourly after all - the disks spin up too often."
+        stale      "Final answer on that one: run it every hour."
+                       full sentences   contradiction 1.00 / contradiction 1.00   <- both ways
+        true       "For the record, the tool runs on the NAS ... every six hours."
+                       full sentences   neutral 0.95 / contradiction 1.00          <- one way
+
+    Both cleared the one-direction bar of `REVERSAL_CONTRADICTION`, the true entry was more
+    similar, and the correction retired the entry that agreed with it - serving the stale claim
+    and deleting the right one, the exact opposite of the rule's purpose.
+
+    Ranked by `reversal_strength`, so a two-way contradiction beats any one-way one. One-way
+    readings still win when nothing reads both ways, because that is the case the change-cue rule
+    was built for in the first place ("Correction on the rota handover day" reads neutral one way
+    and 1.00 the other) and it must keep working. Ties keep the caller's order, which is
+    similarity, so the old behaviour is exactly what happens whenever there is only one option.
+    """
+    if not options:
+        return None
+    best = max(range(len(options)), key=lambda i: (options[i][1], -i))
+    return options[best][0]
+
+
 def merged_text(existing: str, candidate: str) -> str:
     """Text for an `update` revision.
 

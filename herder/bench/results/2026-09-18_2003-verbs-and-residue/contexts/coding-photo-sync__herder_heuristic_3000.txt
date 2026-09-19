@@ -1,0 +1,47 @@
+## Stable
+- [preference] I'd rather have fewer dependencies even if it means a bit more code.
+## Project
+- [constraint] Non-negotiable: snapshelf must never delete or modify an original file on a phone.
+- [constraint] No database.
+- [constraint] Non-negotiable: it has to keep working when the NAS disk is nearly full - it stops copying and says so, rather than failing halfway.
+- [constraint] I don't want Python here - the single Go binary is the point, I don't want a runtime on the NAS.
+- [constraint] No web interface.
+- [constraint] Just so it's clear: the originals on the phones are read-only as far as this tool is concerned, it never deletes or edits them.
+- [constraint] Not done yet: I need to test what happens when two phones upload the same photo at the same time.
+- [constraint] Everything stays on the home network; this tool must not upload anything anywhere.
+- [constraint] If the disk is almost full the tool must stop cleanly and report it, not leave a half-copied file behind.
+- [decision] Okay, that's decided: photos are sorted into folders by year and then month, like 2024/07.
+- [decision] Actually, change how undated photos are handled: if there's no EXIF date, put the photo in a folder called undated instead of guessing from the modification time.
+- [decision] Let's not run it hourly after all - the disks spin up too often.
+- [fact] I'm writing a small command-line tool called snapshelf that copies photos from my family's phones onto our home NAS and sorts them into folders.
+- [fact] Final answer on that one: run it every hour.
+- [fact] A plain text file of hashes is fine for this size and I can read it by hand.
+- [fact] Some background: the NAS is a Synology DS220+ with two 4 TB disks.
+- [fact] The photo library is currently about 180 GB.
+- [fact] Some background: my partner is the one who takes most of the videos.
+- [fact] Some background: there are three phones in the house: two Android and one iPhone.
+- [fact] Final answer on that one: configuration lives in a TOML file at /etc/snapshelf/config.toml.
+- [fact] For the record, snapshelf is written in Go so it ships as a single binary.
+- [fact] I keep going back and forth on it.
+- [fact] Synology's own photo app already does browsing; snapshelf only copies and sorts.
+- [fact] I want to get this right before it's harder to change.
+- [fact] Duplicates are detected by a SHA-256 hash of the file contents, not by filename.
+- [fact] Final answer on that one: videos are copied too, but into a separate top-level folder called video.
+- [fact] A preference, while I think of it - explain Go idioms when you use them, I'm still fairly new to Go.
+- [fact] Every six hours is the schedule.
+## Session (most recent)
+- [open_thread] Assume I haven't read much about it.
+- [open_thread] Open item: we still need to decide how long to keep the log files.
+- [open_thread] Open item: I haven't worked out what to do with Live Photos from the iPhone, which come as a pair of files.
+- [tail] assistant: If it helps, you could sketch the flow from the EXIF date to the video folder on paper before committing to anything. Whatever you choose for the EXIF date, it's worth a quick check of how it interacts with a partial copy before moving on. A small trial of a partial copy before the full version often shows problems that planning alone misses. It's worth writing down what 'done' means for the EXIF date, so that the year/month folders doesn't drift while you're busy elsewhere. I'd be cautious about letting the video folder and the hash file depend on each other more than they need to.
+  user: What's a sensible first step on the schedule? Short answer is fine.
+  assistant: A common pattern is to look at the hash file first, because it tends to shape the decisions around the EXIF date. There's an argument for inotify watching, but it usually pays off only at a much larger scale than this. You might also consider how the EXIF date would look to someone new, since they'll judge it without the history. In practice the family-drop share tends to expose any vagueness left in the year/month folders, which is useful if you catch it early. Inotify watching comes up a lot in articles, but the examples rarely match a setup like yours. People often underestimate how long the family-drop share takes the first time, especially when the schedule is involved.
+## Also said (unsorted, lowest confidence)
+- [unsorted] I want to talk the design through properly before I write much more.
+- [unsorted] Also, I want log messages to be one line each, no multi-line stack dumps.
+- [unsorted] The phones sync to the NAS over a share called family-drop.
+- [unsorted] Here's the current duplicate check in internal/dedupe/dedupe.go:
+- [unsorted] The copy step writes to a temp name and renames at the end, in internal/copy/copy.go:
+- [unsorted] I'm asking because it came up again today.
+- [unsorted] This is a hard requirement - no photo ever leaves the house - no cloud backup in this tool.
+- [unsorted] Especially for a setup this size.

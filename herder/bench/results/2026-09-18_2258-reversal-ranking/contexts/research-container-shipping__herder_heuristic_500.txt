@@ -1,0 +1,24 @@
+## Stable
+- [preference] Also, I like it when you point out a counter-argument I might have missed.
+- [preference] A preference, while I think of it - I prefer concrete numbers to adjectives - tonnage and dates over 'huge' and 'soon'.
+## Project
+- [constraint] No imagined scenes.
+- [constraint] Quotes have to come from primary sources; lifting a quotation from someone else's book isn't acceptable.
+- [constraint] The magazine will not take anything over 7,500 words, so that ceiling holds whatever else changes.
+- [constraint] I won't dramatise: no made-up conversations and no scenes I can't document.
+- [decision] Let's settle it - the article focuses on the years 1956 to 1980.
+- [decision] Let's settle it - sidebars are used for technical explanations so the main narrative keeps moving.
+- [decision] Let's settle it - the piece is written for general readers, not maritime specialists.
+- [decision] Going with this: the working title is "The Box That Emptied the Docks".
+- [decision] Forget the 10,000 words I mentioned before - the magazine's limit is 7,500 and I'm writing to that.
+- [decision] Let's park it for now.
+- [decision] Swap one of the ports I listed earlier: it's Felixstowe, not Rotterdam, alongside Newark and Singapore.
+- [fact] I'm writing a long-form article for a history magazine on how the shipping container changed ports and port cities.
+- [fact] I want to get this right before it's harder to change.
+- [fact] A preference, while I think of it - keep your suggestions in British English, the magazine is based in London.
+- [fact] I said no reconstructed scenes and that includes the opening.
+## Session (most recent)
+- [open_thread] Assume I haven't read much about it.
+- [open_thread] Open item: I haven't decided whether to include the labour strikes as their own section.
+- [open_thread] I still need permission to use two photographs from the Felixstowe archive.
+- [tail] practice Newark tends to expose any vagueness left in break-bulk cargo, which is useful if you catch it early. Keeping notes on why Newark ended up the way it did will save time the next time someone questions it.

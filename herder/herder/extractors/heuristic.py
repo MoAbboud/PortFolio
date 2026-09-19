@@ -43,6 +43,43 @@ _PROHIBITION_OPENING = re.compile(
     re.I,
 )
 
+# A finite verb in the present or future: what makes a string of words a *statement* rather than a
+# fragment. Used only by the `fact` rule, the weakest one, which needs some evidence that the
+# sentence asserts something.
+#
+# **Why this replaced a nine-verb list on 2026-09-18.** The list was `is|are|will be|stays|goes|
+# runs|lives|opens|uses`, hand-picked at stage 10 attempt 3, and the residue tier made its gaps
+# visible: all three wrong claims in `2026-09-17_2038-residue-full-comparison` were plain
+# statements whose verb was simply not on it.
+#
+#     "New starters get laptops prepared the week before they join."   get
+#     "Final answer on that one: each tutor takes up to five students." takes
+#     "Final answer on that one: I'll use Harvard referencing."         use
+#
+# The last one is the tell: `uses` was on the list and `use` was not, so the rule caught the
+# third-person singular of a verb and missed the plural of the same verb. That is not a judgement
+# about what makes a fact, it is an accident of how the list was written. Each of those three
+# sentences should have become an entry, and had it been one the change-cue rule would have
+# retired it when the user reversed it - which is exactly what happened to every claim that did
+# make the list.
+#
+# Still a closed list, because there is no part-of-speech tagger here and inferring a verb from
+# morphology is worse than naming them: `\w+s` is as often a plural noun. But it is now a list of
+# **common English verbs in both their present forms**, chosen from ordinary vocabulary rather
+# than from anything in this repository's corpus - the same standard the rest of these rules are
+# held to, enforced by `test_no_benchmark_generator_lead_in_carries_signal_on_its_own`.
+_STATING_VERB = (
+    r"\b(?:is|are|am|was|were|will\s+be|has|have|had|"
+    r"uses?|gets?|takes?|makes?|keeps?|holds?|runs?|goes?|comes?|"
+    r"sits?|stays?|lives?|works?|opens?|closes?|costs?|pays?|starts?|ends?|"
+    r"covers?|handles?|owns?|means?|counts?|allows?|requires?|includes?|follows?|"
+    r"happens?|tracks?|reports?)\b"
+)
+# Deliberately NOT here: `leave`, `put`, `bring`, `set`, `send`, `give`, `book`, `file`, `charge`.
+# Every one is far commoner as an imperative than as a statement - "Let us leave it there for now"
+# is a way of closing a conversation, not a fact about anything, and it was the first thing this
+# rule wrongly captured when the list was drafted wider than this.
+
 # Order is priority order: the first pattern that matches a sentence wins, and the order runs
 # from most specific signal to least.
 #
@@ -203,7 +240,7 @@ RULES: list[tuple[str, str, str, float, re.Pattern[str]]] = [
             # Musing is not a statement, whichever branch below it would otherwise match.
             r"(?!(?:i'm|i am|we're|we are)\s+(?:thinking|wondering|trying|hoping|looking|curious|asking|guessing|not sure)\b)"
             r"(?:(?:i'm|i am|we're|we are|i've been|we've been)\s+\w+ing\b"
-            r"|(?=.*\b(?:is|are|will be|stays|goes|runs|lives|opens|uses)\b))",
+            r"|(?=.*" + _STATING_VERB + r"))",
             re.I,
         ),
     ),

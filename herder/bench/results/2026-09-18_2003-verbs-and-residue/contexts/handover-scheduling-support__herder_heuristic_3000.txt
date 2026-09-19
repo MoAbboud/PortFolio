@@ -1,0 +1,42 @@
+## Project
+- [constraint] No promised dates.
+- [constraint] We don't have one, so we don't give one.
+- [constraint] For the record, tickets tagged billing go straight to the finance team, support doesn't answer them. Previously: Support doesn't answer billing tickets.
+- [constraint] Booking data is never passed from one customer account to another without written permission, even if they claim to be colleagues. Previously: Never share one customer's booking data with another customer, even inside the same company, without written permission.
+- [decision] The helpdesk tool we use is called Deskline.
+- [decision] Let's park it for now.
+- [decision] Correction on the rota handover day - it switches on Mondays, not Fridays, since the team changed it last month.
+- [decision] Tighten the response target I gave earlier: it's four business hours now, the eight-hour figure was from last year. Previously: Let's settle it - first response time target is four business hours.
+- [fact] I'm going on parental leave in two weeks and handing the customer support queue for Slotwise, our appointment-scheduling product, to a colleague.
+- [fact] I want to use this chat to get everything they need written down properly.
+- [fact] I keep going back and forth on it.
+- [fact] For the record, feature requests are logged in the product board, not answered with promises.
+- [fact] No, the €50 limit stays.
+- [fact] Anything bigger goes to finance, same as when I'm here.
+- [fact] A preference, while I think of it - keep the tone of any template replies warm but brief.
+- [fact] Billing stays with finance.
+- [fact] In case it matters, the busiest support day is Monday morning.
+- [fact] Context you might need: our biggest customer is a dental group called BrightSmile Clinics.
+- [fact] Final answer on that one: the support inbox is support@slotwise.example.
+- [fact] Also, use the product's own terms - 'slots' and 'hosts', not 'appointments' and 'users'.
+- [fact] Context you might need: slotwise has about 2,300 paying customers.
+- [fact] Some background: my colleague taking over is called Tomasz.
+- [fact] BrightSmile Clinics asked for a custom export and nobody has replied yet.
+- [fact] I want to get this right before it's harder to change.
+- [fact] Any suspected security issue goes to the security channel within the hour.
+## Session (most recent)
+- [open_thread] Something unresolved - we still need to decide whether weekend tickets get any response.
+- [open_thread] Assume I haven't read much about it.
+- [open_thread] One firm rule: support must not change a customer's calendar settings directly - we guide them to do it.
+- [tail] user: Something unresolved - there's an unresolved bug where recurring slots disappear after a daylight-saving change.
+  assistant: Understood. A useful question is what happens to Deskline macros on the worst day of the year, not an ordinary one. The order you tackle the refund limit and the product board in matters less than keeping each change small enough to undo. When you think about BrightSmile Clinics, the main trade-off is usually between how simple it is to run and how much it can grow later.
+  user: A possible security problem gets raised in the security channel inside an hour, whatever else is going on.
+  assistant: Clear, thanks. One risk I'd watch is that Deskline macros quietly becomes the bottleneck once the product board is under real pressure. People often underestimate how long the on-call rota takes the first time, especially when the daylight-saving bug is involved. Keeping notes on why the support queue ended up the way it did will save time the next time someone questions it. I've seen a chatbot for first-line support suggested for this kind of problem, mainly because it looks tidy on a diagram.
+## Also said (unsorted, lowest confidence)
+- [unsorted] After mulling it over: refunds under €50 can be approved by support without asking anyone.
+- [unsorted] I'm asking because it came up again today.
+- [unsorted] Short answer is fine.
+- [unsorted] That's not up for debate.
+- [unsorted] Especially for a setup this size.
+- [unsorted] Just the practical side.
+- [unsorted] I want the handover document written as a checklist.

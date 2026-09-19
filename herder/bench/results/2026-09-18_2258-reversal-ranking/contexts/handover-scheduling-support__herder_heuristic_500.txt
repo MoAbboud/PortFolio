@@ -1,0 +1,23 @@
+## Project
+- [constraint] No promised dates.
+- [constraint] We don't have one, so we don't give one.
+- [constraint] For the record, tickets tagged billing go straight to the finance team, support doesn't answer them. Previously: Support doesn't answer billing tickets.
+- [constraint] Booking data is never passed from one customer account to another without written permission, even if they claim to be colleagues. Previously: Never share one customer's booking data with another customer, even inside the same company, without written permission.
+- [decision] The helpdesk tool we use is called Deskline.
+- [decision] Let's park it for now.
+- [decision] Correction on the rota handover day - it switches on Mondays, not Fridays, since the team changed it last month.
+- [decision] Tighten the response target I gave earlier: it's four business hours now, the eight-hour figure was from last year. Previously: Let's settle it - first response time target is four business hours.
+- [fact] I'm going on parental leave in two weeks and handing the customer support queue for Slotwise, our appointment-scheduling product, to a colleague.
+- [fact] I want to use this chat to get everything they need written down properly.
+- [fact] I keep going back and forth on it.
+- [fact] For the record, feature requests are logged in the product board, not answered with promises.
+- [fact] No, the €50 limit stays.
+- [fact] Anything bigger goes to finance, same as when I'm here.
+- [fact] A preference, while I think of it - keep the tone of any template replies warm but brief.
+- [fact] Billing stays with finance.
+- [fact] In case it matters, the busiest support day is Monday morning.
+## Session (most recent)
+- [open_thread] Something unresolved - we still need to decide whether weekend tickets get any response.
+- [open_thread] Assume I haven't read much about it.
+- [open_thread] One firm rule: support must not change a customer's calendar settings directly - we guide them to do it.
+- [tail] why the support queue ended up the way it did will save time the next time someone questions it. I've seen a chatbot for first-line support suggested for this kind of problem, mainly because it looks tidy on a diagram.

@@ -36,6 +36,8 @@ from herder.domain.merge import (
     claim_of,
     decide_against,
     decide_reversal,
+    pick_reversal,
+    reversal_strength,
     merged_text,
 )
 from herder.domain.render import RenderableEntry, render_brief
@@ -834,7 +836,10 @@ async def derive_project(
             decision = Decision(Verdict.CREATE, None, "nothing similar enough to adjudicate")
             if matches and announces_change(candidate.text):
                 # A candidate that says it changes something looks for what it retires before
-                # anything else can claim it as a duplicate. See `decide_reversal`.
+                # anything else can claim it as a duplicate. Every match is read, not just the
+                # first that qualifies: the most similar entry is not necessarily the one being
+                # reversed, and retiring the wrong one serves the stale claim. See `pick_reversal`.
+                options = []
                 for match in matches:
                     readings = [nli.both_ways(candidate.text, match.text)]
                     claims = (claim_of(candidate.text), claim_of(match.text))
@@ -842,9 +847,11 @@ async def derive_project(
                         readings.append(nli.both_ways(*claims))
                     reversal = decide_reversal(match, readings)
                     if reversal is not None:
-                        decision = reversal
-                        run.reversals += 1
-                        break
+                        options.append((reversal, reversal_strength(readings)))
+                chosen = pick_reversal(options)
+                if chosen is not None:
+                    decision = chosen
+                    run.reversals += 1
 
             for match in matches if decision.verdict is Verdict.CREATE else []:
                 forward, backward = nli.both_ways(candidate.text, match.text)

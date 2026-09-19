@@ -1,0 +1,25 @@
+## Project
+- [constraint] No online sessions for the pilot.
+- [constraint] Non-negotiable: sessions only happen in public places, never in anyone's home.
+- [constraint] Open item: we need to agree who is the safeguarding lead.
+- [constraint] No tutor sits down with a student until their background check is cleared - no exceptions. Previously: Every tutor must pass a background check before working with students.
+- [constraint] Tutoring is always free to families - no fees, no suggested donations.
+- [decision] Okay, that's decided: students sign up through their school, not directly.
+- [decision] Going with this: the pilot runs for one school term before we expand.
+- [decision] After mulling it over: we'll register as a charitable incorporated organisation.
+- [decision] Let's park it for now.
+- [decision] I'm lowering the group size from earlier - at most three students per tutor, five was too many to actually help anyone.
+- [decision] Change to the session days I gave you before: it's Tuesday and Thursday evenings, the library is booked on Mondays.
+- [fact] A few of us want to start a small nonprofit called Open Desk that offers free maths and reading tutoring to secondary school students in our town.
+- [fact] I keep going back and forth on it.
+- [fact] The town has three secondary schools.
+- [fact] Our first grant application is to the Riverside Community Fund.
+- [fact] Some background: there are currently nine volunteer tutors signed up.
+- [fact] Final answer on that one: tutoring sessions run on Tuesday and Thursday evenings at the public library.
+- [fact] The library has offered a room for free.
+- [fact] I want to get this right before it's harder to change.
+## Session (most recent)
+- [open_thread] Not yet - maths and reading only for the pilot term, science can come later.
+- [open_thread] Assume I haven't read much about it.
+- [open_thread] Open item: we haven't decided how to measure whether students are improving.
+- [tail] You might also consider how the library room would look to someone new, since they'll judge it without the history. The order you tackle the school referrals and the charity registration in matters less than keeping each change small enough to undo.

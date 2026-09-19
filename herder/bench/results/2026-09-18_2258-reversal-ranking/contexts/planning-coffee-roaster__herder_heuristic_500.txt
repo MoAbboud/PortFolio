@@ -1,0 +1,25 @@
+## Stable
+- [preference] Also, please be blunt about risks, I'd rather hear them now.
+- [preference] Small thing about how I work: I prefer plain spreadsheets to specialised planning software.
+## Project
+- [constraint] No franchising.
+- [constraint] Any lease we sign needs a way out by the end of year three at the latest. Previously: One firm rule: the lease must include a break clause no later than year three.
+- [constraint] Nobody on the team is paid below the real Living Wage, trainees included - that's non-negotiable.
+- [constraint] We will not take on outside investors - the business stays fully owned by me and my sister.
+- [constraint] No investors, whatever the plan ends up costing.
+- [decision] Okay, that's decided: the second location opens in the Eastgate neighbourhood.
+- [decision] Okay, that's decided: we're hiring a dedicated manager for the new café rather than splitting my time.
+- [decision] Going with this: it's a café only - all roasting stays at the original site.
+- [decision] Let's park it for now.
+- [fact] I own Hearth Roasters, a small coffee roastery with one café.
+- [fact] We're planning a second location and I want to think through the plan with you, including the numbers.
+- [fact] Small thing about how I work: show me numbers as ranges rather than single guesses.
+- [fact] After mulling it over: we open in June.
+- [fact] I want every café run by people we employ directly.
+- [fact] Some background: my sister Priya handles the books.
+- [fact] Not the city centre - the rents would eat the margin and Eastgate is where our regulars already come from.
+## Session (most recent)
+- [open_thread] We haven't decided whether to serve food beyond pastries.
+- [open_thread] Assume I haven't read much about it.
+- [open_thread] Open item: I still need a quote for the espresso machine service contract.
+- [tail] the bank loan the same way. People often underestimate how long staffing costs takes the first time, especially when the new manager is involved. A small trial of the bank loan before the full version often shows problems that planning alone misses.

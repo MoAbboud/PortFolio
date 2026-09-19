@@ -1,0 +1,46 @@
+## Stable
+- [preference] I like short paragraphs, four or five sentences at most.
+- [preference] Small thing about how I work: I'd rather you flag uncertainty than sound confident.
+## Project
+- [constraint] No white papers.
+- [constraint] Non-negotiable: every temperature figure I quote must say whether it is air temperature or surface temperature.
+- [constraint] Non-negotiable: my supervisor wants no more than 60 references in this chapter.
+- [constraint] Whenever a number appears, it has to be clear if it's air or surface temperature - mixing them is the mistake I keep seeing.
+- [decision] Going with this: the review covers studies published from 2010 onwards only.
+- [decision] Going with this: the chapter's target length is 6,000 words.
+- [decision] Let's park it for now.
+- [decision] Correction on citation style - the department requires APA 7th, so Harvard is out.
+- [decision] I'm changing the start year I gave you earlier: the review now covers 2010 onwards, because the satellite data before that is too coarse.
+- [fact] I'm writing the literature review chapter of my master's thesis on urban heat islands, focused on how street trees change surface temperatures.
+- [fact] The thesis is due in May.
+- [fact] After mulling it over: the case-study city for the thesis is Valencia.
+- [fact] My supervisor is Dr.
+- [fact] By mechanism is how my argument works, a timeline would bury it.
+- [fact] Satellite land-surface temperature studies and ground-station studies are discussed in separate sections.
+- [fact] After mulling it over: the chapter is organised by cooling mechanism - shading, evapotranspiration, then albedo - rather than chronologically.
+- [fact] Non-negotiable: only peer-reviewed sources count - no preprints and no grey literature in the main argument.
+- [fact] I want to get this right before it's harder to change.
+- [fact] Valencia's historic centre has very few street trees compared with the newer districts.
+- [fact] I keep going back and forth on it.
+- [fact] Reminder for myself and you: preprints and grey literature stay out of the main argument, peer-reviewed work only.
+- [fact] Open item: the section on tree species differences is still unwritten.
+## Session (most recent)
+- [open_thread] Assume I haven't read much about it.
+- [open_thread] I haven't settled how to handle studies that only report percentages rather than degrees.
+- [open_thread] Something unresolved - I still need to decide whether green roofs belong in this chapter or the next one.
+- [tail] assistant: Okay, that's a sensible call. In practice the shading section tends to expose any vagueness left in surface temperature, which is useful if you catch it early. I'd be cautious about letting the shading section and the ground stations depend on each other more than they need to. When you think about the satellite studies, the main trade-off is usually between how simple it is to run and how much it can grow later. One risk I'd watch is that the ground stations quietly becomes the bottleneck once evapotranspiration is under real pressure. If it helps, you could sketch the flow from the reference cap to surface temperature on paper before committing to anything. There's an argument for interviews with planners, but it usually pays off only at a much larger scale than this.
+  user: Is there anything about the logger data I'm likely to overlook? Short answer is fine.
+  assistant: The order you tackle canopy cover and the shading section in matters less than keeping each change small enough to undo. I've seen a bibliometric map suggested for this kind of problem, mainly because it looks tidy on a diagram. Keeping notes on why the satellite studies ended up the way it did will save time the next time someone questions it. Some people in a similar position reach for cool pavements, although it brings its own maintenance burden. A common pattern is to look at canopy cover first, because it tends to shape the decisions around the shading section.
+## Also said (unsorted, lowest confidence)
+- [unsorted] I want your help structuring it and keeping track of what I decide along the way.
+- [unsorted] I'm not doing a meta-analysis - the studies measure too differently and my supervisor agreed it's out of scope.
+- [unsorted] Just the practical side.
+- [unsorted] Especially for a setup this size.
+- [unsorted] I'm asking because it came up again today.
+- [unsorted] They're grey literature and they stay out.
+- [unsorted] A preference, while I think of it - please give me the reasoning behind a suggestion, not just the suggestion.
+- [unsorted] Context you might need: my fieldwork used twelve temperature loggers placed on two streets.
+- [unsorted] No, not chronologically.
+- [unsorted] Final answer on that one: I'm using APA 7th edition for citations.
+- [unsorted] Context you might need: I've already collected 41 papers in Zotero.
+- [unsorted] The reference list for this chapter is capped at 60, that's firm.

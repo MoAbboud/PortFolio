@@ -1,0 +1,143 @@
+User: A few of us want to start a small nonprofit called Open Desk that offers free maths and reading tutoring to secondary school students in our town. I'd like to plan the launch with you.
+
+User: Okay, that's decided: students sign up through their school, not directly.
+
+User: How do other people handle student progress? Short answer is fine.
+
+User: What should I check about student progress before next week? I want to get this right before it's harder to change.
+
+User: Can you walk me through how the volunteer rota relates to the grant application? Just the practical side.
+
+User: Tutoring is always free to families - no fees, no suggested donations. That's not up for debate.
+
+User: What should I check about session plans before next week? Especially for a setup this size.
+
+User: Can you walk me through how the school referrals relates to the pilot term? Assume I haven't read much about it.
+
+User: What's a sensible first step on the background checks?
+
+User: No online sessions for the pilot. We want face-to-face in the library first.
+
+User: Going with this: the pilot runs for one school term before we expand.
+
+User: A preference, while I think of it - I'd like templates I can reuse rather than one-off documents.
+
+User: What should I check about the library room before next week? I keep going back and forth on it.
+
+User: What's a sensible first step on the background checks? I'm asking because it came up again today.
+
+User: What's a sensible first step on session plans? Short answer is fine.
+
+User: No fees of any kind, I said tutoring is always free.
+
+User: The town has three secondary schools.
+
+User: How do other people handle the charity registration? I'm asking because it came up again today.
+
+User: Any thoughts on the background checks given everything so far? Assume I haven't read much about it.
+
+User: Not yet - maths and reading only for the pilot term, science can come later.
+
+User: Is there anything about the volunteer rota I'm likely to overlook? I keep going back and forth on it.
+
+User: Is there anything about the school referrals I'm likely to overlook?
+
+User: Is there anything about the library room I'm likely to overlook? Especially for a setup this size.
+
+User: What should I check about the background checks before next week? I'm asking because it came up again today.
+
+User: Our first grant application is to the Riverside Community Fund.
+
+User: What's a sensible first step on safeguarding? I'm asking because it came up again today.
+
+User: How do other people handle the library room? Especially for a setup this size.
+
+User: Some background: there are currently nine volunteer tutors signed up.
+
+User: What usually goes wrong with session plans? Especially for a setup this size.
+
+User: Going with this: sessions are on Monday and Wednesday evenings.
+
+User: After mulling it over: we'll register as a charitable incorporated organisation.
+
+User: What should I check about safeguarding before next week?
+
+User: Is there anything about the pilot term I'm likely to overlook? I'm asking because it came up again today.
+
+User: Final answer on that one: tutoring sessions run on Tuesday and Thursday evenings at the public library.
+
+User: How would you approach the charity registration? Just the practical side.
+
+User: Any thoughts on the grant application given everything so far?
+
+User: How would you approach the school referrals? Especially for a setup this size.
+
+User: Okay, that's decided: each tutor works with at most three students at a time.
+
+User: How do other people handle the grant application? I keep going back and forth on it.
+
+User: Non-negotiable: sessions only happen in public places, never in anyone's home.
+
+User: Can you walk me through how session plans relates to the charity registration? Short answer is fine.
+
+User: The library has offered a room for free.
+
+User: What usually goes wrong with the volunteer rota? Just the practical side.
+
+User: Is there anything about the background checks I'm likely to overlook? Assume I haven't read much about it.
+
+User: Is there anything about safeguarding I'm likely to overlook? I'm asking because it came up again today.
+
+User: How do other people handle the grant application? I want to get this right before it's harder to change.
+
+User: Every tutor must pass a background check before working with students. That's not up for debate.
+
+User: Final answer on that one: each tutor takes up to five students.
+
+User: What's a sensible first step on the pilot term? Just the practical side.
+
+User: What's a sensible first step on student progress? I'm asking because it came up again today.
+
+User: After mulling it over: we start with maths and reading only.
+
+User: Is there anything about the library room I'm likely to overlook? I want to get this right before it's harder to change.
+
+User: Small thing about how I work: tell me what similar groups have done wrong, not just right.
+
+User: How do other people handle the charity registration? I want to get this right before it's harder to change.
+
+User: Can you walk me through how the charity registration relates to the volunteer rota? Especially for a setup this size.
+
+User: Two of the founders are retired teachers.
+
+User: Keep plans in short bullet lists, our volunteers read on their phones.
+
+User: It's public venues only; nobody tutors in a private home.
+
+User: What's a sensible first step on the volunteer rota?
+
+User: What's a sensible first step on the school referrals?
+
+User: Open item: we need to agree who is the safeguarding lead.
+
+User: Transport for students who live far from the library is still unsolved. Let's park it for now.
+
+User: No tutor sits down with a student until their background check is cleared - no exceptions.
+
+User: Is there anything about student progress I'm likely to overlook? I'm asking because it came up again today.
+
+User: Can you walk me through how the background checks relates to the volunteer rota? Just the practical side.
+
+User: I'm lowering the group size from earlier - at most three students per tutor, five was too many to actually help anyone.
+
+User: Can you walk me through how the volunteer rota relates to the charity registration? Just the practical side.
+
+User: Open item: we haven't decided how to measure whether students are improving.
+
+User: Families never pay anything, not even a suggested donation.
+
+User: Can you walk me through how the pilot term relates to the library room? I want to get this right before it's harder to change.
+
+User: Change to the session days I gave you before: it's Tuesday and Thursday evenings, the library is booked on Mondays.
+
+User: Is there anything about the grant application I'm likely to overlook? Especially for a setup this size.

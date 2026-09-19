@@ -1,0 +1,49 @@
+User: Context you might need: slotwise has about 2,300 paying customers.
+
+User: Some background: my colleague taking over is called Tomasz.
+
+User: What usually goes wrong with billing tickets? Short answer is fine.
+
+User: How would you approach the security channel? I keep going back and forth on it.
+
+User: For the record, tickets tagged billing go straight to the finance team, support doesn't answer them.
+
+User: How do other people handle Deskline macros? I'm asking because it came up again today.
+
+User: Let's settle it - the on-call rota changes on Fridays.
+
+User: How do other people handle BrightSmile Clinics? Just the practical side.
+
+User: Is there anything about the daylight-saving bug I'm likely to overlook? Just the practical side.
+
+User: I want the handover document written as a checklist.
+
+User: How do other people handle billing tickets? I'm asking because it came up again today.
+
+User: Something unresolved - we still need to decide whether weekend tickets get any response.
+
+User: How do other people handle the security channel? Short answer is fine.
+
+User: What usually goes wrong with the refund limit? Especially for a setup this size.
+
+User: BrightSmile Clinics asked for a custom export and nobody has replied yet. Let's park it for now.
+
+User: Correction on the rota handover day - it switches on Mondays, not Fridays, since the team changed it last month.
+
+User: What should I check about the refund limit before next week? Assume I haven't read much about it.
+
+User: What's a sensible first step on the product board?
+
+User: Tighten the response target I gave earlier: it's four business hours now, the eight-hour figure was from last year.
+
+User: We don't edit someone's calendar settings for them; we walk them through doing it themselves.
+
+User: Is there anything about the security channel I'm likely to overlook?
+
+User: How do other people handle billing tickets? I want to get this right before it's harder to change.
+
+User: Booking data is never passed from one customer account to another without written permission, even if they claim to be colleagues.
+
+User: Something unresolved - there's an unresolved bug where recurring slots disappear after a daylight-saving change.
+
+User: A possible security problem gets raised in the security channel inside an hour, whatever else is going on.

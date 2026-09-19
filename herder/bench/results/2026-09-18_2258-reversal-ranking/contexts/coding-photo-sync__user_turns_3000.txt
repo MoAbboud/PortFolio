@@ -1,0 +1,141 @@
+User: I'm writing a small command-line tool called snapshelf that copies photos from my family's phones onto our home NAS and sorts them into folders. I want to talk the design through properly before I write much more.
+
+User: Final answer on that one: run it every hour.
+
+User: Is there anything about the year/month folders I'm likely to overlook? I keep going back and forth on it.
+
+User: Non-negotiable: snapshelf must never delete or modify an original file on a phone.
+
+User: How would you approach the schedule?
+
+User: Okay, that's decided: photos are sorted into folders by year and then month, like 2024/07.
+
+User: What's a sensible first step on a duplicate? I want to get this right before it's harder to change.
+
+User: How do other people handle the family-drop share? I keep going back and forth on it.
+
+User: No database. A plain text file of hashes is fine for this size and I can read it by hand.
+
+User: What usually goes wrong with a partial copy?
+
+User: Is there anything about the TOML config I'm likely to overlook? I want to get this right before it's harder to change.
+
+User: Some background: the NAS is a Synology DS220+ with two 4 TB disks.
+
+User: What's a sensible first step on the video folder? Short answer is fine.
+
+User: How would you approach the hash file? I want to get this right before it's harder to change.
+
+User: Also, I want log messages to be one line each, no multi-line stack dumps.
+
+User: What should I check about a duplicate before next week?
+
+User: The photo library is currently about 180 GB.
+
+User: Non-negotiable: it has to keep working when the NAS disk is nearly full - it stops copying and says so, rather than failing halfway.
+
+User: Can you walk me through how the year/month folders relates to the family-drop share? Assume I haven't read much about it.
+
+User: Any thoughts on the TOML config given everything so far?
+
+User: What usually goes wrong with the year/month folders? Assume I haven't read much about it.
+
+User: Going with this: if a photo has no EXIF date, use the file's modification time.
+
+User: What's a sensible first step on the hash file? Just the practical side.
+
+User: Some background: my partner is the one who takes most of the videos.
+
+User: What should I check about the video folder before next week? Just the practical side.
+
+User: The phones sync to the NAS over a share called family-drop.
+
+User: Here's the current duplicate check in internal/dedupe/dedupe.go:
+
+User: Some background: there are three phones in the house: two Android and one iPhone.
+
+User: How would you approach the schedule? I want to get this right before it's harder to change.
+
+User: Final answer on that one: configuration lives in a TOML file at /etc/snapshelf/config.toml.
+
+User: How do other people handle the hash file? Short answer is fine.
+
+User: I'd rather have fewer dependencies even if it means a bit more code.
+
+User: Can you walk me through how the EXIF date relates to a partial copy? I keep going back and forth on it.
+
+User: How do other people handle the family-drop share? I want to get this right before it's harder to change.
+
+User: I don't want Python here - the single Go binary is the point, I don't want a runtime on the NAS.
+
+User: For the record, snapshelf is written in Go so it ships as a single binary.
+
+User: The copy step writes to a temp name and renames at the end, in internal/copy/copy.go:
+
+User: What should I check about the year/month folders before next week?
+
+User: How do other people handle a duplicate? Just the practical side.
+
+User: What usually goes wrong with the TOML config?
+
+User: Any thoughts on the year/month folders given everything so far? Short answer is fine.
+
+User: Is there anything about the hash file I'm likely to overlook? Assume I haven't read much about it.
+
+User: How do other people handle the EXIF date? I keep going back and forth on it.
+
+User: Is there anything about the log file I'm likely to overlook?
+
+User: No web interface. Synology's own photo app already does browsing; snapshelf only copies and sorts.
+
+User: How would you approach a duplicate? I'm asking because it came up again today.
+
+User: Can you walk me through how the schedule relates to a duplicate? I want to get this right before it's harder to change.
+
+User: Duplicates are detected by a SHA-256 hash of the file contents, not by filename.
+
+User: Final answer on that one: videos are copied too, but into a separate top-level folder called video.
+
+User: What should I check about a duplicate before next week? I want to get this right before it's harder to change.
+
+User: Can you walk me through how the video folder relates to the EXIF date? I want to get this right before it's harder to change.
+
+User: How would you approach the hash file?
+
+User: For the record, the tool runs on the NAS itself on a schedule, every six hours.
+
+User: This is a hard requirement - no photo ever leaves the house - no cloud backup in this tool.
+
+User: A preference, while I think of it - explain Go idioms when you use them, I'm still fairly new to Go.
+
+User: Just so it's clear: the originals on the phones are read-only as far as this tool is concerned, it never deletes or edits them.
+
+User: Not done yet: I need to test what happens when two phones upload the same photo at the same time.
+
+User: How do other people handle the family-drop share? Short answer is fine.
+
+User: Open item: we still need to decide how long to keep the log files.
+
+User: Can you walk me through how a duplicate relates to the family-drop share?
+
+User: What should I check about the TOML config before next week? Short answer is fine.
+
+User: Everything stays on the home network; this tool must not upload anything anywhere.
+
+User: Actually, change how undated photos are handled: if there's no EXIF date, put the photo in a folder called undated instead of guessing from the modification time.
+
+User: Can you walk me through how the video folder relates to a partial copy? Especially for a setup this size.
+
+User: Let's not run it hourly after all - the disks spin up too often. Every six hours is the schedule.
+
+User: What usually goes wrong with the year/month folders? Just the practical side.
+
+User: Open item: I haven't worked out what to do with Live Photos from the iPhone, which come as a pair of files.
+
+User: How do other people handle the schedule? Short answer is fine.
+
+User: If the disk is almost full the tool must stop cleanly and report it, not leave a half-copied file behind.
+
+User: Can you walk me through how the TOML config relates to the video folder? Short answer is fine.
+
+User: What's a sensible first step on the schedule? Short answer is fine.

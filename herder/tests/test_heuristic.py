@@ -344,19 +344,53 @@ def test_no_benchmark_generator_lead_in_carries_signal_on_its_own() -> None:
     ("Final answer on that one:", "Non-negotiable:"), and a rule keyed on them would raise the
     score by memorising the generator rather than reading conversations.
 
-    Each lead-in is wrapped around a clause that matches nothing by itself. If the wrapped
-    sentence matches, the lead-in is the signal. The few allowed matches come from cue words
-    written at stage 2 (2026-09-08), before the generator existed (2026-09-13).
+    **The invariant tested here changed on 2026-09-18, and was strengthened rather than relaxed.**
+    It used to wrap a clause that matched *nothing at all* and assert the wrapped form still
+    matched nothing. That fixture - "the blue folder sits by the door" - only matched nothing
+    because the `fact` rule's verb list happened to omit `sits`, and once that list was corrected
+    to cover ordinary present-tense verbs the clause became what it always was: a plain statement
+    of how things are, which is exactly what `fact` is for. Keeping the old assertion would have
+    meant keeping a hole in the verb list forever to satisfy a test fixture, which is the tail
+    wagging the dog.
+
+    So the assertion is now the thing actually worth protecting, and it is a stronger claim: **a
+    generator lead-in must not change how the clause inside it is classified.** If wrapping a
+    `fact` in "Non-negotiable:" turns it into a `constraint`, the rule is reading the generator's
+    furniture instead of the sentence, which is the contamination this test exists to catch - and
+    the old form could not have detected it, because it only ever looked at whether *something*
+    matched. The few wraps exempted are cue phrases written at stage 2 (2026-09-08), before the
+    generator existed (2026-09-13), and they are named individually rather than pattern-matched.
     """
     from bench import generate as G
 
     neutral_l, neutral_s = "the blue folder sits by the door", "The blue folder sits by the door."
-    assert run(("user", neutral_s)).candidates == []
+    bare = kinds(run(("user", neutral_s)))
+    assert bare == ["fact"], "the fixture is meant to be a plain statement and nothing more"
 
     pre_existing = {"Okay, that's decided: {l}", "Let's settle it - {l}", "Going with this: {l}", "{s} Let's park it for now."}
     wraps = G.DECISION_WRAPS + G.CONSTRAINT_WRAPS + G.PREFERENCE_WRAPS + G.FACT_WRAPS + G.THREAD_WRAPS
     carrying = [
         wrap for wrap in wraps
-        if wrap not in pre_existing and run(("user", wrap.format(l=neutral_l, s=neutral_s))).candidates
+        if wrap not in pre_existing
+        and (wrapped := kinds(run(("user", wrap.format(l=neutral_l, s=neutral_s)))))
+        and wrapped != bare
     ]
     assert carrying == []
+
+
+def test_a_generator_lead_in_can_still_suppress_a_claim_and_that_is_recorded_not_fixed() -> None:
+    """The one asymmetry the test above deliberately allows, written down so it is not lost.
+
+    A wrap may cause the clause inside it to be extracted as *nothing*, and the guard above does
+    not fail on that, because the contamination it exists to catch is a lead-in that **raises** the
+    score by adding signal the sentence did not have. Suppression cannot inflate a result.
+
+    It is still a real limitation, found on 2026-09-18 by the strengthened guard and recorded
+    here: "This is a hard requirement - <claim>" extracts nothing, because the `fact` rule refuses
+    any sentence opening with "this is" as a pronoun pointing back at the assistant's turn. That
+    exclusion is right far more often than it is wrong - "That's fine by me" is the common case -
+    and narrowing it is a change to attempt with the benchmark, not a guess made to satisfy a test.
+    """
+    claim = "This is a hard requirement - the blue folder sits by the door."
+    assert kinds(run(("user", claim))) == []
+    assert kinds(run(("user", "The blue folder sits by the door."))) == ["fact"]

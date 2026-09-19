@@ -1,0 +1,139 @@
+User: I own Hearth Roasters, a small coffee roastery with one café. We're planning a second location and I want to think through the plan with you, including the numbers.
+
+User: Small thing about how I work: show me numbers as ranges rather than single guesses.
+
+User: What's a sensible first step on staffing costs? I'm asking because it came up again today.
+
+User: What usually goes wrong with the bank loan? Just the practical side.
+
+User: After mulling it over: we open in June.
+
+User: Can you walk me through how the bank loan relates to staffing costs? Especially for a setup this size.
+
+User: Okay, that's decided: the second location opens in the Eastgate neighbourhood.
+
+User: Can you walk me through how the new manager relates to the bank loan? Especially for a setup this size.
+
+User: Our current café does roughly 350 transactions on a Saturday.
+
+User: Can you walk me through how the lease relates to staffing costs? Short answer is fine.
+
+User: Can you walk me through how the bank loan relates to the roasting schedule?
+
+User: We will not take on outside investors - the business stays fully owned by me and my sister. That's not up for debate.
+
+User: Can you walk me through how the lease relates to the bank loan? Just the practical side.
+
+User: Also, please be blunt about risks, I'd rather hear them now.
+
+User: Is there anything about the espresso machine I'm likely to overlook? I want to get this right before it's harder to change.
+
+User: What should I check about the espresso machine before next week? Short answer is fine.
+
+User: No franchising. I want every café run by people we employ directly.
+
+User: How do other people handle the Eastgate unit? Just the practical side.
+
+User: Final answer on that one: the fit-out budget is £120,000.
+
+User: Any thoughts on the cash flow forecast given everything so far? Assume I haven't read much about it.
+
+User: How do other people handle the bank loan? Especially for a setup this size.
+
+User: Some background: my sister Priya handles the books.
+
+User: How do other people handle the new manager?
+
+User: How do other people handle the cash flow forecast? Just the practical side.
+
+User: Not the city centre - the rents would eat the margin and Eastgate is where our regulars already come from.
+
+User: How do other people handle the fit-out? Assume I haven't read much about it.
+
+User: Small thing about how I work: I prefer plain spreadsheets to specialised planning software.
+
+User: How do other people handle the new manager? Assume I haven't read much about it.
+
+User: Any thoughts on the new manager given everything so far? Especially for a setup this size.
+
+User: No evening opening. We close at 4pm; late hours burn out staff and we're a daytime café.
+
+User: What usually goes wrong with the lease? Just the practical side.
+
+User: What usually goes wrong with the new manager? Especially for a setup this size.
+
+User: Context you might need: the Eastgate unit used to be a bookshop.
+
+User: This is a hard requirement - all staff are paid at least the real Living Wage, including trainees.
+
+User: How would you approach the new manager? Especially for a setup this size.
+
+User: Any thoughts on Saturday trade given everything so far? Just the practical side.
+
+User: Okay, that's decided: we're hiring a dedicated manager for the new café rather than splitting my time.
+
+User: What's a sensible first step on the bank loan? I'm asking because it came up again today.
+
+User: Is there anything about the lease I'm likely to overlook?
+
+User: After mulling it over: the fit-out budget is capped at £85,000.
+
+User: What's a sensible first step on the fit-out? Assume I haven't read much about it.
+
+User: What usually goes wrong with the fit-out? Short answer is fine.
+
+User: The original café is on Mill Street and has been open for six years.
+
+User: What should I check about the espresso machine before next week? I keep going back and forth on it.
+
+User: Opening hours will be 7am to 4pm, seven days a week.
+
+User: How do other people handle the roasting schedule? I'm asking because it came up again today.
+
+User: Going with this: it's a café only - all roasting stays at the original site.
+
+User: How would you approach the roasting schedule? Especially for a setup this size.
+
+User: We roast about 400 kg of coffee a month.
+
+User: One firm rule: the lease must include a break clause no later than year three.
+
+User: Is there anything about the cash flow forecast I'm likely to overlook?
+
+User: Is there anything about Saturday trade I'm likely to overlook? Short answer is fine.
+
+User: After mulling it over: the target opening month is September.
+
+User: Can you walk me through how the new manager relates to staffing costs?
+
+User: How would you approach the cash flow forecast? Short answer is fine.
+
+User: Any lease we sign needs a way out by the end of year three at the latest.
+
+User: Revising the fit-out budget from what I said earlier: it's capped at £85,000 now, the bank won't lend more without investors.
+
+User: How would you approach the new manager? I want to get this right before it's harder to change.
+
+User: Any thoughts on the lease given everything so far? Just the practical side.
+
+User: The June opening is off - builders can't start until spring, so the target is September.
+
+User: Nobody on the team is paid below the real Living Wage, trainees included - that's non-negotiable.
+
+User: Any thoughts on staffing costs given everything so far? Especially for a setup this size.
+
+User: We haven't decided whether to serve food beyond pastries. Let's park it for now.
+
+User: Is there anything about Saturday trade I'm likely to overlook? Assume I haven't read much about it.
+
+User: What usually goes wrong with the espresso machine? I want to get this right before it's harder to change.
+
+User: Ownership stays with my sister and me. No investors, whatever the plan ends up costing.
+
+User: Open item: I still need a quote for the espresso machine service contract.
+
+User: The name for the second café is undecided - same name or a variation. Let's park it for now.
+
+User: How would you approach the cash flow forecast?
+
+User: What's a sensible first step on the Eastgate unit? I'm asking because it came up again today.

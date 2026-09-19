@@ -1,0 +1,45 @@
+User: Nothing leaves the back-office network - no cloud services for this system. That's not up for debate.
+
+User: Stock quantities are never allowed to go negative - a sale that would do that is rejected. That's not up for debate.
+
+User: Can you walk me through how the audit trail relates to the reorder email? I want to get this right before it's harder to change.
+
+User: Can you walk me through how the nightly job relates to the audit trail? Just the practical side.
+
+User: How do other people handle the back-office server? Assume I haven't read much about it.
+
+User: Not now. Shop managers won't log in to anything; the email to Marisol is the whole interface for this version.
+
+User: How would you approach the nightly job?
+
+User: Remember this runs entirely inside the back office; no part of it may call out to a cloud provider.
+
+User: What usually goes wrong with the back-office server?
+
+User: Change of plan on who gets the reorder email: it goes to both Marisol and the shop manager of the shop concerned, not Marisol alone.
+
+User: How do other people handle a stock adjustment? Short answer is fine.
+
+User: Something unresolved - we still haven't decided how to handle stock that expires, like butter past its date.
+
+User: What usually goes wrong with a delivery? I keep going back and forth on it.
+
+User: Scrap the rounding I mentioned earlier - keep stock exact to the gram, bakers weigh precisely and rounding hid real shortages.
+
+User: Can you walk me through how expiry dates relates to the back-office server?
+
+User: Each adjustment has to carry the person and the timestamp, no exceptions.
+
+User: Is there anything about the audit trail I'm likely to overlook? Short answer is fine.
+
+User: What should I check about the stock table before next week? Especially for a setup this size.
+
+User: To say it again plainly: a negative stock figure must be impossible, and the write that would cause one gets refused.
+
+User: Something unresolved - the reorder threshold per ingredient is still undecided.
+
+User: What's a sensible first step on the SQLite file? I keep going back and forth on it.
+
+User: Not done yet: I need to work out whether returns from shops go back into central stock.
+
+User: Is there anything about the back-office server I'm likely to overlook? I want to get this right before it's harder to change.

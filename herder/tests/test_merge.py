@@ -12,6 +12,7 @@ from herder.domain.merge import (
     CONTRADICTION,
     ENTAILMENT,
     NEUTRAL,
+    Decision,
     Label,
     Match,
     Verdict,
@@ -21,6 +22,8 @@ from herder.domain.merge import (
     decide_against,
     decide_reversal,
     merged_text,
+    pick_reversal,
+    reversal_strength,
 )
 
 
@@ -229,3 +232,48 @@ def test_identical_text_does_not_duplicate_itself() -> None:
 
 def test_an_empty_existing_text_is_replaced() -> None:
     assert merged_text("", "something new") == "something new"
+
+
+# ------------------------------------------------------------------ which entry a reversal retires
+
+# Added 2026-09-18. The readings below are the ones measured on coding-photo-sync, where the old
+# first-by-similarity rule retired the true entry and served the stale one.
+
+
+
+def _label(label: str, score: float) -> Label:
+    return Label(label, score)
+
+
+C, N = CONTRADICTION, NEUTRAL
+STALE_READINGS = [(_label(C, 1.00), _label(C, 1.00)), (_label(N, 1.00), _label(N, 1.00))]
+TRUE_READINGS = [(_label(N, 0.95), _label(C, 1.00)), (_label(C, 0.94), _label(N, 0.97))]
+
+
+def _option(text: str, readings) -> tuple[Decision, tuple[float, float]]:
+    match = Match(entry_id=uuid7(), status="active", title=text, text=text, similarity=0.6)
+    return Decision(Verdict.SUPERSEDE, match, "test"), reversal_strength(readings)
+
+
+def test_a_two_way_contradiction_outranks_a_one_way_one() -> None:
+    assert reversal_strength(STALE_READINGS) == (1.00, 1.00)
+    assert reversal_strength(TRUE_READINGS) == (0.0, 1.00)
+
+
+def test_the_reversal_retires_the_entry_it_contradicts_not_the_most_similar_one() -> None:
+    """The photo-sync case. The true entry comes first because it is more similar; the correction
+    must still retire the stale one."""
+    true_first = [_option("runs every six hours", TRUE_READINGS), _option("run it every hour", STALE_READINGS)]
+    assert pick_reversal(true_first).match.text == "run it every hour"
+
+
+def test_one_way_reversals_still_work_when_nothing_reads_both_ways() -> None:
+    """The case the change-cue rule was built for must keep working."""
+    only = [_option("the rota switches on Fridays", TRUE_READINGS)]
+    assert pick_reversal(only).match.text == "the rota switches on Fridays"
+
+
+def test_ties_keep_similarity_order_so_a_single_option_behaves_as_before() -> None:
+    first, second = _option("first", STALE_READINGS), _option("second", STALE_READINGS)
+    assert pick_reversal([first, second]).match.text == "first"
+    assert pick_reversal([]) is None
