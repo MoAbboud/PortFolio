@@ -1,0 +1,43 @@
+# One block per public subdomain. Caddy fetches and renews the HTTPS certificates itself;
+# each name only needs a DNS A record pointing at this server.
+#
+# The root domain and www are NOT here: they point at GitHub Pages, which serves the
+# static site and issues its own certificate.
+
+{
+	email {$ACME_EMAIL}
+}
+
+mailman.{$DOMAIN} {
+	encode zstd gzip
+	request_body {
+		max_size 25MB
+	}
+	reverse_proxy mailman:8000
+}
+
+# --profile fallacy. Uncomment after adding the `fallacy` DNS record.
+# fallacy.{$DOMAIN} {
+# 	encode zstd gzip
+# 	# The analysis is CPU per sentence. A cap on the text keeps one request from
+# 	# occupying the server for an hour; 256 KB is a long essay.
+# 	request_body {
+# 		max_size 256KB
+# 	}
+# 	# The analysis streams progress sentence by sentence; flush it as it comes.
+# 	reverse_proxy fallacy:8000 {
+# 		flush_interval -1
+# 	}
+# }
+
+# --profile herder. Uncomment after adding the `herder` DNS record.
+# herder.{$DOMAIN} {
+# 	encode zstd gzip
+# 	reverse_proxy herder-api:8000
+# }
+
+# --profile whereyago. Uncomment after adding the `whereyago-api` DNS record.
+# whereyago-api.{$DOMAIN} {
+# 	encode zstd gzip
+# 	reverse_proxy whereyago-api:8000
+# }

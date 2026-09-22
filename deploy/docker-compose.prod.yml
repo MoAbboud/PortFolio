@@ -1,0 +1,207 @@
+# The live half of the portfolio, on one server.
+#
+#   cd deploy
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# The static site is not here: GitHub Pages serves it at the root domain, built by
+# .github/workflows/pages.yml. This server answers only on subdomains.
+#
+# What runs by default:
+#   caddy           HTTPS for each subdomain, certificates from Let's Encrypt, automatic
+#   db              Postgres 16 (pgvector's image, so herder can be switched on later)
+#   mailman         https://mailman.DOMAIN - the live full-stack system
+#
+# Switched on with a profile, each needing more memory and a Caddyfile block uncommented:
+#   --profile fallacy     fallacysuspect, its own trained models, no API key     (+2 GB)
+#   --profile herder      herder API + worker + Ollama                           (+5 GB)
+#   --profile whereyago   the mobile app's backend                               (+0.5 GB)
+#
+# How this differs from each project's own docker-compose.yml, on purpose:
+#   - no source mounted over the image and no --reload: the image is the release
+#   - no database port published: Postgres is reachable only inside this network
+#   - one Postgres for every app, one database and one login each (deploy/initdb/)
+#   - every secret from deploy/.env, which is git-ignored; nothing has a default password
+#   - migrations run on start, so a deploy is one command
+#   - a memory ceiling per service, so one runaway process cannot take the others down
+#
+# The default set fits a 2 GB server; 4 GB leaves room for the fallacy profile.
+
+x-common: &common
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  caddy:
+    <<: *common
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN in deploy/.env}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL in deploy/.env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    mem_limit: 256m
+
+  db:
+    <<: *common
+    # pgvector's image, because herder's merge step needs the extension if it is ever
+    # switched on. mailman just sees an ordinary Postgres 16.
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in deploy/.env}
+      # Read once, by initdb/01-databases.sh, on the very first start. An app whose
+      # password is blank gets no login and no database.
+      MAILMAN_DB_PASSWORD: ${MAILMAN_DB_PASSWORD:?Set MAILMAN_DB_PASSWORD in deploy/.env}
+      HERDER_DB_PASSWORD: ${HERDER_DB_PASSWORD:-}
+      WHEREYAGO_DB_PASSWORD: ${WHEREYAGO_DB_PASSWORD:-}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 512m
+
+  mailman:
+    <<: *common
+    build: ../mailman
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://mailman:${MAILMAN_DB_PASSWORD}@db:5432/mailman
+      STORAGE_ROOT: /data/documents
+      # Protects the upload and review endpoints on a public address. Reads stay open,
+      # so a visitor gets a read-only demo.
+      MAILMAN_API_KEY: ${MAILMAN_API_KEY:?Set MAILMAN_API_KEY in deploy/.env}
+      # hybrid degrades to the heuristic without weights, which is the deploy the project
+      # chose: the rules score the 98.3% on their own. No provider key is passed at all.
+      MAILMAN_EXTRACTOR: hybrid
+    volumes:
+      - mailman_docs:/data
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn mailman.main:app --host 0.0.0.0 --port 8000
+             --proxy-headers --forwarded-allow-ips='*'"
+    mem_limit: 768m
+
+  fallacy:
+    <<: *common
+    profiles: ["fallacy"]
+    build: ../fallacysuspect
+    environment:
+      # The trained models only. There is no key in this container, so the API backend
+      # cannot be reached even by accident.
+      FALLACY_BACKEND: local
+      FALLACY_WARN_DB: /data/fallacy_warn.db
+    volumes:
+      # Every set under models/ shows in the UI's switcher. Not in git: copied to the
+      # server, or downloaded from a release.
+      - ../fallacysuspect/models:/app/models:ro
+      - fallacy_data:/data
+    # gunicorn instead of `serve` (Flask's development server). One process, so the models
+    # are in memory once; threads so a long analysis does not block the page loading.
+    # The timeout is generous because a long text is scored sentence by sentence on CPU.
+    entrypoint: ["gunicorn"]
+    command:
+      - "fallacy_warn.web:create_app()"
+      - "--bind=0.0.0.0:8000"
+      - "--workers=1"
+      - "--threads=4"
+      - "--timeout=180"
+      - "--access-logfile=-"
+    mem_limit: 2g
+
+  ollama:
+    <<: *common
+    profiles: ["herder"]
+    # herder's embeddings (all-minilm, ~50 MB). Pulled once after first start:
+    #   docker compose -f docker-compose.prod.yml exec ollama ollama pull all-minilm
+    image: ollama/ollama:latest
+    volumes:
+      - ollama:/root/.ollama
+    mem_limit: 1g
+
+  herder-api:
+    <<: *common
+    profiles: ["herder"]
+    build: ../herder
+    depends_on:
+      db:
+        condition: service_healthy
+    environment: &herder-env
+      DATABASE_URL: postgresql+asyncpg://herder:${HERDER_DB_PASSWORD:-}@db:5432/herder
+      HERDER_EXTRACTOR: heuristic
+      HERDER_NLI_MODEL: cross-encoder/nli-deberta-v3-base
+      HERDER_BRIEF_TAIL_RESERVE: "0.10"
+      HERDER_OLLAMA_URL: http://ollama:11434
+      # The NLI checkpoint downloads from Hugging Face on first use (public, no key) and is
+      # kept here so a restart does not fetch 700 MB again.
+      HF_HOME: /hf-cache
+    volumes:
+      - hf_cache:/hf-cache
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn herder.main:app --host 0.0.0.0 --port 8000
+             --proxy-headers --forwarded-allow-ips='*'"
+    mem_limit: 1g
+
+  herder-worker:
+    <<: *common
+    profiles: ["herder"]
+    build: ../herder
+    depends_on:
+      db:
+        condition: service_healthy
+      herder-api:
+        condition: service_started
+    environment: *herder-env
+    volumes:
+      - hf_cache:/hf-cache
+    # All inference happens here, never inside an HTTP request.
+    command: python -m herder.worker
+    mem_limit: 3g
+
+  whereyago-api:
+    <<: *common
+    # The mobile app's backend. Only worth running once the app points at it
+    # (EXPO_PUBLIC_API_URL).
+    profiles: ["whereyago"]
+    build: ../whereyago/backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ENVIRONMENT: production
+      DEBUG: "false"
+      DOCS_ENABLED: "false"
+      LOG_JSON: "true"
+      SECRET_KEY: ${WHEREYAGO_SECRET_KEY:-}
+      BACKEND_CORS_ORIGINS: '["https://${DOMAIN}"]'
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: whereyago
+      POSTGRES_PASSWORD: ${WHEREYAGO_DB_PASSWORD:-}
+      POSTGRES_DB: whereyago
+    mem_limit: 512m
+
+volumes:
+  caddy_data:
+  caddy_config:
+  pgdata:
+  mailman_docs:
+  fallacy_data:
+  ollama:
+  hf_cache:

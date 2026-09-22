@@ -101,14 +101,8 @@ for flag in result.flags:
 
 ### Quick start — Docker Compose (recommended)
 
-One command brings up the web interface. First, put your key in a `.env` file
-next to `docker-compose.yml` (it's git-ignored):
-
-```
-ANTHROPIC_API_KEY=sk-ant-your-real-key
-```
-
-Then:
+One command brings up the web interface, serving the trained models in
+`models/` (mounted into the container, not baked in). No API key is needed.
 
 ```sh
 docker compose up --build      # first time (or after code changes)
@@ -117,9 +111,9 @@ docker compose up              # subsequent runs
 
 Open **http://localhost:8000**. Stop with `Ctrl+C`; run `docker compose down`
 to remove the container. Stored evaluations persist in the `fallacy-data`
-volume. Change the local port with `PORT=3000 docker compose up`. If
-`ANTHROPIC_API_KEY` isn't set (in `.env` or your shell), Compose stops with a
-clear message rather than starting a broken app.
+volume. Change the local port with `PORT=3000 docker compose up`. The public
+deployment runs the same image under gunicorn; see
+[../DEPLOYMENT-GUIDE.md](../DEPLOYMENT-GUIDE.md).
 
 ### Manual `docker build` / `docker run`
 
@@ -129,31 +123,25 @@ Build the image once:
 docker build -t fallacy-warn .
 ```
 
-The API key is passed at **run** time (never baked into the image). Input text
+The models are mounted at **run** time (never baked into the image). Input text
 comes from either a **mounted file** or **stdin** — a `--file` path is resolved
 *inside* the container.
 
 ```sh
-# Analyze a file: mount the current dir to /data, point --file at it.
-docker run --rm -e ANTHROPIC_API_KEY -v "$PWD:/data" fallacy-warn \
+# Analyze a file: mount the models, and the current dir to /data.
+docker run --rm -v "$PWD/models:/app/models:ro" -v "$PWD:/data" fallacy-warn \
     check --file /data/argument.txt
 
 # Or pipe via stdin (-i keeps stdin open; --file - reads it).
-cat argument.txt | docker run --rm -i -e ANTHROPIC_API_KEY fallacy-warn \
+cat argument.txt | docker run --rm -i -v "$PWD/models:/app/models:ro" fallacy-warn \
     check --file -
 
-# A literal string, JSON output:
-docker run --rm -e ANTHROPIC_API_KEY fallacy-warn \
-    check --text "You would say that, you always defend them." --json
-
 # Web interface: publish the port and bind to 0.0.0.0 inside the container.
-docker run --rm -p 8000:8000 -e ANTHROPIC_API_KEY fallacy-warn \
+docker run --rm -p 8000:8000 -v "$PWD/models:/app/models:ro" fallacy-warn \
     serve --host 0.0.0.0        # then open http://localhost:8000
 ```
 
-`-e ANTHROPIC_API_KEY` (no `=value`) forwards the variable from your shell, so
-the key never lands in shell history or an image layer. On Windows PowerShell,
-replace `$PWD` with `${PWD}`; in `cmd.exe` use `%cd%`.
+On Windows PowerShell, replace `$PWD` with `${PWD}`; in `cmd.exe` use `%cd%`.
 
 > **Windows / Git Bash:** Git Bash rewrites the container path
 > `/data/argument.txt` into a Windows path before Docker sees it. Prefix the

@@ -1,0 +1,71 @@
+# Builds the static half of the portfolio and publishes it to GitHub Pages.
+#
+# trail's model packs are not in git (they are 128 MB of somebody else's CC0 models). They
+# live as one file on the release tagged `trail-models`, and this workflow downloads it
+# before building. See DEPLOYMENT-GUIDE.md, "Upload trail's models".
+
+name: Publish site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - index.html
+      - resume/**
+      - snowball/**
+      - tektak/**
+      - story generator/**
+      - whereyago/index.html
+      - trail/index.html
+      - trail/lib/**
+      - trail/examples/**
+      - trail/models/**
+      - deploy/build-static.mjs
+      - .github/workflows/pages.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One publish at a time; a newer push replaces a queued one, never a running one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Download trail's models
+        # --skip-old-files: the JSON files git already has win over the archive's copies,
+        # so a manifest edited since the archive was made is not overwritten.
+        run: |
+          curl -fsSL -o trail-models.tar.gz \
+            "https://github.com/${{ github.repository }}/releases/download/trail-models/trail-models.tar.gz"
+          tar -xzf trail-models.tar.gz -C trail/models --skip-old-files
+          rm trail-models.tar.gz
+
+      - name: Build
+        run: node deploy/build-static.mjs
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: deploy/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

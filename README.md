@@ -62,8 +62,9 @@ which is why herder's own plan treats hosting as a portfolio-level task rather t
 
 - **`index.html` at the root** is a side-scrolling navigator - you walk a character to a signpost to
   open a project. It currently links two of them and predates most of what is here.
-- **`DEPLOYMENT-GUIDE.md`** describes an older layout (folders named `snowball-standalone`,
-  `tektak-standalone`, `spotlight`) and is out of date with these folders.
+- **[DEPLOYMENT-GUIDE.md](DEPLOYMENT-GUIDE.md)** puts the repository behind one domain: the
+  browser apps on GitHub Pages, published by `.github/workflows/pages.yml` on every push, and
+  mailman live on a small server from `deploy/docker-compose.prod.yml`.
 - **No hosted model keys where it can be avoided.** herder runs every model locally by design;
   fallacysuspect trains and serves its own classifiers. Where a hosted model genuinely is the subject
   being measured, the key comes from the environment and is never committed.

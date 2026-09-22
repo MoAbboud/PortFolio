@@ -100,6 +100,12 @@ GoogleService-Info.plist
 # than the day somebody remembers.
 **/requirements/06-context.md
 
+# The portfolio site's own requirements - hosting, and keeping it visibly maintained once
+# it is live - are private working documents, not part of the portfolio. Anchored with a
+# leading slash so it matches only the root folder: each project's requirements/ stays
+# tracked.
+/requirements/
+
 # Trail models: keep what was written here, not what was downloaded.
 #
 # The recipes, the names and the manifest are the project's own work and are a
@@ -109,6 +115,10 @@ GoogleService-Info.plist
 trail/models/*.vox
 trail/models/*/
 !trail/models/names/
+
+# The same models, packed for the `trail-models` release that the Pages workflow downloads.
+# Made locally and uploaded by hand; see DEPLOYMENT-GUIDE.md.
+deploy/trail-models.tar.gz
 
 # ============================================================
 # herder: the workshopped specification is private
