@@ -681,8 +681,8 @@ const PROFILE = {
   title: 'Full-Stack Software Engineer',
   location: 'Kansas City, Missouri',
   email: 'mohammad.a.abboud@gmail.com',
-  phone: '(406) 920-5162',
-  phoneHref: 'tel:+14069205162',
+  // No phone number on the public site: it is a page anyone can read and scrape. It
+  // belongs on the copy sent with an application, not here.
   github: 'github.com/MoAbboud',
   githubHref: 'https://github.com/MoAbboud',
   summary: 'Five years of end-to-end ownership of client-facing applications, from requirements and architecture through deployment, infrastructure and ongoing support. C#/.NET, Python and PHP, across secure financial transaction platforms and a portfolio of commercial web products — as the sole technical owner and the primary client contact.',
@@ -739,13 +739,35 @@ const CAPABILITIES = [
   { name: 'Architecture & Delivery', items: ['System Design', 'API Design', 'Legacy System Modernization', 'Web Application Security', 'Authentication', 'Git / GitHub', 'Docker', 'CI/CD Pipelines', 'Server Administration (SSH/FTP)', 'Agile / Scrum', 'Requirements Gathering', 'Stakeholder Communication'] },
 ];
 
-const PROJECTS = [
-  { name: 'Pneumonia Detection', desc: 'Deep-learning application classifying chest X-rays for signs of pneumonia. Graduate course project.', tech: 'Python · Deep Learning', href: 'https://pneumonia-x9mz.onrender.com/', ext: true },
-  { name: 'Fallacy Suspect', desc: 'Flags logical fallacies in written argument. CLI, Docker image and a Flask interface over a trained model.', tech: 'Python · Flask · Docker', href: 'https://github.com/MoAbboud', ext: true },
-  { name: 'Evaluaters', desc: 'Two AI-engineering projects: an evaluation harness and an agentic GitHub triage tool.', tech: 'Python · LLM tooling', href: 'https://github.com/MoAbboud', ext: true },
-  { name: 'WhereYaGo', desc: 'Day logger for tracking and reflecting on where your time actually goes.', tech: 'Static · localStorage', href: '../whereyago/', ext: false },
-  { name: 'TekTak', desc: 'Single-file browser app built to the portfolio’s keyless, no-backend constraint.', tech: 'Static · localStorage', href: '../tektak/', ext: false },
-  { name: 'Snowball', desc: 'Interactive creative toy. Small, self-contained and entirely client-side.', tech: 'Static · Canvas', href: '../snowball/', ext: false },
+/* This page is the front door of the site, so the project cards are how a reader
+   reaches everything else. Two pages of six: what opens in the browser, then the
+   systems whose evidence is their code and their measurements.
+
+   Links are root-absolute, because this same file is served both at / and at
+   /resume/ and a relative path cannot be right in both places. */
+const PROJECT_PAGES = [
+  {
+    note: 'Opens in the browser',
+    items: [
+      { name: 'Trail', desc: 'A voxel diorama a camera walks through on a timeline, for recording video. Hand-written WebGL2, no engine, 620 tests.', tech: 'WebGL2 · no engine', href: '/trail/', ext: false },
+      { name: 'Snowball', desc: 'Branching idea builder: a seed thought grows into a tree that exports as an essay.', tech: 'Static · localStorage', href: '/snowball/', ext: false },
+      { name: 'TekTak', desc: 'A hand-curated tracker for online drama, written as summaries rather than video.', tech: 'Static · localStorage', href: '/tektak/', ext: false },
+      { name: 'Story Takes', desc: 'A story told in beats becomes a tree that reveals itself one beat at a time, for narration.', tech: 'Static · single file', href: '/story-generator/', ext: false },
+      { name: 'WhereYaGo', desc: 'A day logger: record a good day out stop by stop, then browse and copy other people’s.', tech: 'Static · localStorage', href: '/whereyago/', ext: false },
+      { name: 'Pneumonia Detection', desc: 'Deep-learning application classifying chest X-rays for signs of pneumonia. Free hosting, so the first load takes about a minute to wake.', tech: 'Python · Deep Learning', href: 'https://pneumonia-x9mz.onrender.com/', ext: true },
+    ],
+  },
+  {
+    note: 'Runs locally — the code is the evidence',
+    items: [
+      { name: 'Herder', desc: 'Portable memory for AI chat: a long conversation becomes a compact brief where every line traces back to the messages it came from. Benchmarked against a plain summary at the same token budget, on a 261-fact answer key written by hand.', tech: 'FastAPI · pgvector · local models', href: 'https://github.com/MoAbboud/PortFolio/tree/main/herder', ext: true },
+      { name: 'Mailman', desc: 'Document intake: messy invoices in, validated records out, with a review queue for the ones it is unsure about. Its own evaluation reports 98.3% field accuracy against a 75.1% baseline; 355 tests.', tech: 'FastAPI · PostgreSQL · Docker', href: 'https://github.com/MoAbboud/PortFolio/tree/main/mailman', ext: true },
+      { name: 'Fallacy Suspect', desc: 'Flags passages that may lean on a logical fallacy — a warning with a confidence, never a verdict. Two DistilBERT stages trained for the job; no hosted model, no API key.', tech: 'Python · PyTorch · Flask', href: 'https://github.com/MoAbboud/PortFolio/tree/main/fallacysuspect', ext: true },
+      { name: 'Evaluaters', desc: 'Two AI-engineering pieces: a harness that scores structured extraction case by case, and typed GitHub tools for a triage agent.', tech: 'Python · LLM tooling', href: 'https://github.com/MoAbboud/PortFolio/tree/main/evaluaters', ext: true },
+      { name: 'This Site', desc: 'The portfolio itself: an allowlist build for the static half, published by GitHub Actions on every push, and Docker Compose with Caddy for the services that run on a server.', tech: 'GitHub Actions · Docker · Caddy', href: 'https://github.com/MoAbboud/PortFolio/tree/main/deploy', ext: true },
+      { name: 'All The Code', desc: 'Every project above, with the requirements written before the code and the measurements kept in the repository — including the ones that fall short.', tech: 'GitHub', href: 'https://github.com/MoAbboud/PortFolio', ext: true },
+    ],
+  },
 ];
 
 const EDUCATION = {
@@ -769,7 +791,8 @@ const PAGES = [
   { section: 'Experience',   render: () => renderRole(0), wide: true },
   { section: 'Experience',   render: () => renderRole(1), wide: true },
   { section: 'Capabilities', render: renderCapabilities, wide: true },
-  { section: 'Projects',     render: renderProjects, wide: true },
+  { section: 'Projects',     render: () => renderProjects(0), wide: true },
+  { section: 'Projects',     render: () => renderProjects(1), wide: true },
   { section: 'Education',    render: renderEducation },
   { section: 'Contact',      render: renderContact },
 ];
@@ -863,25 +886,26 @@ function renderCapabilities() {
   </div>`;
 }
 
-function renderProjects() {
+function renderProjects(group) {
+  const { note, items } = PROJECT_PAGES[group];
   return `
   <div>
     <div class="eyebrow" ${a(0)}>
-      <b>03</b><span class="sep"></span><span>Projects</span><span class="sep"></span><span>${PROJECTS.length} shipped</span>
+      <b>03</b><span class="sep"></span><span>Projects</span><span class="sep"></span><span>${esc(note)}</span>
     </div>
     <h2 class="head" style="margin-top:14px">
       <span class="mask"><span style="--i:0">Things I have <span class="thin">built</span></span></span>
     </h2>
     <div style="height:clamp(20px,3.4vh,32px)"></div>
     <div class="proj-grid">
-      ${PROJECTS.map((p, i) => `
+      ${items.map((p, i) => `
         <a class="proj" href="${esc(p.href)}"${p.ext ? ' target="_blank" rel="noopener"' : ''} ${a(3 + i)}>
           <span class="n">${String(i + 1).padStart(2, '0')}</span>
           <h3>${esc(p.name)}</h3>
           <p>${esc(p.desc)}</p>
           <span class="foot">
             <span>${esc(p.tech)}</span>
-            <span class="go">${p.ext ? 'Visit' : 'Open'} <span aria-hidden="true">→</span></span>
+            <span class="go">${p.href.includes('github.com') ? 'Code' : (p.ext ? 'Visit' : 'Open')} <span aria-hidden="true">→</span></span>
           </span>
         </a>`).join('')}
     </div>
@@ -915,7 +939,6 @@ function renderEducation() {
 function renderContact() {
   const rows = [
     { k: 'Email',    v: PROFILE.email,  href: 'mailto:' + PROFILE.email },
-    { k: 'Phone',    v: PROFILE.phone,  href: PROFILE.phoneHref },
     { k: 'GitHub',   v: PROFILE.github, href: PROFILE.githubHref, ext: true },
     { k: 'Location', v: PROFILE.location },
   ];

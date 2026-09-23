@@ -138,8 +138,10 @@ fs.mkdirSync(OUT, { recursive: true });
 
 console.log('Building deploy/dist ...');
 
-copy('index.html');
-
+// The resume is the front page. It is published twice from one file: at the root, where
+// visitors arrive, and at /resume/, so the address that has been shared keeps working.
+// Its own links are root-absolute for exactly this reason.
+copy('resume/index.html', 'index.html');
 copy('resume/index.html');
 
 copy('snowball/index.html');

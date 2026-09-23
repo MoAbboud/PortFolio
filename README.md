@@ -45,23 +45,30 @@ in the write-up rather than deleted.
 | [snowball](snowball/) | Branching idea builder: a seed thought grows into a tree you can export as an essay | open `index.html` | Prototype |
 | [tektak](tektak/) | A hand-curated tracker for online drama, written as summaries rather than video | open `index.html`, `admin.html` to edit | Prototype |
 | [story generator](story%20generator/) | Turns a story told in beats into a tree that reveals itself one beat at a time, for narration | open `breakdown-takes.html` | Prototype, two versions |
-| [resume](resume/) | An interactive resume that never scrolls: six colour-coded sections, all movement lateral | open `index.html` | Finished |
+| [resume](resume/) | An interactive resume that never scrolls: colour-coded sections, all movement lateral. **The site's front page**, and its Projects pages link everything else | <https://moabboud.dev> | Finished |
 
 The browser apps are one HTML file plus Tailwind from a CDN and `localStorage`. No build, no server,
 no accounts. The Python projects use Docker Compose and PostgreSQL, and their tests run with `pytest`.
 
 ## Live
 
-- Pneumonia detector: <https://pneumonia-x9mz.onrender.com/>
+**<https://moabboud.dev>** - the resume is the front page, and its Projects pages open everything
+that runs in the browser: [trail](https://moabboud.dev/trail/),
+[snowball](https://moabboud.dev/snowball/), [tektak](https://moabboud.dev/tektak/),
+[story generator](https://moabboud.dev/story-generator/),
+[whereyago](https://moabboud.dev/whereyago/).
+
+- Pneumonia detector: <https://pneumonia-x9mz.onrender.com/> (free hosting, so the first load takes
+  about a minute to wake)
 - Client work: <https://www.kcsportsdirectory.org/>, <https://kidscloset.biz/>
 
-The rest run locally today. Hosting the whole repository behind one domain is the next piece of work,
-which is why herder's own plan treats hosting as a portfolio-level task rather than its own.
+The Python systems run locally today. mailman is the one meant to go live next, on a small server;
+see the deployment guide below.
 
 ## Notes
 
-- **`index.html` at the root** is a side-scrolling navigator - you walk a character to a signpost to
-  open a project. It currently links two of them and predates most of what is here.
+- **The front page is [resume/index.html](resume/index.html)**, published both at the root and at
+  `/resume/`. There is no separate landing page: the resume is the landing page.
 - **[DEPLOYMENT-GUIDE.md](DEPLOYMENT-GUIDE.md)** puts the repository behind one domain: the
   browser apps on GitHub Pages, published by `.github/workflows/pages.yml` on every push, and
   mailman live on a small server from `deploy/docker-compose.prod.yml`.

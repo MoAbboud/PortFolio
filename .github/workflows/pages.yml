@@ -10,7 +10,7 @@ on:
   push:
     branches: [main]
     paths:
-      - index.html
+      # resume/index.html is the front page: published at / and at /resume/.
       - resume/**
       - snowball/**
       - tektak/**
