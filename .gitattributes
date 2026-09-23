@@ -1,4 +1,10 @@
 # Keep shell scripts LF so they run inside Linux containers, even when edited on Windows.
 *.sh text eol=lf
+# Same for the browser code, because a test reads it as text and asserts on its shape.
+# trail's "it all runs in begin()" test matches `\n  begin();\n}`, which CRLF breaks. The
+# Linux runners check out LF and pass either way; this is what stops a Windows clone from
+# failing a test that has nothing wrong with it.
+*.js text eol=lf
+*.html text eol=lf
 # Normalize line endings for common text files; let Git auto-detect the rest.
 * text=auto

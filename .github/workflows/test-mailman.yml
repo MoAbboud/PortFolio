@@ -72,4 +72,4 @@ jobs:
       - name: Test
         # -rs lists anything skipped, so a skip creeping back is visible in the log rather
         # than hidden in a count.
-        run: pytest -q -rs
+        run: python -m pytest -q -rs

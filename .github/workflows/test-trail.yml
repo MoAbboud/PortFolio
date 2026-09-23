@@ -1,8 +1,10 @@
-# trail's suite: 620 tests, including one that boots the page in a stubbed browser and
-# draws frames. No database, no services, no network.
+# trail's suite: 615 tests, including several that boot the page in a stubbed browser and
+# draw frames. No database and no services.
 #
-# The model packs are not in git and the suite does not need them: its startup test reads
-# the manifest and the small JSON recipes that are tracked.
+# It does need the model packs. They are not in git, and without them five tests fail rather
+# than skip - the library cannot be built, so the page never finishes starting. Reproduced by
+# running the suite against a tracked-files-only checkout. So this job downloads the same
+# release the site build uses, and the suite tests what a visitor actually gets.
 
 name: trail
 
@@ -33,6 +35,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+
+      - name: Download the model packs
+        # --skip-old-files: the JSON files git already has win over the archive's copies.
+        run: |
+          curl -fsSL -o trail-models.tar.gz \
+            "https://github.com/${{ github.repository }}/releases/download/trail-models/trail-models.tar.gz"
+          tar -xzf trail-models.tar.gz -C models --skip-old-files
+          rm trail-models.tar.gz
 
       # No dependencies to install: the project has none, which is the point of it.
       - name: Test

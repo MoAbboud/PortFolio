@@ -74,4 +74,4 @@ jobs:
         run: alembic upgrade head
 
       - name: Test
-        run: pytest -q -rs
+        run: python -m pytest -q -rs
