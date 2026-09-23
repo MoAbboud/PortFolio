@@ -4,7 +4,7 @@
 # themselves are mounted at /app/models (several hundred MB each, never baked in), and
 # text to analyze is mounted in or piped via stdin. There is no API key anywhere.
 
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 # Predictable, chatter-free Python in a container.
 ENV PYTHONUNBUFFERED=1 \
