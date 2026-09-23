@@ -3,6 +3,6 @@ requests>=2.31
 
 # Dev / test
 pytest>=8.0
-ruff>=0.6
+ruff>=0.16.8
 mypy>=1.11
 types-requests
