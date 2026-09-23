@@ -1,0 +1,39 @@
+# trail's suite: 620 tests, including one that boots the page in a stubbed browser and
+# draws frames. No database, no services, no network.
+#
+# The model packs are not in git and the suite does not need them: its startup test reads
+# the manifest and the small JSON recipes that are tracked.
+
+name: trail
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - trail/**
+      - .github/workflows/test-trail.yml
+  pull_request:
+    paths:
+      - trail/**
+      - .github/workflows/test-trail.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: trail
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # No dependencies to install: the project has none, which is the point of it.
+      - name: Test
+        run: node --test

@@ -1,0 +1,75 @@
+# mailman's suite, 355 tests, against a real Postgres.
+#
+# REQUIRE_DB=1 is the point of this job. Without it the database tests skip when nothing
+# answers, and a job whose service container failed would report green having tested the
+# pure functions only. With it, an unreachable database fails the run. See
+# mailman/tests/conftest.py.
+
+name: mailman
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - mailman/**
+      - .github/workflows/test-mailman.yml
+  pull_request:
+    paths:
+      - mailman/**
+      - .github/workflows/test-mailman.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mailman
+
+    services:
+      db:
+        image: postgres:16
+        env:
+          POSTGRES_USER: mailman
+          POSTGRES_PASSWORD: mailman
+          POSTGRES_DB: mailman
+        ports:
+          - 5432:5432
+        # The job's steps run on the host, so the database is reached on localhost. Without
+        # the health check the first step can arrive before Postgres is accepting.
+        options: >-
+          --health-cmd "pg_isready -U mailman"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      DATABASE_URL: postgresql+psycopg://mailman:mailman@localhost:5432/mailman
+      REQUIRE_DB: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: mailman/requirements.txt
+
+      - name: Install
+        run: pip install -r requirements.txt
+
+      # The schema is the migrations, not create_all: the release command is
+      # `alembic upgrade head`, so running it here tests it as well.
+      - name: Migrate
+        run: alembic upgrade head
+
+      # The corpus test_corpus.py reads is committed (74 files), so there is nothing to
+      # generate here. If a case is ever added without its files, -rs below shows the skip.
+      - name: Test
+        # -rs lists anything skipped, so a skip creeping back is visible in the log rather
+        # than hidden in a count.
+        run: pytest -q -rs

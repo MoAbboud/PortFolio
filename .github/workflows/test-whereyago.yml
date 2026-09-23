@@ -1,0 +1,40 @@
+# whereyago's backend suite. It runs against an in-memory SQLite database with the database
+# dependency overridden, by design, so this job needs no service container.
+
+name: whereyago
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - whereyago/backend/**
+      - .github/workflows/test-whereyago.yml
+  pull_request:
+    paths:
+      - whereyago/backend/**
+      - .github/workflows/test-whereyago.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: whereyago/backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: whereyago/backend/pyproject.toml
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: Test
+        run: pytest -q

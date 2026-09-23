@@ -9,6 +9,22 @@ Most folders carry a `requirements/` directory with the same six documents (over
 architecture, data model, plan, tasks). They are written before the code and updated as decisions
 change, so the reasoning behind a design is readable without reading the diff.
 
+## Tests
+
+Every project with a suite runs it on GitHub on every push. herder's and mailman's jobs bring up a
+real PostgreSQL (pgvector's image for herder) and set `REQUIRE_DB=1`, which turns "no database, skip"
+into a failure - so a green badge here cannot mean a job that quietly skipped its database tests.
+
+[![herder](https://github.com/MoAbboud/PortFolio/actions/workflows/test-herder.yml/badge.svg)](https://github.com/MoAbboud/PortFolio/actions/workflows/test-herder.yml)
+[![mailman](https://github.com/MoAbboud/PortFolio/actions/workflows/test-mailman.yml/badge.svg)](https://github.com/MoAbboud/PortFolio/actions/workflows/test-mailman.yml)
+[![trail](https://github.com/MoAbboud/PortFolio/actions/workflows/test-trail.yml/badge.svg)](https://github.com/MoAbboud/PortFolio/actions/workflows/test-trail.yml)
+[![whereyago](https://github.com/MoAbboud/PortFolio/actions/workflows/test-whereyago.yml/badge.svg)](https://github.com/MoAbboud/PortFolio/actions/workflows/test-whereyago.yml)
+[![triage-agent](https://github.com/MoAbboud/PortFolio/actions/workflows/test-triage-agent.yml/badge.svg)](https://github.com/MoAbboud/PortFolio/actions/workflows/test-triage-agent.yml)
+[![site](https://github.com/MoAbboud/PortFolio/actions/workflows/pages.yml/badge.svg)](https://github.com/MoAbboud/PortFolio/actions/workflows/pages.yml)
+
+`eval-harness` and `fallacysuspect` have no suite yet, so they have no badge rather than a green one
+earned by running nothing.
+
 ## Start here
 
 **[herder](herder/)** - portable memory for AI chat. Paste a long conversation, get a compact brief

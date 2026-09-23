@@ -8,6 +8,7 @@ arrives in stage 3, where it is the point rather than a side effect.
 
 from __future__ import annotations
 
+import os
 from collections.abc import Iterator
 
 import pytest
@@ -90,7 +91,13 @@ def db_session() -> Iterator[Session]:
         # below raises "this connection has already initialized a Transaction".
         connection.rollback()
     except SQLAlchemyError as exc:
-        pytest.skip(f"no database available: {type(exc).__name__}")
+        # Skipping is right on a laptop with Docker down and wrong in CI, where a missing
+        # service container would turn the whole run green having tested almost nothing.
+        # The workflow sets REQUIRE_DB=1; nothing else does, so local behaviour is unchanged.
+        reason = f"no database available: {type(exc).__name__}"
+        if os.environ.get("REQUIRE_DB") == "1":
+            pytest.fail(f"REQUIRE_DB=1 and {reason}: {exc}")
+        pytest.skip(reason)
 
     transaction = connection.begin()
     session = Session(bind=connection, join_transaction_mode="create_savepoint")

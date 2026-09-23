@@ -1,0 +1,40 @@
+# The triage agent's typed GitHub tools. The tests stub the HTTP layer, so this job needs
+# no token and makes no network call - which is the property being tested.
+
+name: triage-agent
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - evaluaters/triage-agent/**
+      - .github/workflows/test-triage-agent.yml
+  pull_request:
+    paths:
+      - evaluaters/triage-agent/**
+      - .github/workflows/test-triage-agent.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: evaluaters/triage-agent
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: evaluaters/triage-agent/requirements.txt
+
+      - name: Install
+        run: pip install -r requirements.txt
+
+      - name: Test
+        run: pytest -q

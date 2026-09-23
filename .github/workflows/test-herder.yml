@@ -1,0 +1,77 @@
+# herder's suite, 506 tests, against Postgres with pgvector.
+#
+# Two things this job has to get right:
+#   - pgvector's image, not plain postgres. The schema has a vector column and the first
+#     migration creates the extension.
+#   - torch from the CPU index before anything else asks for it. sentence-transformers pulls
+#     torch in, and the PyPI build on Linux is the CUDA one: gigabytes of GPU libraries for
+#     a runner with no GPU, which is slow and can fill the disk.
+#
+# REQUIRE_DB=1 turns "no database, skip" into a failure. See herder/tests/conftest.py.
+
+name: herder
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - herder/**
+      - .github/workflows/test-herder.yml
+  pull_request:
+    paths:
+      - herder/**
+      - .github/workflows/test-herder.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: herder
+
+    services:
+      db:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: herder
+          POSTGRES_PASSWORD: herder
+          POSTGRES_DB: herder
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U herder"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      DATABASE_URL: postgresql+asyncpg://herder:herder@localhost:5432/herder
+      HERDER_TEST_DATABASE_URL: postgresql+asyncpg://herder:herder@localhost:5432/herder
+      REQUIRE_DB: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: herder/requirements.txt
+
+      - name: Install torch (CPU build)
+        run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Install
+        run: pip install -r requirements.txt
+
+      # The conftest probes for a table, not just a connection, so the migrations have to
+      # have run or every database test reports an unhelpful missing table.
+      - name: Migrate
+        run: alembic upgrade head
+
+      - name: Test
+        run: pytest -q -rs

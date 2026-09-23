@@ -40,6 +40,19 @@ SKIP_REASON = (
     "`docker compose exec api alembic upgrade head`."
 )
 
+# Skipping is right on a laptop with Docker down and wrong in CI, where a missing service
+# container would turn the whole run green having tested almost nothing - and the badge that
+# reports it would be a false claim. The workflow sets REQUIRE_DB=1, which turns the skip
+# into a failure. Nothing else sets it, so the local behaviour is unchanged.
+REQUIRE_DB = os.environ.get("REQUIRE_DB") == "1"
+
+
+def _no_database() -> None:
+    """Skip, or fail where a database was promised."""
+    if REQUIRE_DB:
+        pytest.fail(f"REQUIRE_DB=1 and {SKIP_REASON}")
+    pytest.skip(SKIP_REASON)
+
 
 # Whether the database answered, decided once per session.
 #
@@ -72,7 +85,7 @@ async def _database_reachable() -> bool:
 @pytest_asyncio.fixture
 async def engine():
     if not await _database_reachable():
-        pytest.skip(SKIP_REASON)
+        _no_database()
 
     engine = create_async_engine(TEST_DATABASE_URL, poolclass=None)
     yield engine
