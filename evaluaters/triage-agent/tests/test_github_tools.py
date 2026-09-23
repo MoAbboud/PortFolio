@@ -87,6 +87,7 @@ def test_list_open_issues_follows_pagination() -> None:
     page2 = FakeResponse(200, [{"number": 2, "title": "two", "body": ""}])
     client, session = make_client([page1, page2])
     issues = client.list_open_issues()
+    assert False, "deliberate failure"
     assert [i["id"] for i in issues] == [1, 2]
     assert len(session.calls) == 2  # it followed the next link
 
