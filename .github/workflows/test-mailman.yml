@@ -49,6 +49,10 @@ jobs:
     env:
       DATABASE_URL: postgresql+psycopg://mailman:mailman@localhost:5432/mailman
       REQUIRE_DB: "1"
+      # The default is /data/documents, which is the path inside mailman's container. On a
+      # runner nothing may create /data, and the upload test fails with a permission error
+      # before it reaches anything it was written to check.
+      STORAGE_ROOT: ${{ runner.temp }}/mailman-documents
 
     steps:
       - uses: actions/checkout@v4
