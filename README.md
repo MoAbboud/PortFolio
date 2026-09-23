@@ -13,7 +13,6 @@ change, so the reasoning behind a design is readable without reading the diff.
 
 Every project with a suite runs it on GitHub on every push. herder's and mailman's jobs bring up a
 real PostgreSQL (pgvector's image for herder) and set `REQUIRE_DB=1`, which turns "no database, skip"
-
 into a failure - so a green badge here cannot mean a job that quietly skipped its database tests.
 
 [![herder](https://github.com/MoAbboud/PortFolio/actions/workflows/test-herder.yml/badge.svg)](https://github.com/MoAbboud/PortFolio/actions/workflows/test-herder.yml)
