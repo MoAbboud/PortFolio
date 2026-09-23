@@ -14,10 +14,10 @@ on:
     paths:
       - trail/**
       - .github/workflows/test-trail.yml
+  # No path filter on pull requests, deliberately. A required status check that never
+  # runs leaves the pull request waiting for it forever, so every suite runs on every
+  # pull request. Pushes stay filtered: a change to one project does not run the rest.
   pull_request:
-    paths:
-      - trail/**
-      - .github/workflows/test-trail.yml
   workflow_dispatch:
 
 permissions:
@@ -25,6 +25,9 @@ permissions:
 
 jobs:
   test:
+    # The status check's name in branch protection. Unique per workflow, or all five
+    # appear as "test" and cannot be told apart.
+    name: trail tests
     runs-on: ubuntu-latest
     defaults:
       run:
