@@ -52,7 +52,10 @@ jobs:
       # The default is /data/documents, which is the path inside mailman's container. On a
       # runner nothing may create /data, and the upload test fails with a permission error
       # before it reaches anything it was written to check.
-      STORAGE_ROOT: ${{ runner.temp }}/mailman-documents
+      #
+      # github.workspace, not runner.temp: job-level env cannot read the runner context, and
+      # a workflow that uses it is rejected before anything runs.
+      STORAGE_ROOT: ${{ github.workspace }}/.mailman-documents
 
     steps:
       - uses: actions/checkout@v4
