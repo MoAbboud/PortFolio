@@ -1,0 +1,142 @@
+# Dependency updates arrive as pull requests, and those pull requests run the same five test
+# workflows as anything else - so an update that breaks a suite announces itself instead of
+# being noticed months later.
+#
+# Everything here is weekly and grouped. The failure mode this guards against is not missing
+# an update; it is twenty open pull requests nobody reads, which looks worse on a public
+# repository than being a version behind. One grouped pull request per project per week, at
+# most two open at a time, and anything not merged within the week gets closed on purpose.
+#
+# Dependabot's pull requests need no secrets, which is why the test workflows still pass on
+# them: every job here runs local code and a service container, and none of them touch a
+# hosted model.
+
+version: 2
+updates:
+  # ---------------------------------------------------------------- Python
+  - package-ecosystem: pip
+    directory: /herder
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 2
+    groups:
+      # Minor and patch together: those are the ones that are usually safe and boring.
+      # A major version arrives on its own, because it deserves reading.
+      herder-minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: pip
+    directory: /mailman
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 2
+    groups:
+      mailman-minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: pip
+    directory: /fallacysuspect
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 2
+    groups:
+      fallacysuspect-minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: pip
+    directory: /whereyago/backend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 2
+    groups:
+      whereyago-backend-minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: pip
+    directory: /evaluaters/eval-harness
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 1
+    groups:
+      eval-harness-minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: pip
+    directory: /evaluaters/triage-agent
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 1
+    groups:
+      triage-agent-minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # ---------------------------------------------------------------- Base images
+  # A base image goes stale quietly: python:3.13-slim keeps working while the security
+  # patches pile up behind it.
+  - package-ecosystem: docker
+    directory: /herder
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 1
+
+  - package-ecosystem: docker
+    directory: /mailman
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 1
+
+  - package-ecosystem: docker
+    directory: /fallacysuspect
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 1
+
+  - package-ecosystem: docker
+    directory: /whereyago/backend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 1
+
+  # ---------------------------------------------------------------- The mobile app
+  # Expo pulls a large tree, so this one is capped hard and grouped whole. trail is not
+  # here: it has no dependencies at all, which is the point of it.
+  - package-ecosystem: npm
+    directory: /whereyago/mobile
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 1
+    groups:
+      mobile-minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # ---------------------------------------------------------------- The workflows themselves
+  # actions/checkout and friends. This is also how the Node 20 deprecation notice in the
+  # run logs eventually goes away.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 2
+    groups:
+      actions-minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
