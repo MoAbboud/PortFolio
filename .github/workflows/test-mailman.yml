@@ -50,7 +50,7 @@ jobs:
           --health-retries 20
 
     env:
-      DATABASE_URL: postgresql+psycopg://mailman:mailman@localhost:5432/mailman
+      DATABASE_URL: postgresql+psycopg://mailman:mailman@localhost:1/mailman
       REQUIRE_DB: "1"
       # The default is /data/documents, which is the path inside mailman's container. On a
       # runner nothing may create /data, and the upload test fails with a permission error
