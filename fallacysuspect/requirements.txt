@@ -3,7 +3,7 @@
 anthropic>=0.40
 
 # Web interface (`python -m fallacy_warn serve`).
-flask>=3.0
+flask>=3.1.3
 
 # Local TF-IDF model backend (lightweight; deployable on a free tier — no torch).
 scikit-learn>=1.3
