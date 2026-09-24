@@ -3,9 +3,39 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="description" content="Mohamad Abboud — Full-Stack Software Engineer. Five years of end-to-end ownership of client-facing applications." />
+<title>Mohamad Abboud, Full-Stack Software Engineer</title>
+<meta name="description" content="Mohamad Abboud, Full-Stack Software Engineer in Kansas City. Five years of end-to-end ownership of client-facing applications, and machine-learning systems built and trained without hosted AI APIs." />
 <meta name="color-scheme" content="light dark" />
-<title>Mohamad Abboud — Full-Stack Software Engineer</title>
+<meta name="theme-color" content="#fbf8f3" />
+<link rel="canonical" href="https://moabboud.dev/" />
+
+<!-- Link previews. Without these a link pasted into LinkedIn, Slack or an email is a bare URL.
+     The image is made from resume/tools/og.html by resume/tools/make-assets.mjs. -->
+<meta property="og:type" content="profile" />
+<meta property="og:site_name" content="Mohamad Abboud" />
+<meta property="og:title" content="Mohamad Abboud, Full-Stack Software Engineer" />
+<meta property="og:description" content="Five years of end-to-end ownership of client-facing applications: secure financial platforms for 400+ banks, six client applications as sole technical lead, and machine-learning systems built without hosted AI APIs." />
+<meta property="og:url" content="https://moabboud.dev/" />
+<meta property="og:image" content="https://moabboud.dev/resume/og.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="Mohamad Abboud, Full-Stack Software Engineer, moabboud.dev" />
+<meta name="twitter:card" content="summary_large_image" />
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f04e2a'/%3E%3Ctext x='32' y='43' font-family='Segoe UI,Helvetica,Arial,sans-serif' font-size='29' font-weight='700' fill='%23fff' text-anchor='middle'%3EMA%3C/text%3E%3C/svg%3E" type="image/svg+xml" />
+<link rel="icon" href="/resume/icon.png" type="image/png" sizes="180x180" />
+<link rel="apple-touch-icon" href="/resume/icon.png" />
+
+<script>
+/* Runs before first paint. The class switches the page from a document into the stage,
+   so without JavaScript every section is simply there, in order, as a readable page.
+   The saved theme is applied here too, so a dark-theme visitor never sees a light flash. */
+(function () {
+  var d = document.documentElement;
+  d.classList.add('js');
+  try { var t = localStorage.getItem('ma-theme'); if (t) d.dataset.theme = t; } catch (e) {}
+})();
+</script>
 <style>
 /* ============================================================
    TOKENS
@@ -21,7 +51,7 @@
   --bg-2:      #f4ede2;
   --fg:        #1a1720;
   --fg-dim:    #5a5462;
-  --fg-faint:  #8b8494;
+  --fg-faint:  #6b6474;   /* 5.4:1 on --bg; small labels need 4.5 */
   --line:      rgba(26, 23, 32, 0.15);
   --line-soft: rgba(26, 23, 32, 0.07);
   --surface:   rgba(255, 255, 255, 0.60);
@@ -33,6 +63,12 @@
   --c4: #e89000; --c4i: #965b00;   /* amber      */
   --c5: #e0357f; --c5i: #a81257;   /* magenta    */
   --c6: #24a85a; --c6i: #147038;   /* green      */
+
+  /* Vivid as text, for the large thin display words. Teal, amber and green
+     are too pale on this ground even for large type (3:1), so they darken
+     a step; the other three already pass. Measured, not picked by eye. */
+  --c1t: var(--c1); --c2t: var(--c2); --c3t: #078f82;
+  --c4t: #b87200;   --c5t: var(--c5); --c6t: #1d944e;
 
   --font-display: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
   --font-mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", Consolas, "SF Mono", Menlo, monospace;
@@ -51,7 +87,7 @@
   --bg-2:      #1c1926;
   --fg:        #f3eff8;
   --fg-dim:    #a9a2b5;
-  --fg-faint:  #756e82;
+  --fg-faint:  #8f889d;
   --line:      rgba(243, 239, 248, 0.15);
   --line-soft: rgba(243, 239, 248, 0.07);
   --surface:   rgba(243, 239, 248, 0.04);
@@ -63,24 +99,18 @@
   --c4: #ffb02e; --c4i: #ffc768;
   --c5: #ff5f9e; --c5i: #ff8cba;
   --c6: #45d47c; --c6i: #7ee5a4;
+  --c3t: var(--c3); --c4t: var(--c4); --c6t: var(--c6);
 }
 
 /* The active section's hue */
-:root[data-accent="1"] { --accent: var(--c1); --accent-ink: var(--c1i); }
-:root[data-accent="2"] { --accent: var(--c2); --accent-ink: var(--c2i); }
-:root[data-accent="3"] { --accent: var(--c3); --accent-ink: var(--c3i); }
-:root[data-accent="4"] { --accent: var(--c4); --accent-ink: var(--c4i); }
-:root[data-accent="5"] { --accent: var(--c5); --accent-ink: var(--c5i); }
-:root[data-accent="6"] { --accent: var(--c6); --accent-ink: var(--c6i); }
+:root[data-accent="1"] { --accent: var(--c1); --accent-ink: var(--c1i); --accent-text: var(--c1t); }
+:root[data-accent="2"] { --accent: var(--c2); --accent-ink: var(--c2i); --accent-text: var(--c2t); }
+:root[data-accent="3"] { --accent: var(--c3); --accent-ink: var(--c3i); --accent-text: var(--c3t); }
+:root[data-accent="4"] { --accent: var(--c4); --accent-ink: var(--c4i); --accent-text: var(--c4t); }
+:root[data-accent="5"] { --accent: var(--c5); --accent-ink: var(--c5i); --accent-text: var(--c5t); }
+:root[data-accent="6"] { --accent: var(--c6); --accent-ink: var(--c6i); --accent-text: var(--c6t); }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
-
-html, body {
-  height: 100%;
-  /* The document itself never scrolls. Movement is lateral and deliberate. */
-  overflow: hidden;
-  overscroll-behavior: none;
-}
 
 body {
   background: var(--bg);
@@ -136,7 +166,7 @@ a { color: inherit; }
   background-color: var(--accent);
   opacity: .16;
   filter: blur(70px);
-  transform: translate3d(-50%, -50%, 0);
+  transform: translate3d(78vw, 22vh, 0) translate(-50%, -50%);
   transition: background-color .9s var(--ease);
   will-change: transform;
 }
@@ -167,7 +197,7 @@ a { color: inherit; }
    HUD
    ============================================================ */
 .hud {
-  position: fixed; left: 0; right: 0; z-index: 40;
+  position: relative; left: 0; right: 0; z-index: 40;
   height: var(--hud);
   display: flex; align-items: center; justify-content: space-between; gap: 20px;
   padding: 0 var(--gutter);
@@ -185,7 +215,7 @@ a { color: inherit; }
 
 .brand {
   display: inline-flex; align-items: center; gap: 10px;
-  background: none; border: 0; cursor: pointer; color: var(--fg);
+  background: none; border: 0; cursor: pointer; color: var(--fg); text-decoration: none;
   font: inherit; letter-spacing: .13em; text-transform: uppercase; padding: 6px 0;
 }
 .brand-mark {
@@ -212,6 +242,16 @@ a { color: inherit; }
 .icon-btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.5; }
 .menu-btn { display: none; }
 
+/* The résumé download. Text rather than an icon: "PDF" is the word a recruiter scans for. */
+.pdf-link {
+  height: 34px; display: inline-flex; align-items: center; gap: 7px; padding: 0 11px;
+  border: 1px solid var(--line); border-radius: 3px; text-decoration: none;
+  color: var(--fg-dim); font: inherit; letter-spacing: .13em; text-transform: uppercase;
+  transition: color .3s var(--ease), border-color .3s var(--ease), background-color .3s var(--ease);
+}
+.pdf-link:hover { color: var(--accent-ink); border-color: var(--accent); background-color: var(--surface); }
+.pdf-link svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.7; }
+
 .counter { display: flex; align-items: baseline; gap: 6px; color: var(--fg-faint); flex-shrink: 0; }
 .counter .cur { color: var(--accent-ink); font-size: .82rem; font-weight: 700; }
 
@@ -224,6 +264,9 @@ a { color: inherit; }
 .pager button:hover:not(:disabled) { color: #fff; background-color: var(--accent-ink); border-color: var(--accent-ink); }
 .pager button:disabled { opacity: .25; cursor: default; }
 .pager svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.7; }
+
+/* Controls that do nothing without the script are not shown without it. */
+html:not(.js) .needs-js { display: none !important; }
 
 /* ============================================================
    HORIZONTAL SECTION RAIL
@@ -260,71 +303,116 @@ a { color: inherit; }
 .rail button.done .seg::after { transform: scaleX(1); opacity: .32; }
 
 /* ============================================================
-   STAGE + PAGES
+   PAGES, AS A DOCUMENT
+   What every reader gets first: no script, a crawler, a link
+   unfurler, the printer. Sections stacked, in order, readable.
    ============================================================ */
-.stage { position: relative; height: 100vh; height: 100dvh; z-index: 10; }
+.stage { position: relative; z-index: 10; }
 
 .page {
-  position: absolute; inset: 0;
+  position: relative;
   display: grid; place-items: center;
-  padding: calc(var(--hud) + clamp(14px, 3vh, 34px)) var(--gutter);
-  visibility: hidden; pointer-events: none;
+  padding: clamp(40px, 8vh, 88px) var(--gutter);
+  border-top: 1px solid var(--line-soft);
 }
-.page.is-active { visibility: visible; pointer-events: auto; }
-.page.is-leaving { visibility: visible; }
-
-.page-inner {
-  width: 100%; max-width: var(--measure); max-height: 100%;
-  /* Safety valve only. If a page needs this on a laptop, split the page. */
-  overflow: auto; scrollbar-width: none; -ms-overflow-style: none;
-}
-.page-inner::-webkit-scrollbar { display: none; }
+.page:first-child { border-top: 0; }
+.page-inner { width: 100%; max-width: var(--measure); }
 .page.wide { --measure: 1240px; }
 
-.page-num {
-  position: absolute;
-  left: var(--gutter); bottom: calc(var(--hud) - 6px);
-  font-family: var(--font-mono);
-  font-size: clamp(7rem, 22vw, 19rem);
-  line-height: .74; font-weight: 700;
-  color: transparent;
-  -webkit-text-stroke: 1.5px color-mix(in srgb, var(--accent) 26%, transparent);
-  pointer-events: none; user-select: none; z-index: -1;
-  opacity: 0; transform: translateX(calc(var(--dir, 1) * 60px));
-  transition: opacity 1s var(--ease), transform 1.2s var(--ease-out);
-}
-.page.is-active .page-num { opacity: 1; transform: none; transition-delay: .18s; }
+/* ============================================================
+   PAGES, AS A STAGE
+   Only with the script, and only on screen. A fixed stage one
+   viewport high: nothing scrolls, movement is lateral.
+   ============================================================ */
+@media screen {
+  html.js, html.js body {
+    height: 100%;
+    /* The document itself never scrolls. Movement is lateral and deliberate. */
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+  .js .hud { position: fixed; }
+  .js .stage { height: 100vh; height: 100dvh; }
 
-/* ---- the motion system --------------------------------------
-   Lateral. Forward, content enters from the right and leaves to
-   the left. Backward, both invert. Direction is one root
-   variable multiplying every transform, which is what makes
-   going back look like going back. */
-.page [data-anim] {
-  opacity: 0;
-  transform: translateX(calc(var(--dir, 1) * 52px));
-  transition: opacity .58s var(--ease), transform .74s var(--ease-out);
-  transition-delay: calc(var(--i, 0) * 52ms + 90ms);
-}
-.page [data-anim="fast"] { transition-delay: calc(var(--i, 0) * 20ms + 250ms); }
-.page.is-active [data-anim] { opacity: 1; transform: none; }
-.page.is-leaving [data-anim] {
-  opacity: 0;
-  transform: translateX(calc(var(--dir, 1) * -44px));
-  transition-duration: .26s, .26s;
-  transition-delay: calc(var(--i, 0) * 12ms);
+  .js .page {
+    position: absolute; inset: 0; border: 0;
+    padding: calc(var(--hud) + clamp(14px, 3vh, 34px)) var(--gutter);
+    visibility: hidden; pointer-events: none;
+  }
+  .js .page.is-active { visibility: visible; pointer-events: auto; }
+  .js .page.is-leaving { visibility: visible; }
+
+  .js .page-inner {
+    max-height: 100%;
+    /* Safety valve only. If a page needs this on a laptop, split the page. */
+    overflow: auto; scrollbar-width: none; -ms-overflow-style: none;
+  }
+  .js .page-inner::-webkit-scrollbar { display: none; }
+
+  /* When the safety valve is in use the scrollbar is hidden, so say that there is more. */
+  .js .page.more-below .page-inner {
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 64px), transparent);
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 64px), transparent);
+  }
+  .js .page::after {
+    content: 'More below \2193';
+    position: absolute; left: 50%; bottom: calc(var(--hud) + 8px);
+    transform: translate(-50%, 6px);
+    font-family: var(--font-mono); font-size: .6rem; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--accent-ink); background-color: var(--bg);
+    border: 1px solid var(--line); border-radius: 99px; padding: 5px 12px;
+    opacity: 0; pointer-events: none;
+    transition: opacity .35s var(--ease), transform .35s var(--ease);
+  }
+  .js .page.is-active.more-below::after { opacity: 1; transform: translate(-50%, 0); }
+
+  .page-num {
+    position: absolute;
+    left: var(--gutter); bottom: calc(var(--hud) - 6px);
+    font-family: var(--font-mono);
+    font-size: clamp(7rem, 22vw, 19rem);
+    line-height: .74; font-weight: 700;
+    color: transparent;
+    -webkit-text-stroke: 1.5px color-mix(in srgb, var(--accent) 26%, transparent);
+    pointer-events: none; user-select: none; z-index: -1;
+    opacity: 0; transform: translateX(calc(var(--dir, 1) * 60px));
+    transition: opacity 1s var(--ease), transform 1.2s var(--ease-out);
+  }
+  .page.is-active .page-num { opacity: 1; transform: none; transition-delay: .18s; }
+
+  /* ---- the motion system --------------------------------------
+     Lateral. Forward, content enters from the right and leaves to
+     the left. Backward, both invert. Direction is one root
+     variable multiplying every transform, which is what makes
+     going back look like going back. */
+  .js .page [data-anim] {
+    opacity: 0;
+    transform: translateX(calc(var(--dir, 1) * 52px));
+    transition: opacity .58s var(--ease), transform .74s var(--ease-out);
+    transition-delay: calc(var(--i, 0) * 52ms + 90ms);
+  }
+  .js .page [data-anim="fast"] { transition-delay: calc(var(--i, 0) * 20ms + 250ms); }
+  .js .page.is-active [data-anim] { opacity: 1; transform: none; }
+  .js .page.is-leaving [data-anim] {
+    opacity: 0;
+    transform: translateX(calc(var(--dir, 1) * -44px));
+    transition-duration: .26s, .26s;
+    transition-delay: calc(var(--i, 0) * 12ms);
+  }
+
+  /* Display type still sets itself from below. A vertical reveal
+     against lateral travel reads as type arriving, not as a slide. */
+  .js .mask > span {
+    transform: translateY(106%);
+    transition: transform .95s var(--ease-out);
+    transition-delay: calc(var(--i, 0) * 72ms + 120ms);
+  }
+  .js .page.is-active .mask > span { transform: none; }
+  .js .page.is-leaving .mask > span { transform: translateY(-106%); transition-duration: .30s; transition-delay: 0s; }
 }
 
-/* Display type still sets itself from below. A vertical reveal
-   against lateral travel reads as type arriving, not as a slide. */
 .mask { display: block; overflow: hidden; padding-block: .06em; }
-.mask > span {
-  display: block; transform: translateY(106%);
-  transition: transform .95s var(--ease-out);
-  transition-delay: calc(var(--i, 0) * 72ms + 120ms);
-}
-.page.is-active .mask > span { transform: none; }
-.page.is-leaving .mask > span { transform: translateY(-106%); transition-duration: .30s; transition-delay: 0s; }
+.mask > span { display: block; }
 
 /* ============================================================
    SHARED TYPE
@@ -337,25 +425,29 @@ a { color: inherit; }
 .eyebrow b { color: var(--accent-ink); font-weight: 700; }
 .eyebrow .sep { width: 26px; height: 1px; background: var(--line); }
 
-.display { font-size: clamp(2.7rem, 8.4vw, 6.6rem); line-height: .93; font-weight: 700; letter-spacing: -.045em; }
-.display .thin { font-weight: 200; color: var(--accent); }
+.display { font-size: clamp(2.7rem, min(8.4vw, 12vh), 6.6rem); line-height: .93; font-weight: 700; letter-spacing: -.045em; }
+.display .thin { font-weight: 200; color: var(--accent-text); }
 
 h2.head { font-size: clamp(1.9rem, 5.2vw, 3.5rem); line-height: 1; font-weight: 700; letter-spacing: -.04em; }
-h2.head .thin { font-weight: 200; color: var(--accent); }
-.lede { color: var(--fg-dim); font-size: clamp(.95rem, 1.35vw, 1.06rem); max-width: 62ch; }
+h2.head .thin { font-weight: 200; color: var(--accent-text); }
+.lede { color: var(--fg-dim); font-size: clamp(.95rem, 1.35vw, 1.06rem); max-width: 78ch; }
 .rule { height: 1px; background: var(--line); }
 .mono { font-family: var(--font-mono); }
+.print-only { display: none; }
 
 /* ============================================================
    PAGE: INDEX
    ============================================================ */
-.index-grid { display: grid; gap: clamp(16px, 3vh, 32px); }
+.index-grid { display: grid; gap: clamp(12px, 2.2vh, 30px); }
 .index-role {
   font-family: var(--font-mono); font-size: clamp(.8rem, 1.5vw, .95rem);
   letter-spacing: .2em; text-transform: uppercase; color: var(--accent-ink);
 }
+/* Availability is green whatever the section, because green is what "open" means. */
+.status { display: inline-flex; align-items: center; gap: 9px; color: var(--c6i); font-weight: 700; }
+.status .dot { width: 7px; height: 7px; border-radius: 50%; background-color: var(--c6); flex-shrink: 0; }
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); }
-.stat { padding: clamp(14px, 2.4vh, 24px) 20px clamp(6px, 1.4vh, 14px) 0; border-right: 1px solid var(--line-soft); }
+.stat { padding: clamp(12px, 2.2vh, 24px) 20px clamp(6px, 1.4vh, 14px) 0; border-right: 1px solid var(--line-soft); }
 .stat:last-child { border-right: 0; }
 .stat .num {
   font-size: clamp(1.7rem, 3.9vw, 2.9rem); font-weight: 700; letter-spacing: -.04em;
@@ -370,6 +462,17 @@ h2.head .thin { font-weight: 200; color: var(--accent); }
   margin-top: 8px; font-family: var(--font-mono); font-size: .62rem;
   letter-spacing: .14em; text-transform: uppercase; color: var(--fg-faint); line-height: 1.5;
 }
+.index-foot { display: flex; align-items: center; justify-content: space-between; gap: 14px 28px; flex-wrap: wrap; }
+.quick {
+  display: flex; flex-wrap: wrap; gap: 6px 20px;
+  font-family: var(--font-mono); font-size: .66rem; letter-spacing: .14em; text-transform: uppercase;
+}
+.quick a {
+  color: var(--accent-ink); font-weight: 700; text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); padding-bottom: 2px;
+  transition: border-color .3s var(--ease);
+}
+.quick a:hover { border-bottom-color: var(--accent-ink); }
 .keyhint {
   font-family: var(--font-mono); font-size: .6rem; letter-spacing: .14em;
   text-transform: uppercase; color: var(--fg-faint);
@@ -379,19 +482,23 @@ h2.head .thin { font-weight: 200; color: var(--accent); }
   font: inherit; border: 1px solid var(--line); border-radius: 3px;
   padding: 3px 7px; color: var(--fg-dim); min-width: 22px; display: inline-block; text-align: center;
 }
+.keyhint .sep { width: 20px; height: 1px; background: var(--line); }
 
 /* ============================================================
    PAGE: EXPERIENCE
    ============================================================ */
-.role-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
-.role-tabs button {
-  background: none; border: 1px solid var(--line); cursor: pointer; border-radius: 3px;
+.role-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 18px; }
+.role-tabs a {
+  border: 1px solid var(--line); border-radius: 3px; text-decoration: none;
   font-family: var(--font-mono); font-size: .64rem; letter-spacing: .14em;
   text-transform: uppercase; color: var(--fg-faint); padding: 7px 14px;
   transition: color .3s var(--ease), border-color .3s var(--ease), background-color .3s var(--ease);
 }
-.role-tabs button:hover { color: var(--accent-ink); border-color: var(--accent); }
-.role-tabs button[aria-current="true"] { color: #fff; background-color: var(--accent-ink); border-color: var(--accent-ink); }
+.role-tabs a:hover { color: var(--accent-ink); border-color: var(--accent); }
+.role-tabs a[aria-current="true"] { color: #fff; background-color: var(--accent-ink); border-color: var(--accent-ink); }
+/* The dark theme's inks are pale, so a fill of one takes dark text, not white. */
+[data-theme="dark"] .role-tabs a[aria-current="true"],
+[data-theme="dark"] .pager button:hover:not(:disabled) { color: var(--bg); }
 
 .role-grid { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: clamp(24px, 4vw, 64px); align-items: start; }
 .role-meta .org { font-size: clamp(1.6rem, 3.6vw, 2.5rem); font-weight: 700; letter-spacing: -.035em; line-height: 1; }
@@ -408,21 +515,39 @@ h2.head .thin { font-weight: 200; color: var(--accent); }
 }
 .tags span:hover { border-color: var(--accent); color: var(--accent-ink); }
 
+/* Headline first. The headline is the claim with its number; the full
+   sentence sits one click away in a native disclosure, so it works
+   without script, from a keyboard, and opens fully in print. */
 .points { list-style: none; display: grid; }
-.points li {
-  position: relative; padding: clamp(10px, 1.5vh, 15px) 0 clamp(10px, 1.5vh, 15px) 40px;
-  border-top: 1px solid var(--line-soft); color: var(--fg-dim);
-  font-size: clamp(.86rem, 1.15vw, .96rem); line-height: 1.6;
-}
+.points li { border-top: 1px solid var(--line-soft); }
 .points li:last-child { border-bottom: 1px solid var(--line-soft); }
-.points li::before {
-  content: attr(data-n); position: absolute; left: 0; top: clamp(10px, 1.5vh, 15px);
-  font-family: var(--font-mono); font-size: .62rem; color: var(--accent); letter-spacing: .1em; font-weight: 700;
+.points summary {
+  list-style: none; cursor: pointer; position: relative;
+  padding: clamp(10px, 1.6vh, 15px) 34px clamp(10px, 1.6vh, 15px) 40px;
+  color: var(--fg); font-weight: 600; letter-spacing: -.01em;
+  font-size: clamp(.9rem, 1.2vw, 1rem); line-height: 1.45;
+  transition: color .25s var(--ease);
 }
-.points li strong { color: var(--fg); font-weight: 600; }
+.points summary::-webkit-details-marker { display: none; }
+.points summary::before {
+  content: attr(data-n); position: absolute; left: 0; top: clamp(12px, 1.6vh + 2px, 17px);
+  font-family: var(--font-mono); font-size: .62rem; color: var(--accent-ink); letter-spacing: .1em; font-weight: 700;
+}
+.points summary::after {
+  content: '+'; position: absolute; right: 6px; top: clamp(8px, 1.6vh - 2px, 13px);
+  font-family: var(--font-mono); font-size: 1rem; font-weight: 400; color: var(--accent-ink);
+  transition: transform .3s var(--ease);
+}
+.points summary:hover { color: var(--accent-ink); }
+.points details[open] > summary::after { transform: rotate(45deg); }
+.points details > p {
+  padding: 0 34px clamp(12px, 1.8vh, 16px) 40px;
+  color: var(--fg-dim); font-size: clamp(.84rem, 1.1vw, .94rem); line-height: 1.6;
+}
+.points strong { color: var(--fg); font-weight: 600; }
 
 /* ============================================================
-   PAGE: CAPABILITIES  — a hue per group
+   PAGE: CAPABILITIES, a hue per group
    ============================================================ */
 .caps { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(16px, 2.4vw, 34px); }
 .cap-col { min-width: 0; }
@@ -453,23 +578,24 @@ h2.head .thin { font-weight: 200; color: var(--accent); }
 .cap-list li:hover::before { width: 10px; }
 
 /* ============================================================
-   PAGE: PROJECTS — a hue per card
+   PAGE: PROJECTS, a hue per card
    ============================================================ */
-.proj-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line-soft); border: 1px solid var(--line-soft); border-radius: 4px; overflow: hidden; }
+.proj-grid { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line-soft); border: 1px solid var(--line-soft); border-radius: 4px; overflow: hidden; }
+.proj-grid > li { display: grid; }
 .proj {
   position: relative; display: flex; flex-direction: column;
   background-color: var(--bg);
-  padding: clamp(18px, 2.6vh, 28px);
+  padding: clamp(16px, 2.4vh, 28px);
   text-decoration: none; color: inherit;
   min-height: clamp(160px, 24vh, 215px); overflow: hidden;
   transition: background-color .4s var(--ease);
 }
-.proj:nth-child(1) { --col: var(--c1); --col-ink: var(--c1i); }
-.proj:nth-child(2) { --col: var(--c2); --col-ink: var(--c2i); }
-.proj:nth-child(3) { --col: var(--c3); --col-ink: var(--c3i); }
-.proj:nth-child(4) { --col: var(--c4); --col-ink: var(--c4i); }
-.proj:nth-child(5) { --col: var(--c5); --col-ink: var(--c5i); }
-.proj:nth-child(6) { --col: var(--c6); --col-ink: var(--c6i); }
+.proj-grid > li:nth-child(1) .proj { --col: var(--c1); --col-ink: var(--c1i); }
+.proj-grid > li:nth-child(2) .proj { --col: var(--c2); --col-ink: var(--c2i); }
+.proj-grid > li:nth-child(3) .proj { --col: var(--c3); --col-ink: var(--c3i); }
+.proj-grid > li:nth-child(4) .proj { --col: var(--c4); --col-ink: var(--c4i); }
+.proj-grid > li:nth-child(5) .proj { --col: var(--c5); --col-ink: var(--c5i); }
+.proj-grid > li:nth-child(6) .proj { --col: var(--c6); --col-ink: var(--c6i); }
 .proj::before {
   content: ''; position: absolute; inset: 0;
   background: radial-gradient(340px at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--col) 22%, transparent), transparent 68%);
@@ -484,7 +610,7 @@ h2.head .thin { font-weight: 200; color: var(--accent); }
 .proj:hover::after { transform: scaleY(1); }
 .proj > * { position: relative; }
 .proj .n { font-family: var(--font-mono); font-size: .6rem; letter-spacing: .16em; color: var(--col-ink); font-weight: 700; }
-.proj h3 { margin-top: auto; padding-top: 16px; font-size: clamp(1rem, 1.5vw, 1.22rem); font-weight: 600; letter-spacing: -.02em; }
+.proj h3 { margin-top: auto; padding-top: 14px; font-size: clamp(1rem, 1.5vw, 1.22rem); font-weight: 600; letter-spacing: -.02em; }
 .proj p { margin-top: 7px; color: var(--fg-dim); font-size: clamp(.76rem, .95vw, .84rem); line-height: 1.55; }
 .proj .foot {
   margin-top: 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
@@ -506,10 +632,10 @@ h2.head .thin { font-weight: 200; color: var(--accent); }
 /* ============================================================
    PAGE: CONTACT
    ============================================================ */
-.contact-list { display: grid; border-top: 1px solid var(--line); }
+.contact-list { list-style: none; display: grid; border-top: 1px solid var(--line); }
 .contact-row {
   display: grid; grid-template-columns: 120px minmax(0, 1fr) auto; align-items: center; gap: 20px;
-  padding: clamp(13px, 2.1vh, 21px) 0; border-bottom: 1px solid var(--line-soft);
+  padding: clamp(10px, 1.6vh, 19px) 0; border-bottom: 1px solid var(--line-soft);
   text-decoration: none; color: inherit; position: relative;
   transition: padding-left .4s var(--ease);
 }
@@ -520,12 +646,13 @@ h2.head .thin { font-weight: 200; color: var(--accent); }
 .contact-row:hover { padding-left: 14px; }
 .contact-row:hover::after { width: 100%; }
 .contact-row .k { font-family: var(--font-mono); font-size: .62rem; letter-spacing: .16em; text-transform: uppercase; color: var(--fg-faint); }
-.contact-row .v { font-size: clamp(1rem, 2.1vw, 1.45rem); font-weight: 500; letter-spacing: -.025em; }
+.contact-row .v { font-size: clamp(1rem, 2.1vw, 1.45rem); font-weight: 500; letter-spacing: -.025em; overflow-wrap: anywhere; }
 .contact-row .go { color: var(--accent-ink); font-family: var(--font-mono); font-size: .62rem; letter-spacing: .14em; font-weight: 700; opacity: 0; transform: translateX(-6px); transition: opacity .3s var(--ease), transform .3s var(--ease); }
 .contact-row:hover .go { opacity: 1; transform: none; }
 .contact-row[data-static] { cursor: default; }
 .contact-row[data-static]:hover { padding-left: 0; }
 .contact-row[data-static]:hover::after { width: 0; }
+.colophon { margin-top: clamp(16px, 2.8vh, 30px); font-size: .6rem; letter-spacing: .14em; color: var(--fg-faint); text-transform: uppercase; }
 
 /* ============================================================
    MOBILE MENU
@@ -565,6 +692,8 @@ h2.head .thin { font-weight: 200; color: var(--accent); }
   .rail { display: none; }
   .stats { grid-template-columns: repeat(2, 1fr); }
   .stat { border-bottom: 1px solid var(--line-soft); }
+  /* On a phone the stats would push the contact links below the fold. */
+  .index-grid .stats { order: 1; }
   .role-grid { grid-template-columns: 1fr; gap: 20px; }
   .edu-grid { grid-template-columns: 1fr; align-items: start; }
   .edu-note { border-left: 0; border-top: 2px solid var(--accent); padding-left: 0; }
@@ -574,16 +703,17 @@ h2.head .thin { font-weight: 200; color: var(--accent); }
   .keyhint { display: none; }
 }
 @media (max-width: 640px) {
+  .pdf-link .long { display: none; }
   .proj-grid { grid-template-columns: 1fr; }
   .proj { min-height: 0; }
   .proj h3 { margin-top: 12px; }
   .caps { grid-template-columns: 1fr; gap: 0; }
   .cap-col { border-bottom: 1px solid var(--line-soft); }
-  .cap-head { cursor: pointer; padding: 15px 0; border-bottom: 0; }
-  .cap-head .chev { display: block; }
-  .cap-col.is-open .cap-head .chev { transform: rotate(180deg); }
-  .cap-list { display: none; padding: 0 0 16px; }
-  .cap-col.is-open .cap-list { display: grid; }
+  .js .cap-head { cursor: pointer; padding: 15px 0; border-bottom: 0; }
+  .js .cap-head .chev { display: block; }
+  .js .cap-col.is-open .cap-head .chev { transform: rotate(180deg); }
+  .js .cap-list { display: none; padding: 0 0 16px; }
+  .js .cap-col.is-open .cap-list { display: grid; }
 }
 
 /* ============================================================
@@ -601,24 +731,106 @@ h2.head .thin { font-weight: 200; color: var(--accent); }
 
 /* ============================================================
    PRINT
+   Also the source of the downloadable PDF (tools/make-assets.mjs).
+   A résumé, not a picture of the website: contact details written
+   out, full sentences instead of headlines, skills as lines, the
+   selected projects only. Always the light tokens.
    ============================================================ */
+@page { size: Letter; margin: 12mm 14mm; }
 @media print {
-  html, body { overflow: visible !important; height: auto !important; background: #fff !important; color: #000 !important; }
-  .field, .grain, .reticle, .hud, .menu, .page-num, .role-tabs, .keyhint { display: none !important; }
-  .stage { height: auto !important; }
-  .page {
-    position: static !important; visibility: visible !important; display: block !important;
-    padding: 0 0 12mm !important; break-inside: avoid; page-break-inside: avoid;
+  html[data-theme] {
+    --bg: #fff; --fg: #111; --fg-dim: #333; --fg-faint: #666;
+    --line: rgba(0,0,0,.25); --line-soft: rgba(0,0,0,.12); --surface: transparent;
+    --c1: #f04e2a; --c1i: #bd3410; --c2: #5b4be8; --c2i: #3a2cb5;
+    --c3: #0ba99a; --c3i: #076f64; --c4: #e89000; --c4i: #965b00;
+    --c5: #e0357f; --c5i: #a81257; --c6: #24a85a; --c6i: #147038;
+    --accent: var(--c1); --accent-ink: var(--c1i);
   }
-  .page-inner { max-width: none !important; max-height: none !important; overflow: visible !important; }
-  .page [data-anim], .mask > span { opacity: 1 !important; transform: none !important; }
-  .cap-list { display: grid !important; }
-  .cap-col { break-inside: avoid; }
-  .caps { grid-template-columns: repeat(2, 1fr) !important; }
-  .proj::after { display: none; }
-  .display { font-size: 30pt !important; }
-  h2.head { font-size: 18pt !important; }
+  body { background: #fff !important; font-size: 9.5pt; line-height: 1.42; }
   a { text-decoration: none !important; }
+
+  /* what the paper does not need */
+  .field, .grain, .reticle, .hud, .menu, .page-num, .role-tabs, .keyhint, .quick,
+  .spacer, .rule, h2.head, .tags, .colophon, .eyebrow .count,
+  #projects-more, #contact,
+  #experience-tekkii .eyebrow, #experience-allied .eyebrow,
+  #index .eyebrow > :not(.status) { display: none !important; }
+  .print-only { display: block; }
+
+  .page { display: block; padding: 0; margin: 0 0 4.5mm; border: 0; }
+  .page-inner { max-width: none; }
+  .eyebrow {
+    font-size: 7.5pt; letter-spacing: .18em; color: var(--c1i); margin: 0 0 2mm;
+    padding-bottom: 1mm; border-bottom: 1px solid var(--line); break-after: avoid;
+  }
+  .eyebrow b { color: var(--c1i); }
+  .eyebrow .sep { display: none; }
+  #index .eyebrow { border: 0; margin: 0; padding: 0; }
+
+  /* header */
+  .index-grid { display: block; }
+  .display { font-size: 25pt !important; line-height: 1; letter-spacing: -.035em; }
+  .display .mask { display: inline; padding: 0; }
+  .display .mask > span { display: inline; }
+  #index .display { margin: 1.5mm 0 1mm; }
+  .index-role { font-size: 9pt; }
+  .print-contact { margin: 1.5mm 0 2.5mm; font-family: var(--font-mono); font-size: 7.6pt; letter-spacing: .03em; color: var(--fg); }
+  .lede { max-width: none; font-size: 9.5pt; color: var(--fg-dim); }
+  .stats { grid-template-columns: repeat(4, 1fr); margin-top: 3mm; }
+  .index-grid .stats { order: 0; }
+  .stat { padding: 2mm 3mm 1mm 0; border-bottom: 0; }
+  .stat .num { font-size: 15pt; }
+  .stat .lbl { font-size: 6.5pt; margin-top: 1mm; }
+
+  /* experience: a role per block, full sentences */
+  .role-grid { display: block; }
+  .role-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 3mm; margin: 1mm 0 1mm; break-after: avoid; }
+  .role-meta .org { font-size: 12pt; letter-spacing: -.02em; }
+  .role-meta .org .mask { padding: 0; }
+  .role-meta .title { margin: 0; font-size: 7.5pt; }
+  .role-meta dl { margin: 0 0 0 auto; display: flex; gap: 3mm; font-size: 7.5pt; }
+  .role-meta dt { display: none; }
+  .role-meta dl dd + dt + dd::before { content: '·'; margin-right: 3mm; color: var(--fg-faint); }
+  .role-meta dt:nth-of-type(3), .role-meta dd:nth-of-type(3) { display: none; }
+  .points li, .points li:last-child { border: 0; break-inside: avoid; }
+  .points summary { display: none; }
+  details::details-content { content-visibility: visible; display: block; }
+  .points details > p { position: relative; padding: .6mm 0 .6mm 4mm; font-size: 9pt; line-height: 1.42; color: var(--fg); }
+  .points details > p::before { content: ''; position: absolute; left: 0; top: 2.3mm; width: 1.6mm; height: .7mm; background: var(--accent); }
+  .points strong { font-weight: 600; }
+
+  /* capabilities as four lines */
+  .caps { display: block; }
+  .cap-col { display: flex; gap: 3mm; padding: .5mm 0; border: 0; break-inside: avoid; }
+  .cap-head { width: 42mm; flex-shrink: 0; padding: 0; border: 0; font-size: 7pt; }
+  .cap-head .chev { display: none !important; }
+  .cap-list { display: block !important; padding: 0; }
+  .cap-list li { display: inline; padding: 0; font-size: 8.8pt; color: var(--fg); }
+  .cap-list li::before { display: none; }
+  .cap-list li:not(:last-child)::after { content: ',  '; color: var(--fg-faint); }
+
+  /* the selected projects, two columns */
+  .proj-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm 6mm; background: none; border: 0; }
+  .proj-grid > li { break-inside: avoid; }
+  .proj { display: block; min-height: 0; padding: 0; background: none; }
+  .proj::before, .proj::after, .proj .n, .proj .go { display: none; }
+  .proj h3 { margin: 0; padding: 0; font-size: 9.5pt; display: inline; }
+  .proj .foot { display: inline; margin: 0 0 0 2mm; font-size: 6.5pt; }
+  .proj p { margin-top: .5mm; font-size: 8.5pt; line-height: 1.38; color: var(--fg-dim); }
+
+  /* education on one line */
+  .edu-grid { display: block; }
+  #education .display { font-size: 11pt !important; letter-spacing: -.01em; margin: 0 !important; }
+  #education .display { display: flex; flex-wrap: wrap; }
+  #education .display .mask + .mask::before { content: ', '; }
+  #education .display .thin { color: var(--fg); font-weight: 600; }
+  .edu-school { font-size: 7.5pt; }
+  #education .mono { margin-top: .5mm !important; font-size: 7pt !important; }
+  .edu-note { border: 0; padding: 1.5mm 0 0; }
+  .edu-note .k { display: none; }
+  .edu-note h3 { font-size: 9pt; display: inline; }
+  .edu-note h3::after { content: ': '; font-weight: 400; }
+  .edu-note p { display: inline; font-size: 9pt; }
 }
 </style>
 </head>
@@ -634,36 +846,356 @@ h2.head .thin { font-weight: 200; color: var(--accent); }
 <div class="reticle" id="reticle" aria-hidden="true"></div>
 
 <header class="hud hud-top">
-  <button class="brand" id="brand" aria-label="Go to start">
+  <a class="brand" id="brand" href="#index" aria-label="Mohamad Abboud, go to start">
     <span class="brand-mark" aria-hidden="true"></span>
     <span><b>Mohamad</b> <span class="sur">Abboud</span></span>
-  </button>
+  </a>
   <div class="hud-tools">
-    <button class="icon-btn" id="themeBtn" aria-label="Switch to dark theme">
+    <a class="pdf-link" href="/resume/Mohamad-Abboud-Resume.pdf" download>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
+      <span><span class="long">Résumé </span>PDF</span>
+    </a>
+    <button class="icon-btn needs-js" id="themeBtn" type="button" aria-label="Switch to dark theme">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
     </button>
-    <button class="icon-btn menu-btn" id="menuBtn" aria-label="Open menu" aria-expanded="false">
+    <button class="icon-btn menu-btn needs-js" id="menuBtn" type="button" aria-label="Open menu" aria-expanded="false">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
     </button>
   </div>
 </header>
 
-<main class="stage" id="stage"></main>
+<!-- ============================================================
+     CONTENT
+     Everything the page says is written here, in the markup, so it
+     is there for every reader: no script, a crawler, a link preview,
+     the printer. The script only turns these sections into the stage.
 
-<footer class="hud hud-bottom">
-  <div class="counter"><span class="cur" id="pageNum">01</span><span>/</span><span id="pageTotal">07</span></div>
+     Each <section class="page"> is one stage page. data-section
+     groups pages into sections (the rail, the menu and the hue come
+     from it) and the id is the page's address: /#projects.
+     data-anim marks what moves; the script numbers the stagger.
+     ============================================================ -->
+<main class="stage" id="stage">
+
+  <!-- INDEX -->
+  <section class="page" id="index" data-section="Index">
+    <div class="page-inner">
+      <div class="index-grid">
+        <p class="eyebrow" data-anim>
+          <b>00</b><span class="sep"></span><span>Index</span><span class="sep"></span>
+          <span class="status"><i class="dot" aria-hidden="true"></i>Open to full-time roles · Kansas City or remote</span>
+        </p>
+        <h1 class="display">
+          <span class="mask"><span>Mohamad</span></span>
+          <span class="mask"><span class="thin">Abboud</span></span>
+        </h1>
+        <p class="index-role" data-anim>Full-Stack Software Engineer</p>
+        <p class="print-only print-contact"><a href="mailto:mohammad.a.abboud@gmail.com">mohammad.a.abboud@gmail.com</a> · <a href="https://www.linkedin.com/in/mohamad-abboud-97088a220/">linkedin.com/in/mohamad-abboud-97088a220</a> · <a href="https://github.com/MoAbboud">github.com/MoAbboud</a> · <a href="https://moabboud.dev/">moabboud.dev</a></p>
+        <p class="lede" data-anim>Five years of end-to-end ownership of client-facing applications, from requirements and architecture through deployment, infrastructure and ongoing support. C#/.NET, Python and PHP, across secure financial transaction platforms and a portfolio of commercial web products, as the sole technical owner and the primary client contact. Since 2026, designing, training and evaluating my own machine-learning systems end to end, without hosted AI APIs.</p>
+        <div class="stats" data-anim>
+          <div class="stat"><div class="num"><span data-count="5">5</span><em></em></div><div class="lbl">Years end-to-end ownership</div></div>
+          <div class="stat"><div class="num"><span data-count="400">400</span><em>+</em></div><div class="lbl">Banking institutions served</div></div>
+          <div class="stat"><div class="num"><span data-count="6">6</span><em></em></div><div class="lbl">Client applications owned</div></div>
+          <div class="stat"><div class="num"><span data-count="80">80</span><em>%</em></div><div class="lbl">Processing time removed</div></div>
+        </div>
+        <div class="index-foot" data-anim>
+          <p class="quick">
+            <a href="https://www.linkedin.com/in/mohamad-abboud-97088a220/" target="_blank" rel="noopener">LinkedIn</a>
+            <a href="https://github.com/MoAbboud" target="_blank" rel="noopener">GitHub</a>
+            <a href="mailto:mohammad.a.abboud@gmail.com">Email</a>
+            <a href="/resume/Mohamad-Abboud-Resume.pdf" download>Résumé PDF</a>
+          </p>
+          <p class="keyhint needs-js">
+            <kbd>&larr;</kbd><kbd>&rarr;</kbd> move sideways
+            <span class="sep"></span>
+            scroll works too
+            <span class="sep"></span>
+            <kbd>1</kbd>&ndash;<kbd>6</kbd> jump to a section
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- EXPERIENCE: one page per role. The headline is the claim; the
+       sentence under it is the resume's own wording, unchanged. -->
+  <section class="page wide" id="experience" data-section="Experience">
+    <div class="page-inner">
+      <p class="eyebrow" data-anim><b>01</b><span class="sep"></span><span>Experience</span><span class="sep"></span><span class="count">1 of 3</span></p>
+      <nav class="role-tabs" aria-label="Roles" data-anim>
+        <a href="#experience" aria-current="true">Independent</a>
+        <a href="#experience-tekkii">Tekkii</a>
+        <a href="#experience-allied">Allied Engineering</a>
+      </nav>
+      <div class="rule" style="margin:clamp(18px,3vh,28px) 0" data-anim></div>
+      <div class="role-grid">
+        <div class="role-meta">
+          <h2 class="org"><span class="mask"><span>Independent Projects</span></span></h2>
+          <p class="title" data-anim>Software Engineer</p>
+          <dl data-anim>
+            <dt>Dates</dt><dd>Jan 2026 – Present</dd>
+            <dt>Place</dt><dd>Kansas City, MO</dd>
+            <dt>Scope</dt><dd>Self-directed, open source</dd>
+          </dl>
+          <div class="tags" data-anim><span>Python</span><span>PyTorch</span><span>DistilBERT</span><span>PostgreSQL</span><span>Docker</span><span>GitHub Actions</span><span>Caddy</span><span>WebGL2</span></div>
+        </div>
+        <ol class="points">
+          <li data-anim><details open><summary data-n="01">Trained my own ML models end to end, no hosted AI APIs</summary>
+            <p>Designed, trained and evaluated my own machine-learning models end to end in PyTorch, with no hosted AI APIs: a <strong>two-stage DistilBERT classifier</strong> that flags passages which may lean on a logical fallacy, with a confidence score rather than a verdict (<strong>Fallacy Suspect</strong>).</p></details></li>
+          <li data-anim><details open><summary data-n="02">Invoice pipeline at 98.3% field accuracy vs a 75.1% baseline</summary>
+            <p>Built a document-intake pipeline that turns messy invoices into validated PostgreSQL records, with a review queue for the documents it is unsure about. Its own evaluation reports <strong>98.3% field accuracy</strong> against a 75.1% baseline, covered by <strong>355 tests</strong> (<strong>Mailman</strong>).</p></details></li>
+          <li data-anim><details open><summary data-n="03">AI-chat memory benchmarked on a hand-written 261-fact answer key</summary>
+            <p>Built portable memory for AI chat: a long conversation becomes a compact brief where every line traces back to the messages it came from, benchmarked against a plain summary at the same token budget on a <strong>261-fact answer key</strong> written by hand (<strong>Herder</strong>).</p></details></li>
+          <li data-anim><details open><summary data-n="04">WebGL2 renderer from scratch, no engine, 620 tests</summary>
+            <p>Wrote a WebGL2 renderer from scratch, with no engine, for a voxel diorama a camera walks through on a timeline, for recording video, covered by <strong>620 tests</strong> (<strong>Trail</strong>).</p></details></li>
+          <li data-anim><details open><summary data-n="05">Built and run this site: CI/CD, Docker, own domain</summary>
+            <p>Run this site end to end: requirements written before the code, an allowlist build published by <strong>GitHub Actions</strong> on every push, and <strong>Docker Compose with Caddy</strong> for the services that run on a server, on my own domain.</p></details></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section class="page wide" id="experience-tekkii" data-section="Experience">
+    <div class="page-inner">
+      <p class="eyebrow" data-anim><b>01</b><span class="sep"></span><span>Experience</span><span class="sep"></span><span class="count">2 of 3</span></p>
+      <nav class="role-tabs" aria-label="Roles" data-anim>
+        <a href="#experience">Independent</a>
+        <a href="#experience-tekkii" aria-current="true">Tekkii</a>
+        <a href="#experience-allied">Allied Engineering</a>
+      </nav>
+      <div class="rule" style="margin:clamp(18px,3vh,28px) 0" data-anim></div>
+      <div class="role-grid">
+        <div class="role-meta">
+          <h2 class="org"><span class="mask"><span>Tekkii</span></span></h2>
+          <p class="title" data-anim>Full Stack Web Developer</p>
+          <dl data-anim>
+            <dt>Dates</dt><dd>Jan 2023 – Jan 2026</dd>
+            <dt>Place</dt><dd>Kansas City, KS</dd>
+            <dt>Scope</dt><dd>Sole technical lead</dd>
+          </dl>
+          <div class="tags" data-anim><span>Python</span><span>PHP</span><span>REST APIs</span><span>PostgreSQL</span><span>SQL Server</span><span>MySQL</span><span>EDI</span><span>PayPal</span><span>SendGrid</span><span>OneSignal</span><span>Agile/Scrum</span></div>
+        </div>
+        <ol class="points">
+          <li data-anim><details open><summary data-n="01">Sole technical lead for six client applications</summary>
+            <p>Owned a portfolio of <strong>six client web applications</strong> across logistics, e-commerce, public sector and retail as the sole technical lead, driving each engagement from requirements and client communication through architecture, development, deployment and ongoing support in an Agile/Scrum process.</p></details></li>
+          <li data-anim><details open><summary data-n="02">EDI automation: roughly 80% less processing time, 50% profit increase</summary>
+            <p>Architected and built an automated <strong>EDI capture and transmission system</strong> from the ground up for Kansas City Drayage, replacing an entirely manual data-entry workflow, cutting processing time by <strong>roughly 80%</strong> and contributing to a <strong>50% increase in profit</strong>.</p></details></li>
+          <li data-anim><details open><summary data-n="03">Set the backend direction: REST APIs and SQL in Python and PHP</summary>
+            <p>Set the backend direction across the client portfolio, designing RESTful APIs, service layers and optimized SQL databases (PostgreSQL, SQL Server, MySQL) in Python and PHP, and integrating third-party services including PayPal, SendGrid and OneSignal.</p></details></li>
+          <li data-anim><details open><summary data-n="04">Inherited and stabilized other developers’ applications</summary>
+            <p>Inherited and stabilized applications built by previous developers, clearing long-standing defects and advising application owners on architecture, technical debt and feature direction.</p></details></li>
+          <li data-anim><details open><summary data-n="05">Rebuilt an e-commerce backend; the growth supported its acquisition</summary>
+            <p>Led the rebuild of an e-commerce platform’s backend and database layer, driving growth in traffic and revenue that supported the product’s <strong>successful acquisition</strong>.</p></details></li>
+          <li data-anim><details open><summary data-n="06">Hardware-integrated installation at the College Basketball Experience</summary>
+            <p>Delivered an interactive, hardware-integrated installation at the <strong>College Basketball Experience</strong>, personally integrating a custom application with cameras, displays and a teleprompter.</p></details></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section class="page wide" id="experience-allied" data-section="Experience">
+    <div class="page-inner">
+      <p class="eyebrow" data-anim><b>01</b><span class="sep"></span><span>Experience</span><span class="sep"></span><span class="count">3 of 3</span></p>
+      <nav class="role-tabs" aria-label="Roles" data-anim>
+        <a href="#experience">Independent</a>
+        <a href="#experience-tekkii">Tekkii</a>
+        <a href="#experience-allied" aria-current="true">Allied Engineering</a>
+      </nav>
+      <div class="rule" style="margin:clamp(18px,3vh,28px) 0" data-anim></div>
+      <div class="role-grid">
+        <div class="role-meta">
+          <h2 class="org"><span class="mask"><span>Allied Engineering Group</span></span></h2>
+          <p class="title" data-anim>Software Engineer</p>
+          <dl data-anim>
+            <dt>Dates</dt><dd>Jun 2019 – Jun 2021</dd>
+            <dt>Place</dt><dd>Beirut, Lebanon</dd>
+            <dt>Scope</dt><dd>Financial transaction platforms</dd>
+          </dl>
+          <div class="tags" data-anim><span>C#</span><span>ASP.NET</span><span>SQL Server</span><span>SWIFT</span><span>Stored Procedures</span><span>Query Optimization</span><span>Schema Design</span></div>
+        </div>
+        <ol class="points">
+          <li data-anim><details open><summary data-n="01">SWIFT platforms for 400+ banks, thousands of secure transactions daily</summary>
+            <p>Built and maintained <strong>SWIFT financial transaction platforms</strong> in C#/ASP.NET on SQL Server, processing <strong>thousands of secure transactions daily</strong> for over <strong>400 banking institutions</strong> worldwide, including QNB.</p></details></li>
+          <li data-anim><details open><summary data-n="02">Owned the data layer for high-throughput transaction systems</summary>
+            <p>Owned the data layer for mission-critical, high-throughput transaction systems, designing schemas and stored procedures and optimizing complex queries to improve application performance and reliability.</p></details></li>
+          <li data-anim><details open><summary data-n="03">Direct technical liaison to banking clients</summary>
+            <p>Served as the direct technical liaison to banking clients, gathering requirements and delivering customized interfaces and features that measurably increased usability and client satisfaction.</p></details></li>
+          <li data-anim><details open><summary data-n="04">Kept production running by diagnosing issues from SQL and application logs</summary>
+            <p>Diagnosed and resolved production issues by monitoring SQL and application logs, maintaining uninterrupted operations for banking clients and surfacing risks and blockers ahead of release.</p></details></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- CAPABILITIES: the resume's own four groups. Architecture &
+       Delivery is deliberately not a technology list. -->
+  <section class="page wide" id="capabilities" data-section="Capabilities">
+    <div class="page-inner">
+      <p class="eyebrow" data-anim><b>02</b><span class="sep"></span><span>Capabilities</span></p>
+      <h2 class="head" style="margin-top:14px"><span class="mask"><span>What I <span class="thin">work in</span></span></span></h2>
+      <div class="rule" style="margin:clamp(20px,3.4vh,32px) 0" data-anim></div>
+      <div class="caps">
+        <div class="cap-col is-open" data-anim>
+          <button type="button" class="cap-head" aria-expanded="true"><span class="idx">01</span><span>Languages</span><span class="chev" aria-hidden="true">⌄</span></button>
+          <ul class="cap-list">
+            <li data-anim="fast">PHP</li><li data-anim="fast">Python</li><li data-anim="fast">JavaScript</li><li data-anim="fast">C#</li><li data-anim="fast">SQL</li>
+          </ul>
+        </div>
+        <div class="cap-col" data-anim>
+          <button type="button" class="cap-head" aria-expanded="false"><span class="idx">02</span><span>Web Development</span><span class="chev" aria-hidden="true">⌄</span></button>
+          <ul class="cap-list">
+            <li data-anim="fast">Public-Facing Web Applications</li><li data-anim="fast">REST APIs</li><li data-anim="fast">HTML / CSS</li><li data-anim="fast">Vue.js</li><li data-anim="fast">React</li><li data-anim="fast">Angular</li><li data-anim="fast">Node.js</li><li data-anim="fast">Responsive Design</li>
+          </ul>
+        </div>
+        <div class="cap-col" data-anim>
+          <button type="button" class="cap-head" aria-expanded="false"><span class="idx">03</span><span>Databases</span><span class="chev" aria-hidden="true">⌄</span></button>
+          <ul class="cap-list">
+            <li data-anim="fast">PostgreSQL</li><li data-anim="fast">SQL Server</li><li data-anim="fast">MySQL</li><li data-anim="fast">Query Optimization</li><li data-anim="fast">Stored Procedures</li><li data-anim="fast">Schema Design</li><li data-anim="fast">Data Modeling</li><li data-anim="fast">Large Dataset Processing</li>
+          </ul>
+        </div>
+        <div class="cap-col" data-anim>
+          <button type="button" class="cap-head" aria-expanded="false"><span class="idx">04</span><span>Architecture &amp; Delivery</span><span class="chev" aria-hidden="true">⌄</span></button>
+          <ul class="cap-list">
+            <li data-anim="fast">System Design</li><li data-anim="fast">API Design</li><li data-anim="fast">Legacy System Modernization</li><li data-anim="fast">Web Application Security</li><li data-anim="fast">Authentication</li><li data-anim="fast">Git / GitHub</li><li data-anim="fast">Docker</li><li data-anim="fast">CI/CD Pipelines</li><li data-anim="fast">Server Administration (SSH/FTP)</li><li data-anim="fast">Agile / Scrum</li><li data-anim="fast">Requirements Gathering</li><li data-anim="fast">Stakeholder Communication</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROJECTS: strongest first. Two pages of six, since the card hues
+       come from :nth-child(1..6) and a stage page does not hold more.
+       Links are root-absolute, because this same file is served both at
+       / and at /resume/ and a relative path cannot be right in both. -->
+  <section class="page wide" id="projects" data-section="Projects">
+    <div class="page-inner">
+      <p class="eyebrow" data-anim><b>03</b><span class="sep"></span><span>Projects</span><span class="sep"></span><span>Selected work</span></p>
+      <h2 class="head" style="margin-top:14px"><span class="mask"><span>Things I have <span class="thin">built</span></span></span></h2>
+      <div class="spacer" style="height:clamp(18px,3vh,32px)"></div>
+      <ul class="proj-grid">
+        <li data-anim><a class="proj" href="https://github.com/MoAbboud/PortFolio/tree/main/mailman" target="_blank" rel="noopener">
+          <span class="n">01</span><h3>Mailman</h3>
+          <p>Document intake: messy invoices in, validated records out, with a review queue for the ones it is unsure about. Its own evaluation reports 98.3% field accuracy against a 75.1% baseline; 355 tests.</p>
+          <span class="foot"><span>FastAPI · PostgreSQL · Docker</span><span class="go">Code <span aria-hidden="true">→</span></span></span></a></li>
+        <li data-anim><a class="proj" href="https://github.com/MoAbboud/PortFolio/tree/main/fallacysuspect" target="_blank" rel="noopener">
+          <span class="n">02</span><h3>Fallacy Suspect</h3>
+          <p>Flags passages that may lean on a logical fallacy, as a warning with a confidence, never a verdict. Two DistilBERT stages trained for the job; no hosted model, no API key.</p>
+          <span class="foot"><span>Python · PyTorch · Flask</span><span class="go">Code <span aria-hidden="true">→</span></span></span></a></li>
+        <li data-anim><a class="proj" href="https://github.com/MoAbboud/PortFolio/tree/main/herder" target="_blank" rel="noopener">
+          <span class="n">03</span><h3>Herder</h3>
+          <p>Portable memory for AI chat: a long conversation becomes a compact brief where every line traces back to the messages it came from. Benchmarked against a plain summary at the same token budget, on a 261-fact answer key written by hand.</p>
+          <span class="foot"><span>FastAPI · pgvector · local models</span><span class="go">Code <span aria-hidden="true">→</span></span></span></a></li>
+        <li data-anim><a class="proj" href="/trail/">
+          <span class="n">04</span><h3>Trail</h3>
+          <p>A voxel diorama a camera walks through on a timeline, for recording video. Hand-written WebGL2, no engine, 620 tests.</p>
+          <span class="foot"><span>WebGL2 · no engine</span><span class="go">Open <span aria-hidden="true">→</span></span></span></a></li>
+        <li data-anim><a class="proj" href="https://pneumonia-x9mz.onrender.com/" target="_blank" rel="noopener">
+          <span class="n">05</span><h3>Pneumonia Detection</h3>
+          <p>Deep-learning application classifying chest X-rays for signs of pneumonia. Free hosting, so the first load takes about a minute to wake.</p>
+          <span class="foot"><span>Python · Deep Learning</span><span class="go">Visit <span aria-hidden="true">→</span></span></span></a></li>
+        <li data-anim><a class="proj" href="https://github.com/MoAbboud/PortFolio/tree/main/deploy" target="_blank" rel="noopener">
+          <span class="n">06</span><h3>This Site</h3>
+          <p>The portfolio itself: an allowlist build for the static half, published by GitHub Actions on every push, and Docker Compose with Caddy for the services that run on a server.</p>
+          <span class="foot"><span>GitHub Actions · Docker · Caddy</span><span class="go">Code <span aria-hidden="true">→</span></span></span></a></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="page wide" id="projects-more" data-section="Projects">
+    <div class="page-inner">
+      <p class="eyebrow" data-anim><b>03</b><span class="sep"></span><span>Projects</span><span class="sep"></span><span>More, most open in the browser</span></p>
+      <h2 class="head" style="margin-top:14px"><span class="mask"><span>More I have <span class="thin">built</span></span></span></h2>
+      <div class="spacer" style="height:clamp(18px,3vh,32px)"></div>
+      <ul class="proj-grid">
+        <li data-anim><a class="proj" href="/snowball/">
+          <span class="n">01</span><h3>Snowball</h3>
+          <p>Branching idea builder: a seed thought grows into a tree that exports as an essay.</p>
+          <span class="foot"><span>Static · localStorage</span><span class="go">Open <span aria-hidden="true">→</span></span></span></a></li>
+        <li data-anim><a class="proj" href="/tektak/">
+          <span class="n">02</span><h3>TekTak</h3>
+          <p>A hand-curated tracker for online drama, written as summaries rather than video.</p>
+          <span class="foot"><span>Static · localStorage</span><span class="go">Open <span aria-hidden="true">→</span></span></span></a></li>
+        <li data-anim><a class="proj" href="/story-generator/">
+          <span class="n">03</span><h3>Story Takes</h3>
+          <p>A story told in beats becomes a tree that reveals itself one beat at a time, for narration.</p>
+          <span class="foot"><span>Static · single file</span><span class="go">Open <span aria-hidden="true">→</span></span></span></a></li>
+        <li data-anim><a class="proj" href="/whereyago/">
+          <span class="n">04</span><h3>WhereYaGo</h3>
+          <p>A day logger: record a good day out stop by stop, then browse and copy other people’s.</p>
+          <span class="foot"><span>Static · localStorage</span><span class="go">Open <span aria-hidden="true">→</span></span></span></a></li>
+        <li data-anim><a class="proj" href="https://github.com/MoAbboud/PortFolio/tree/main/evaluaters" target="_blank" rel="noopener">
+          <span class="n">05</span><h3>Evaluaters</h3>
+          <p>Two AI-engineering pieces: a harness that scores structured extraction case by case, and typed GitHub tools for a triage agent.</p>
+          <span class="foot"><span>Python · LLM tooling</span><span class="go">Code <span aria-hidden="true">→</span></span></span></a></li>
+        <li data-anim><a class="proj" href="https://github.com/MoAbboud/PortFolio" target="_blank" rel="noopener">
+          <span class="n">06</span><h3>All The Code</h3>
+          <p>Every project above, with the requirements written before the code and the measurements kept in the repository, including the ones that fall short.</p>
+          <span class="foot"><span>GitHub</span><span class="go">Code <span aria-hidden="true">→</span></span></span></a></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- EDUCATION -->
+  <section class="page" id="education" data-section="Education">
+    <div class="page-inner">
+      <p class="eyebrow" data-anim><b>04</b><span class="sep"></span><span>Education</span></p>
+      <div class="spacer" style="height:clamp(16px,2.6vh,26px)"></div>
+      <div class="edu-grid">
+        <div>
+          <p class="edu-school" data-anim>University of Missouri-Kansas City</p>
+          <h2 class="display" style="margin-top:16px;font-size:clamp(2rem,6vw,4.4rem)">
+            <span class="mask"><span>Master of Science</span></span>
+            <span class="mask"><span class="thin">Computer Science</span></span>
+          </h2>
+          <p class="mono" style="margin-top:18px;font-size:.72rem;letter-spacing:.18em;color:var(--fg-faint)" data-anim>2021 – 2023</p>
+        </div>
+        <div class="edu-note" data-anim>
+          <p class="k">Course project</p>
+          <h3>Pneumonia Detection App</h3>
+          <p>A deep learning application for medical image analysis in Python, classifying chest X-rays for signs of pneumonia.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT. No phone number: this is a page anyone can read and scrape.
+       It belongs on the copy sent with an application, not here. -->
+  <section class="page" id="contact" data-section="Contact">
+    <div class="page-inner">
+      <p class="eyebrow" data-anim><b>05</b><span class="sep"></span><span>Contact</span><span class="sep"></span>
+        <span class="status"><i class="dot" aria-hidden="true"></i>Open to full-time roles · Kansas City or remote</span></p>
+      <h2 class="display" style="margin-top:14px;font-size:clamp(2.4rem,min(7.4vw,10.5vh),5.4rem)">
+        <span class="mask"><span>Let’s build</span></span>
+        <span class="mask"><span class="thin">something.</span></span>
+      </h2>
+      <div class="spacer" style="height:clamp(18px,3.2vh,34px)"></div>
+      <ul class="contact-list">
+        <li data-anim><a class="contact-row" href="mailto:mohammad.a.abboud@gmail.com"><span class="k">Email</span><span class="v">mohammad.a.abboud@gmail.com</span><span class="go" aria-hidden="true">→</span></a></li>
+        <li data-anim><a class="contact-row" href="https://www.linkedin.com/in/mohamad-abboud-97088a220/" target="_blank" rel="noopener"><span class="k">LinkedIn</span><span class="v">in/mohamad-abboud</span><span class="go" aria-hidden="true">→</span></a></li>
+        <li data-anim><a class="contact-row" href="https://github.com/MoAbboud" target="_blank" rel="noopener"><span class="k">GitHub</span><span class="v">github.com/MoAbboud</span><span class="go" aria-hidden="true">→</span></a></li>
+        <li data-anim><a class="contact-row" href="/resume/Mohamad-Abboud-Resume.pdf" download><span class="k">Résumé</span><span class="v">Download the PDF</span><span class="go" aria-hidden="true">↓</span></a></li>
+        <li data-anim><div class="contact-row" data-static><span class="k">Location</span><span class="v">Kansas City, Missouri</span><span></span></div></li>
+      </ul>
+      <p class="colophon mono" data-anim>Hand-written HTML, CSS and JavaScript · No framework · No build step · One file</p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="hud hud-bottom needs-js">
+  <div class="counter"><span class="cur" id="pageNum">01</span><span>/</span><span id="pageTotal">09</span></div>
   <nav class="rail" id="rail" aria-label="Section navigation"></nav>
   <div class="pager">
-    <button id="prevBtn" aria-label="Previous page">
+    <button id="prevBtn" type="button" aria-label="Previous page">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
     </button>
-    <button id="nextBtn" aria-label="Next page">
+    <button id="nextBtn" type="button" aria-label="Next page">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
     </button>
   </div>
 </footer>
 
-<div class="menu" id="menu" role="dialog" aria-modal="true" aria-label="Sections">
+<div class="menu needs-js" id="menu" role="dialog" aria-modal="true" aria-label="Sections">
   <ol id="menuList"></ol>
 </div>
 
@@ -671,305 +1203,15 @@ h2.head .thin { font-weight: 200; color: var(--accent); }
 
 <script>
 /* ============================================================
-   CONTENT
-   Everything the page says lives here. Updating the resume is
-   editing a list, never editing markup.
+   THE STAGE
+   The content is already on the page. This turns its sections into
+   a fixed stage that moves sideways. If anything here fails, the
+   'js' class comes off and the reader keeps the plain document.
    ============================================================ */
-const PROFILE = {
-  first: 'Mohamad',
-  last: 'Abboud',
-  title: 'Full-Stack Software Engineer',
-  location: 'Kansas City, Missouri',
-  email: 'mohammad.a.abboud@gmail.com',
-  // No phone number on the public site: it is a page anyone can read and scrape. It
-  // belongs on the copy sent with an application, not here.
-  github: 'github.com/MoAbboud',
-  githubHref: 'https://github.com/MoAbboud',
-  summary: 'Five years of end-to-end ownership of client-facing applications, from requirements and architecture through deployment, infrastructure and ongoing support. C#/.NET, Python and PHP, across secure financial transaction platforms and a portfolio of commercial web products — as the sole technical owner and the primary client contact.',
-};
-
-const STATS = [
-  { n: 5,   suffix: '',  label: 'Years end-to-end ownership' },
-  { n: 400, suffix: '+', label: 'Banking institutions served' },
-  { n: 6,   suffix: '',  label: 'Client applications owned' },
-  { n: 80,  suffix: '%', label: 'Processing time removed' },
-];
-
-/* Tags are taken only from technologies the role's own bullets name,
-   so the two can never disagree with each other. */
-const ROLES = [
-  {
-    org: 'Tekkii',
-    title: 'Full Stack Web Developer',
-    dates: 'Jan 2023 — Jan 2026',
-    place: 'Kansas City, KS',
-    scope: 'Sole technical lead',
-    points: [
-      'Owned a portfolio of <strong>six client web applications</strong> across logistics, e-commerce, public sector and retail as the sole technical lead, driving each engagement from requirements and client communication through architecture, development, deployment and ongoing support in an Agile/Scrum process.',
-      'Architected and built an automated <strong>EDI capture and transmission system</strong> from the ground up for Kansas City Drayage, replacing an entirely manual data-entry workflow, cutting processing time by <strong>roughly 80%</strong> and contributing to a <strong>50% increase in profit</strong>.',
-      'Set the backend direction across the client portfolio, designing RESTful APIs, service layers and optimized SQL databases (PostgreSQL, SQL Server, MySQL) in Python and PHP, and integrating third-party services including PayPal, SendGrid and OneSignal.',
-      'Inherited and stabilized applications built by previous developers, clearing long-standing defects and advising application owners on architecture, technical debt and feature direction.',
-      'Led the rebuild of an e-commerce platform’s backend and database layer, driving growth in traffic and revenue that supported the product’s <strong>successful acquisition</strong>.',
-      'Delivered an interactive, hardware-integrated installation at the <strong>College Basketball Experience</strong>, personally integrating a custom application with cameras, displays and a teleprompter.',
-    ],
-    tags: ['Python', 'PHP', 'REST APIs', 'PostgreSQL', 'SQL Server', 'MySQL', 'EDI', 'PayPal', 'SendGrid', 'OneSignal', 'Agile/Scrum'],
-  },
-  {
-    org: 'Allied Engineering Group',
-    title: 'Software Engineer',
-    dates: 'Jun 2019 — Jun 2021',
-    place: 'Beirut, Lebanon',
-    scope: 'Financial transaction platforms',
-    points: [
-      'Built and maintained <strong>SWIFT financial transaction platforms</strong> in C#/ASP.NET on SQL Server, processing <strong>thousands of secure transactions daily</strong> for over <strong>400 banking institutions</strong> worldwide, including QNB.',
-      'Owned the data layer for mission-critical, high-throughput transaction systems, designing schemas and stored procedures and optimizing complex queries to improve application performance and reliability.',
-      'Served as the direct technical liaison to banking clients, gathering requirements and delivering customized interfaces and features that measurably increased usability and client satisfaction.',
-      'Diagnosed and resolved production issues by monitoring SQL and application logs, maintaining uninterrupted operations for banking clients and surfacing risks and blockers ahead of release.',
-    ],
-    tags: ['C#', 'ASP.NET', 'SQL Server', 'SWIFT', 'Stored Procedures', 'Query Optimization', 'Schema Design'],
-  },
-];
-
-/* The four groups are the resume's own. Note that Architecture &
-   Delivery is deliberately not a technology list. */
-const CAPABILITIES = [
-  { name: 'Languages', items: ['PHP', 'Python', 'JavaScript', 'C#', 'SQL'] },
-  { name: 'Web Development', items: ['Public-Facing Web Applications', 'REST APIs', 'HTML / CSS', 'Vue.js', 'React', 'Angular', 'Node.js', 'Responsive Design'] },
-  { name: 'Databases', items: ['PostgreSQL', 'SQL Server', 'MySQL', 'Query Optimization', 'Stored Procedures', 'Schema Design', 'Data Modeling', 'Large Dataset Processing'] },
-  { name: 'Architecture & Delivery', items: ['System Design', 'API Design', 'Legacy System Modernization', 'Web Application Security', 'Authentication', 'Git / GitHub', 'Docker', 'CI/CD Pipelines', 'Server Administration (SSH/FTP)', 'Agile / Scrum', 'Requirements Gathering', 'Stakeholder Communication'] },
-];
-
-/* This page is the front door of the site, so the project cards are how a reader
-   reaches everything else. Two pages of six: what opens in the browser, then the
-   systems whose evidence is their code and their measurements.
-
-   Links are root-absolute, because this same file is served both at / and at
-   /resume/ and a relative path cannot be right in both places. */
-const PROJECT_PAGES = [
-  {
-    note: 'Opens in the browser',
-    items: [
-      { name: 'Trail', desc: 'A voxel diorama a camera walks through on a timeline, for recording video. Hand-written WebGL2, no engine, 620 tests.', tech: 'WebGL2 · no engine', href: '/trail/', ext: false },
-      { name: 'Snowball', desc: 'Branching idea builder: a seed thought grows into a tree that exports as an essay.', tech: 'Static · localStorage', href: '/snowball/', ext: false },
-      { name: 'TekTak', desc: 'A hand-curated tracker for online drama, written as summaries rather than video.', tech: 'Static · localStorage', href: '/tektak/', ext: false },
-      { name: 'Story Takes', desc: 'A story told in beats becomes a tree that reveals itself one beat at a time, for narration.', tech: 'Static · single file', href: '/story-generator/', ext: false },
-      { name: 'WhereYaGo', desc: 'A day logger: record a good day out stop by stop, then browse and copy other people’s.', tech: 'Static · localStorage', href: '/whereyago/', ext: false },
-      { name: 'Pneumonia Detection', desc: 'Deep-learning application classifying chest X-rays for signs of pneumonia. Free hosting, so the first load takes about a minute to wake.', tech: 'Python · Deep Learning', href: 'https://pneumonia-x9mz.onrender.com/', ext: true },
-    ],
-  },
-  {
-    note: 'Runs locally — the code is the evidence',
-    items: [
-      { name: 'Herder', desc: 'Portable memory for AI chat: a long conversation becomes a compact brief where every line traces back to the messages it came from. Benchmarked against a plain summary at the same token budget, on a 261-fact answer key written by hand.', tech: 'FastAPI · pgvector · local models', href: 'https://github.com/MoAbboud/PortFolio/tree/main/herder', ext: true },
-      { name: 'Mailman', desc: 'Document intake: messy invoices in, validated records out, with a review queue for the ones it is unsure about. Its own evaluation reports 98.3% field accuracy against a 75.1% baseline; 355 tests.', tech: 'FastAPI · PostgreSQL · Docker', href: 'https://github.com/MoAbboud/PortFolio/tree/main/mailman', ext: true },
-      { name: 'Fallacy Suspect', desc: 'Flags passages that may lean on a logical fallacy — a warning with a confidence, never a verdict. Two DistilBERT stages trained for the job; no hosted model, no API key.', tech: 'Python · PyTorch · Flask', href: 'https://github.com/MoAbboud/PortFolio/tree/main/fallacysuspect', ext: true },
-      { name: 'Evaluaters', desc: 'Two AI-engineering pieces: a harness that scores structured extraction case by case, and typed GitHub tools for a triage agent.', tech: 'Python · LLM tooling', href: 'https://github.com/MoAbboud/PortFolio/tree/main/evaluaters', ext: true },
-      { name: 'This Site', desc: 'The portfolio itself: an allowlist build for the static half, published by GitHub Actions on every push, and Docker Compose with Caddy for the services that run on a server.', tech: 'GitHub Actions · Docker · Caddy', href: 'https://github.com/MoAbboud/PortFolio/tree/main/deploy', ext: true },
-      { name: 'All The Code', desc: 'Every project above, with the requirements written before the code and the measurements kept in the repository — including the ones that fall short.', tech: 'GitHub', href: 'https://github.com/MoAbboud/PortFolio', ext: true },
-    ],
-  },
-];
-
-const EDUCATION = {
-  school: 'University of Missouri — Kansas City',
-  degree: 'Master of Science',
-  field: 'Computer Science',
-  years: '2021 — 2023',
-  project: {
-    name: 'Pneumonia Detection App',
-    text: 'A deep learning application for medical image analysis in Python, classifying chest X-rays for signs of pneumonia.',
-  },
-};
-
-/* ============================================================
-   PAGE SEQUENCE
-   Sections hold pages. Experience holds one page per role, which
-   is what lets the whole resume fit on stages without cutting it.
-   ============================================================ */
-const PAGES = [
-  { section: 'Index',        render: renderIndex },
-  { section: 'Experience',   render: () => renderRole(0), wide: true },
-  { section: 'Experience',   render: () => renderRole(1), wide: true },
-  { section: 'Capabilities', render: renderCapabilities, wide: true },
-  { section: 'Projects',     render: () => renderProjects(0), wide: true },
-  { section: 'Projects',     render: () => renderProjects(1), wide: true },
-  { section: 'Education',    render: renderEducation },
-  { section: 'Contact',      render: renderContact },
-];
-
-/* ============================================================
-   RENDERERS
-   ============================================================ */
-const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const a = (i, kind) => `data-anim${kind ? '="' + kind + '"' : ''} style="--i:${i}"`;
-
-function renderIndex() {
-  return `
-  <div class="index-grid">
-    <div class="eyebrow" ${a(0)}>
-      <b>00</b><span class="sep"></span><span>Index</span><span class="sep"></span><span>${esc(PROFILE.location)}</span>
-    </div>
-    <h1 class="display">
-      <span class="mask" style="--i:0"><span style="--i:0">${esc(PROFILE.first)}</span></span>
-      <span class="mask" style="--i:1"><span style="--i:1" class="thin">${esc(PROFILE.last)}</span></span>
-    </h1>
-    <div class="index-role" ${a(3)}>${esc(PROFILE.title)}</div>
-    <p class="lede" ${a(4)}>${PROFILE.summary}</p>
-    <div class="stats" ${a(5)}>
-      ${STATS.map(s => `
-        <div class="stat">
-          <div class="num"><span data-count="${s.n}">0</span><em>${esc(s.suffix)}</em></div>
-          <div class="lbl">${esc(s.label)}</div>
-        </div>`).join('')}
-    </div>
-    <div class="keyhint" ${a(6)}>
-      <kbd>&larr;</kbd><kbd>&rarr;</kbd> move sideways
-      <span class="sep" style="width:20px;height:1px;background:var(--line)"></span>
-      scroll works too
-      <span class="sep" style="width:20px;height:1px;background:var(--line)"></span>
-      <kbd>1</kbd>&ndash;<kbd>6</kbd> jump to a section
-    </div>
-  </div>`;
-}
-
-function renderRole(idx) {
-  const r = ROLES[idx];
-  return `
-  <div>
-    <div class="eyebrow" ${a(0)}>
-      <b>01</b><span class="sep"></span><span>Experience</span><span class="sep"></span>
-      <span>${idx + 1} of ${ROLES.length}</span>
-    </div>
-    <div class="role-tabs" style="margin-top:18px" ${a(1)}>
-      ${ROLES.map((x, i) => `<button type="button" data-role="${i}" aria-current="${i === idx}">${esc(x.org)}</button>`).join('')}
-    </div>
-    <div class="rule" style="margin:clamp(18px,3vh,28px) 0" ${a(2)}></div>
-    <div class="role-grid">
-      <div class="role-meta">
-        <div class="org"><span class="mask"><span style="--i:2">${esc(r.org)}</span></span></div>
-        <div class="title" ${a(4)}>${esc(r.title)}</div>
-        <dl ${a(5)}>
-          <dt>Dates</dt><dd>${esc(r.dates)}</dd>
-          <dt>Place</dt><dd>${esc(r.place)}</dd>
-          <dt>Scope</dt><dd>${esc(r.scope)}</dd>
-        </dl>
-        <div class="tags" ${a(6)}>${r.tags.map(t => `<span>${esc(t)}</span>`).join('')}</div>
-      </div>
-      <ul class="points">
-        ${r.points.map((p, i) => `<li data-n="${String(i + 1).padStart(2, '0')}" ${a(5 + i)}>${p}</li>`).join('')}
-      </ul>
-    </div>
-  </div>`;
-}
-
-function renderCapabilities() {
-  return `
-  <div>
-    <div class="eyebrow" ${a(0)}><b>02</b><span class="sep"></span><span>Capabilities</span></div>
-    <h2 class="head" style="margin-top:14px">
-      <span class="mask"><span style="--i:0">What I <span class="thin">work in</span></span></span>
-    </h2>
-    <div class="rule" style="margin:clamp(20px,3.4vh,32px) 0" ${a(2)}></div>
-    <div class="caps">
-      ${CAPABILITIES.map((g, gi) => `
-        <div class="cap-col${gi === 0 ? ' is-open' : ''}" ${a(3 + gi)}>
-          <button type="button" class="cap-head" aria-expanded="${gi === 0}">
-            <span class="idx">${String(gi + 1).padStart(2, '0')}</span>
-            <span>${esc(g.name)}</span>
-            <span class="chev" aria-hidden="true">⌄</span>
-          </button>
-          <ul class="cap-list">
-            ${g.items.map((it, i) => `<li ${a(i, 'fast')}>${esc(it)}</li>`).join('')}
-          </ul>
-        </div>`).join('')}
-    </div>
-  </div>`;
-}
-
-function renderProjects(group) {
-  const { note, items } = PROJECT_PAGES[group];
-  return `
-  <div>
-    <div class="eyebrow" ${a(0)}>
-      <b>03</b><span class="sep"></span><span>Projects</span><span class="sep"></span><span>${esc(note)}</span>
-    </div>
-    <h2 class="head" style="margin-top:14px">
-      <span class="mask"><span style="--i:0">Things I have <span class="thin">built</span></span></span>
-    </h2>
-    <div style="height:clamp(20px,3.4vh,32px)"></div>
-    <div class="proj-grid">
-      ${items.map((p, i) => `
-        <a class="proj" href="${esc(p.href)}"${p.ext ? ' target="_blank" rel="noopener"' : ''} ${a(3 + i)}>
-          <span class="n">${String(i + 1).padStart(2, '0')}</span>
-          <h3>${esc(p.name)}</h3>
-          <p>${esc(p.desc)}</p>
-          <span class="foot">
-            <span>${esc(p.tech)}</span>
-            <span class="go">${p.href.includes('github.com') ? 'Code' : (p.ext ? 'Visit' : 'Open')} <span aria-hidden="true">→</span></span>
-          </span>
-        </a>`).join('')}
-    </div>
-  </div>`;
-}
-
-function renderEducation() {
-  const e = EDUCATION;
-  return `
-  <div>
-    <div class="eyebrow" ${a(0)}><b>04</b><span class="sep"></span><span>Education</span></div>
-    <div style="height:clamp(16px,2.6vh,26px)"></div>
-    <div class="edu-grid">
-      <div>
-        <div class="edu-school" ${a(1)}>${esc(e.school)}</div>
-        <h2 class="display" style="margin-top:16px;font-size:clamp(2rem,6vw,4.4rem)">
-          <span class="mask"><span style="--i:0">${esc(e.degree)}</span></span>
-          <span class="mask"><span style="--i:1" class="thin">${esc(e.field)}</span></span>
-        </h2>
-        <div class="mono" style="margin-top:18px;font-size:.72rem;letter-spacing:.18em;color:var(--fg-faint)" ${a(4)}>${esc(e.years)}</div>
-      </div>
-      <div class="edu-note" ${a(5)}>
-        <div class="k">Course project</div>
-        <h3>${esc(e.project.name)}</h3>
-        <p>${esc(e.project.text)}</p>
-      </div>
-    </div>
-  </div>`;
-}
-
-function renderContact() {
-  const rows = [
-    { k: 'Email',    v: PROFILE.email,  href: 'mailto:' + PROFILE.email },
-    { k: 'GitHub',   v: PROFILE.github, href: PROFILE.githubHref, ext: true },
-    { k: 'Location', v: PROFILE.location },
-  ];
-  return `
-  <div>
-    <div class="eyebrow" ${a(0)}><b>05</b><span class="sep"></span><span>Contact</span></div>
-    <h2 class="display" style="margin-top:14px;font-size:clamp(2.4rem,7.4vw,5.4rem)">
-      <span class="mask"><span style="--i:0">Let’s build</span></span>
-      <span class="mask"><span style="--i:1" class="thin">something.</span></span>
-    </h2>
-    <div style="height:clamp(20px,3.6vh,36px)"></div>
-    <div class="contact-list">
-      ${rows.map((r, i) => r.href
-        ? `<a class="contact-row" href="${esc(r.href)}"${r.ext ? ' target="_blank" rel="noopener"' : ''} ${a(3 + i)}>
-             <span class="k">${esc(r.k)}</span><span class="v">${esc(r.v)}</span><span class="go">→</span>
-           </a>`
-        : `<div class="contact-row" data-static ${a(3 + i)}>
-             <span class="k">${esc(r.k)}</span><span class="v">${esc(r.v)}</span><span></span>
-           </div>`).join('')}
-    </div>
-    <p class="mono" style="margin-top:clamp(18px,3vh,30px);font-size:.6rem;letter-spacing:.14em;color:var(--fg-faint);text-transform:uppercase" ${a(8)}>
-      Hand-written HTML, CSS and JavaScript · No framework · No build step · One file
-    </p>
-  </div>`;
-}
-
-/* ============================================================
-   BUILD THE STAGE
-   ============================================================ */
+(function () {
 const $  = (s, c = document) => c.querySelector(s);
 const $$ = (s, c = document) => Array.prototype.slice.call(c.querySelectorAll(s));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 const root  = document.documentElement;
 const stage = $('#stage');
@@ -977,297 +1219,375 @@ const live  = $('#live');
 const reduceMQ = matchMedia('(prefers-reduced-motion: reduce)');
 let reduced = reduceMQ.matches;
 
-PAGES.forEach((p, i) => {
-  const el = document.createElement('section');
-  el.className = 'page' + (p.wide ? ' wide' : '');
-  el.setAttribute('role', 'group');
-  el.setAttribute('aria-roledescription', 'slide');
-  el.setAttribute('aria-label', `${p.section}, ${i + 1} of ${PAGES.length}`);
-  el.innerHTML =
-    `<div class="page-num" aria-hidden="true">${String(i + 1).padStart(2, '0')}</div>` +
-    `<div class="page-inner">${p.render()}</div>`;
-  stage.appendChild(el);
-});
+/* Addresses from before the pages had names (#1 to #8), so links
+   already shared still land on the page they meant. */
+const LEGACY = ['index', 'experience-tekkii', 'experience-allied', 'capabilities',
+                'projects', 'projects-more', 'education', 'contact'];
 
-const pages = $$('.page', stage);
+function init() {
+  const pages = $$('.page', stage);
+  if (!pages.length) throw new Error('no pages');
 
-/* Sections, derived from the page list so the two cannot drift */
-const SECTIONS = [];
-PAGES.forEach((p, i) => {
-  const last = SECTIONS[SECTIONS.length - 1];
-  if (last && last.name === p.section) last.pages.push(i);
-  else SECTIONS.push({ name: p.section, pages: [i] });
-});
-const sectionOf = i => SECTIONS.findIndex(s => s.pages.indexOf(i) !== -1);
+  /* ---- prepare each page ------------------------------------ */
+  pages.forEach((p, i) => {
+    p.setAttribute('role', 'group');
+    p.setAttribute('aria-roledescription', 'slide');
+    p.setAttribute('aria-label', `${p.dataset.section}, ${i + 1} of ${pages.length}`);
 
-$('#pageTotal').textContent = String(PAGES.length).padStart(2, '0');
+    const num = document.createElement('div');
+    num.className = 'page-num';
+    num.setAttribute('aria-hidden', 'true');
+    num.textContent = String(i + 1).padStart(2, '0');
+    p.insertBefore(num, p.firstChild);
 
-/* Rail and menu, both from SECTIONS */
-const rail = $('#rail'), menuList = $('#menuList');
-SECTIONS.forEach((s, i) => {
-  const r = document.createElement('button');
-  r.type = 'button';
-  r.innerHTML = `<span class="lbl">${esc(s.name)}</span><i class="seg"></i>`;
-  r.setAttribute('aria-label', `Go to ${s.name}`);
-  r.addEventListener('click', () => go(s.pages[0]));
-  rail.appendChild(r);
-
-  const li = document.createElement('li');
-  const m = document.createElement('button');
-  m.type = 'button';
-  m.innerHTML = `<span class="i">${String(i + 1).padStart(2, '0')}</span><span>${esc(s.name)}</span>`;
-  m.addEventListener('click', () => { closeMenu(); go(s.pages[0]); });
-  li.appendChild(m);
-  menuList.appendChild(li);
-});
-const railBtns = $$('button', rail);
-
-/* ============================================================
-   NAVIGATION
-   ============================================================ */
-let current = -1;
-let locked = false;
-
-const timings = () => reduced ? { swap: 0, unlock: 40 } : { swap: 300, unlock: 800 };
-
-function setInert(el, on) {
-  if (on) { el.setAttribute('aria-hidden', 'true'); el.inert = true; }
-  else { el.removeAttribute('aria-hidden'); el.inert = false; }
-}
-pages.forEach(p => setInert(p, true));
-
-function go(n, dirHint) {
-  n = Math.max(0, Math.min(PAGES.length - 1, n));
-  if (n === current || locked) return;
-
-  const dir = dirHint !== undefined ? dirHint : (n > current ? 1 : -1);
-  root.style.setProperty('--dir', dir);
-
-  const t = timings();
-  const out = current >= 0 ? pages[current] : null;
-  const inn = pages[n];
-
-  locked = true;
-
-  if (out) { out.classList.remove('is-active'); out.classList.add('is-leaving'); setInert(out, true); }
-
-  const activate = () => {
-    if (out) out.classList.remove('is-leaving');
-    setInert(inn, false);
-    inn.classList.add('is-active');
-    inn.querySelector('.page-inner').scrollTop = 0;
-    countUp(inn);
-    setTimeout(() => { locked = false; }, t.unlock);
-  };
-
-  /* Nothing to animate out on first paint, so do not wait for it. */
-  if (!out || t.swap === 0) activate(); else setTimeout(activate, t.swap);
-
-  current = n;
-  sync();
-}
-
-function sync() {
-  const sec = sectionOf(current);
-  /* The hue belongs to the section, so moving sideways moves through colour */
-  root.dataset.accent = String(sec + 1);
-  railBtns.forEach((b, i) => {
-    b.setAttribute('aria-current', String(i === sec));
-    b.classList.toggle('done', i < sec);
+    /* The stagger is document order, so it never has to be hand-numbered. */
+    let k = 0;
+    $$('[data-anim]:not([data-anim="fast"])', p).forEach(el => el.style.setProperty('--i', k++));
+    let m = 0;
+    $$('.mask > span', p).forEach(el => el.style.setProperty('--i', m++));
+    $$('[data-anim="fast"]', p).forEach(el =>
+      el.style.setProperty('--i', Array.prototype.indexOf.call(el.parentElement.children, el)));
   });
-  $('#pageNum').textContent = String(current + 1).padStart(2, '0');
-  $('#prevBtn').disabled = current === 0;
-  $('#nextBtn').disabled = current === PAGES.length - 1;
-  live.textContent = `${SECTIONS[sec].name}, page ${current + 1} of ${PAGES.length}`;
-  if (location.hash.slice(1) !== String(current + 1)) {
-    history.replaceState(null, '', '#' + (current + 1));
-  }
-}
 
-const next = () => go(current + 1, 1);
-const prev = () => go(current - 1, -1);
-
-$('#nextBtn').addEventListener('click', next);
-$('#prevBtn').addEventListener('click', prev);
-$('#brand').addEventListener('click', () => go(0, -1));
-
-/* Keyboard — vertical keys are mapped to lateral movement too */
-document.addEventListener('keydown', e => {
-  if (e.metaKey || e.ctrlKey || e.altKey) return;
-  const tag = (e.target.tagName || '').toLowerCase();
-  const onControl = tag === 'button' || tag === 'a';
-
-  if (menuOpen && e.key === 'Escape') { closeMenu(); return; }
-
-  switch (e.key) {
-    case 'ArrowRight': case 'ArrowDown': case 'PageDown':
-      e.preventDefault(); next(); break;
-    case 'ArrowLeft': case 'ArrowUp': case 'PageUp':
-      e.preventDefault(); prev(); break;
-    case ' ':
-      if (onControl) return;
-      e.preventDefault(); e.shiftKey ? prev() : next(); break;
-    case 'Home': e.preventDefault(); go(0, -1); break;
-    case 'End':  e.preventDefault(); go(PAGES.length - 1, 1); break;
-    default:
-      if (/^[1-9]$/.test(e.key)) {
-        const s = SECTIONS[+e.key - 1];
-        if (s) { e.preventDefault(); go(s.pages[0]); }
-      }
-  }
-});
-
-/* Wheel. Vertical and horizontal both drive lateral movement:
-   scrolling down or right goes forward, up or left goes back. */
-let wheelAcc = 0, wheelTimer = null;
-stage.addEventListener('wheel', e => {
-  const inner = e.target.closest('.page-inner');
-  if (inner && inner.scrollHeight > inner.clientHeight + 2) {
-    const atTop = inner.scrollTop <= 0;
-    const atEnd = inner.scrollTop + inner.clientHeight >= inner.scrollHeight - 1;
-    if (!(atTop && e.deltaY < 0) && !(atEnd && e.deltaY > 0)) return;
-  }
-  e.preventDefault();
-  if (locked) return;
-  const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-  wheelAcc += d;
-  clearTimeout(wheelTimer);
-  wheelTimer = setTimeout(() => { wheelAcc = 0; }, 180);
-  if (Math.abs(wheelAcc) > 42) { wheelAcc > 0 ? next() : prev(); wheelAcc = 0; }
-}, { passive: false });
-
-/* Touch */
-let tsx = 0, tsy = 0, tst = 0;
-stage.addEventListener('touchstart', e => {
-  tsx = e.touches[0].clientX; tsy = e.touches[0].clientY; tst = Date.now();
-}, { passive: true });
-stage.addEventListener('touchend', e => {
-  const dx = e.changedTouches[0].clientX - tsx;
-  const dy = e.changedTouches[0].clientY - tsy;
-  if (Date.now() - tst > 700) return;
-  const inner = e.target.closest && e.target.closest('.page-inner');
-  const scrollable = inner && inner.scrollHeight > inner.clientHeight + 2;
-  if (Math.abs(dx) > Math.abs(dy)) {
-    if (Math.abs(dx) > 48) dx < 0 ? next() : prev();
-  } else if (!scrollable && Math.abs(dy) > 56) {
-    dy < 0 ? next() : prev();
-  }
-}, { passive: true });
-
-/* Role tabs inside the Experience pages */
-stage.addEventListener('click', e => {
-  const tab = e.target.closest('[data-role]');
-  if (!tab) return;
-  go(SECTIONS[sectionOf(current)].pages[+tab.dataset.role]);
-});
-
-/* Capability groups — real buttons, so they work from a keyboard */
-stage.addEventListener('click', e => {
-  const head = e.target.closest('.cap-head');
-  if (!head) return;
-  const col = head.parentElement;
-  const open = !col.classList.contains('is-open');
-  $$('.cap-col', col.parentElement).forEach(c => {
-    c.classList.remove('is-open');
-    $('.cap-head', c).setAttribute('aria-expanded', 'false');
+  /* Headline first on the stage: the details start closed, one open
+     at a time per role. Without script, and in print, they are open. */
+  $$('.points', stage).forEach((list, li) => {
+    $$('details', list).forEach(d => {
+      d.open = false;
+      d.dataset.group = 'role-' + li;
+      d.setAttribute('name', d.dataset.group);
+    });
   });
-  if (open) { col.classList.add('is-open'); head.setAttribute('aria-expanded', 'true'); }
-});
+  addEventListener('beforeprint', () => $$('details', stage).forEach(d => {
+    d.dataset.wasOpen = d.open;
+    d.removeAttribute('name');
+    d.open = true;
+  }));
+  addEventListener('afterprint', () => $$('details', stage).forEach(d => {
+    d.open = d.dataset.wasOpen === 'true';
+    d.setAttribute('name', d.dataset.group);
+  }));
 
-/* Project card pointer glow */
-stage.addEventListener('pointermove', e => {
-  const card = e.target.closest('.proj');
-  if (!card) return;
-  const r = card.getBoundingClientRect();
-  card.style.setProperty('--mx', (e.clientX - r.left) + 'px');
-  card.style.setProperty('--my', (e.clientY - r.top) + 'px');
-});
-
-/* ============================================================
-   COUNTERS
-   ============================================================ */
-function countUp(page) {
-  $$('[data-count]', page).forEach(el => {
-    const target = +el.dataset.count;
-    if (reduced) { el.textContent = target; return; }
-    const dur = 1150, t0 = performance.now();
-    (function step(now) {
-      const t = Math.min((now - t0) / dur, 1);
-      el.textContent = Math.round((1 - Math.pow(1 - t, 3)) * target);
-      if (t < 1) requestAnimationFrame(step);
-    })(t0);
+  /* Sections, derived from the pages so the two cannot drift */
+  const SECTIONS = [];
+  pages.forEach((p, i) => {
+    const last = SECTIONS[SECTIONS.length - 1];
+    if (last && last.name === p.dataset.section) last.pages.push(i);
+    else SECTIONS.push({ name: p.dataset.section, pages: [i] });
   });
-}
+  const sectionOf = i => SECTIONS.findIndex(s => s.pages.indexOf(i) !== -1);
 
-/* ============================================================
-   MENU
-   ============================================================ */
-const menu = $('#menu'), menuBtn = $('#menuBtn');
-let menuOpen = false;
-function openMenu()  { menuOpen = true;  menu.classList.add('open');    menuBtn.setAttribute('aria-expanded', 'true');  menu.inert = false; }
-function closeMenu() { menuOpen = false; menu.classList.remove('open'); menuBtn.setAttribute('aria-expanded', 'false'); menu.inert = true; menuBtn.focus(); }
-menu.inert = true;
-menuBtn.addEventListener('click', () => menuOpen ? closeMenu() : openMenu());
+  $('#pageTotal').textContent = String(pages.length).padStart(2, '0');
 
-/* ============================================================
-   THEME
-   ============================================================ */
-const themeBtn = $('#themeBtn');
-const SUN = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.6M12 19.4V22M2 12h2.6M19.4 12H22M4.9 4.9l1.9 1.9M17.2 17.2l1.9 1.9M19.1 4.9l-1.9 1.9M6.8 17.2l-1.9 1.9"/></svg>';
-const MOON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
-function paintTheme() {
-  const light = root.dataset.theme === 'light';
-  themeBtn.innerHTML = light ? MOON : SUN;
-  themeBtn.setAttribute('aria-label', light ? 'Switch to dark theme' : 'Switch to light theme');
-}
-try {
-  const saved = localStorage.getItem('ma-theme');
-  if (saved) root.dataset.theme = saved;
-} catch (err) { /* private mode: the default theme is fine */ }
-paintTheme();
-themeBtn.addEventListener('click', () => {
-  root.dataset.theme = root.dataset.theme === 'light' ? 'dark' : 'light';
-  paintTheme();
-  try { localStorage.setItem('ma-theme', root.dataset.theme); } catch (err) {}
-});
+  /* Rail and menu, both from SECTIONS */
+  const rail = $('#rail'), menuList = $('#menuList');
+  SECTIONS.forEach((s, i) => {
+    const r = document.createElement('button');
+    r.type = 'button';
+    r.innerHTML = `<span class="lbl">${esc(s.name)}</span><i class="seg"></i>`;
+    r.setAttribute('aria-label', `Go to ${s.name}`);
+    r.addEventListener('click', () => go(s.pages[0]));
+    rail.appendChild(r);
 
-/* ============================================================
-   AMBIENT: reticle + blob parallax
-   ============================================================ */
-const reticle = $('#reticle'), blob = $('#blob');
-let px = innerWidth / 2, py = innerHeight / 2;
-let rx = px, ry = py, bx = px, by = py;
+    const li = document.createElement('li');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.innerHTML = `<span class="i">${String(i + 1).padStart(2, '0')}</span><span>${esc(s.name)}</span>`;
+    btn.addEventListener('click', () => { closeMenu(); go(s.pages[0]); });
+    li.appendChild(btn);
+    menuList.appendChild(li);
+  });
+  const railBtns = $$('button', rail);
 
-if (matchMedia('(hover: hover)').matches && !reduced) {
-  addEventListener('pointermove', e => {
-    px = e.clientX; py = e.clientY;
-    reticle.classList.add('on');
-    reticle.classList.toggle('hot', !!e.target.closest('a, button, .proj, .contact-row'));
+  /* ---- navigation ------------------------------------------- */
+  let current = -1;
+  let locked = false;
+
+  const timings = () => reduced ? { swap: 0, unlock: 40 } : { swap: 300, unlock: 800 };
+
+  function setInert(el, on) {
+    if (on) { el.setAttribute('aria-hidden', 'true'); el.inert = true; }
+    else { el.removeAttribute('aria-hidden'); el.inert = false; }
+  }
+  pages.forEach(p => setInert(p, true));
+
+  /* The safety valve hides its scrollbar, so the page says when there is more. */
+  function updateMore(page) {
+    const inner = page && $('.page-inner', page);
+    if (!inner) return;
+    const more = inner.scrollHeight > inner.clientHeight + 2 &&
+                 inner.scrollTop + inner.clientHeight < inner.scrollHeight - 4;
+    page.classList.toggle('more-below', more);
+  }
+
+  /* Focus that was inside the page being left would otherwise fall to
+     the body. It follows to the matching place on the new page. */
+  function focusInto(page) {
+    const target = $('.role-tabs [aria-current="true"]', page) || $('h1, h2', page);
+    if (!target) return;
+    if (!target.matches('a, button')) target.setAttribute('tabindex', '-1');
+    target.focus({ preventScroll: true });
+  }
+
+  function go(n, dirHint, keepFocus) {
+    n = Math.max(0, Math.min(pages.length - 1, n));
+    if (n === current || locked) return;
+
+    const dir = dirHint !== undefined ? dirHint : (n > current ? 1 : -1);
+    root.style.setProperty('--dir', dir);
+
+    const t = timings();
+    const out = current >= 0 ? pages[current] : null;
+    const inn = pages[n];
+    const hadFocus = keepFocus || (!!out && out.contains(document.activeElement));
+
+    locked = true;
+
+    if (out) { out.classList.remove('is-active', 'more-below'); out.classList.add('is-leaving'); setInert(out, true); }
+
+    const activate = () => {
+      if (out) out.classList.remove('is-leaving');
+      setInert(inn, false);
+      inn.classList.add('is-active');
+      $('.page-inner', inn).scrollTop = 0;
+      updateMore(inn);
+      countUp(inn);
+      if (hadFocus) focusInto(inn);
+      setTimeout(() => { locked = false; }, t.unlock);
+    };
+
+    /* Nothing to animate out on first paint, so do not wait for it. */
+    if (!out || t.swap === 0) activate(); else setTimeout(activate, t.swap);
+
+    current = n;
+    sync();
+  }
+
+  function sync() {
+    const sec = sectionOf(current);
+    /* The hue belongs to the section, so moving sideways moves through colour */
+    root.dataset.accent = String(sec + 1);
+    railBtns.forEach((b, i) => {
+      b.setAttribute('aria-current', String(i === sec));
+      b.classList.toggle('done', i < sec);
+    });
+    $('#pageNum').textContent = String(current + 1).padStart(2, '0');
+    $('#prevBtn').disabled = current === 0;
+    $('#nextBtn').disabled = current === pages.length - 1;
+    live.textContent = `${SECTIONS[sec].name}, page ${current + 1} of ${pages.length}`;
+    const id = pages[current].id;
+    if (location.hash.slice(1) !== id) history.replaceState(null, '', '#' + id);
+  }
+
+  /* #projects, or a legacy #5 */
+  function pageFromHash() {
+    const h = decodeURIComponent(location.hash.slice(1));
+    if (!h) return -1;
+    const byId = pages.findIndex(p => p.id === h);
+    if (byId !== -1) return byId;
+    if (/^[1-9]$/.test(h) && LEGACY[+h - 1]) return pages.findIndex(p => p.id === LEGACY[+h - 1]);
+    return -1;
+  }
+
+  /* In-page links (the role tabs, the brand) are handled here rather than
+     left to the browser: following a fragment link clears focus before
+     hashchange fires, and the focus should follow to the new page. */
+  document.addEventListener('click', e => {
+    const link = e.target.closest('a[href^="#"]');
+    if (!link || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const n = pages.findIndex(p => '#' + p.id === link.getAttribute('href'));
+    if (n === -1) return;
+    e.preventDefault();
+    if (n === current || locked) return;
+    history.pushState(null, '', '#' + pages[n].id);
+    go(n, undefined, document.activeElement === link);
+  });
+
+  const next = () => go(current + 1, 1);
+  const prev = () => go(current - 1, -1);
+
+  $('#nextBtn').addEventListener('click', next);
+  $('#prevBtn').addEventListener('click', prev);
+
+  /* Keyboard: vertical keys are mapped to lateral movement too */
+  document.addEventListener('keydown', e => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const tag = (e.target.tagName || '').toLowerCase();
+    const onControl = tag === 'button' || tag === 'a' || tag === 'summary';
+
+    if (menuOpen && e.key === 'Escape') { closeMenu(); return; }
+
+    switch (e.key) {
+      case 'ArrowRight': case 'ArrowDown': case 'PageDown':
+        e.preventDefault(); next(); break;
+      case 'ArrowLeft': case 'ArrowUp': case 'PageUp':
+        e.preventDefault(); prev(); break;
+      case ' ':
+        if (onControl) return;
+        e.preventDefault(); e.shiftKey ? prev() : next(); break;
+      case 'Home': e.preventDefault(); go(0, -1); break;
+      case 'End':  e.preventDefault(); go(pages.length - 1, 1); break;
+      default:
+        if (/^[1-9]$/.test(e.key)) {
+          const s = SECTIONS[+e.key - 1];
+          if (s) { e.preventDefault(); go(s.pages[0]); }
+        }
+    }
+  });
+
+  /* Wheel. Vertical and horizontal both drive lateral movement:
+     scrolling down or right goes forward, up or left goes back. */
+  let wheelAcc = 0, wheelTimer = null;
+  stage.addEventListener('wheel', e => {
+    const inner = e.target.closest('.page-inner');
+    if (inner && inner.scrollHeight > inner.clientHeight + 2) {
+      const atTop = inner.scrollTop <= 0;
+      const atEnd = inner.scrollTop + inner.clientHeight >= inner.scrollHeight - 1;
+      if (!(atTop && e.deltaY < 0) && !(atEnd && e.deltaY > 0)) return;
+    }
+    e.preventDefault();
+    if (locked) return;
+    const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    wheelAcc += d;
+    clearTimeout(wheelTimer);
+    wheelTimer = setTimeout(() => { wheelAcc = 0; }, 180);
+    if (Math.abs(wheelAcc) > 42) { wheelAcc > 0 ? next() : prev(); wheelAcc = 0; }
+  }, { passive: false });
+
+  /* Touch */
+  let tsx = 0, tsy = 0, tst = 0;
+  stage.addEventListener('touchstart', e => {
+    tsx = e.touches[0].clientX; tsy = e.touches[0].clientY; tst = Date.now();
   }, { passive: true });
-  addEventListener('pointerleave', () => reticle.classList.remove('on'));
+  stage.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - tsx;
+    const dy = e.changedTouches[0].clientY - tsy;
+    if (Date.now() - tst > 700) return;
+    const inner = e.target.closest && e.target.closest('.page-inner');
+    const scrollable = inner && inner.scrollHeight > inner.clientHeight + 2;
+    if (Math.abs(dx) > Math.abs(dy)) {
+      if (Math.abs(dx) > 48) dx < 0 ? next() : prev();
+    } else if (!scrollable && Math.abs(dy) > 56) {
+      dy < 0 ? next() : prev();
+    }
+  }, { passive: true });
 
-  (function loop() {
-    rx += (px - rx) * 0.22; ry += (py - ry) * 0.22;
-    bx += (px - bx) * 0.026; by += (py - by) * 0.026;
-    reticle.style.transform = `translate3d(${rx}px, ${ry}px, 0)`;
-    blob.style.transform = `translate3d(${bx}px, ${by}px, 0) translate(-50%, -50%)`;
-    requestAnimationFrame(loop);
-  })();
-} else {
-  blob.style.transform = 'translate3d(78vw, 22vh, 0) translate(-50%, -50%)';
+  /* Anything that changes how much a page holds re-checks the cue.
+     Neither event bubbles, hence capture. */
+  stage.addEventListener('scroll', e => {
+    if (e.target.classList && e.target.classList.contains('page-inner')) updateMore(e.target.parentElement);
+  }, true);
+  stage.addEventListener('toggle', () => updateMore(pages[current]), true);
+  addEventListener('resize', () => updateMore(pages[current]));
+
+  /* Capability groups are real buttons, so they work from a keyboard */
+  stage.addEventListener('click', e => {
+    const head = e.target.closest('.cap-head');
+    if (!head) return;
+    const col = head.parentElement;
+    const open = !col.classList.contains('is-open');
+    $$('.cap-col', col.parentElement).forEach(c => {
+      c.classList.remove('is-open');
+      $('.cap-head', c).setAttribute('aria-expanded', 'false');
+    });
+    if (open) { col.classList.add('is-open'); head.setAttribute('aria-expanded', 'true'); }
+    updateMore(pages[current]);
+  });
+
+  /* Project card pointer glow */
+  stage.addEventListener('pointermove', e => {
+    const card = e.target.closest('.proj');
+    if (!card) return;
+    const r = card.getBoundingClientRect();
+    card.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+    card.style.setProperty('--my', (e.clientY - r.top) + 'px');
+  });
+
+  /* ---- counters: the markup holds the real number ----------- */
+  function countUp(page) {
+    $$('[data-count]', page).forEach(el => {
+      const target = +el.dataset.count;
+      if (reduced) { el.textContent = target; return; }
+      const dur = 1150, t0 = performance.now();
+      (function step(now) {
+        const t = Math.min((now - t0) / dur, 1);
+        el.textContent = Math.round((1 - Math.pow(1 - t, 3)) * target);
+        if (t < 1) requestAnimationFrame(step);
+      })(t0);
+    });
+  }
+
+  /* ---- menu ------------------------------------------------- */
+  const menu = $('#menu'), menuBtn = $('#menuBtn');
+  let menuOpen = false;
+  function openMenu()  { menuOpen = true;  menu.classList.add('open');    menuBtn.setAttribute('aria-expanded', 'true');  menu.inert = false; }
+  function closeMenu() { menuOpen = false; menu.classList.remove('open'); menuBtn.setAttribute('aria-expanded', 'false'); menu.inert = true; menuBtn.focus(); }
+  menu.inert = true;
+  menuBtn.addEventListener('click', () => menuOpen ? closeMenu() : openMenu());
+
+  /* ---- theme (the saved choice was applied in the head) ----- */
+  const themeBtn = $('#themeBtn');
+  const SUN = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.6M12 19.4V22M2 12h2.6M19.4 12H22M4.9 4.9l1.9 1.9M17.2 17.2l1.9 1.9M19.1 4.9l-1.9 1.9M6.8 17.2l-1.9 1.9"/></svg>';
+  const MOON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+  function paintTheme() {
+    const light = root.dataset.theme === 'light';
+    themeBtn.innerHTML = light ? MOON : SUN;
+    themeBtn.setAttribute('aria-label', light ? 'Switch to dark theme' : 'Switch to light theme');
+  }
+  paintTheme();
+  themeBtn.addEventListener('click', () => {
+    root.dataset.theme = root.dataset.theme === 'light' ? 'dark' : 'light';
+    paintTheme();
+    try { localStorage.setItem('ma-theme', root.dataset.theme); } catch (err) {}
+  });
+
+  /* ---- ambient: reticle + blob parallax ----------------------
+     The loop runs only while something is still catching up to the
+     pointer, then stops, so an idle page costs no frames. */
+  const reticle = $('#reticle'), blob = $('#blob');
+  if (matchMedia('(hover: hover)').matches && !reduced) {
+    let px = innerWidth * .78, py = innerHeight * .22;
+    let rx = px, ry = py, bx = px, by = py, raf = 0;
+    const tick = () => {
+      rx += (px - rx) * 0.22; ry += (py - ry) * 0.22;
+      bx += (px - bx) * 0.026; by += (py - by) * 0.026;
+      reticle.style.transform = `translate3d(${rx}px, ${ry}px, 0)`;
+      blob.style.transform = `translate3d(${bx}px, ${by}px, 0) translate(-50%, -50%)`;
+      const moving = Math.abs(px - bx) + Math.abs(py - by) > 0.5 || Math.abs(px - rx) + Math.abs(py - ry) > 0.5;
+      raf = moving ? requestAnimationFrame(tick) : 0;
+    };
+    addEventListener('pointermove', e => {
+      px = e.clientX; py = e.clientY;
+      reticle.classList.add('on');
+      reticle.classList.toggle('hot', !!e.target.closest('a, button, summary, .proj, .contact-row'));
+      if (!raf) raf = requestAnimationFrame(tick);
+    }, { passive: true });
+    document.documentElement.addEventListener('pointerleave', () => reticle.classList.remove('on'));
+  }
+
+  reduceMQ.addEventListener('change', e => { reduced = e.matches; });
+
+  /* ---- start ------------------------------------------------ */
+  const first = pageFromHash();
+  scrollTo(0, 0);
+  go(first === -1 ? 0 : first, 1);
+  /* A tab or link clicked mid-transition is ignored like any other input
+     then, so the address is put back to the page actually showing. */
+  addEventListener('hashchange', () => {
+    const n = pageFromHash();
+    if (n === -1) return;
+    go(n);
+    if (current !== n) history.replaceState(null, '', '#' + pages[current].id);
+  });
 }
 
-reduceMQ.addEventListener('change', e => { reduced = e.matches; });
-
-/* ============================================================
-   START
-   ============================================================ */
-const fromHash = parseInt(location.hash.slice(1), 10);
-go(Number.isFinite(fromHash) && fromHash >= 1 && fromHash <= PAGES.length ? fromHash - 1 : 0, 1);
-addEventListener('hashchange', () => {
-  const n = parseInt(location.hash.slice(1), 10);
-  if (Number.isFinite(n) && n >= 1 && n <= PAGES.length) go(n - 1);
-});
+try {
+  init();
+} catch (err) {
+  root.classList.remove('js');
+  console.error('Stage failed to start; showing the page as a document.', err);
+}
+})();
 </script>
 </body>
 </html>

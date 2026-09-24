@@ -143,6 +143,12 @@ console.log('Building deploy/dist ...');
 // Its own links are root-absolute for exactly this reason.
 copy('resume/index.html', 'index.html');
 copy('resume/index.html');
+// Its companions, made by resume/tools/make-assets.mjs: the link-preview image (og:image
+// needs a real URL, so it cannot live inside the page), the icon, and the PDF. Named by
+// root-absolute /resume/ paths, which work from both addresses.
+copy('resume/og.png');
+copy('resume/icon.png');
+copy('resume/Mohamad-Abboud-Resume.pdf');
 
 copy('snowball/index.html');
 copy('snowball/css');

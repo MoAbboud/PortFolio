@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<!-- The link-preview card (og:image), 1200 x 630. Not published: make-assets.mjs renders
+     it to ../og.png. Same tokens as the page, so the preview looks like what it opens. -->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>og card</title>
+<style>
+  :root {
+    --bg: #fbf8f3; --fg: #1a1720; --fg-dim: #5a5462; --fg-faint: #8b8494; --line: rgba(26, 23, 32, .15);
+    --c1: #f04e2a; --c1i: #bd3410; --c2: #5b4be8; --c3: #0ba99a; --c4: #e89000; --c5: #e0357f; --c6: #24a85a; --c6i: #147038;
+    --mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", Consolas, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    background: var(--bg); color: var(--fg); position: relative;
+    font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wash {
+    position: absolute; inset: 0; background: var(--c1); opacity: .13;
+    mask-image: radial-gradient(90% 110% at 88% 0%, #000 0%, transparent 62%);
+  }
+  .blob {
+    position: absolute; width: 620px; height: 620px; right: -170px; top: -230px;
+    border-radius: 50%; background: var(--c1); opacity: .16; filter: blur(80px);
+  }
+  .grid {
+    position: absolute; inset: 0;
+    background-image: linear-gradient(to right, rgba(26,23,32,.06) 1px, transparent 1px),
+                      linear-gradient(to bottom, rgba(26,23,32,.06) 1px, transparent 1px);
+    background-size: 92px 92px;
+    mask-image: radial-gradient(circle at 40% 45%, #000 0%, transparent 85%);
+  }
+  .card { position: absolute; inset: 0; padding: 64px 76px 0; display: flex; flex-direction: column; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 17px; letter-spacing: .2em; text-transform: uppercase;
+    color: var(--c6i); font-weight: 700; display: flex; align-items: center; gap: 12px;
+  }
+  .eyebrow i { width: 11px; height: 11px; border-radius: 50%; background: var(--c6); }
+  h1 { margin-top: 30px; font-size: 128px; line-height: .9; letter-spacing: -.045em; font-weight: 700; }
+  h1 span { display: block; font-weight: 200; color: var(--c1); }
+  .role {
+    margin-top: 30px; font-family: var(--mono); font-size: 22px; letter-spacing: .2em;
+    text-transform: uppercase; color: var(--c1i); font-weight: 700;
+  }
+  .facts {
+    margin-top: auto; margin-bottom: 44px; display: flex; gap: 40px;
+    font-family: var(--mono); font-size: 16px; letter-spacing: .12em; text-transform: uppercase; color: var(--fg-dim);
+  }
+  .facts b { color: var(--fg); font-family: "Segoe UI", Arial, sans-serif; font-size: 30px; letter-spacing: -.03em; display: block; margin-bottom: 2px; }
+  .domain {
+    position: absolute; right: 76px; bottom: 50px;
+    font-family: var(--mono); font-size: 20px; letter-spacing: .14em; color: var(--fg); font-weight: 700;
+  }
+  /* The six section hues, in order: the page's colour story in one strip. */
+  .hues { position: absolute; left: 0; right: 0; bottom: 0; height: 12px; display: flex; }
+  .hues i { flex: 1; }
+</style>
+</head>
+<body>
+  <div class="wash"></div><div class="blob"></div><div class="grid"></div>
+  <div class="card">
+    <p class="eyebrow"><i></i>Open to full-time roles · Kansas City or remote</p>
+    <h1>Mohamad<span>Abboud</span></h1>
+    <p class="role">Full-Stack Software Engineer</p>
+    <div class="facts">
+      <p><b>5 yrs</b>End-to-end ownership</p>
+      <p><b>400+</b>Banks served</p>
+      <p><b>80%</b>Processing time removed</p>
+    </div>
+  </div>
+  <p class="domain">moabboud.dev</p>
+  <div class="hues">
+    <i style="background:var(--c1)"></i><i style="background:var(--c2)"></i><i style="background:var(--c3)"></i>
+    <i style="background:var(--c4)"></i><i style="background:var(--c5)"></i><i style="background:var(--c6)"></i>
+  </div>
+</body>
+</html>
