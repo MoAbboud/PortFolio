@@ -42,7 +42,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'resume-assets-'));
 const browser = spawn(chrome, [
   '--headless=new', `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`,
-  '--no-first-run', '--hide-scrollbars', '--force-color-profile=srgb', 'about:blank',
+  '--no-first-run', '--hide-scrollbars', '--force-color-profile=srgb',
+  // The PDF is printed from a copy on disk, and its fonts are files next to the page.
+  '--allow-file-access-from-files', 'about:blank',
 ], { stdio: 'ignore' });
 
 let ws;
@@ -79,7 +81,8 @@ try {
   async function open(file, width, height) {
     await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
     await send('Page.navigate', { url: pathToFileURL(file).href });
-    await sleep(900); // local file, system fonts: nothing to wait on but layout
+    await sleep(900); // local files only: nothing to wait on but layout
+    await send('Runtime.evaluate', { expression: 'document.fonts.ready', awaitPromise: true });
   }
 
   async function png(source, out, width, height) {
@@ -94,8 +97,10 @@ try {
   await png('og.html', 'og.png', 1200, 630);
   await png('icon.html', 'icon.png', 180, 180);
 
-  // The PDF: the page with scripts off, which is the plain document, links made absolute.
+  // The PDF: the page with scripts off, which is the plain document, links made absolute
+  // and the fonts read from this folder.
   const html = fs.readFileSync(path.join(RESUME, 'index.html'), 'utf8')
+    .replace(/url\("\/resume\//g, `url("${pathToFileURL(RESUME).href}/`)
     .replace(/href="\/(?!\/)/g, `href="${SITE}/`);
   const copy = path.join(profile, 'resume-print.html');
   fs.writeFileSync(copy, html);
