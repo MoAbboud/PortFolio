@@ -25,15 +25,21 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f04e2a'/%3E%3Ctext x='32' y='43' font-family='Segoe UI,Helvetica,Arial,sans-serif' font-size='29' font-weight='700' fill='%23fff' text-anchor='middle'%3EMA%3C/text%3E%3C/svg%3E" type="image/svg+xml" />
 <link rel="icon" href="/resume/icon.png" type="image/png" sizes="180x180" />
 <link rel="apple-touch-icon" href="/resume/icon.png" />
+<link rel="preload" href="/resume/fonts/geist.woff2" as="font" type="font/woff2" crossorigin />
 
 <script>
-/* Runs before first paint. The class switches the page from a document into the stage,
-   so without JavaScript every section is simply there, in order, as a readable page.
-   The saved theme is applied here too, so a dark-theme visitor never sees a light flash. */
+/* Runs before first paint. 'scripted' says the script is here; 'js' switches the page
+   from a document into the stage. Without JavaScript, or for a reader who chose "One
+   page", every section is simply there, in order, as a readable page. The saved theme
+   and view are applied here so neither flashes the wrong way first. */
 (function () {
-  var d = document.documentElement;
-  d.classList.add('js');
-  try { var t = localStorage.getItem('ma-theme'); if (t) d.dataset.theme = t; } catch (e) {}
+  var d = document.documentElement, view = null;
+  d.classList.add('scripted');
+  try {
+    var t = localStorage.getItem('ma-theme'); if (t) d.dataset.theme = t;
+    view = localStorage.getItem('ma-view');
+  } catch (e) {}
+  if (view !== 'page') d.classList.add('js');
 })();
 </script>
 <style>
@@ -70,8 +76,9 @@
   --c1t: var(--c1); --c2t: var(--c2); --c3t: #078f82;
   --c4t: #b87200;   --c5t: var(--c5); --c6t: #1d944e;
 
-  --font-display: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", Consolas, "SF Mono", Menlo, monospace;
+  --font-body: "Geist", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-head: var(--font-body);
+  --font-mono: "Geist Mono", ui-monospace, "Cascadia Mono", "Segoe UI Mono", Consolas, "SF Mono", Menlo, monospace;
 
   --ease:     cubic-bezier(.22,.61,.24,1);
   --ease-out: cubic-bezier(.16,1,.30,1);
@@ -81,6 +88,22 @@
   --measure: 1080px;
 }
 
+/* ============================================================
+   TYPE
+   Geist for text and headings, Geist Mono for the labels, served
+   from this site (resume/fonts/, SIL Open Font License, licence
+   alongside). Latin only, so both come to about 50 KB.
+   ============================================================ */
+@font-face {
+  font-family: "Geist"; font-style: normal; font-weight: 100 900; font-display: swap;
+  src: url("/resume/fonts/geist.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Geist Mono"; font-style: normal; font-weight: 100 900; font-display: swap;
+  src: url("/resume/fonts/geist-mono.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
 /* The night counterpart. Same six hues, lifted so they still sing. */
 [data-theme="dark"] {
   --bg:        #14121a;
@@ -115,7 +138,7 @@
 body {
   background: var(--bg);
   color: var(--fg);
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 16px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
@@ -265,8 +288,23 @@ a { color: inherit; }
 .pager button:disabled { opacity: .25; cursor: default; }
 .pager svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.7; }
 
-/* Controls that do nothing without the script are not shown without it. */
-html:not(.js) .needs-js { display: none !important; }
+/* Controls that do nothing without the script are not shown without it, and the
+   stage's own controls are not shown when the page is read as one document. */
+html:not(.scripted) .needs-js { display: none !important; }
+html:not(.js) .stage-only { display: none !important; }
+
+/* "One page": the document view, chosen. The header stays in reach. */
+@media screen {
+  html.scripted:not(.js) { scroll-padding-top: var(--hud); }
+  html.scripted:not(.js) .hud-top {
+    position: sticky; top: 0;
+    background-color: color-mix(in srgb, var(--bg) 88%, transparent);
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  }
+  html:not(.js) .page-num { display: none; }
+}
+.view-btn { background: none; cursor: pointer; }
+.view-btn[aria-pressed="true"] { color: var(--accent-ink); border-color: var(--accent); background-color: var(--surface-2); }
 
 /* ============================================================
    HORIZONTAL SECTION RAIL
@@ -425,15 +463,20 @@ html:not(.js) .needs-js { display: none !important; }
 .eyebrow b { color: var(--accent-ink); font-weight: 700; }
 .eyebrow .sep { width: 26px; height: 1px; background: var(--line); }
 
-.display { font-size: clamp(2.7rem, min(8.4vw, 12vh), 6.6rem); line-height: .93; font-weight: 700; letter-spacing: -.045em; }
+.display { font-family: var(--font-head); font-size: clamp(2.7rem, min(8.4vw, 12vh), 6.6rem); line-height: .93; font-weight: 700; letter-spacing: -.045em; }
 .display .thin { font-weight: 200; color: var(--accent-text); }
 
-h2.head { font-size: clamp(1.9rem, 5.2vw, 3.5rem); line-height: 1; font-weight: 700; letter-spacing: -.04em; }
+h2.head { font-family: var(--font-head); font-size: clamp(1.9rem, 5.2vw, 3.5rem); line-height: 1; font-weight: 700; letter-spacing: -.04em; }
 h2.head .thin { font-weight: 200; color: var(--accent-text); }
 .lede { color: var(--fg-dim); font-size: clamp(.95rem, 1.35vw, 1.06rem); max-width: 78ch; }
 .rule { height: 1px; background: var(--line); }
+/* Headlines break into even lines; running text avoids a last word left alone. */
+.display, h2.head, .role-meta .org, .proj h3, .points summary { text-wrap: balance; }
+.lede, .points details > p, .proj p, .edu-note p { text-wrap: pretty; }
 .mono { font-family: var(--font-mono); }
 .print-only { display: none; }
+/* Read by screen readers, not shown: a heading where the design uses only the eyebrow. */
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* ============================================================
    PAGE: INDEX
@@ -501,7 +544,7 @@ h2.head .thin { font-weight: 200; color: var(--accent-text); }
 [data-theme="dark"] .pager button:hover:not(:disabled) { color: var(--bg); }
 
 .role-grid { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: clamp(24px, 4vw, 64px); align-items: start; }
-.role-meta .org { font-size: clamp(1.6rem, 3.6vw, 2.5rem); font-weight: 700; letter-spacing: -.035em; line-height: 1; }
+.role-meta .org { font-family: var(--font-head); font-size: clamp(1.6rem, 3.6vw, 2.5rem); font-weight: 700; letter-spacing: -.035em; line-height: 1; }
 .role-meta .title { margin-top: 10px; color: var(--accent-ink); font-family: var(--font-mono); font-size: .72rem; letter-spacing: .16em; text-transform: uppercase; }
 .role-meta dl { margin-top: clamp(14px, 2.4vh, 22px); display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; font-family: var(--font-mono); font-size: .68rem; letter-spacing: .07em; }
 .role-meta dt { color: var(--fg-faint); text-transform: uppercase; letter-spacing: .14em; }
@@ -619,6 +662,39 @@ h2.head .thin { font-weight: 200; color: var(--accent-text); }
 .proj .go { color: var(--col-ink); display: inline-flex; align-items: center; gap: 6px; transition: gap .3s var(--ease); font-weight: 700; }
 .proj:hover .go { gap: 11px; }
 
+/* Pictures of the work: a full-bleed band across the top of the card.
+   Diagrams are inline SVG drawn in the page's own tokens, so they follow
+   the card's hue and both themes. */
+.proj.has-media { --pad: clamp(16px, 2.4vh, 28px); padding: var(--pad); }
+.proj.has-media h3 { margin-top: 0; padding-top: clamp(12px, 1.8vh, 18px); }
+.proj.has-media .foot { margin-top: auto; padding-top: 12px; }
+.proj-media {
+  display: block; position: relative; overflow: hidden;
+  margin: calc(-1 * var(--pad)) calc(-1 * var(--pad)) 0;
+  height: clamp(72px, min(13vh, 15vw), 150px);
+  background-color: color-mix(in srgb, var(--col) 8%, var(--bg));
+  border-bottom: 1px solid var(--line-soft);
+}
+.proj-media img, .proj-media video { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .7s var(--ease-out); }
+.proj:hover .proj-media img, .proj:hover .proj-media video { transform: scale(1.04); }
+.proj-media svg { display: block; width: 100%; height: 100%; padding: 6px 0; }
+.proj-media text { font-family: var(--font-mono); }
+.proj-media .m-cap { font-size: 8.5px; letter-spacing: .14em; fill: var(--fg-faint); }
+.proj-media .m-lbl { font-size: 10px; fill: var(--fg-dim); }
+.proj-media .m-val { font-size: 11px; font-weight: 700; fill: var(--fg-dim); }
+.proj-media .m-on { fill: var(--col-ink); }
+.proj-media .m-vivid { fill: var(--col); }
+.proj-media .m-mute { fill: color-mix(in srgb, var(--fg) 16%, transparent); }
+.proj-media .m-rule, .proj-media .m-axis { stroke: var(--line); stroke-width: 1; }
+.proj-media .m-link { fill: none; stroke: color-mix(in srgb, var(--col) 55%, transparent); stroke-width: 1.2; }
+.proj-media .m-box { fill: var(--bg); stroke: var(--line); stroke-width: 1; }
+.proj-media .m-arrow { fill: none; stroke: var(--fg-faint); stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
+.proj-media .m-film { fill: #1b1a22; }
+.proj-media .m-lung { fill: rgba(255, 255, 255, .22); }
+.proj-media .m-on-film { fill: rgba(255, 255, 255, .75); }
+.proj-media .m-on-vivid { fill: #fff; font-weight: 700; }
+[data-theme="dark"] .proj-media .m-on-vivid { fill: var(--bg); }
+
 /* ============================================================
    PAGE: EDUCATION
    ============================================================ */
@@ -704,6 +780,8 @@ h2.head .thin { font-weight: 200; color: var(--accent-text); }
 }
 @media (max-width: 640px) {
   .pdf-link .long { display: none; }
+  .view-btn { padding: 0; width: 34px; justify-content: center; }
+  .view-btn .txt { display: none; }
   .proj-grid { grid-template-columns: 1fr; }
   .proj { min-height: 0; }
   .proj h3 { margin-top: 12px; }
@@ -813,7 +891,10 @@ h2.head .thin { font-weight: 200; color: var(--accent-text); }
   .proj-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm 6mm; background: none; border: 0; }
   .proj-grid > li { break-inside: avoid; }
   .proj { display: block; min-height: 0; padding: 0; background: none; }
-  .proj::before, .proj::after, .proj .n, .proj .go { display: none; }
+  .proj::before, .proj::after, .proj .n, .proj .go, .proj-media { display: none; }
+  .proj.has-media { padding: 0; }
+  .proj.has-media h3 { padding-top: 0; }
+  .proj.has-media .foot { padding-top: 0; }
   .proj h3 { margin: 0; padding: 0; font-size: 9.5pt; display: inline; }
   .proj .foot { display: inline; margin: 0 0 0 2mm; font-size: 6.5pt; }
   .proj p { margin-top: .5mm; font-size: 8.5pt; line-height: 1.38; color: var(--fg-dim); }
@@ -855,6 +936,10 @@ h2.head .thin { font-weight: 200; color: var(--accent-text); }
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
       <span><span class="long">Résumé </span>PDF</span>
     </a>
+    <button class="pdf-link view-btn needs-js" id="viewBtn" type="button" aria-pressed="false" aria-label="Read as one page" title="Read everything as one scrolling page">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14M5 10h14M5 15h14M5 20h9"/></svg>
+      <span class="txt">One page</span>
+    </button>
     <button class="icon-btn needs-js" id="themeBtn" type="button" aria-label="Switch to dark theme">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
     </button>
@@ -905,7 +990,7 @@ h2.head .thin { font-weight: 200; color: var(--accent-text); }
             <a href="mailto:mohammad.a.abboud@gmail.com">Email</a>
             <a href="/resume/Mohamad-Abboud-Resume.pdf" download>Résumé PDF</a>
           </p>
-          <p class="keyhint needs-js">
+          <p class="keyhint needs-js stage-only">
             <kbd>&larr;</kbd><kbd>&rarr;</kbd> move sideways
             <span class="sep"></span>
             scroll works too
@@ -937,11 +1022,11 @@ h2.head .thin { font-weight: 200; color: var(--accent-text); }
             <dt>Place</dt><dd>Kansas City, MO</dd>
             <dt>Scope</dt><dd>Self-directed, open source</dd>
           </dl>
-          <div class="tags" data-anim><span>Python</span><span>PyTorch</span><span>DistilBERT</span><span>PostgreSQL</span><span>Docker</span><span>GitHub Actions</span><span>Caddy</span><span>WebGL2</span></div>
+          <div class="tags" data-anim><span>Python</span><span>PyTorch</span><span>DistilRoBERTa</span><span>DistilBERT</span><span>PostgreSQL</span><span>Docker</span><span>GitHub Actions</span><span>Caddy</span><span>WebGL2</span></div>
         </div>
         <ol class="points">
           <li data-anim><details open><summary data-n="01">Trained my own ML models end to end, no hosted AI APIs</summary>
-            <p>Designed, trained and evaluated my own machine-learning models end to end in PyTorch, with no hosted AI APIs: a <strong>two-stage DistilBERT classifier</strong> that flags passages which may lean on a logical fallacy, with a confidence score rather than a verdict (<strong>Fallacy Suspect</strong>).</p></details></li>
+            <p>Designed, trained and evaluated my own machine-learning models end to end in PyTorch, with no hosted AI APIs: a <strong>two-stage classifier</strong> (a DistilRoBERTa detector, then a DistilBERT typer across 13 fallacy types) that flags passages which may lean on a logical fallacy, with a confidence score rather than a verdict (<strong>Fallacy Detector</strong>).</p></details></li>
           <li data-anim><details open><summary data-n="02">Invoice pipeline at 98.3% field accuracy vs a 75.1% baseline</summary>
             <p>Built a document-intake pipeline that turns messy invoices into validated PostgreSQL records, with a review queue for the documents it is unsure about. Its own evaluation reports <strong>98.3% field accuracy</strong> against a 75.1% baseline, covered by <strong>355 tests</strong> (<strong>Mailman</strong>).</p></details></li>
           <li data-anim><details open><summary data-n="03">AI-chat memory benchmarked on a hand-written 261-fact answer key</summary>
@@ -1070,31 +1155,113 @@ h2.head .thin { font-weight: 200; color: var(--accent-text); }
   <section class="page wide" id="projects" data-section="Projects">
     <div class="page-inner">
       <p class="eyebrow" data-anim><b>03</b><span class="sep"></span><span>Projects</span><span class="sep"></span><span>Selected work</span></p>
-      <h2 class="head" style="margin-top:14px"><span class="mask"><span>Things I have <span class="thin">built</span></span></span></h2>
-      <div class="spacer" style="height:clamp(18px,3vh,32px)"></div>
+      <h2 class="vh">Projects: selected work</h2>
+      <div class="spacer" style="height:clamp(14px,2.4vh,26px)"></div>
+      <!-- Each card leads with a picture of the work. Screenshots where the thing runs in a
+           browser (resume/media/, captured from the real apps); drawn where it runs on a
+           server, and then only from what the repository records. -->
       <ul class="proj-grid">
-        <li data-anim><a class="proj" href="https://github.com/MoAbboud/PortFolio/tree/main/mailman" target="_blank" rel="noopener">
-          <span class="n">01</span><h3>Mailman</h3>
+        <li data-anim><a class="proj has-media" href="https://github.com/MoAbboud/PortFolio/tree/main/mailman" target="_blank" rel="noopener">
+          <span class="proj-media" aria-hidden="true">
+            <!-- Overall field accuracy of the last run of each label in mailman/evaluations/:
+                 baseline 329/438, attempt 1 504/538, attempt 2 526/538, attempt 3 529/538. -->
+            <svg viewBox="0 0 400 100" preserveAspectRatio="xMidYMid meet">
+              <text class="m-cap" x="14" y="12">FIELD ACCURACY, FOUR EVALUATION RUNS</text>
+              <line class="m-rule" x1="40" y1="20" x2="360" y2="20" stroke-dasharray="2 3"/>
+              <line class="m-axis" x1="40" y1="84" x2="360" y2="84"/>
+              <rect class="m-mute" x="56"  y="35.9" width="44" height="48.1" rx="2"/>
+              <rect class="m-mute" x="136" y="24.0" width="44" height="60.0" rx="2"/>
+              <rect class="m-mute" x="216" y="21.4" width="44" height="62.6" rx="2"/>
+              <rect class="m-vivid" x="296" y="21.1" width="44" height="62.9" rx="2"/>
+              <text class="m-val" x="78"  y="31.5" text-anchor="middle">75.1</text>
+              <text class="m-val" x="158" y="46" text-anchor="middle">93.7</text>
+              <text class="m-val" x="238" y="46" text-anchor="middle">97.8</text>
+              <text class="m-val m-on-vivid" x="318" y="46" text-anchor="middle">98.3%</text>
+              <text class="m-lbl" x="78"  y="96" text-anchor="middle">baseline</text>
+              <text class="m-lbl" x="158" y="96" text-anchor="middle">attempt 1</text>
+              <text class="m-lbl" x="238" y="96" text-anchor="middle">attempt 2</text>
+              <text class="m-lbl" x="318" y="96" text-anchor="middle">attempt 3</text>
+            </svg>
+          </span>
+          <h3>Mailman</h3>
           <p>Document intake: messy invoices in, validated records out, with a review queue for the ones it is unsure about. Its own evaluation reports 98.3% field accuracy against a 75.1% baseline; 355 tests.</p>
           <span class="foot"><span>FastAPI · PostgreSQL · Docker</span><span class="go">Code <span aria-hidden="true">→</span></span></span></a></li>
-        <li data-anim><a class="proj" href="https://github.com/MoAbboud/PortFolio/tree/main/fallacysuspect" target="_blank" rel="noopener">
-          <span class="n">02</span><h3>Fallacy Suspect</h3>
-          <p>Flags passages that may lean on a logical fallacy, as a warning with a confidence, never a verdict. Two DistilBERT stages trained for the job; no hosted model, no API key.</p>
+        <li data-anim><a class="proj has-media" href="https://github.com/MoAbboud/PortFolio/tree/main/fallacysuspect" target="_blank" rel="noopener">
+          <span class="proj-media"><img src="/resume/media/fallacy-detector.webp" alt="" width="900" height="355" loading="lazy" decoding="async" style="object-position:50% 0"></span>
+          <h3>Fallacy Detector</h3>
+          <p>Flags passages that may lean on a logical fallacy, as a warning with a confidence, never a verdict. A DistilRoBERTa detector and a DistilBERT typer across 13 fallacy types, trained for the job; no hosted model, no API key.</p>
           <span class="foot"><span>Python · PyTorch · Flask</span><span class="go">Code <span aria-hidden="true">→</span></span></span></a></li>
-        <li data-anim><a class="proj" href="https://github.com/MoAbboud/PortFolio/tree/main/herder" target="_blank" rel="noopener">
-          <span class="n">03</span><h3>Herder</h3>
+        <li data-anim><a class="proj has-media" href="https://github.com/MoAbboud/PortFolio/tree/main/herder" target="_blank" rel="noopener">
+          <span class="proj-media" aria-hidden="true">
+            <!-- The idea, drawn: each line of the brief keeps links to the messages it came from. -->
+            <svg viewBox="0 0 400 100" preserveAspectRatio="xMidYMid meet">
+              <text class="m-cap" x="40" y="12">CONVERSATION</text>
+              <text class="m-cap" x="262" y="12">BRIEF</text>
+              <rect class="m-mute" x="40" y="20" width="118" height="8" rx="4"/>
+              <rect class="m-mute" x="70" y="33" width="88"  height="8" rx="4"/>
+              <rect class="m-mute" x="40" y="46" width="104" height="8" rx="4"/>
+              <rect class="m-mute" x="58" y="59" width="100" height="8" rx="4"/>
+              <rect class="m-mute" x="40" y="72" width="92"  height="8" rx="4"/>
+              <rect class="m-mute" x="80" y="85" width="78"  height="8" rx="4"/>
+              <path class="m-link" d="M262 36 C212 36 208 24 160 24"/>
+              <path class="m-link" d="M262 36 C212 36 208 63 160 63"/>
+              <path class="m-link" d="M262 54 C212 54 208 37 160 37"/>
+              <path class="m-link" d="M262 54 C212 54 208 89 160 89"/>
+              <path class="m-link" d="M262 72 C212 72 206 50 146 50"/>
+              <path class="m-link" d="M262 72 C212 72 206 76 134 76"/>
+              <rect class="m-vivid" x="262" y="31" width="98" height="10" rx="2"/>
+              <rect class="m-vivid" x="262" y="49" width="84" height="10" rx="2"/>
+              <rect class="m-vivid" x="262" y="67" width="92" height="10" rx="2"/>
+            </svg>
+          </span>
+          <h3>Herder</h3>
           <p>Portable memory for AI chat: a long conversation becomes a compact brief where every line traces back to the messages it came from. Benchmarked against a plain summary at the same token budget, on a 261-fact answer key written by hand.</p>
           <span class="foot"><span>FastAPI · pgvector · local models</span><span class="go">Code <span aria-hidden="true">→</span></span></span></a></li>
-        <li data-anim><a class="proj" href="/trail/">
-          <span class="n">04</span><h3>Trail</h3>
+        <li data-anim><a class="proj has-media" href="/trail/">
+          <span class="proj-media"><video data-clip muted loop playsinline preload="none" width="800" height="450" poster="/resume/media/trail-poster.webp" aria-hidden="true" style="object-position:50% 58%"><source src="/resume/media/trail-loop.webm" type="video/webm"></video></span>
+          <h3>Trail</h3>
           <p>A voxel diorama a camera walks through on a timeline, for recording video. Hand-written WebGL2, no engine, 620 tests.</p>
           <span class="foot"><span>WebGL2 · no engine</span><span class="go">Open <span aria-hidden="true">→</span></span></span></a></li>
-        <li data-anim><a class="proj" href="https://pneumonia-x9mz.onrender.com/" target="_blank" rel="noopener">
-          <span class="n">05</span><h3>Pneumonia Detection</h3>
+        <li data-anim><a class="proj has-media" href="https://pneumonia-x9mz.onrender.com/" target="_blank" rel="noopener">
+          <span class="proj-media" aria-hidden="true">
+            <!-- Drawn rather than captured: the app is moving hosts and getting a new interface. -->
+            <svg viewBox="0 0 400 100" preserveAspectRatio="xMidYMid meet">
+              <rect class="m-film" x="40" y="10" width="84" height="80" rx="4"/>
+              <ellipse class="m-lung" cx="68" cy="54" rx="15" ry="26"/>
+              <ellipse class="m-lung" cx="96" cy="54" rx="15" ry="26"/>
+              <text class="m-cap m-on-film" x="47" y="23">X-RAY</text>
+              <path class="m-arrow" d="M136 50 H170 M164 45 L170 50 L164 55"/>
+              <rect class="m-box" x="178" y="36" width="76" height="28" rx="3"/>
+              <text class="m-val" x="216" y="54" text-anchor="middle">model</text>
+              <path class="m-arrow" d="M262 50 H286 M280 45 L286 50 L280 55"/>
+              <text class="m-lbl" x="296" y="36">pneumonia</text>
+              <rect class="m-vivid" x="296" y="41" width="64" height="6" rx="3"/>
+              <text class="m-lbl" x="296" y="66">normal</text>
+              <rect class="m-mute" x="296" y="71" width="22" height="6" rx="3"/>
+            </svg>
+          </span>
+          <h3>Pneumonia Detection</h3>
           <p>Deep-learning application classifying chest X-rays for signs of pneumonia. Free hosting, so the first load takes about a minute to wake.</p>
           <span class="foot"><span>Python · Deep Learning</span><span class="go">Visit <span aria-hidden="true">→</span></span></span></a></li>
-        <li data-anim><a class="proj" href="https://github.com/MoAbboud/PortFolio/tree/main/deploy" target="_blank" rel="noopener">
-          <span class="n">06</span><h3>This Site</h3>
+        <li data-anim><a class="proj has-media" href="https://github.com/MoAbboud/PortFolio/tree/main/deploy" target="_blank" rel="noopener">
+          <span class="proj-media" aria-hidden="true">
+            <!-- .github/workflows/pages.yml and deploy/, as a picture. -->
+            <svg viewBox="0 0 400 100" preserveAspectRatio="xMidYMid meet">
+              <text class="m-cap" x="14" y="12">EVERY PUSH TO MAIN</text>
+              <rect class="m-box" x="14"  y="20" width="76" height="24" rx="3"/><text class="m-lbl" x="52"  y="36" text-anchor="middle">git push</text>
+              <path class="m-arrow" d="M94 32 H106 M101 28 L106 32 L101 36"/>
+              <rect class="m-box" x="110" y="20" width="84" height="24" rx="3"/><text class="m-lbl" x="152" y="36" text-anchor="middle">Actions</text>
+              <path class="m-arrow" d="M198 32 H210 M205 28 L210 32 L205 36"/>
+              <rect class="m-box" x="214" y="20" width="84" height="24" rx="3"/><text class="m-lbl" x="256" y="36" text-anchor="middle">allowlist</text>
+              <path class="m-arrow" d="M302 32 H314 M309 28 L314 32 L309 36"/>
+              <rect class="m-vivid" x="318" y="20" width="72" height="24" rx="3"/><text class="m-lbl m-on-vivid" x="354" y="36" text-anchor="middle">Pages</text>
+              <text class="m-cap" x="14" y="68">SERVICES</text>
+              <rect class="m-box" x="110" y="56" width="188" height="24" rx="3"/><text class="m-lbl" x="204" y="72" text-anchor="middle">Docker Compose + Caddy</text>
+              <path class="m-arrow" d="M302 68 H314 M309 64 L314 68 L309 72"/>
+              <rect class="m-box" x="318" y="56" width="72" height="24" rx="3"/><text class="m-lbl" x="354" y="72" text-anchor="middle">server</text>
+            </svg>
+          </span>
+          <h3>This Site</h3>
           <p>The portfolio itself: an allowlist build for the static half, published by GitHub Actions on every push, and Docker Compose with Caddy for the services that run on a server.</p>
           <span class="foot"><span>GitHub Actions · Docker · Caddy</span><span class="go">Code <span aria-hidden="true">→</span></span></span></a></li>
       </ul>
@@ -1104,8 +1271,8 @@ h2.head .thin { font-weight: 200; color: var(--accent-text); }
   <section class="page wide" id="projects-more" data-section="Projects">
     <div class="page-inner">
       <p class="eyebrow" data-anim><b>03</b><span class="sep"></span><span>Projects</span><span class="sep"></span><span>More, most open in the browser</span></p>
-      <h2 class="head" style="margin-top:14px"><span class="mask"><span>More I have <span class="thin">built</span></span></span></h2>
-      <div class="spacer" style="height:clamp(18px,3vh,32px)"></div>
+      <h2 class="vh">Projects: more</h2>
+      <div class="spacer" style="height:clamp(14px,2.4vh,26px)"></div>
       <ul class="proj-grid">
         <li data-anim><a class="proj" href="/snowball/">
           <span class="n">01</span><h3>Snowball</h3>
@@ -1182,7 +1349,7 @@ h2.head .thin { font-weight: 200; color: var(--accent-text); }
 
 </main>
 
-<footer class="hud hud-bottom needs-js">
+<footer class="hud hud-bottom needs-js stage-only">
   <div class="counter"><span class="cur" id="pageNum">01</span><span>/</span><span id="pageTotal">09</span></div>
   <nav class="rail" id="rail" aria-label="Section navigation"></nav>
   <div class="pager">
@@ -1309,7 +1476,9 @@ function init() {
     if (on) { el.setAttribute('aria-hidden', 'true'); el.inert = true; }
     else { el.removeAttribute('aria-hidden'); el.inert = false; }
   }
-  pages.forEach(p => setInert(p, true));
+  /* On the stage, or read as one page (the document, chosen) */
+  let staged = root.classList.contains('js');
+  pages.forEach(p => setInert(p, staged));
 
   /* The safety valve hides its scrollbar, so the page says when there is more. */
   function updateMore(page) {
@@ -1331,6 +1500,13 @@ function init() {
 
   function go(n, dirHint, keepFocus) {
     n = Math.max(0, Math.min(pages.length - 1, n));
+    if (!staged) {
+      /* Read as one page: going somewhere is scrolling there. */
+      pages[n].scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+      current = n;
+      sync(false);
+      return;
+    }
     if (n === current || locked) return;
 
     const dir = dirHint !== undefined ? dirHint : (n > current ? 1 : -1);
@@ -1351,19 +1527,20 @@ function init() {
       inn.classList.add('is-active');
       $('.page-inner', inn).scrollTop = 0;
       updateMore(inn);
+      syncClips();
       countUp(inn);
       if (hadFocus) focusInto(inn);
       setTimeout(() => { locked = false; }, t.unlock);
     };
 
-    /* Nothing to animate out on first paint, so do not wait for it. */
-    if (!out || t.swap === 0) activate(); else setTimeout(activate, t.swap);
-
     current = n;
     sync();
+
+    /* Nothing to animate out on first paint, so do not wait for it. */
+    if (!out || t.swap === 0) activate(); else setTimeout(activate, t.swap);
   }
 
-  function sync() {
+  function sync(announce = true) {
     const sec = sectionOf(current);
     /* The hue belongs to the section, so moving sideways moves through colour */
     root.dataset.accent = String(sec + 1);
@@ -1374,7 +1551,7 @@ function init() {
     $('#pageNum').textContent = String(current + 1).padStart(2, '0');
     $('#prevBtn').disabled = current === 0;
     $('#nextBtn').disabled = current === pages.length - 1;
-    live.textContent = `${SECTIONS[sec].name}, page ${current + 1} of ${pages.length}`;
+    if (announce && staged) live.textContent = `${SECTIONS[sec].name}, page ${current + 1} of ${pages.length}`;
     const id = pages[current].id;
     if (location.hash.slice(1) !== id) history.replaceState(null, '', '#' + id);
   }
@@ -1394,7 +1571,7 @@ function init() {
      hashchange fires, and the focus should follow to the new page. */
   document.addEventListener('click', e => {
     const link = e.target.closest('a[href^="#"]');
-    if (!link || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    if (!staged || !link || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     const n = pages.findIndex(p => '#' + p.id === link.getAttribute('href'));
     if (n === -1) return;
     e.preventDefault();
@@ -1416,6 +1593,7 @@ function init() {
     const onControl = tag === 'button' || tag === 'a' || tag === 'summary';
 
     if (menuOpen && e.key === 'Escape') { closeMenu(); return; }
+    if (!staged) return; // one page: the keys scroll, as they would anywhere
 
     switch (e.key) {
       case 'ArrowRight': case 'ArrowDown': case 'PageDown':
@@ -1439,6 +1617,7 @@ function init() {
      scrolling down or right goes forward, up or left goes back. */
   let wheelAcc = 0, wheelTimer = null;
   stage.addEventListener('wheel', e => {
+    if (!staged) return;
     const inner = e.target.closest('.page-inner');
     if (inner && inner.scrollHeight > inner.clientHeight + 2) {
       const atTop = inner.scrollTop <= 0;
@@ -1460,6 +1639,7 @@ function init() {
     tsx = e.touches[0].clientX; tsy = e.touches[0].clientY; tst = Date.now();
   }, { passive: true });
   stage.addEventListener('touchend', e => {
+    if (!staged) return;
     const dx = e.changedTouches[0].clientX - tsx;
     const dy = e.changedTouches[0].clientY - tsy;
     if (Date.now() - tst > 700) return;
@@ -1503,6 +1683,41 @@ function init() {
     card.style.setProperty('--my', (e.clientY - r.top) + 'px');
   });
 
+  /* ---- clips ------------------------------------------------
+     A clip plays only while its page is on stage and the tab is
+     visible, never under reduced motion or Save-Data, and is not
+     downloaded (preload="none") until the first time it may play. */
+  const clips = $$('video[data-clip]', stage);
+  function syncClips() {
+    const saveData = !!(navigator.connection && navigator.connection.saveData);
+    clips.forEach(v => {
+      const inView = staged ? current >= 0 && pages[current].contains(v) : v.seen === true;
+      const on = !reduced && !saveData && !document.hidden && inView;
+      if (on) {
+        v.muted = true;
+        if (v.preload !== 'auto') v.preload = 'auto';
+        const playing = v.play();
+        if (playing) playing.catch(() => { /* refused: the poster stays, which is fine */ });
+      } else if (!v.paused) {
+        v.pause();
+      }
+    });
+  }
+  document.addEventListener('visibilitychange', syncClips);
+
+  /* Read as one page, the hue and the address follow the section under the
+     reading line, and a clip plays while it is on screen. */
+  const lineIO = new IntersectionObserver(entries => {
+    if (staged) return;
+    entries.forEach(en => { if (en.isIntersecting) { current = pages.indexOf(en.target); sync(false); } });
+  }, { rootMargin: '-40% 0px -55% 0px' });
+  pages.forEach(p => lineIO.observe(p));
+  const clipIO = new IntersectionObserver(entries => {
+    entries.forEach(en => { en.target.seen = en.isIntersecting; });
+    syncClips();
+  }, { threshold: 0.3 });
+  clips.forEach(v => clipIO.observe(v));
+
   /* ---- counters: the markup holds the real number ----------- */
   function countUp(page) {
     $$('[data-count]', page).forEach(el => {
@@ -1541,6 +1756,39 @@ function init() {
     try { localStorage.setItem('ma-theme', root.dataset.theme); } catch (err) {}
   });
 
+  /* ---- view: the stage, or one page -------------------------
+     For the reader who wants to skim. The choice is remembered in this
+     browser only. Switching keeps the reader where they were. */
+  const viewBtn = $('#viewBtn');
+  const paintView = () => viewBtn.setAttribute('aria-pressed', String(!staged));
+  function setView(toStage) {
+    if (toStage === staged) return;
+    let target = Math.max(current, 0);
+    if (toStage) {
+      const line = innerHeight * 0.4;
+      const hit = pages.findIndex(p => { const r = p.getBoundingClientRect(); return r.top <= line && r.bottom > line; });
+      if (hit !== -1) target = hit;
+    }
+    staged = toStage;
+    root.classList.toggle('js', staged);
+    pages.forEach(p => { p.classList.remove('is-active', 'is-leaving', 'more-below'); setInert(p, staged); });
+    locked = false;
+    current = -1;
+    if (staged) {
+      scrollTo(0, 0);
+      go(target, 1);
+    } else {
+      pages[target].scrollIntoView({ block: 'start' });
+      current = target;
+      sync(false);
+    }
+    paintView();
+    syncClips();
+    try { localStorage.setItem('ma-view', staged ? 'stage' : 'page'); } catch (err) {}
+  }
+  viewBtn.addEventListener('click', () => setView(!staged));
+  paintView();
+
   /* ---- ambient: reticle + blob parallax ----------------------
      The loop runs only while something is still catching up to the
      pointer, then stops, so an idle page costs no frames. */
@@ -1565,26 +1813,32 @@ function init() {
     document.documentElement.addEventListener('pointerleave', () => reticle.classList.remove('on'));
   }
 
-  reduceMQ.addEventListener('change', e => { reduced = e.matches; });
+  reduceMQ.addEventListener('change', e => { reduced = e.matches; syncClips(); });
 
   /* ---- start ------------------------------------------------ */
   const first = pageFromHash();
-  scrollTo(0, 0);
-  go(first === -1 ? 0 : first, 1);
+  if (staged) {
+    scrollTo(0, 0);
+    go(first === -1 ? 0 : first, 1);
+  } else {
+    current = first === -1 ? 0 : first;
+    if (first !== -1) pages[first].scrollIntoView({ block: 'start' });
+    sync(false);
+  }
   /* A tab or link clicked mid-transition is ignored like any other input
      then, so the address is put back to the page actually showing. */
   addEventListener('hashchange', () => {
     const n = pageFromHash();
     if (n === -1) return;
     go(n);
-    if (current !== n) history.replaceState(null, '', '#' + pages[current].id);
+    if (staged && current !== n) history.replaceState(null, '', '#' + pages[current].id);
   });
 }
 
 try {
   init();
 } catch (err) {
-  root.classList.remove('js');
+  root.classList.remove('js', 'scripted');
   console.error('Stage failed to start; showing the page as a document.', err);
 }
 })();

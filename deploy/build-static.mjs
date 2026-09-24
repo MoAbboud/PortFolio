@@ -149,6 +149,9 @@ copy('resume/index.html');
 copy('resume/og.png');
 copy('resume/icon.png');
 copy('resume/Mohamad-Abboud-Resume.pdf');
+// Pictures of the work on the project cards, and the page's fonts with their licences.
+copy('resume/media');
+copy('resume/fonts');
 
 copy('snowball/index.html');
 copy('snowball/css');
