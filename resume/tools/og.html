@@ -6,16 +6,18 @@
 <meta charset="utf-8" />
 <title>og card</title>
 <style>
+  @font-face { font-family: "Geist"; font-weight: 100 900; src: url("../fonts/geist.woff2") format("woff2"); }
+  @font-face { font-family: "Geist Mono"; font-weight: 100 900; src: url("../fonts/geist-mono.woff2") format("woff2"); }
   :root {
     --bg: #fbf8f3; --fg: #1a1720; --fg-dim: #5a5462; --fg-faint: #8b8494; --line: rgba(26, 23, 32, .15);
     --c1: #f04e2a; --c1i: #bd3410; --c2: #5b4be8; --c3: #0ba99a; --c4: #e89000; --c5: #e0357f; --c6: #24a85a; --c6i: #147038;
-    --mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", Consolas, monospace;
+    --mono: "Geist Mono", ui-monospace, "Cascadia Mono", "Segoe UI Mono", Consolas, monospace;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 1200px; height: 630px; overflow: hidden; }
   body {
     background: var(--bg); color: var(--fg); position: relative;
-    font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+    font-family: "Geist", "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
   .wash {
@@ -49,7 +51,7 @@
     margin-top: auto; margin-bottom: 44px; display: flex; gap: 40px;
     font-family: var(--mono); font-size: 16px; letter-spacing: .12em; text-transform: uppercase; color: var(--fg-dim);
   }
-  .facts b { color: var(--fg); font-family: "Segoe UI", Arial, sans-serif; font-size: 30px; letter-spacing: -.03em; display: block; margin-bottom: 2px; }
+  .facts b { color: var(--fg); font-family: "Geist", "Segoe UI", Arial, sans-serif; font-size: 30px; letter-spacing: -.03em; display: block; margin-bottom: 2px; }
   .domain {
     position: absolute; right: 76px; bottom: 50px;
     font-family: var(--mono); font-size: 20px; letter-spacing: .14em; color: var(--fg); font-weight: 700;
