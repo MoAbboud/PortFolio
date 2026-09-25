@@ -1635,6 +1635,30 @@ export function createRenderer(canvas) {
    * scene, which is the difference between a smooth drag and a stutter once a
    * canvas is full.
    */
+  /**
+   * One object's vertices, moved, without rebuilding the surface.
+   *
+   * `uploadMesh` throws away twelve buffers and a vertex array and builds them
+   * again from arrays the caller has just filled for **every** object on the
+   * canvas. That is right when the surface changes shape and ruinous once per
+   * pointer event: a drag was spending 150ms a move on it, which the browser
+   * reported as a violation and the hand felt as treacle.
+   *
+   * A move is a translation, so the only things that change are the positions
+   * and the pivots the motion turns about - both of which are held in world
+   * space. This writes that one slice of each.
+   */
+  function updateMeshPositions(positions, pivots, start, count) {
+    if (!meshBuffers.positions || count <= 0) return;
+    const at = start * 3 * Float32Array.BYTES_PER_ELEMENT;
+    gl.bindBuffer(gl.ARRAY_BUFFER, meshBuffers.positions);
+    gl.bufferSubData(gl.ARRAY_BUFFER, at, positions.subarray(start * 3, (start + count) * 3));
+    if (pivots && meshBuffers.pivots) {
+      gl.bindBuffer(gl.ARRAY_BUFFER, meshBuffers.pivots);
+      gl.bufferSubData(gl.ARRAY_BUFFER, at, pivots.subarray(start * 3, (start + count) * 3));
+    }
+  }
+
   function updatePositions(positions, start, count) {
     if (!instanceBuffers.positions || count <= 0) return;
     gl.bindBuffer(gl.ARRAY_BUFFER, instanceBuffers.positions);
@@ -1982,6 +2006,7 @@ export function createRenderer(canvas) {
     uploadAreas,
     uploadStrip,
     updatePositions,
+    updateMeshPositions,
     setScars,
     draw,
     get count() { return instanceCount; },

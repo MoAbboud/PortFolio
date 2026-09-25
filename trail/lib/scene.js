@@ -285,8 +285,11 @@ export function finishFor(edge, fine = edge, scale = 1) {
  * hovering above it. Cheaper than a shadow map by an enormous margin, and for a
  * diorama lit by one high sun it reads the same.
  */
-export function contactShadows(scene, placements) {
-  const boxes = objectBoxes(scene);
+export function contactShadows(scene, placements, known = null) {
+  // The boxes are a scan of every cube on the canvas, and a caller in the
+  // middle of a drag has just worked them out. Taking them saves repeating
+  // that scan for the second time in one pointer event.
+  const boxes = known ?? objectBoxes(scene);
   const count = boxes.length;
   const centres = new Float32Array(count * 3);
   const radii = new Float32Array(count);
