@@ -138,22 +138,52 @@ export function resolve(weather) {
  * what fraction of it gets through. Overcast at midnight is darker than either
  * on its own, which is correct.
  */
+/**
+ * What a weather is **before any hour has touched it**.
+ *
+ * Kept on every resolved weather, because resolving one twice has to give the
+ * same answer as resolving it once - and before this it did not. The hour's
+ * light multiplies the weather's, so a second pass multiplied it again:
+ *
+ *     resolve(step)                      0.40   the hour, through clear air
+ *     lerpWeather, which resolves both   0.16   and then asks the sky again
+ *     skyNow, laying the clock over it   0.064  a sixth of the light there is
+ *
+ * That is a measured number, not an example: a clear night at half past nine
+ * was drawing at 0.064 ambient, which is why objects were black shapes and why
+ * lifting the shader's night fill did nothing anyone could see. The three
+ * calls are all deliberate - a blend resolves both sides, and `skyNow`
+ * re-resolves on purpose so the clock's hour wins over the step's - so the
+ * thing that had to change is that resolving is repeatable.
+ */
+const dryOf = (weather) => weather.dry ?? {
+  sky: weather.sky,
+  horizon: weather.horizon,
+  floor: weather.floor,
+  sunColour: weather.sunColour,
+  ambient: weather.ambient,
+  dull: weather.dull ?? 0,
+};
+
 export function underSky(base, hour) {
   const day = atHour(hour);
-  const dull = Math.min(1, Math.max(0, base.dull ?? 0));
+  // The weather's own numbers, never the ones an earlier hour already dimmed.
+  const dry = dryOf(base);
+  const dull = Math.min(1, Math.max(0, dry.dull ?? 0));
   return {
     ...base,
+    dry,
     hour: day.hour,
     sun: day.sun,
     moon: day.moon,
     sunUp: day.sunUp,
     moonUp: day.moonUp,
     night: day.night,
-    sky: mixAll(day.sky, base.sky, dull),
-    horizon: mixAll(day.horizon, base.horizon, dull),
-    floor: mixAll(day.floor, base.floor, dull),
-    sunColour: mixAll(day.sunColour, base.sunColour, dull),
-    ambient: day.ambient * base.ambient,
+    sky: mixAll(day.sky, dry.sky, dull),
+    horizon: mixAll(day.horizon, dry.horizon, dull),
+    floor: mixAll(day.floor, dry.floor, dull),
+    sunColour: mixAll(day.sunColour, dry.sunColour, dull),
+    ambient: day.ambient * dry.ambient,
   };
 }
 
@@ -190,6 +220,21 @@ export function lerpWeather(from, to, t) {
     rain: mix(a.rain ?? 0, b.rain ?? 0, k),
     dull: mix(a.dull ?? 0, b.dull ?? 0, k),
     scar: k >= 0.5 ? b.scar : a.scar,
+    // The two weathers as they were before their hours, blended the same way,
+    // so the result can be asked for a different hour later without the light
+    // it already has being counted twice. See `dryOf`.
+    dry: (() => {
+      const da = dryOf(a);
+      const db = dryOf(b);
+      return {
+        sky: mixAll(da.sky, db.sky, k),
+        horizon: mixAll(da.horizon, db.horizon, k),
+        floor: mixAll(da.floor, db.floor, k),
+        sunColour: mixAll(da.sunColour, db.sunColour, k),
+        ambient: mix(da.ambient, db.ambient, k),
+        dull: mix(da.dull ?? 0, db.dull ?? 0, k),
+      };
+    })(),
   };
 
   // **The hour crosses the clock, not the numbers.** Two hours are two
