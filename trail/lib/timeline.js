@@ -340,7 +340,7 @@ export function unrollPoint([x, y, z], focus, radius) {
  * Solved in the plane: the z component is along the axis and does not affect
  * whether the ray hits.
  */
-export function ringGround(ray, focus, radius) {
+export function ringGround(ray, focus, radius, minSlope = 0) {
   const ox = ray.origin[0];
   const oy = ray.origin[1] + radius;
   const dx = ray.direction[0];
@@ -365,6 +365,20 @@ export function ringGround(ray, focus, radius) {
     ray.origin[1] + ray.direction[1] * t,
     ray.origin[2] + ray.direction[2] * t,
   ];
+
+  // **How squarely the ray met the ring**, which is the same question the flat
+  // ground asks of `dy`. The surface normal at the hit points out from the
+  // axis, so this is the cosine between the two - 1 looking straight down at
+  // the ring, 0 sliding along it. On the curve the runaway is worse than on the
+  // flat: 2.1 units per pixel near the top of the frame against 0.02 near the
+  // bottom, which is a dragged object crossing the world in a flick of the
+  // wrist. A caller that is following the hand passes a floor and gets null.
+  if (minSlope > 0) {
+    const nx = point[0] / radius;
+    const ny = (point[1] + radius) / radius;
+    if (Math.abs(dx * nx + dy * ny) < minSlope) return null;
+  }
+
   return unrollPoint(point, focus, radius);
 }
 

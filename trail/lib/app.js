@@ -353,6 +353,9 @@ async function main() {
   const poseOf = (placement) => placement.pose ?? sources[placement.model]?.pose ?? null;
 
   const meshCache = new Map();
+  // The surface as last handed to the renderer, so a move can rewrite one
+  // object's slice of it. Null until something has been meshed.
+  let meshScene = null;
   // A drawn preview, kept so reopening the library is instant. Declared here
   // rather than beside the panel that fills it, so that the code which releases
   // a model can reach every cache it remains in - a function reading a
@@ -407,7 +410,43 @@ async function main() {
     );
     renderer.uploadMesh(merged);
     el('s-tris').textContent = merged.triangles.toLocaleString();
+    // Kept so a move can write one object's slice of it rather than building
+    // the whole surface again. See `slideMesh`.
+    meshScene = merged;
     return merged;
+  }
+
+  /**
+   * One object slid to a new place, in the surface that is already uploaded.
+   *
+   * **A move is a translation and nothing else.** Every vertex was placed by
+   * scaling, turning and then adding the object's position, so moving it only
+   * adds the difference - the normals, colours, seeds, occlusion and finish all
+   * stand. The pivots a moving part turns about are world-space too, so they
+   * travel with it or a swaying branch would sway about where the tree used to
+   * be.
+   *
+   * Returns false when there is nothing uploaded to slide, which sends the
+   * caller back to the full rebuild.
+   */
+  function slideMesh(index, delta) {
+    const range = meshScene?.ranges?.[index];
+    if (!range || (!delta[0] && !delta[1] && !delta[2])) return !!range;
+    const { positions, pivots, motion } = meshScene;
+    for (let v = range.start; v < range.start + range.count; v++) {
+      positions[v * 3] += delta[0];
+      positions[v * 3 + 1] += delta[1];
+      positions[v * 3 + 2] += delta[2];
+      // Only where a pivot means something. Elsewhere it is zero, and moving
+      // zeroes would hand the shader a pivot for a vertex that does not turn.
+      if (motion[v * 4]) {
+        pivots[v * 3] += delta[0];
+        pivots[v * 3 + 1] += delta[1];
+        pivots[v * 3 + 2] += delta[2];
+      }
+    }
+    renderer.updateMeshPositions(positions, pivots, range.start, range.count);
+    return true;
   }
 
   /**
@@ -495,8 +534,37 @@ async function main() {
    * object keeps its slice of the buffers and the rest of the field is left
    * alone entirely.
    */
+  /**
+   * An object put somewhere else.
+   *
+   * **The cost of this is felt directly by the hand**, because a drag calls it
+   * on every pointer event. Measured at 150ms a call on the example canvas,
+   * which the browser reports as a violation and which reads as the page
+   * seizing up. Three of the four costs were whole-canvas work being redone to
+   * move one thing:
+   *
+   *   - the mesh surface, rebuilt vertex by vertex for all 59 objects and
+   *     re-uploaded as twelve fresh buffers;
+   *   - the bounding boxes, a scan of every cube on the canvas;
+   *   - the shadows, which scanned every cube again to get the same boxes.
+   *
+   * A move changes one object and translates it, so each of those becomes work
+   * proportional to the thing being dragged. Anything that is not a plain move
+   * - a different model, a turn, a resize - still takes the full path, because
+   * then the geometry really has changed.
+   */
   function reposition(index, placement) {
-    const swapped = keyFor(layout[index]) !== keyFor(placement);
+    const before = layout[index];
+    const swapped = keyFor(before) !== keyFor(placement);
+    // Same shape, same pose, same size, only somewhere else.
+    const slid = !swapped
+      && (before.rot ?? 0) === (placement.rot ?? 0)
+      && (before.scale ?? 1) === (placement.scale ?? 1);
+    const delta = [
+      placement.at[0] - before.at[0],
+      placement.at[1] - before.at[1],
+      placement.at[2] - before.at[2],
+    ];
     layout[index] = placement;
     // A different model has a different number of cubes, so its slice of the
     // buffers no longer fits and the whole field has to be built again.
@@ -508,11 +576,23 @@ async function main() {
     if (!range || part.count !== range.count) { rebuild(); autosave(); return; }
     scene.positions.set(part.positions.subarray(0, range.count * 3), range.start * 3);
     renderer.updatePositions(scene.positions, range.start, range.count);
-    boxes = objectBoxes(scene);
+
+    // One box moves with the thing that moved; the other ninety-eight are
+    // where they were. Recomputing them all reads every cube on the canvas.
+    if (slid && boxes[index]) {
+      boxes[index] = {
+        min: boxes[index].min.map((v, a) => v + delta[a]),
+        max: boxes[index].max.map((v, a) => v + delta[a]),
+      };
+    } else {
+      boxes = objectBoxes(scene);
+    }
+
     // The surface and the shadows are both built from placements, so both have
     // to follow. Shadows regardless of which way the field is being drawn.
-    if (surface === 'mesh') remesh();
-    refreshShadows();
+    if (surface === 'mesh' && !(slid && slideMesh(index, delta))) remesh();
+    // The boxes are already in hand, so the shadows do not go and find them.
+    renderer.uploadShadows(contactShadows(scene, layout.map(solid), boxes));
     autosave();
   }
 
@@ -860,10 +940,33 @@ async function main() {
    * describes is the one being looked at for all but the last moment of the
    * blend, and nobody places an object mid-animation.
    */
+  /**
+   * How squarely a ray has to meet the ground before a point on it is worth
+   * having.
+   *
+   * Everything that asks for a ground point is following the hand: dragging an
+   * object, or dragging out a place. The crossing of a grazing ray is a real
+   * point and a useless one - it sits near the horizon, where a pixel of
+   * pointer movement is worth two units of world, so an object picked up and
+   * nudged leaves the scene entirely. Measured on the example's camera:
+   *
+   *     ray slope   0.08    0.17    0.21    0.30    0.54
+   *     units/px    2.11    0.28    0.17    0.08    0.02
+   *
+   * At 0.15 the fastest the world can move under the cursor is about a fifth
+   * of a unit per pixel, and the top fifth of the frame - distant ground,
+   * where nothing is placed by hand anyway - stops answering. `dragTo` leaves
+   * the placement alone when there is no point, so the object waits under the
+   * cursor rather than jumping.
+   */
+  const GROUND_MIN_SLOPE = 0.15;
+
   function groundAt(ray, height = 0) {
     if (!ray) return null;
-    if (state.roll > 0.5) return ringGround(ray, clockX(), ringSize());
-    return groundPoint(ray, height);
+    if (state.roll > 0.5) {
+      return ringGround(ray, clockX(), ringSize(), GROUND_MIN_SLOPE);
+    }
+    return groundPoint(ray, height, GROUND_MIN_SLOPE);
   }
 
   /** The ray under the pointer, or null if the pointer is in the letterbox. */
@@ -3691,14 +3794,22 @@ async function main() {
       sheet = null;
     }
 
-    // Forcing a weather keeps the hour of the step being worked on, so looking
-    // at a scene in a different weather does not also move the sun.
+    // Forcing a weather changes the weather and nothing else, so looking at a
+    // scene in a different weather does not also move the sun.
+    //
+    // **The hour is the clock's**, the same as everywhere else - `skyNow` ends
+    // by laying `state.hour` over whatever the steps said. Taking it from the
+    // step being worked on instead made this control do two things at once:
+    // picking `clear` next to `step` moved the time of day as well, and on a
+    // step carrying no hour it handed back a bare preset with no time of day in
+    // it at all - full daylight, whatever the clock read. That is the "clear is
+    // brighter than step" this was reported as.
     //
     // **Not while the overview is on.** It would be the same fault by another
     // route: the whole film read through a storm somebody left switched on for
     // one moment of it.
     if (state.forcedWeather && !state.overview) {
-      weather = resolveWeather(skyOf({ weather: state.forcedWeather, hour: route[editing()]?.hour }));
+      weather = resolveWeather(skyOf({ weather: state.forcedWeather, hour: state.hour }));
     }
     // Depth fog is left to the weather. It cannot separate the film - a
     // neighbouring piece is beside the camera, not beyond it - so the veil
