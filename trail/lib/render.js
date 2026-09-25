@@ -375,7 +375,7 @@ void main() {
    *     doing the filling, and stays cool while daylight stays warm.
    */
   float night = clamp(-normalize(uSun).y * 3.0, 0.0, 1.0);
-  colour += mix(vColour, uBackdrop, 0.35) * night * (0.10 + 0.14 * sky) * ao;
+  colour += mix(vColour, uBackdrop, 0.35) * night * (0.10 + 0.24 * sky) * ao;
 
   // **The room, then the light in it.** Dimming first and adding the spot
   // after is what makes a spotlight read as the only light in the place rather

@@ -860,10 +860,33 @@ async function main() {
    * describes is the one being looked at for all but the last moment of the
    * blend, and nobody places an object mid-animation.
    */
+  /**
+   * How squarely a ray has to meet the ground before a point on it is worth
+   * having.
+   *
+   * Everything that asks for a ground point is following the hand: dragging an
+   * object, or dragging out a place. The crossing of a grazing ray is a real
+   * point and a useless one - it sits near the horizon, where a pixel of
+   * pointer movement is worth two units of world, so an object picked up and
+   * nudged leaves the scene entirely. Measured on the example's camera:
+   *
+   *     ray slope   0.08    0.17    0.21    0.30    0.54
+   *     units/px    2.11    0.28    0.17    0.08    0.02
+   *
+   * At 0.15 the fastest the world can move under the cursor is about a fifth
+   * of a unit per pixel, and the top fifth of the frame - distant ground,
+   * where nothing is placed by hand anyway - stops answering. `dragTo` leaves
+   * the placement alone when there is no point, so the object waits under the
+   * cursor rather than jumping.
+   */
+  const GROUND_MIN_SLOPE = 0.15;
+
   function groundAt(ray, height = 0) {
     if (!ray) return null;
-    if (state.roll > 0.5) return ringGround(ray, clockX(), ringSize());
-    return groundPoint(ray, height);
+    if (state.roll > 0.5) {
+      return ringGround(ray, clockX(), ringSize(), GROUND_MIN_SLOPE);
+    }
+    return groundPoint(ray, height, GROUND_MIN_SLOPE);
   }
 
   /** The ray under the pointer, or null if the pointer is in the letterbox. */
