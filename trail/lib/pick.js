@@ -84,9 +84,16 @@ export function pick(ray, boxes) {
 }
 
 /** Where the ray meets the ground, which is where a dragged object goes. */
-export function groundPoint(ray, height = 0) {
+export function groundPoint(ray, height = 0, minSlope = 0) {
   const dy = ray.direction[1];
-  if (Math.abs(dy) < 1e-6) return null;
+  // **A ray that only grazes the ground is not a place to put something.**
+  // The flatter it lies, the further along it the crossing is, and near the
+  // horizon that distance runs away: measured on the example's camera, one
+  // pixel of pointer movement travelled 0.02 units low in the frame and 0.87
+  // near the top. A caller that is following the hand passes a floor here and
+  // gets null instead of a hundredfold jump; the default keeps the old
+  // behaviour for callers that just want the crossing.
+  if (Math.abs(dy) < Math.max(1e-6, minSlope)) return null;
   const t = (height - ray.origin[1]) / dy;
   if (t <= 0) return null;
   return [
