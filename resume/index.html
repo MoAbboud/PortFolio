@@ -304,6 +304,38 @@ html:not(.js) .stage-only { display: none !important; }
   html:not(.js) .page-num { display: none; }
 }
 .view-btn { background: none; cursor: pointer; }
+.view-wrap { position: relative; display: inline-flex; }
+.view-hint {
+  position: absolute; top: calc(100% + 10px); left: 50%; z-index: 45;
+  transform: translate(-50%, -4px); white-space: nowrap;
+  font: 700 .62rem/1 var(--font-mono); letter-spacing: .12em; text-transform: uppercase;
+  color: #fff; background-color: var(--accent-ink); border: 0; border-radius: 6px;
+  padding: 9px 12px; cursor: pointer;
+  box-shadow: 0 10px 24px -12px color-mix(in srgb, var(--fg) 60%, transparent);
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity .35s var(--ease), transform .35s var(--ease), visibility 0s linear .35s;
+}
+.view-hint::before {
+  content: ''; position: absolute; left: 50%; top: -5px; width: 10px; height: 10px; margin-left: -5px;
+  background-color: inherit; transform: rotate(45deg); border-radius: 2px;
+}
+[data-theme="dark"] .view-hint { color: var(--bg); }
+/* Shown by itself (.is-shown) or on hover and focus, and never once the page is one page. */
+html.js .view-hint.is-shown,
+html.js .view-wrap:hover .view-hint,
+html.js .view-btn:focus-visible + .view-hint {
+  opacity: 1; visibility: visible; pointer-events: auto; transform: translate(-50%, 0);
+  transition: opacity .35s var(--ease), transform .35s var(--ease), visibility 0s;
+}
+/* On a narrow header the button sits near the right edge: the bubble stays on screen. */
+@media (max-width: 640px) {
+  .view-hint { left: auto; right: -44px; transform: translateY(-4px); }
+  .view-hint::before { left: auto; right: 56px; margin-left: 0; }
+  html.js .view-hint.is-shown,
+  html.js .view-wrap:hover .view-hint,
+  html.js .view-btn:focus-visible + .view-hint { transform: none; }
+}
+
 .view-btn[aria-pressed="true"] { color: var(--accent-ink); border-color: var(--accent); background-color: var(--surface-2); }
 
 /* ============================================================
@@ -471,8 +503,8 @@ h2.head .thin { font-weight: 200; color: var(--accent-text); }
 .lede { color: var(--fg-dim); font-size: clamp(.95rem, 1.35vw, 1.06rem); max-width: 78ch; }
 .rule { height: 1px; background: var(--line); }
 /* Headlines break into even lines; running text avoids a last word left alone. */
-.display, h2.head, .role-meta .org, .proj h3, .points summary { text-wrap: balance; }
-.lede, .points details > p, .proj p, .edu-note p { text-wrap: pretty; }
+.display, h2.head, .role-meta .org, .gal-card h3, .points summary { text-wrap: balance; }
+.lede, .points details > p, .gal-card p, .edu-note p { text-wrap: pretty; }
 .mono { font-family: var(--font-mono); }
 .print-only { display: none; }
 /* Read by screen readers, not shown: a heading where the design uses only the eyebrow. */
@@ -621,79 +653,126 @@ h2.head .thin { font-weight: 200; color: var(--accent-text); }
 .cap-list li:hover::before { width: 10px; }
 
 /* ============================================================
-   PAGE: PROJECTS, a hue per card
+   PAGE: PROJECTS, a gallery
+   Without script, a grid of cards. With it (.is-live, screen only),
+   one card in front, neighbours peeking in depth, moving on its own
+   and endless both ways. A hue per card, cycling the six.
    ============================================================ */
-.proj-grid { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line-soft); border: 1px solid var(--line-soft); border-radius: 4px; overflow: hidden; }
-.proj-grid > li { display: grid; }
-.proj {
-  position: relative; display: flex; flex-direction: column;
-  background-color: var(--bg);
-  padding: clamp(16px, 2.4vh, 28px);
+.gal-track { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
+.gal-slide { min-width: 0; display: grid; }
+.gal-slide:nth-child(6n+1) { --col: var(--c1); --col-ink: var(--c1i); }
+.gal-slide:nth-child(6n+2) { --col: var(--c2); --col-ink: var(--c2i); }
+.gal-slide:nth-child(6n+3) { --col: var(--c3); --col-ink: var(--c3i); }
+.gal-slide:nth-child(6n+4) { --col: var(--c4); --col-ink: var(--c4i); }
+.gal-slide:nth-child(6n+5) { --col: var(--c5); --col-ink: var(--c5i); }
+.gal-slide:nth-child(6n+6) { --col: var(--c6); --col-ink: var(--c6i); }
+.gal-card {
+  display: flex; flex-direction: column; min-width: 0;
   text-decoration: none; color: inherit;
-  min-height: clamp(160px, 24vh, 215px); overflow: hidden;
-  transition: background-color .4s var(--ease);
+  background-color: var(--bg); border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+  box-shadow: 0 22px 44px -28px color-mix(in srgb, var(--fg) 45%, transparent);
+  transition: border-color .4s var(--ease);
 }
-.proj-grid > li:nth-child(1) .proj { --col: var(--c1); --col-ink: var(--c1i); }
-.proj-grid > li:nth-child(2) .proj { --col: var(--c2); --col-ink: var(--c2i); }
-.proj-grid > li:nth-child(3) .proj { --col: var(--c3); --col-ink: var(--c3i); }
-.proj-grid > li:nth-child(4) .proj { --col: var(--c4); --col-ink: var(--c4i); }
-.proj-grid > li:nth-child(5) .proj { --col: var(--c5); --col-ink: var(--c5i); }
-.proj-grid > li:nth-child(6) .proj { --col: var(--c6); --col-ink: var(--c6i); }
-.proj::before {
-  content: ''; position: absolute; inset: 0;
-  background: radial-gradient(340px at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--col) 22%, transparent), transparent 68%);
-  opacity: 0; transition: opacity .45s var(--ease);
-}
-.proj::after {
-  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
-  background-color: var(--col); transform: scaleY(0); transform-origin: top;
-  transition: transform .45s var(--ease-out);
-}
-.proj:hover::before { opacity: 1; }
-.proj:hover::after { transform: scaleY(1); }
-.proj > * { position: relative; }
-.proj .n { font-family: var(--font-mono); font-size: .6rem; letter-spacing: .16em; color: var(--col-ink); font-weight: 700; }
-.proj h3 { margin-top: auto; padding-top: 14px; font-size: clamp(1rem, 1.5vw, 1.22rem); font-weight: 600; letter-spacing: -.02em; }
-.proj p { margin-top: 7px; color: var(--fg-dim); font-size: clamp(.76rem, .95vw, .84rem); line-height: 1.55; }
-.proj .foot {
-  margin-top: 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  font-family: var(--font-mono); font-size: .58rem; letter-spacing: .12em; text-transform: uppercase; color: var(--fg-faint);
-}
-.proj .go { color: var(--col-ink); display: inline-flex; align-items: center; gap: 6px; transition: gap .3s var(--ease); font-weight: 700; }
-.proj:hover .go { gap: 11px; }
-
-/* Pictures of the work: a full-bleed band across the top of the card.
-   Diagrams are inline SVG drawn in the page's own tokens, so they follow
-   the card's hue and both themes. */
-.proj.has-media { --pad: clamp(16px, 2.4vh, 28px); padding: var(--pad); }
-.proj.has-media h3 { margin-top: 0; padding-top: clamp(12px, 1.8vh, 18px); }
-.proj.has-media .foot { margin-top: auto; padding-top: 12px; }
-.proj-media {
-  display: block; position: relative; overflow: hidden;
-  margin: calc(-1 * var(--pad)) calc(-1 * var(--pad)) 0;
-  height: clamp(72px, min(13vh, 15vw), 150px);
-  background-color: color-mix(in srgb, var(--col) 8%, var(--bg));
+.gal-card:hover { border-color: var(--col); }
+.gal-media {
+  position: relative; display: block; aspect-ratio: 16 / 9; overflow: hidden;
+  background-color: color-mix(in srgb, var(--col) 9%, var(--bg));
   border-bottom: 1px solid var(--line-soft);
 }
-.proj-media img, .proj-media video { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .7s var(--ease-out); }
-.proj:hover .proj-media img, .proj:hover .proj-media video { transform: scale(1.04); }
-.proj-media svg { display: block; width: 100%; height: 100%; padding: 6px 0; }
-.proj-media text { font-family: var(--font-mono); }
-.proj-media .m-cap { font-size: 8.5px; letter-spacing: .14em; fill: var(--fg-faint); }
-.proj-media .m-lbl { font-size: 10px; fill: var(--fg-dim); }
-.proj-media .m-val { font-size: 11px; font-weight: 700; fill: var(--fg-dim); }
-.proj-media .m-on { fill: var(--col-ink); }
-.proj-media .m-vivid { fill: var(--col); }
-.proj-media .m-mute { fill: color-mix(in srgb, var(--fg) 16%, transparent); }
-.proj-media .m-rule, .proj-media .m-axis { stroke: var(--line); stroke-width: 1; }
-.proj-media .m-link { fill: none; stroke: color-mix(in srgb, var(--col) 55%, transparent); stroke-width: 1.2; }
-.proj-media .m-box { fill: var(--bg); stroke: var(--line); stroke-width: 1; }
-.proj-media .m-arrow { fill: none; stroke: var(--fg-faint); stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
-.proj-media .m-film { fill: #1b1a22; }
-.proj-media .m-lung { fill: rgba(255, 255, 255, .22); }
-.proj-media .m-on-film { fill: rgba(255, 255, 255, .75); }
-.proj-media .m-on-vivid { fill: #fff; font-weight: 700; }
-[data-theme="dark"] .proj-media .m-on-vivid { fill: var(--bg); }
+.gal-media img, .gal-media video { display: block; width: 100%; height: 100%; object-fit: cover; }
+.gal-media svg { display: block; width: 100%; height: 100%; }
+.gal-body { display: flex; flex-direction: column; gap: 6px; flex: 1; padding: clamp(12px, 1.9vh, 20px) clamp(16px, 1.8vw, 24px); }
+.gal-top {
+  display: flex; justify-content: space-between; gap: 12px;
+  font-family: var(--font-mono); font-size: .6rem; letter-spacing: .14em; text-transform: uppercase; color: var(--fg-faint);
+}
+.gal-top .n { color: var(--col-ink); font-weight: 700; }
+.gal-card h3 { font-size: clamp(1.1rem, 1.7vw, 1.45rem); font-weight: 650; letter-spacing: -.025em; line-height: 1.15; }
+.gal-card p { color: var(--fg-dim); font-size: clamp(.8rem, .95vw, .9rem); line-height: 1.55; }
+.gal-card .go {
+  margin-top: auto; padding-top: 4px; display: inline-flex; gap: 6px;
+  font-family: var(--font-mono); font-size: .62rem; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--col-ink); font-weight: 700; transition: gap .3s var(--ease);
+}
+.gal-card:hover .go { gap: 11px; }
+
+/* Diagrams: inline SVG in the page's own tokens, so they follow the card's hue and both themes. */
+.gal-media text { font-family: var(--font-mono); }
+.gal-media .m-cap { font-size: 10px; letter-spacing: .14em; fill: var(--fg-faint); }
+.gal-media .m-lbl { font-size: 12px; fill: var(--fg-dim); }
+.gal-media .m-val { font-size: 13px; font-weight: 700; fill: var(--fg-dim); }
+.gal-media .m-vivid { fill: var(--col); }
+.gal-media .m-mute { fill: color-mix(in srgb, var(--fg) 16%, transparent); }
+.gal-media .m-rule, .gal-media .m-axis { stroke: var(--line); stroke-width: 1; }
+.gal-media .m-link { fill: none; stroke: color-mix(in srgb, var(--col) 55%, transparent); stroke-width: 1.4; }
+.gal-media .m-box { fill: var(--bg); stroke: var(--line); stroke-width: 1; }
+.gal-media .m-arrow { fill: none; stroke: var(--fg-faint); stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.gal-media .m-tick { fill: none; stroke: #fff; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.gal-media .m-cross { fill: none; stroke: var(--fg-dim); stroke-width: 1.6; stroke-linecap: round; }
+.gal-media .m-film { fill: #1b1a22; }
+.gal-media .m-lung { fill: rgba(255, 255, 255, .22); }
+.gal-media .m-on-film { fill: rgba(255, 255, 255, .75); }
+.gal-media .m-on-vivid { fill: #fff; font-weight: 700; }
+[data-theme="dark"] .gal-media .m-on-vivid { fill: var(--bg); }
+[data-theme="dark"] .gal-media .m-tick { stroke: var(--bg); }
+
+.gal-controls { display: flex; align-items: center; gap: 8px; margin-top: clamp(10px, 1.8vh, 18px); }
+.gal-pause .i-play { display: none; }
+.gal-pause[aria-pressed="true"] .i-play { display: block; fill: currentColor; stroke: none; }
+.gal-pause[aria-pressed="true"] .i-pause { display: none; }
+.gal-dots { flex: 1; display: flex; justify-content: center; flex-wrap: wrap; gap: 2px; }
+.gal-dot { position: relative; width: 28px; height: 24px; padding: 0; background: none; border: 0; cursor: pointer; }
+.gal-dot::before, .gal-dot::after {
+  content: ''; position: absolute; left: 3px; right: 3px; top: 50%; height: 3px; margin-top: -1.5px; border-radius: 2px;
+}
+.gal-dot::before { background: var(--line); }
+.gal-dot::after { background-color: var(--accent-ink); transform: scaleX(0); transform-origin: left; }
+.gal-dot[aria-current="true"]::after { transform: scaleX(1); }
+/* While the gallery runs, the current dot fills up to the next move: the cue that it moves. */
+.gallery.is-running .gal-dot.is-timing::after { animation: gal-fill var(--gal-interval, 5.5s) linear forwards; }
+@keyframes gal-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.gal-more {
+  font-family: var(--font-mono); font-size: .62rem; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--accent-ink); font-weight: 700; text-decoration: none; white-space: nowrap;
+}
+.gal-more .short { display: none; }
+
+@media screen {
+  .gallery.is-live { --card-w: min(600px, 56vw); }
+  .gallery.is-live .gal-viewport {
+    position: relative; overflow: hidden; padding: 4px 0 16px;
+    touch-action: pan-y; user-select: none; -webkit-user-select: none;
+    perspective: 1600px;
+  }
+  .gallery.is-live .gal-track { grid-template-columns: 1fr; justify-items: center; gap: 0; }
+  .gallery.is-live .gal-slide {
+    grid-area: 1 / 1; width: var(--card-w);
+    transition: transform .85s var(--ease-out), opacity .6s var(--ease);
+    will-change: transform;
+  }
+  .gallery.is-live .gal-media { aspect-ratio: auto; height: min(calc(var(--card-w) * 9 / 16), 36vh); }
+  .gallery.is-live .gal-slide:not(.is-current) .gal-card { cursor: pointer; }
+  /* Side cards show their picture; their words wait until they come to the front. */
+  .gallery.is-live .gal-body { transition: opacity .5s var(--ease); }
+  .gallery.is-live .gal-slide:not(.is-current) .gal-body { opacity: .12; }
+  .gallery.is-live .gal-viewport {
+    mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
+  }
+  .gallery.is-live .gal-card img, .gallery.is-live .gal-card video { -webkit-user-drag: none; }
+  /* The card in front drifts slowly, so a still picture reads as alive too. */
+  .gallery.is-live .gal-slide.is-current .gal-media img,
+  .gallery.is-live .gal-slide.is-current .gal-media svg { animation: gal-drift 10s ease-in-out infinite alternate; }
+  @keyframes gal-drift { from { transform: scale(1.01); } to { transform: scale(1.09) translate(-1.5%, -1%); } }
+}
+@media (max-width: 640px) {
+  .gallery.is-live { --card-w: 84vw; }
+  .gal-controls { flex-wrap: wrap; }
+  .gal-dot { width: 17px; }
+  .gal-more { flex-basis: 100%; text-align: center; padding-top: 6px; }
+  .gal-more .long { display: none; }
+  .gal-more .short { display: inline; }
+}
 
 /* ============================================================
    PAGE: EDUCATION
@@ -759,7 +838,6 @@ h2.head .thin { font-weight: 200; color: var(--accent-text); }
    ============================================================ */
 @media (max-width: 1000px) {
   .caps { grid-template-columns: repeat(2, 1fr); }
-  .proj-grid { grid-template-columns: repeat(2, 1fr); }
   .rail .lbl { display: none; }
 }
 @media (max-width: 860px) {
@@ -782,9 +860,6 @@ h2.head .thin { font-weight: 200; color: var(--accent-text); }
   .pdf-link .long { display: none; }
   .view-btn { padding: 0; width: 34px; justify-content: center; }
   .view-btn .txt { display: none; }
-  .proj-grid { grid-template-columns: 1fr; }
-  .proj { min-height: 0; }
-  .proj h3 { margin-top: 12px; }
   .caps { grid-template-columns: 1fr; gap: 0; }
   .cap-col { border-bottom: 1px solid var(--line-soft); }
   .js .cap-head { cursor: pointer; padding: 15px 0; border-bottom: 0; }
@@ -830,7 +905,7 @@ h2.head .thin { font-weight: 200; color: var(--accent-text); }
   /* what the paper does not need */
   .field, .grain, .reticle, .hud, .menu, .page-num, .role-tabs, .keyhint, .quick,
   .spacer, .rule, h2.head, .tags, .colophon, .eyebrow .count,
-  #projects-more, #contact,
+  #contact, .gal-controls, .gal-media, .gal-slide[data-print="no"], .gal-top .n, .gal-card .go,
   #experience-tekkii .eyebrow, #experience-allied .eyebrow,
   #index .eyebrow > :not(.status) { display: none !important; }
   .print-only { display: block; }
@@ -887,17 +962,14 @@ h2.head .thin { font-weight: 200; color: var(--accent-text); }
   .cap-list li::before { display: none; }
   .cap-list li:not(:last-child)::after { content: ',  '; color: var(--fg-faint); }
 
-  /* the selected projects, two columns */
-  .proj-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm 6mm; background: none; border: 0; }
-  .proj-grid > li { break-inside: avoid; }
-  .proj { display: block; min-height: 0; padding: 0; background: none; }
-  .proj::before, .proj::after, .proj .n, .proj .go, .proj-media { display: none; }
-  .proj.has-media { padding: 0; }
-  .proj.has-media h3 { padding-top: 0; }
-  .proj.has-media .foot { padding-top: 0; }
-  .proj h3 { margin: 0; padding: 0; font-size: 9.5pt; display: inline; }
-  .proj .foot { display: inline; margin: 0 0 0 2mm; font-size: 6.5pt; }
-  .proj p { margin-top: .5mm; font-size: 8.5pt; line-height: 1.38; color: var(--fg-dim); }
+  /* the selected projects, two columns; the inline positions the gallery set are undone */
+  .gal-track { display: grid !important; grid-template-columns: 1fr 1fr; gap: 2mm 6mm; }
+  .gal-slide { transform: none !important; opacity: 1 !important; width: auto !important; break-inside: avoid; }
+  .gal-card { display: block; border: 0; border-radius: 0; box-shadow: none; background: none; }
+  .gal-body { display: block; padding: 0; }
+  .gal-top { display: block; font-size: 6.5pt; margin-bottom: .5mm; }
+  .gal-card h3 { font-size: 9.5pt; }
+  .gal-card p { margin-top: .5mm; font-size: 8.5pt; line-height: 1.38; }
 
   /* education on one line */
   .edu-grid { display: block; }
@@ -936,10 +1008,15 @@ h2.head .thin { font-weight: 200; color: var(--accent-text); }
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
       <span><span class="long">Résumé </span>PDF</span>
     </a>
-    <button class="pdf-link view-btn needs-js" id="viewBtn" type="button" aria-pressed="false" aria-label="Read as one page" title="Read everything as one scrolling page">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14M5 10h14M5 15h14M5 20h9"/></svg>
-      <span class="txt">One page</span>
-    </button>
+    <span class="view-wrap needs-js">
+      <button class="pdf-link view-btn" id="viewBtn" type="button" aria-pressed="false" aria-label="Read as one page">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14M5 10h14M5 15h14M5 20h9"/></svg>
+        <span class="txt">One page</span>
+      </button>
+      <!-- Says what the button does: on hover or focus, and by itself for ten seconds for a
+           reader who has not chosen a view yet. Tapping it switches, like the button. -->
+      <button class="view-hint" id="viewHint" type="button" tabindex="-1" aria-hidden="true">Change to one page</button>
+    </span>
     <button class="icon-btn needs-js" id="themeBtn" type="button" aria-label="Switch to dark theme">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
     </button>
@@ -1148,157 +1225,198 @@ h2.head .thin { font-weight: 200; color: var(--accent-text); }
     </div>
   </section>
 
-  <!-- PROJECTS: strongest first. Two pages of six, since the card hues
-       come from :nth-child(1..6) and a stage page does not hold more.
-       Links are root-absolute, because this same file is served both at
-       / and at /resume/ and a relative path cannot be right in both. -->
+  <!-- PROJECTS: a gallery. Without script it is a grid of cards; with it, one card in
+       front and its neighbours peeking in depth, moving on its own, endless both ways.
+       Pictures are of the real work: screenshots and a clip captured from the apps
+       (resume/media/), or drawn from what the repository records. Links are root-absolute,
+       because this file is served both at / and at /resume/. -->
   <section class="page wide" id="projects" data-section="Projects">
     <div class="page-inner">
-      <p class="eyebrow" data-anim><b>03</b><span class="sep"></span><span>Projects</span><span class="sep"></span><span>Selected work</span></p>
-      <h2 class="vh">Projects: selected work</h2>
-      <div class="spacer" style="height:clamp(14px,2.4vh,26px)"></div>
-      <!-- Each card leads with a picture of the work. Screenshots where the thing runs in a
-           browser (resume/media/, captured from the real apps); drawn where it runs on a
-           server, and then only from what the repository records. -->
-      <ul class="proj-grid">
-        <li data-anim><a class="proj has-media" href="https://github.com/MoAbboud/PortFolio/tree/main/mailman" target="_blank" rel="noopener">
-          <span class="proj-media" aria-hidden="true">
-            <!-- Overall field accuracy of the last run of each label in mailman/evaluations/:
-                 baseline 329/438, attempt 1 504/538, attempt 2 526/538, attempt 3 529/538. -->
-            <svg viewBox="0 0 400 100" preserveAspectRatio="xMidYMid meet">
-              <text class="m-cap" x="14" y="12">FIELD ACCURACY, FOUR EVALUATION RUNS</text>
-              <line class="m-rule" x1="40" y1="20" x2="360" y2="20" stroke-dasharray="2 3"/>
-              <line class="m-axis" x1="40" y1="84" x2="360" y2="84"/>
-              <rect class="m-mute" x="56"  y="35.9" width="44" height="48.1" rx="2"/>
-              <rect class="m-mute" x="136" y="24.0" width="44" height="60.0" rx="2"/>
-              <rect class="m-mute" x="216" y="21.4" width="44" height="62.6" rx="2"/>
-              <rect class="m-vivid" x="296" y="21.1" width="44" height="62.9" rx="2"/>
-              <text class="m-val" x="78"  y="31.5" text-anchor="middle">75.1</text>
-              <text class="m-val" x="158" y="46" text-anchor="middle">93.7</text>
-              <text class="m-val" x="238" y="46" text-anchor="middle">97.8</text>
-              <text class="m-val m-on-vivid" x="318" y="46" text-anchor="middle">98.3%</text>
-              <text class="m-lbl" x="78"  y="96" text-anchor="middle">baseline</text>
-              <text class="m-lbl" x="158" y="96" text-anchor="middle">attempt 1</text>
-              <text class="m-lbl" x="238" y="96" text-anchor="middle">attempt 2</text>
-              <text class="m-lbl" x="318" y="96" text-anchor="middle">attempt 3</text>
-            </svg>
-          </span>
-          <h3>Mailman</h3>
-          <p>Document intake: messy invoices in, validated records out, with a review queue for the ones it is unsure about. Its own evaluation reports 98.3% field accuracy against a 75.1% baseline; 355 tests.</p>
-          <span class="foot"><span>FastAPI · PostgreSQL · Docker</span><span class="go">Code <span aria-hidden="true">→</span></span></span></a></li>
-        <li data-anim><a class="proj has-media" href="https://github.com/MoAbboud/PortFolio/tree/main/fallacysuspect" target="_blank" rel="noopener">
-          <span class="proj-media"><img src="/resume/media/fallacy-detector.webp" alt="" width="900" height="355" loading="lazy" decoding="async" style="object-position:50% 0"></span>
-          <h3>Fallacy Detector</h3>
-          <p>Flags passages that may lean on a logical fallacy, as a warning with a confidence, never a verdict. A DistilRoBERTa detector and a DistilBERT typer across 13 fallacy types, trained for the job; no hosted model, no API key.</p>
-          <span class="foot"><span>Python · PyTorch · Flask</span><span class="go">Code <span aria-hidden="true">→</span></span></span></a></li>
-        <li data-anim><a class="proj has-media" href="https://github.com/MoAbboud/PortFolio/tree/main/herder" target="_blank" rel="noopener">
-          <span class="proj-media" aria-hidden="true">
-            <!-- The idea, drawn: each line of the brief keeps links to the messages it came from. -->
-            <svg viewBox="0 0 400 100" preserveAspectRatio="xMidYMid meet">
-              <text class="m-cap" x="40" y="12">CONVERSATION</text>
-              <text class="m-cap" x="262" y="12">BRIEF</text>
-              <rect class="m-mute" x="40" y="20" width="118" height="8" rx="4"/>
-              <rect class="m-mute" x="70" y="33" width="88"  height="8" rx="4"/>
-              <rect class="m-mute" x="40" y="46" width="104" height="8" rx="4"/>
-              <rect class="m-mute" x="58" y="59" width="100" height="8" rx="4"/>
-              <rect class="m-mute" x="40" y="72" width="92"  height="8" rx="4"/>
-              <rect class="m-mute" x="80" y="85" width="78"  height="8" rx="4"/>
-              <path class="m-link" d="M262 36 C212 36 208 24 160 24"/>
-              <path class="m-link" d="M262 36 C212 36 208 63 160 63"/>
-              <path class="m-link" d="M262 54 C212 54 208 37 160 37"/>
-              <path class="m-link" d="M262 54 C212 54 208 89 160 89"/>
-              <path class="m-link" d="M262 72 C212 72 206 50 146 50"/>
-              <path class="m-link" d="M262 72 C212 72 206 76 134 76"/>
-              <rect class="m-vivid" x="262" y="31" width="98" height="10" rx="2"/>
-              <rect class="m-vivid" x="262" y="49" width="84" height="10" rx="2"/>
-              <rect class="m-vivid" x="262" y="67" width="92" height="10" rx="2"/>
-            </svg>
-          </span>
-          <h3>Herder</h3>
-          <p>Portable memory for AI chat: a long conversation becomes a compact brief where every line traces back to the messages it came from. Benchmarked against a plain summary at the same token budget, on a 261-fact answer key written by hand.</p>
-          <span class="foot"><span>FastAPI · pgvector · local models</span><span class="go">Code <span aria-hidden="true">→</span></span></span></a></li>
-        <li data-anim><a class="proj has-media" href="/trail/">
-          <span class="proj-media"><video data-clip muted loop playsinline preload="none" width="800" height="450" poster="/resume/media/trail-poster.webp" aria-hidden="true" style="object-position:50% 58%"><source src="/resume/media/trail-loop.webm" type="video/webm"></video></span>
-          <h3>Trail</h3>
-          <p>A voxel diorama a camera walks through on a timeline, for recording video. Hand-written WebGL2, no engine, 620 tests.</p>
-          <span class="foot"><span>WebGL2 · no engine</span><span class="go">Open <span aria-hidden="true">→</span></span></span></a></li>
-        <li data-anim><a class="proj has-media" href="https://pneumonia-x9mz.onrender.com/" target="_blank" rel="noopener">
-          <span class="proj-media" aria-hidden="true">
-            <!-- Drawn rather than captured: the app is moving hosts and getting a new interface. -->
-            <svg viewBox="0 0 400 100" preserveAspectRatio="xMidYMid meet">
-              <rect class="m-film" x="40" y="10" width="84" height="80" rx="4"/>
-              <ellipse class="m-lung" cx="68" cy="54" rx="15" ry="26"/>
-              <ellipse class="m-lung" cx="96" cy="54" rx="15" ry="26"/>
-              <text class="m-cap m-on-film" x="47" y="23">X-RAY</text>
-              <path class="m-arrow" d="M136 50 H170 M164 45 L170 50 L164 55"/>
-              <rect class="m-box" x="178" y="36" width="76" height="28" rx="3"/>
-              <text class="m-val" x="216" y="54" text-anchor="middle">model</text>
-              <path class="m-arrow" d="M262 50 H286 M280 45 L286 50 L280 55"/>
-              <text class="m-lbl" x="296" y="36">pneumonia</text>
-              <rect class="m-vivid" x="296" y="41" width="64" height="6" rx="3"/>
-              <text class="m-lbl" x="296" y="66">normal</text>
-              <rect class="m-mute" x="296" y="71" width="22" height="6" rx="3"/>
-            </svg>
-          </span>
-          <h3>Pneumonia Detection</h3>
-          <p>Deep-learning application classifying chest X-rays for signs of pneumonia. Free hosting, so the first load takes about a minute to wake.</p>
-          <span class="foot"><span>Python · Deep Learning</span><span class="go">Visit <span aria-hidden="true">→</span></span></span></a></li>
-        <li data-anim><a class="proj has-media" href="https://github.com/MoAbboud/PortFolio/tree/main/deploy" target="_blank" rel="noopener">
-          <span class="proj-media" aria-hidden="true">
-            <!-- .github/workflows/pages.yml and deploy/, as a picture. -->
-            <svg viewBox="0 0 400 100" preserveAspectRatio="xMidYMid meet">
-              <text class="m-cap" x="14" y="12">EVERY PUSH TO MAIN</text>
-              <rect class="m-box" x="14"  y="20" width="76" height="24" rx="3"/><text class="m-lbl" x="52"  y="36" text-anchor="middle">git push</text>
-              <path class="m-arrow" d="M94 32 H106 M101 28 L106 32 L101 36"/>
-              <rect class="m-box" x="110" y="20" width="84" height="24" rx="3"/><text class="m-lbl" x="152" y="36" text-anchor="middle">Actions</text>
-              <path class="m-arrow" d="M198 32 H210 M205 28 L210 32 L205 36"/>
-              <rect class="m-box" x="214" y="20" width="84" height="24" rx="3"/><text class="m-lbl" x="256" y="36" text-anchor="middle">allowlist</text>
-              <path class="m-arrow" d="M302 32 H314 M309 28 L314 32 L309 36"/>
-              <rect class="m-vivid" x="318" y="20" width="72" height="24" rx="3"/><text class="m-lbl m-on-vivid" x="354" y="36" text-anchor="middle">Pages</text>
-              <text class="m-cap" x="14" y="68">SERVICES</text>
-              <rect class="m-box" x="110" y="56" width="188" height="24" rx="3"/><text class="m-lbl" x="204" y="72" text-anchor="middle">Docker Compose + Caddy</text>
-              <path class="m-arrow" d="M302 68 H314 M309 64 L314 68 L309 72"/>
-              <rect class="m-box" x="318" y="56" width="72" height="24" rx="3"/><text class="m-lbl" x="354" y="72" text-anchor="middle">server</text>
-            </svg>
-          </span>
-          <h3>This Site</h3>
-          <p>The portfolio itself: an allowlist build for the static half, published by GitHub Actions on every push, and Docker Compose with Caddy for the services that run on a server.</p>
-          <span class="foot"><span>GitHub Actions · Docker · Caddy</span><span class="go">Code <span aria-hidden="true">→</span></span></span></a></li>
-      </ul>
-    </div>
-  </section>
+      <p class="eyebrow" data-anim><b>03</b><span class="sep"></span><span>Projects</span><span class="sep"></span><span class="count">Ten things I have built</span></p>
+      <h2 class="vh">Projects</h2>
+      <div class="spacer" style="height:clamp(12px,2vh,22px)"></div>
+      <div class="gallery" data-anim role="region" aria-roledescription="carousel" aria-label="Projects">
+        <div class="gal-viewport">
+          <ul class="gal-track">
+            <li class="gal-slide" aria-roledescription="slide"><a class="gal-card" href="/trail/">
+              <span class="gal-media"><video data-clip muted loop playsinline preload="none" width="800" height="450" poster="/resume/media/trail-poster.webp" aria-hidden="true"><source src="/resume/media/trail-loop.webm" type="video/webm"></video></span>
+              <span class="gal-body">
+                <span class="gal-top"><span class="n">01</span><span>WebGL2 · no engine</span></span>
+                <h3>Trail</h3>
+                <p>A voxel diorama a camera walks through on a timeline, for recording video. Hand-written WebGL2, no engine, 620 tests.</p>
+                <span class="go">Open <span aria-hidden="true">→</span></span>
+              </span></a></li>
 
-  <section class="page wide" id="projects-more" data-section="Projects">
-    <div class="page-inner">
-      <p class="eyebrow" data-anim><b>03</b><span class="sep"></span><span>Projects</span><span class="sep"></span><span>More, most open in the browser</span></p>
-      <h2 class="vh">Projects: more</h2>
-      <div class="spacer" style="height:clamp(14px,2.4vh,26px)"></div>
-      <ul class="proj-grid">
-        <li data-anim><a class="proj" href="/snowball/">
-          <span class="n">01</span><h3>Snowball</h3>
-          <p>Branching idea builder: a seed thought grows into a tree that exports as an essay.</p>
-          <span class="foot"><span>Static · localStorage</span><span class="go">Open <span aria-hidden="true">→</span></span></span></a></li>
-        <li data-anim><a class="proj" href="/tektak/">
-          <span class="n">02</span><h3>TekTak</h3>
-          <p>A hand-curated tracker for online drama, written as summaries rather than video.</p>
-          <span class="foot"><span>Static · localStorage</span><span class="go">Open <span aria-hidden="true">→</span></span></span></a></li>
-        <li data-anim><a class="proj" href="/story-generator/">
-          <span class="n">03</span><h3>Story Takes</h3>
-          <p>A story told in beats becomes a tree that reveals itself one beat at a time, for narration.</p>
-          <span class="foot"><span>Static · single file</span><span class="go">Open <span aria-hidden="true">→</span></span></span></a></li>
-        <li data-anim><a class="proj" href="/whereyago/">
-          <span class="n">04</span><h3>WhereYaGo</h3>
-          <p>A day logger: record a good day out stop by stop, then browse and copy other people’s.</p>
-          <span class="foot"><span>Static · localStorage</span><span class="go">Open <span aria-hidden="true">→</span></span></span></a></li>
-        <li data-anim><a class="proj" href="https://github.com/MoAbboud/PortFolio/tree/main/evaluaters" target="_blank" rel="noopener">
-          <span class="n">05</span><h3>Evaluaters</h3>
-          <p>Two AI-engineering pieces: a harness that scores structured extraction case by case, and typed GitHub tools for a triage agent.</p>
-          <span class="foot"><span>Python · LLM tooling</span><span class="go">Code <span aria-hidden="true">→</span></span></span></a></li>
-        <li data-anim><a class="proj" href="https://github.com/MoAbboud/PortFolio" target="_blank" rel="noopener">
-          <span class="n">06</span><h3>All The Code</h3>
-          <p>Every project above, with the requirements written before the code and the measurements kept in the repository, including the ones that fall short.</p>
-          <span class="foot"><span>GitHub</span><span class="go">Code <span aria-hidden="true">→</span></span></span></a></li>
-      </ul>
+            <li class="gal-slide" aria-roledescription="slide"><a class="gal-card" href="https://github.com/MoAbboud/PortFolio/tree/main/mailman" target="_blank" rel="noopener">
+              <span class="gal-media" aria-hidden="true">
+                <!-- Overall field accuracy of the last run of each label in mailman/evaluations/:
+                     baseline 329/438, attempt 1 504/538, attempt 2 526/538, attempt 3 529/538. -->
+                <svg viewBox="0 0 400 225" preserveAspectRatio="xMidYMid meet">
+                  <text class="m-cap" x="28" y="30">FIELD ACCURACY, FOUR EVALUATION RUNS</text>
+                  <line class="m-rule" x1="28" y1="52" x2="372" y2="52" stroke-dasharray="2 3"/>
+                  <text class="m-lbl" x="372" y="44" text-anchor="end">100%</text>
+                  <line class="m-axis" x1="28" y1="192" x2="372" y2="192"/>
+                  <rect class="m-mute"  x="42"  y="86.9" width="60" height="105.1" rx="3"/>
+                  <rect class="m-mute"  x="130" y="60.8" width="60" height="131.2" rx="3"/>
+                  <rect class="m-mute"  x="218" y="55.1" width="60" height="136.9" rx="3"/>
+                  <rect class="m-vivid" x="306" y="54.4" width="60" height="137.6" rx="3"/>
+                  <text class="m-val" x="72"  y="106" text-anchor="middle">75.1</text>
+                  <text class="m-val" x="160" y="80"  text-anchor="middle">93.7</text>
+                  <text class="m-val" x="248" y="80"  text-anchor="middle">97.8</text>
+                  <text class="m-val m-on-vivid" x="336" y="80" text-anchor="middle">98.3%</text>
+                  <text class="m-lbl" x="72"  y="210" text-anchor="middle">baseline</text>
+                  <text class="m-lbl" x="160" y="210" text-anchor="middle">attempt 1</text>
+                  <text class="m-lbl" x="248" y="210" text-anchor="middle">attempt 2</text>
+                  <text class="m-lbl" x="336" y="210" text-anchor="middle">attempt 3</text>
+                </svg>
+              </span>
+              <span class="gal-body">
+                <span class="gal-top"><span class="n">02</span><span>FastAPI · PostgreSQL · Docker</span></span>
+                <h3>Mailman</h3>
+                <p>Document intake: messy invoices in, validated records out, with a review queue for the ones it is unsure about. Its own evaluation reports 98.3% field accuracy against a 75.1% baseline; 355 tests.</p>
+                <span class="go">Code <span aria-hidden="true">→</span></span>
+              </span></a></li>
+
+            <li class="gal-slide" aria-roledescription="slide"><a class="gal-card" href="https://github.com/MoAbboud/PortFolio/tree/main/fallacysuspect" target="_blank" rel="noopener">
+              <span class="gal-media"><img src="/resume/media/fallacy-detector.webp" alt="" width="960" height="540" loading="lazy" decoding="async"></span>
+              <span class="gal-body">
+                <span class="gal-top"><span class="n">03</span><span>Python · PyTorch · Flask</span></span>
+                <h3>Fallacy Detector</h3>
+                <p>Flags passages that may lean on a logical fallacy, as a warning with a confidence, never a verdict. A DistilRoBERTa detector and a DistilBERT typer across 13 fallacy types, trained for the job; no hosted model, no API key.</p>
+                <span class="go">Code <span aria-hidden="true">→</span></span>
+              </span></a></li>
+
+            <li class="gal-slide" aria-roledescription="slide"><a class="gal-card" href="https://github.com/MoAbboud/PortFolio/tree/main/herder" target="_blank" rel="noopener">
+              <span class="gal-media" aria-hidden="true">
+                <!-- The idea, drawn: each line of the brief keeps links to the messages it came from. -->
+                <svg viewBox="0 0 400 225" preserveAspectRatio="xMidYMid meet">
+                  <text class="m-cap" x="40" y="30">CONVERSATION</text>
+                  <text class="m-cap" x="256" y="30">BRIEF</text>
+                  <rect class="m-mute" x="40" y="50"  width="130" height="12" rx="6"/>
+                  <rect class="m-mute" x="80" y="74"  width="90"  height="12" rx="6"/>
+                  <rect class="m-mute" x="40" y="98"  width="112" height="12" rx="6"/>
+                  <rect class="m-mute" x="62" y="122" width="108" height="12" rx="6"/>
+                  <rect class="m-mute" x="40" y="146" width="98"  height="12" rx="6"/>
+                  <rect class="m-mute" x="92" y="170" width="78"  height="12" rx="6"/>
+                  <path class="m-link" d="M256 84 C212 84 214 56 170 56"/>
+                  <path class="m-link" d="M256 84 C212 84 214 128 170 128"/>
+                  <path class="m-link" d="M256 116 C212 116 214 80 170 80"/>
+                  <path class="m-link" d="M256 116 C212 116 214 176 170 176"/>
+                  <path class="m-link" d="M256 148 C210 148 200 104 152 104"/>
+                  <path class="m-link" d="M256 148 C210 148 190 152 138 152"/>
+                  <rect class="m-vivid" x="256" y="76"  width="112" height="16" rx="3"/>
+                  <rect class="m-vivid" x="256" y="108" width="92"  height="16" rx="3"/>
+                  <rect class="m-vivid" x="256" y="140" width="102" height="16" rx="3"/>
+                </svg>
+              </span>
+              <span class="gal-body">
+                <span class="gal-top"><span class="n">04</span><span>FastAPI · pgvector · local models</span></span>
+                <h3>Herder</h3>
+                <p>Portable memory for AI chat: a long conversation becomes a compact brief where every line traces back to the messages it came from. Benchmarked against a plain summary at the same token budget, on a 261-fact answer key written by hand.</p>
+                <span class="go">Code <span aria-hidden="true">→</span></span>
+              </span></a></li>
+
+            <li class="gal-slide" aria-roledescription="slide"><a class="gal-card" href="https://pneumonia-x9mz.onrender.com/" target="_blank" rel="noopener">
+              <span class="gal-media" aria-hidden="true">
+                <!-- Drawn rather than captured: the app is moving hosts and getting a new interface. -->
+                <svg viewBox="0 0 400 225" preserveAspectRatio="xMidYMid meet">
+                  <rect class="m-film" x="40" y="38" width="116" height="150" rx="6"/>
+                  <ellipse class="m-lung" cx="78"  cy="118" rx="20" ry="48"/>
+                  <ellipse class="m-lung" cx="118" cy="118" rx="20" ry="48"/>
+                  <text class="m-cap m-on-film" x="50" y="58">X-RAY</text>
+                  <path class="m-arrow" d="M168 113 H204 M198 108 L204 113 L198 118"/>
+                  <rect class="m-box" x="212" y="95" width="84" height="36" rx="4"/>
+                  <text class="m-val" x="254" y="118" text-anchor="middle">model</text>
+                  <path class="m-arrow" d="M304 113 H322 M316 108 L322 113 L316 118"/>
+                  <text class="m-lbl" x="330" y="98">pneumonia</text>
+                  <rect class="m-vivid" x="330" y="104" width="48" height="7" rx="3.5"/>
+                  <text class="m-lbl" x="330" y="136">normal</text>
+                  <rect class="m-mute" x="330" y="142" width="18" height="7" rx="3.5"/>
+                </svg>
+              </span>
+              <span class="gal-body">
+                <span class="gal-top"><span class="n">05</span><span>Python · Deep Learning</span></span>
+                <h3>Pneumonia Detection</h3>
+                <p>Deep-learning application classifying chest X-rays for signs of pneumonia. Free hosting, so the first load takes about a minute to wake.</p>
+                <span class="go">Visit <span aria-hidden="true">→</span></span>
+              </span></a></li>
+
+            <li class="gal-slide" aria-roledescription="slide"><a class="gal-card" href="https://github.com/MoAbboud/PortFolio/tree/main/evaluaters" target="_blank" rel="noopener">
+              <span class="gal-media" aria-hidden="true">
+                <!-- The idea, drawn: a document goes through extraction and is scored field by field. -->
+                <svg viewBox="0 0 400 225" preserveAspectRatio="xMidYMid meet">
+                  <text class="m-cap" x="36" y="44">CASES</text>
+                  <rect class="m-box" x="36" y="58" width="72" height="104" rx="4"/>
+                  <rect class="m-mute" x="48" y="74"  width="48" height="6" rx="3"/>
+                  <rect class="m-mute" x="48" y="90"  width="36" height="6" rx="3"/>
+                  <rect class="m-mute" x="48" y="106" width="44" height="6" rx="3"/>
+                  <rect class="m-mute" x="48" y="122" width="30" height="6" rx="3"/>
+                  <rect class="m-mute" x="48" y="138" width="40" height="6" rx="3"/>
+                  <path class="m-arrow" d="M118 110 H140 M134 105 L140 110 L134 115"/>
+                  <rect class="m-box" x="148" y="92" width="80" height="36" rx="4"/>
+                  <text class="m-val" x="188" y="115" text-anchor="middle">extract</text>
+                  <path class="m-arrow" d="M236 110 H258 M252 105 L258 110 L252 115"/>
+                  <text class="m-cap" x="266" y="44">SCORED BY FIELD</text>
+                  <rect class="m-mute" x="266" y="62"  width="64" height="8" rx="4"/><circle class="m-vivid" cx="356" cy="66"  r="8"/><path class="m-tick" d="M352 66 L355 69 L360 63"/>
+                  <rect class="m-mute" x="266" y="86"  width="52" height="8" rx="4"/><circle class="m-vivid" cx="356" cy="90"  r="8"/><path class="m-tick" d="M352 90 L355 93 L360 87"/>
+                  <rect class="m-mute" x="266" y="110" width="70" height="8" rx="4"/><circle class="m-mute"  cx="356" cy="114" r="8"/><path class="m-cross" d="M353 111 L359 117 M359 111 L353 117"/>
+                  <rect class="m-mute" x="266" y="134" width="46" height="8" rx="4"/><circle class="m-vivid" cx="356" cy="138" r="8"/><path class="m-tick" d="M352 138 L355 141 L360 135"/>
+                  <rect class="m-mute" x="266" y="158" width="58" height="8" rx="4"/><circle class="m-vivid" cx="356" cy="162" r="8"/><path class="m-tick" d="M352 162 L355 165 L360 159"/>
+                </svg>
+              </span>
+              <span class="gal-body">
+                <span class="gal-top"><span class="n">06</span><span>Python · LLM tooling</span></span>
+                <h3>Evaluaters</h3>
+                <p>Two AI-engineering pieces: a harness that scores structured extraction case by case, and typed GitHub tools for a triage agent.</p>
+                <span class="go">Code <span aria-hidden="true">→</span></span>
+              </span></a></li>
+
+            <li class="gal-slide" aria-roledescription="slide" data-print="no"><a class="gal-card" href="/story-generator/">
+              <span class="gal-media"><img src="/resume/media/story-takes.webp" alt="" width="960" height="540" loading="lazy" decoding="async"></span>
+              <span class="gal-body">
+                <span class="gal-top"><span class="n">07</span><span>Static · single file</span></span>
+                <h3>Story Takes</h3>
+                <p>A story told in beats becomes a tree that reveals itself one beat at a time, for narration.</p>
+                <span class="go">Open <span aria-hidden="true">→</span></span>
+              </span></a></li>
+
+            <li class="gal-slide" aria-roledescription="slide" data-print="no"><a class="gal-card" href="/whereyago/">
+              <span class="gal-media"><img src="/resume/media/whereyago.webp" alt="" width="960" height="540" loading="lazy" decoding="async"></span>
+              <span class="gal-body">
+                <span class="gal-top"><span class="n">08</span><span>Static · localStorage</span></span>
+                <h3>WhereYaGo</h3>
+                <p>A day logger: record a good day out stop by stop, then browse and copy other people’s.</p>
+                <span class="go">Open <span aria-hidden="true">→</span></span>
+              </span></a></li>
+
+            <li class="gal-slide" aria-roledescription="slide" data-print="no"><a class="gal-card" href="/snowball/">
+              <span class="gal-media"><img src="/resume/media/snowball.webp" alt="" width="960" height="540" loading="lazy" decoding="async"></span>
+              <span class="gal-body">
+                <span class="gal-top"><span class="n">09</span><span>Static · localStorage</span></span>
+                <h3>Snowball</h3>
+                <p>Branching idea builder: a seed thought grows into a tree that exports as an essay.</p>
+                <span class="go">Open <span aria-hidden="true">→</span></span>
+              </span></a></li>
+
+            <li class="gal-slide" aria-roledescription="slide" data-print="no"><a class="gal-card" href="/tektak/">
+              <span class="gal-media"><img src="/resume/media/tektak.webp" alt="" width="960" height="540" loading="lazy" decoding="async"></span>
+              <span class="gal-body">
+                <span class="gal-top"><span class="n">10</span><span>Static · localStorage</span></span>
+                <h3>TekTak</h3>
+                <p>A hand-curated tracker for online drama, written as summaries rather than video.</p>
+                <span class="go">Open <span aria-hidden="true">→</span></span>
+              </span></a></li>
+          </ul>
+        </div>
+        <div class="gal-controls needs-js">
+          <button type="button" class="icon-btn gal-prev" aria-label="Previous project"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <button type="button" class="icon-btn gal-pause" aria-pressed="false" aria-label="Pause the gallery"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="i-pause" d="M9 6v12M15 6v12"/><path class="i-play" d="M8 5l11 7-11 7z"/></svg></button>
+          <button type="button" class="icon-btn gal-next" aria-label="Next project"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+          <div class="gal-dots" role="group" aria-label="Choose a project"></div>
+          <a class="gal-more" href="https://github.com/MoAbboud/PortFolio" target="_blank" rel="noopener"><span class="long">All the code, and how this site is built </span><span class="short">All code </span><span aria-hidden="true">→</span></a>
+        </div>
+        <p class="gal-live vh" aria-live="polite"></p>
+      </div>
     </div>
   </section>
 
@@ -1389,7 +1507,7 @@ let reduced = reduceMQ.matches;
 /* Addresses from before the pages had names (#1 to #8), so links
    already shared still land on the page they meant. */
 const LEGACY = ['index', 'experience-tekkii', 'experience-allied', 'capabilities',
-                'projects', 'projects-more', 'education', 'contact'];
+                'projects', 'projects', 'education', 'contact'];
 
 function init() {
   const pages = $$('.page', stage);
@@ -1478,6 +1596,7 @@ function init() {
   }
   /* On the stage, or read as one page (the document, chosen) */
   let staged = root.classList.contains('js');
+  let galSync = () => {}; // the gallery's clock, once it exists
   pages.forEach(p => setInert(p, staged));
 
   /* The safety valve hides its scrollbar, so the page says when there is more. */
@@ -1527,7 +1646,7 @@ function init() {
       inn.classList.add('is-active');
       $('.page-inner', inn).scrollTop = 0;
       updateMore(inn);
-      syncClips();
+      galSync();
       countUp(inn);
       if (hadFocus) focusInto(inn);
       setTimeout(() => { locked = false; }, t.unlock);
@@ -1562,6 +1681,7 @@ function init() {
     if (!h) return -1;
     const byId = pages.findIndex(p => p.id === h);
     if (byId !== -1) return byId;
+    if (h === 'projects-more') return pages.findIndex(p => p.id === 'projects'); // one page since the gallery
     if (/^[1-9]$/.test(h) && LEGACY[+h - 1]) return pages.findIndex(p => p.id === LEGACY[+h - 1]);
     return -1;
   }
@@ -1639,7 +1759,7 @@ function init() {
     tsx = e.touches[0].clientX; tsy = e.touches[0].clientY; tst = Date.now();
   }, { passive: true });
   stage.addEventListener('touchend', e => {
-    if (!staged) return;
+    if (!staged || (e.target.closest && e.target.closest('.gallery'))) return;
     const dx = e.changedTouches[0].clientX - tsx;
     const dy = e.changedTouches[0].clientY - tsy;
     if (Date.now() - tst > 700) return;
@@ -1674,15 +1794,6 @@ function init() {
     updateMore(pages[current]);
   });
 
-  /* Project card pointer glow */
-  stage.addEventListener('pointermove', e => {
-    const card = e.target.closest('.proj');
-    if (!card) return;
-    const r = card.getBoundingClientRect();
-    card.style.setProperty('--mx', (e.clientX - r.left) + 'px');
-    card.style.setProperty('--my', (e.clientY - r.top) + 'px');
-  });
-
   /* ---- clips ------------------------------------------------
      A clip plays only while its page is on stage and the tab is
      visible, never under reduced motion or Save-Data, and is not
@@ -1691,7 +1802,9 @@ function init() {
   function syncClips() {
     const saveData = !!(navigator.connection && navigator.connection.saveData);
     clips.forEach(v => {
-      const inView = staged ? current >= 0 && pages[current].contains(v) : v.seen === true;
+      const slide = v.closest('.gal-slide');
+      const inView = (staged ? current >= 0 && pages[current].contains(v) : v.seen === true) &&
+                     (!slide || slide.classList.contains('is-current'));
       const on = !reduced && !saveData && !document.hidden && inView;
       if (on) {
         v.muted = true;
@@ -1717,6 +1830,167 @@ function init() {
     syncClips();
   }, { threshold: 0.3 });
   clips.forEach(v => clipIO.observe(v));
+
+  /* ---- gallery ----------------------------------------------
+     One card in front, neighbours peeking in depth, endless both
+     ways. It moves on its own while it is on screen, and holds still
+     for a pointer over it, focus inside it, a hidden tab, reduced
+     motion, or the pause button (auto-moving content must have one).
+     Swipe or drag, the arrows, the dots, a click on a side card, or
+     the arrow keys from inside it move it by hand. */
+  const gal = $('.gallery', stage);
+  if (gal) (function () {
+    const INTERVAL = 5500;
+    const slides = $$('.gal-slide', gal);
+    const n = slides.length;
+    const viewport = $('.gal-viewport', gal);
+    const dotsBox = $('.gal-dots', gal);
+    const liveBox = $('.gal-live', gal);
+    const pauseBtn = $('.gal-pause', gal);
+    const prevD = slides.map(() => 0);
+    let active = 0, userPaused = false, hovering = false, focusInside = false, seen = false, timer = 0;
+
+    gal.classList.add('is-live');
+    gal.style.setProperty('--gal-interval', INTERVAL + 'ms');
+
+    const dots = slides.map((s, i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'gal-dot';
+      b.setAttribute('aria-label', `Project ${i + 1}: ${$('h3', s).textContent}`);
+      b.addEventListener('click', () => show(i, true));
+      dotsBox.appendChild(b);
+      return b;
+    });
+
+    const wrap = i => ((i % n) + n) % n;
+
+    function layout() {
+      const card = slides[active].offsetWidth || 1;
+      const step = card * (gal.offsetWidth < 700 ? 0.93 : 0.8);
+      slides.forEach((s, i) => {
+        let d = wrap(i - active);
+        if (d > n / 2) d -= n;
+        const a = Math.abs(d);
+        /* Cards going round the back move while unseen, without a transition. */
+        s.style.transition = a > 2 && Math.abs(prevD[i]) > 2 ? 'none' : '';
+        s.style.transform = `translateX(${d * step}px) scale(${1 - Math.min(a, 3) * 0.16}) rotateY(${-d * 8}deg)`;
+        s.style.opacity = a === 0 ? '1' : a === 1 ? '.5' : a === 2 ? '.16' : '0';
+        s.style.zIndex = String(10 - a);
+        s.style.pointerEvents = a > 1 ? 'none' : '';
+        const front = d === 0;
+        s.classList.toggle('is-current', front);
+        s.setAttribute('aria-hidden', String(!front));
+        s.setAttribute('aria-label', `${i + 1} of ${n}`);
+        $('a', s).tabIndex = front ? 0 : -1;
+        prevD[i] = d;
+      });
+      dots.forEach((b, i) => b.setAttribute('aria-current', String(i === active)));
+    }
+
+    function onScreen() {
+      return staged ? current >= 0 && pages[current].contains(gal) : seen;
+    }
+    function running() {
+      return !reduced && !userPaused && !hovering && !focusInside && !document.hidden && onScreen();
+    }
+    /* Restart the clock, and the dot that shows it. */
+    function schedule() {
+      clearTimeout(timer);
+      const on = running();
+      gal.classList.toggle('is-running', on);
+      dots.forEach(b => b.classList.remove('is-timing'));
+      if (on) {
+        void dots[active].offsetWidth;
+        dots[active].classList.add('is-timing');
+        timer = setTimeout(() => show(active + 1, false), INTERVAL);
+      }
+      syncClips();
+    }
+    function show(i, byHand) {
+      active = wrap(i);
+      layout();
+      if (byHand) liveBox.textContent = `Project ${active + 1} of ${n}: ${$('h3', slides[active]).textContent}`;
+      schedule();
+    }
+    galSync = schedule;
+
+    $('.gal-prev', gal).addEventListener('click', () => show(active - 1, true));
+    $('.gal-next', gal).addEventListener('click', () => show(active + 1, true));
+    pauseBtn.addEventListener('click', () => {
+      userPaused = !userPaused;
+      pauseBtn.setAttribute('aria-pressed', String(userPaused));
+      pauseBtn.setAttribute('aria-label', userPaused ? 'Play the gallery' : 'Pause the gallery');
+      schedule();
+    });
+
+    gal.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') { hovering = true; schedule(); } });
+    gal.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') { hovering = false; schedule(); } });
+    /* Keyboard focus holds it still; the focus a mouse click leaves behind does not. */
+    gal.addEventListener('focusin', () => { focusInside = !!gal.querySelector(':focus-visible'); schedule(); });
+    gal.addEventListener('focusout', e => { if (!gal.contains(e.relatedTarget)) { focusInside = false; schedule(); } });
+
+    /* Arrow keys move the gallery, not the page, while focus is inside it. */
+    gal.addEventListener('keydown', e => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      e.preventDefault();
+      e.stopPropagation();
+      show(active + (e.key === 'ArrowRight' ? 1 : -1), true);
+      $('a', slides[active]).focus({ preventScroll: true });
+    });
+
+    /* A side card is a way to get to it, not a link yet. */
+    viewport.addEventListener('click', e => {
+      const slide = e.target.closest('.gal-slide');
+      if (dragged) { e.preventDefault(); dragged = false; return; }
+      if (slide && !slide.classList.contains('is-current')) {
+        e.preventDefault();
+        show(slides.indexOf(slide), true);
+      }
+    });
+
+    /* Swipe and drag. touch-action: pan-y leaves vertical scrolling to the page. */
+    let sx = 0, sy = 0, down = false, dragged = false;
+    viewport.addEventListener('pointerdown', e => {
+      if (e.button !== 0) return;
+      down = true; dragged = false; sx = e.clientX; sy = e.clientY;
+    });
+    viewport.addEventListener('pointerup', e => {
+      if (!down) return;
+      down = false;
+      const dx = e.clientX - sx, dy = e.clientY - sy;
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+        dragged = true;
+        show(active + (dx < 0 ? 1 : -1), true);
+      }
+    });
+    viewport.addEventListener('pointercancel', () => { down = false; });
+    viewport.addEventListener('dragstart', e => e.preventDefault());
+
+    /* A sideways trackpad swipe over the gallery moves the cards, not the page. */
+    let wx = 0, wt = 0, wlock = 0;
+    viewport.addEventListener('wheel', e => {
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (performance.now() < wlock) return; // one swipe, one card, however long its inertia
+      wx += e.deltaX;
+      clearTimeout(wt);
+      wt = setTimeout(() => { wx = 0; }, 200);
+      if (Math.abs(wx) > 60) { show(active + (wx > 0 ? 1 : -1), true); wx = 0; wlock = performance.now() + 550; }
+    }, { passive: false });
+
+    /* Read as one page, it runs only while it is on screen. */
+    new IntersectionObserver(entries => {
+      seen = entries[0].isIntersecting;
+      schedule();
+    }, { threshold: 0.35 }).observe(gal);
+
+    addEventListener('resize', layout);
+    document.addEventListener('visibilitychange', schedule);
+    reduceMQ.addEventListener('change', schedule);
+    layout();
+  })();
 
   /* ---- counters: the markup holds the real number ----------- */
   function countUp(page) {
@@ -1761,7 +2035,7 @@ function init() {
      browser only. Switching keeps the reader where they were. */
   const viewBtn = $('#viewBtn');
   const paintView = () => viewBtn.setAttribute('aria-pressed', String(!staged));
-  function setView(toStage) {
+  function setView(toStage, remember = true) {
     if (toStage === staged) return;
     let target = Math.max(current, 0);
     if (toStage) {
@@ -1783,10 +2057,27 @@ function init() {
       sync(false);
     }
     paintView();
-    syncClips();
-    try { localStorage.setItem('ma-view', staged ? 'stage' : 'page'); } catch (err) {}
+    galSync();
+    if (remember) try { localStorage.setItem('ma-view', staged ? 'stage' : 'page'); } catch (err) {}
   }
   viewBtn.addEventListener('click', () => setView(!staged));
+
+  /* The hint shows by itself for ten seconds to a reader on the stage who has never
+     picked a view, and goes as soon as they use the button or the hint. */
+  const viewHint = $('#viewHint');
+  let hintTimer = 0;
+  const hideHint = () => { clearTimeout(hintTimer); viewHint.classList.remove('is-shown'); };
+  viewHint.addEventListener('click', () => { hideHint(); setView(false); });
+  viewBtn.addEventListener('click', hideHint);
+  let chosen = null;
+  try { chosen = localStorage.getItem('ma-view'); } catch (err) {}
+  if (staged && !chosen) {
+    setTimeout(() => {
+      if (!staged) return;
+      viewHint.classList.add('is-shown');
+      hintTimer = setTimeout(hideHint, 10000);
+    }, 1200);
+  }
   paintView();
 
   /* ---- ambient: reticle + blob parallax ----------------------
@@ -1807,7 +2098,7 @@ function init() {
     addEventListener('pointermove', e => {
       px = e.clientX; py = e.clientY;
       reticle.classList.add('on');
-      reticle.classList.toggle('hot', !!e.target.closest('a, button, summary, .proj, .contact-row'));
+      reticle.classList.toggle('hot', !!e.target.closest('a, button, summary, .gal-card, .contact-row'));
       if (!raf) raf = requestAnimationFrame(tick);
     }, { passive: true });
     document.documentElement.addEventListener('pointerleave', () => reticle.classList.remove('on'));
