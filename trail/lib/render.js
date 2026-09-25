@@ -354,6 +354,29 @@ void main() {
   vec3 colour = vColour * (0.30 * ao + 0.50 * lambert * mix(0.55, 1.0, ao)
     + 0.26 * sky * ao) * uAmbient;
 
+  /**
+   * **A dark scene, not an unlit one.**
+   *
+   * Once the sun is under the horizon the lambert term is nought almost
+   * everywhere and
+   * all that is left is ambient, which the evening has already pulled down to
+   * about four tenths. Measured at 19:20 that leaves a face holding 17 to 37
+   * per cent of its own colour before occlusion, and a model that is dark to
+   * begin with - asphalt, a navy car - lands on a black cut-out standing in
+   * front of a black sky. The complaint was exactly that: the scene should be
+   * dark, the objects should not be pitch black.
+   *
+   * There is still a sky at night, so this fills from it. Three things make it
+   * read as night rather than as a brightness slider:
+   *   - it only exists below the horizon, fading in as the sun sets;
+   *   - it is shaped by the normal, so an object keeps its form instead of
+   *     flattening into a silhouette;
+   *   - it takes the backdrop's colour, so the fill is the colour of the sky
+   *     doing the filling, and stays cool while daylight stays warm.
+   */
+  float night = clamp(-normalize(uSun).y * 3.0, 0.0, 1.0);
+  colour += mix(vColour, uBackdrop, 0.35) * night * (0.10 + 0.14 * sky) * ao;
+
   // **The room, then the light in it.** Dimming first and adding the spot
   // after is what makes a spotlight read as the only light in the place rather
   // than as a bright patch laid over a lit world.
