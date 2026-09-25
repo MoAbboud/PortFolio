@@ -1979,6 +1979,17 @@ test('the overview is lit whatever the step it was called from was doing', async
   night.steps = night.steps.map((s) => ({ ...s, weather: 'storm', hour: 2 }));
   await openCanvas(stub, night);
 
+  // **Put the clock on the film**, by clicking the first mark on the bar, the
+  // way a person would. Opening a canvas does not move the clock, so without
+  // this the scene is a storm at whatever the clock already read - noon - and
+  // the line below would be asserting something that is not on screen.
+  //
+  // It passed without the click until the hour stopped being applied three
+  // times over (see dryOf in weather.js): everything was dark then, whatever
+  // the clock said, so a premise that was never true looked true.
+  stub.element('ticks').children[0].listeners.get('click')?.[0]?.();
+  await settle();
+
   const dark = stub.win.__trail.at();
   assert.ok(dark.ambient < 0.5,
     `a storm at two in the morning should be dark, and it is at ${dark.ambient.toFixed(2)}`);

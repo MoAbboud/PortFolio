@@ -374,8 +374,32 @@ void main() {
    *   - it takes the backdrop's colour, so the fill is the colour of the sky
    *     doing the filling, and stays cool while daylight stays warm.
    */
-  float night = clamp(-normalize(uSun).y * 3.0, 0.0, 1.0);
-  colour += mix(vColour, uBackdrop, 0.35) * night * (0.10 + 0.24 * sky) * ao;
+  // **Keyed to how little light there is, not to where the sun is.**
+  //
+  // This first asked the sun: below the horizon, fill in. That misses half of
+  // what makes a scene dark, because the hour's light is multiplied by the
+  // weather's - a storm at five in the afternoon sits at 0.46 with the sun
+  // still up, and got nothing. Raising the night number did nothing for those
+  // scenes, which is exactly what was reported: "brightness hasn't changed".
+  //
+  // The shortfall in ambient covers both, and reads as one idea rather than
+  // two: the less light the scene has of its own, the more the sky fills in.
+  // It is also how overcast really behaves - the cloud that takes the sun
+  // away is a soft source in its place. At full daylight the shortfall is
+  // nought, so noon is untouched.
+  //
+  // **The tint has to be light.** Mixing a third of the way to the backdrop
+  // was mixing a third of the way to black - a night sky's luminance is about
+  // 0.16 - so the fill was cutting itself by a third at exactly the hour it
+  // existed for. A sixth is enough to read as cool.
+  // The numbers were set while the ambient reaching this shader was six times
+  // too small - see dryOf in weather.js - so they were doing the work of a
+  // bug as well as their own. Re-fitted against the light that is actually
+  // there: at a clear nine at night a lit face keeps about half its colour and
+  // a shadowed one about a third, which is a scene you can read at a glance
+  // and still call night.
+  float shortfall = clamp(1.0 - uAmbient, 0.0, 1.0);
+  colour += mix(vColour, uBackdrop, 0.15) * shortfall * (0.12 + 0.47 * sky) * ao;
 
   // **The room, then the light in it.** Dimming first and adding the spot
   // after is what makes a spotlight read as the only light in the place rather
