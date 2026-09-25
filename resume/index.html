@@ -738,35 +738,63 @@ h2.head .thin { font-weight: 200; color: var(--accent-text); }
 .gal-more .short { display: none; }
 
 @media screen {
-  .gallery.is-live { --card-w: min(600px, 56vw); }
   .gallery.is-live .gal-viewport {
-    position: relative; overflow: hidden; padding: 4px 0 16px;
+    position: relative; overflow: hidden; padding: 4px 0 14px;
     touch-action: pan-y; user-select: none; -webkit-user-select: none;
-    perspective: 1600px;
+    mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
   }
-  .gallery.is-live .gal-track { grid-template-columns: 1fr; justify-items: center; gap: 0; }
+  .gallery.is-live .gal-track { grid-template-columns: 1fr; justify-items: center; align-items: center; gap: 0; }
   .gallery.is-live .gal-slide {
     grid-area: 1 / 1; width: var(--card-w);
-    transition: transform .85s var(--ease-out), opacity .6s var(--ease);
+    transition: transform .9s var(--ease-out), width .9s var(--ease-out), height .9s var(--ease-out), opacity .6s var(--ease);
     will-change: transform;
   }
   .gallery.is-live .gal-media { aspect-ratio: auto; height: min(calc(var(--card-w) * 9 / 16), 36vh); }
   .gallery.is-live .gal-slide:not(.is-current) .gal-card { cursor: pointer; }
-  /* Side cards show their picture; their words wait until they come to the front. */
   .gallery.is-live .gal-body { transition: opacity .5s var(--ease); }
-  .gallery.is-live .gal-slide:not(.is-current) .gal-body { opacity: .12; }
-  .gallery.is-live .gal-viewport {
-    mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
-    -webkit-mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
-  }
+  .gallery.is-live .gal-slide:not(.is-current) .gal-body { opacity: .35; }
   .gallery.is-live .gal-card img, .gallery.is-live .gal-card video { -webkit-user-drag: none; }
   /* The card in front drifts slowly, so a still picture reads as alive too. */
   .gallery.is-live .gal-slide.is-current .gal-media img,
   .gallery.is-live .gal-slide.is-current .gal-media svg { animation: gal-drift 10s ease-in-out infinite alternate; }
   @keyframes gal-drift { from { transform: scale(1.01); } to { transform: scale(1.09) translate(-1.5%, -1%); } }
+
+  /* Wide screens: the card in front opens into a picture across the stage, its words on a
+     panel floating at the bottom. As it leaves it closes back into a card, and the next
+     card opens as it arrives. A card at the side is its picture and its name. */
+  .gallery.is-wide .gal-card { position: relative; height: 100%; border-radius: 14px; }
+  .gallery.is-wide .gal-media { position: absolute; inset: 0; height: auto; border: 0; }
+  .gallery.is-wide .gal-media svg { height: 100%; transition: height .8s var(--ease-out); }
+  .gallery.is-wide .gal-slide.is-current .gal-media svg { height: 56%; }
+  .gallery.is-wide .gal-slide:not(.is-current) .gal-body { opacity: 0; }
+  .gallery.is-wide .gal-body {
+    position: absolute; left: 50%; bottom: clamp(12px, 2.2vh, 20px); z-index: 1; flex: none;
+    width: min(560px, 78%); gap: 5px;
+    background-color: color-mix(in srgb, var(--bg) 90%, transparent);
+    -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2);
+    border: 1px solid var(--line); border-radius: 12px;
+    box-shadow: 0 18px 40px -22px color-mix(in srgb, var(--fg) 55%, transparent);
+    opacity: 0; transform: translate(-50%, 14px); pointer-events: none;
+    transition: opacity .3s var(--ease), transform .45s var(--ease-out);
+  }
+  .gallery.is-wide .gal-slide.is-current .gal-body {
+    opacity: 1; transform: translate(-50%, 0); pointer-events: auto; transition-delay: .5s;
+  }
+  .gallery.is-wide .gal-card::after {
+    content: attr(data-name); position: absolute; left: 12px; bottom: 12px;
+    font: 700 .62rem/1 var(--font-mono); letter-spacing: .14em; text-transform: uppercase;
+    color: var(--fg); background-color: color-mix(in srgb, var(--bg) 88%, transparent);
+    padding: 7px 10px; border-radius: 6px; transition: opacity .3s var(--ease);
+  }
+  .gallery.is-wide .gal-slide.is-current .gal-card::after { opacity: 0; }
 }
 @media (max-width: 640px) {
-  .gallery.is-live { --card-w: 84vw; }
+  /* Lighter edges on a phone, so the next card plainly shows. */
+  .gallery.is-live .gal-viewport {
+    mask-image: linear-gradient(to right, transparent, #000 2%, #000 98%, transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 2%, #000 98%, transparent);
+  }
   .gal-controls { flex-wrap: wrap; }
   .gal-dot { width: 17px; }
   .gal-more { flex-basis: 100%; text-align: center; padding-top: 6px; }
@@ -964,7 +992,11 @@ h2.head .thin { font-weight: 200; color: var(--accent-text); }
 
   /* the selected projects, two columns; the inline positions the gallery set are undone */
   .gal-track { display: grid !important; grid-template-columns: 1fr 1fr; gap: 2mm 6mm; }
-  .gal-slide { transform: none !important; opacity: 1 !important; width: auto !important; break-inside: avoid; }
+  .gal-slide { transform: none !important; opacity: 1 !important; width: auto !important; height: auto !important; break-inside: avoid; }
+  .gal-track { height: auto !important; }
+  .gal-body { position: static !important; transform: none !important; opacity: 1 !important; width: auto !important;
+              background: none !important; border: 0 !important; box-shadow: none !important; backdrop-filter: none !important; }
+  .gal-card::after { display: none !important; }
   .gal-card { display: block; border: 0; border-radius: 0; box-shadow: none; background: none; }
   .gal-body { display: block; padding: 0; }
   .gal-top { display: block; font-size: 6.5pt; margin-bottom: .5mm; }
@@ -1865,17 +1897,40 @@ function init() {
 
     const wrap = i => ((i % n) + n) % n;
 
+    const track = $('.gal-track', gal);
+    slides.forEach(s => { $('.gal-card', s).dataset.name = $('h3', s).textContent; });
+
+    /* Wide: the front card is 1.6 times a side card and as tall as the stage allows.
+       Narrow: every card the same size, narrow enough that the next one shows. */
     function layout() {
-      const card = slides[active].offsetWidth || 1;
-      const step = card * (gal.offsetWidth < 700 ? 0.93 : 0.8);
+      const gw = viewport.clientWidth || 1;
+      const wide = gw >= 700;
+      gal.classList.toggle('is-wide', wide);
+      let frontW, frontH = 0, cardW, cardH = 0, gap;
+      if (wide) {
+        frontW = Math.min(880, gw * 0.7);
+        frontH = Math.round(Math.min(frontW * 9 / 16, innerHeight * 0.56));
+        cardW = frontW / 1.6;
+        cardH = Math.round(frontH * 0.8);
+        gap = 22;
+        track.style.height = frontH + 'px';
+      } else {
+        frontW = cardW = Math.min(320, gw * 0.7);
+        gap = Math.max(10, gw * 0.03);
+        track.style.height = '';
+      }
+      gal.style.setProperty('--card-w', cardW + 'px');
       slides.forEach((s, i) => {
         let d = wrap(i - active);
         if (d > n / 2) d -= n;
         const a = Math.abs(d);
+        const x = a === 0 ? 0 : Math.sign(d) * (frontW / 2 + gap + cardW / 2 + (a - 1) * (cardW + gap));
         /* Cards going round the back move while unseen, without a transition. */
         s.style.transition = a > 2 && Math.abs(prevD[i]) > 2 ? 'none' : '';
-        s.style.transform = `translateX(${d * step}px) scale(${1 - Math.min(a, 3) * 0.16}) rotateY(${-d * 8}deg)`;
-        s.style.opacity = a === 0 ? '1' : a === 1 ? '.5' : a === 2 ? '.16' : '0';
+        s.style.transform = `translateX(${x}px)` + (wide || a === 0 ? '' : ' scale(.92)');
+        s.style.width = (a === 0 ? frontW : cardW) + 'px';
+        s.style.height = wide ? (a === 0 ? frontH : cardH) + 'px' : '';
+        s.style.opacity = a === 0 ? '1' : a === 1 ? (wide ? '.9' : '.75') : a === 2 ? '.45' : '0';
         s.style.zIndex = String(10 - a);
         s.style.pointerEvents = a > 1 ? 'none' : '';
         const front = d === 0;
