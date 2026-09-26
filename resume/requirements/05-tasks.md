@@ -1,94 +1,40 @@
-# Interactive Resume - Task list
+# Interactive Resume - Tasks
 
-Status key: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
+Checked means done and verified. "Verified" here means exercised in a real browser (headless
+Chrome driven over the DevTools protocol, unless it says otherwise), not only written.
 
-## Built in the rebuild
+## Built and verified
 
-- [x] Fixed stage exactly one viewport high, with the document unable to scroll
-- [x] Seven pages across six sections, with sections derived from the page list
-- [x] Experience paged one role at a time, so no content is cut to make a screen fit
-- [x] Lateral axis: every animated element travels on X
-- [x] Vertical input mapped onto lateral movement, in the keyboard, the wheel and touch
-- [x] Wheel reads whichever of the two axes is larger, so horizontal trackpad gestures work
-- [x] Direction-aware transitions, forward and backward genuinely different
-- [x] Light theme as the default and the designed-first theme
-- [x] Six section hues, applied by one root attribute so everything accented cross-fades
-- [x] Vivid and ink form for each hue, so small text keeps its contrast on a light ground
-- [x] Per-card and per-column hues on Projects and Capabilities
-- [x] Horizontal section rail replacing the vertical rail and the header navigation
-- [x] Stagger driven by a CSS index rather than scheduled in JavaScript
-- [x] Masked line reveals on the display type
-- [x] Navigation locked during a transition, so input cannot outrun the animation
-- [x] Keyboard: arrows, page keys, space, home, end, digits for sections
-- [x] Wheel read as intent, accumulated and thresholded for trackpads
-- [x] Touch swipe, horizontal and vertical
-- [x] Section rail, header navigation, mobile menu, page counter, paging arrows
-- [x] Address hash carrying the page number, readable and writable, so a page can be linked
-- [x] Content rendered from lists, one renderer per page kind
-- [x] Role tags drawn only from technologies the same role's bullets name
-- [x] Capability groups as four columns, collapsing to one group at a time on a narrow screen
-- [x] Project cards with a pointer-tracked glow
-- [x] Counters animating on arrival
-- [x] Pointer reticle and parallax halo, both skipped without a hover-capable pointer
-- [x] Both themes complete, and the theme remembered as the only thing stored
-- [x] Storage wrapped, so a browser refusing it falls back rather than throwing
-- [x] Offscreen pages inert, so they are neither tabbable nor read by assistive technology
-- [x] Position announced to assistive technology when it changes
-- [x] Visible focus indicator using the accent colour
-- [x] Reduced motion honoured: transitions removed rather than shortened, pointer effects and
-      grain removed entirely
-- [x] Print stylesheet collapsing the stage back into a stacked document
-- [x] Self-assessed proficiency percentages removed, since nothing supported them
-- [x] Verified no external resource loads of any kind
+- [x] Content in the markup; the page reads as a document without script
+- [x] Stage: lateral, direction-aware motion; keys, wheel, swipe, rail, pager, number keys
+- [x] Named addresses (`#projects`), with the old numeric ones and `#projects-more` still resolving
+- [x] Focus follows the reader between pages; visible focus in both themes
+- [x] Reduced motion stops motion, counting, the gallery and the clip
+- [x] Contrast measured: small labels 5.4:1 light, 5.5:1 dark; large display words 3:1 or better
+- [x] Link-preview tags and image; favicon and touch icon
+- [x] Print gives a two-page resume; the PDF is generated from it with working links
+- [x] Headline-first experience; one detail open at a time per role
+- [x] One-page view, remembered; "Change to one page" note for first-time visitors
+- [x] Project gallery: auto-advance, pause controls, endless in both directions, swipe, drag, keys, side-card click, the front card opening into its picture
+- [x] Trail clip plays only when its card is in front and on screen
+- [x] Capabilities: five groups, evidence panel, unproven skills marked
+- [x] Self-hosted Geist and Geist Mono with their licence
+- [x] No stage page needs its internal scroll at 1920x1080, 1440x900, 1366x768, 1280x720 or 820x1180
+- [x] An idle page requests no animation frames
+- [x] Checked on a real phone (the author)
 
-## Verification still to do
+## Open
 
-The page is built. These are the checks that have not been performed, and none of them
-should be reported as done until they have been.
+- [ ] Safari, desktop and iPhone: the stage, the gallery clip (WebM), backdrop blur on the gallery panel
+- [ ] Firefox: exclusive `<details>` (needs 130+), the gallery, the fonts
+- [ ] A screen reader, end to end: the stage's slide announcements, the gallery's carousel semantics, the evidence panel
+- [ ] Turn the layout and behaviour checks into tests that run in CI on every push
+- [ ] Fallacy Detector and Pneumonia Detection link to live apps once hosted
+- [ ] A real screenshot for Pneumonia Detection after its new interface
+- [ ] Herder: drop "In progress" once testing is done and a demo exists
+- [ ] Update the Claude Design project to the current page
 
-- [ ] Read the whole page from a keyboard alone, on a real browser, and confirm focus never
-      lands on an offscreen page
-- [ ] Confirm the reduced-motion path with the preference actually set, not just in the code
-- [ ] Measure contrast in both themes, including the muted text, the faint monospace labels
-      and **each of the six accent inks** on each background. Amber is the one most likely to
-      fail, and the ink forms were chosen by eye rather than measured
-- [ ] Confirm the six hues are distinguishable to a reader with colour vision deficiency, or
-      confirm that nothing depends on colour alone. The rail carries names as well as
-      colours, which should be enough, but it has not been checked
-- [ ] Print to a file in both themes and confirm the result is a usable document
-- [ ] Check every page at 1280x720 and 1366x768, the two sizes most likely to overfill
-- [ ] Check the capabilities page on a narrow screen, since it is the densest
-- [ ] Confirm the safety valve is not engaging at ordinary laptop sizes on any page
-- [ ] Test on a touch device: swipe thresholds, the menu, and the missing reticle
-- [ ] Confirm every outbound link goes somewhere
+## Optional
 
-## Known gaps
-
-- [ ] **The Claude Design project is stale.** It holds the abandoned dark, single-orange,
-      vertically-moving scheme. Re-push it once the visual direction settles rather than
-      after every iteration
-
-- [ ] **No JavaScript means no content.** The stage is built by script, so a reader with
-      script disabled gets an empty page. The previous version degraded to a readable
-      document. Decide whether to accept this, or to author the pages in markup and have the
-      script only take over navigation
-- [ ] The `story generator` sibling app is not linked. It has no `index.html`, only
-      `breakdown-takes.html`, and the projects grid is built for six cards
-- [ ] `fallacysuspect` and `evaluaters` link to the GitHub profile rather than to
-      themselves, because neither has a web entry point
-
-## Keep it current
-
-- [ ] Review the content against reality whenever anything changes
-- [ ] Re-check that each role's tags are still named in that role's own bullets
-- [ ] Confirm every outbound link still goes somewhere
-- [ ] If a role is added, confirm the Experience section still fits its pages
-
-## Explicitly not doing
-
-- Scrolling or zooming as a navigation model. Both were offered and rejected.
-- Any analytics, tracking, or visit counting.
-- A contact form. Nothing would receive it.
-- A back end, an account, or a content management system.
-- Proficiency scores against capabilities.
-- Tailored versions of the resume per application.
+- [ ] Sections easing in as they scroll in the one-page view (CSS scroll-driven, fails soft)
+- [ ] A short clip for Story Takes revealing its tree, like Trail's

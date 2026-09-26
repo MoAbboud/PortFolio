@@ -1,78 +1,56 @@
 # Interactive Resume - Overview
 
-Public document. Behaviour only.
+## What it is
 
-## What this is
+The front page of moabboud.dev: Mohamad Abboud's resume, written for three readers at once.
+A recruiter should know who this is and how to reach Mohamad within ten seconds, often on a
+phone. A hiring manager should find the numbers and the projects within a minute or two. An
+engineer who opens the source should find something worth asking about.
 
-A resume that occupies exactly one screen and never scrolls. The content is divided into
-seven pages across six sections, and the reader moves **sideways** through them - the way
-they would move through a presentation rather than the way they would move through a
-document.
+It is one hand-written page. No framework, no build step for the page itself, no requests to
+anyone else's servers, no tracking.
 
-Movement is lateral whatever the reader does to cause it. Pressing down, scrolling down or
-swiping up all travel to the right, because the page has one axis and it is horizontal.
+## How it reads
 
-Each of the six sections carries its own colour on a light ground, so moving across the
-resume moves through colour as well as through content, and a reader always has a second cue
-telling them where they are.
+The resume is eight pages across six sections:
 
-It is also, quietly, part of the argument it makes. A resume claiming front-end ability
-should be evidence of it, so this one is hand-written in a single file with no framework, no
-build step and no dependency of any kind. It opens from a file on disk with no server.
+| Section | Pages | What it holds |
+| --- | --- | --- |
+| Index | 1 | Name, title, availability, summary, four headline numbers, contact links |
+| Experience | 3 | Independent projects (2026 to now), Tekkii, Allied Engineering Group, one role per page |
+| Capabilities | 1 | Skills in five groups, each showing where it was used |
+| Projects | 1 | A gallery of ten projects with pictures of the real work |
+| Education | 1 | The master's degree and its course project |
+| Contact | 1 | Email, LinkedIn, GitHub, the PDF, location |
 
-## The problem it addresses
+There are two ways to read it, and the reader chooses:
 
-A resume gets a short first look, and a long scrolling page spends that look badly. The
-reader arrives at the top, scrolls past whatever does not interest them, and forms an
-impression from whatever happened to be in view.
-
-Removing the scrollbar changes what the page can do. Every unit of content is composed to fit
-the screen it is on, which means nothing is ever half-visible, nothing is competing for
-attention with the thing below it, and the reader is always looking at one complete idea.
-
-## What it does
-
-| Capability | Description |
+| View | How it behaves |
 | --- | --- |
-| Present one thing at a time | Seven pages, each composed to fit the screen exactly. Nothing scrolls |
-| Move sideways | Every page arrives from one side and leaves by the other. Vertical input is mapped onto the same lateral movement |
-| Move deliberately | Arrow keys, page keys, digits, the wheel, a swipe, or the section rail. Movement is a choice the reader makes |
-| Move differently in each direction | Going forward and going back are visibly different, so the reader knows which way they went |
-| Change colour as it goes | Six sections, six hues on a light ground. The background, the marks and the rules all shift together on arrival |
-| Separate the two roles | Work history is one role per page, at full detail, rather than two roles competing for one screen |
-| Group capabilities | Four groups, shown as four columns on a wide screen and one group at a time on a narrow one |
-| Show the work | Project cards linking out to what is running |
-| Remember the theme | Light or dark, chosen by the reader and remembered on their next visit |
-| Say where you are | A page counter, a section rail and an address that updates, so a page can be linked to directly |
-| Collapse for print | Printing produces a normal document with every page expanded, in order, without the machinery |
+| Stage (the default) | One screen at a time, moving sideways. Arrow keys, page keys, the wheel, a swipe, the section rail or a number key move between pages |
+| One page | The same content as a single scrolling document. A button in the header switches, and a small note under it points the way for a first-time visitor |
 
-## How to use it
+The choice is remembered in the reader's own browser and nowhere else.
 
-There is nothing to learn, and the page says so at the bottom of the screen. Press an arrow
-key. Everything else is an alternative to that.
+## What each part does
 
-Everything below resolves to the same two operations, and both of them are sideways.
+- **Experience** leads with headlines. Each bullet is a short claim with its number; the full
+  sentence from the resume opens beneath it on request.
+- **Capabilities** lets the reader pick a skill and see the roles and projects that show it,
+  each a link. A skill with no public example stays listed and says so.
+- **Projects** is a gallery that moves on its own and loops endlessly. The project in front
+  opens into a wide picture (a clip, a screenshot or a diagram drawn from the project's own
+  measurements) with its description floating over it. It pauses for a pointer, for keyboard
+  focus, for reduced motion, or on request.
 
-| Input | Effect |
+## What it promises
+
+| Promise | What that means |
 | --- | --- |
-| Left and right | Previous and next page |
-| Up and down, page up and page down | The same. Vertical input moves the page horizontally |
-| Space, and shift with space | Next and previous page |
-| Home and end | First and last page |
-| Digits one to six | Jump directly to a section |
-| Wheel or trackpad, in either axis | Next and previous page, read as intent rather than as distance |
-| Swipe, in either axis | Next and previous page |
-| The rail, the menu, the arrows at the bottom | Direct navigation |
-
-## What it does not do
-
-- It does not scroll, and it does not zoom. Both were considered and rejected.
-- It does not collect anything. No form, no tracking, no analytics, no third-party anything.
-- It does not have a back end, an account or a login.
-- It does not load a single byte from anywhere else. No fonts, no scripts, no images.
-- It does not update itself. The content is written into the page and changes when the page
-  is edited.
-
-## Requirements to run it
-
-A browser. No installation, no account, no server, no network.
+| It works without JavaScript | Every word is in the page. Without script it reads as a plain document |
+| It can be read from a keyboard | Every control is reachable, focus is visible, and it follows the reader between pages |
+| It respects reduced motion | With the preference set, nothing slides, counts or plays |
+| It prints as a resume | Printing, and the downloadable PDF, give a two-page resume, not a picture of the website |
+| It previews properly | A link pasted into LinkedIn, Slack or email shows a card with name, title and numbers |
+| It stays honest | Numbers are the resume's own. Pictures are of the real work. Skills link only to places that show them |
+| It keeps nothing about the reader | The theme and the view choice stay in the reader's browser. No analytics, no counters |

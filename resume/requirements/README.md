@@ -1,27 +1,26 @@
 # Interactive Resume - requirements
 
-The specification for this page. When the code and these documents disagree, one of them is
-wrong and it gets fixed rather than worked around.
+The specification for the front page of moabboud.dev. When the page and these documents
+disagree, one of them is wrong and it gets fixed rather than worked around.
 
 | Document | Contents |
 | --- | --- |
-| [00-plan.md](00-plan.md) | Build stages, decisions already settled, open questions, risks |
+| [00-plan.md](00-plan.md) | Stages, decisions already settled with what they replaced, open questions, risks |
 | [01-overview.md](01-overview.md) | What the page is and how it is read. Public-facing, no internals |
-| [02-interaction.md](02-interaction.md) | The three readers, the system boundary, what it deliberately ignores, use cases |
-| [03-architecture.md](03-architecture.md) | One file, content lists, renderers, effects, theme, key sequence |
-| [04-data-model.md](04-data-model.md) | The content lists, what the skill levels do and do not mean, the one stored preference |
-| [05-tasks.md](05-tasks.md) | The working task list |
+| [02-interaction.md](02-interaction.md) | The readers, the system boundary, what it deliberately ignores, use cases |
+| [03-architecture.md](03-architecture.md) | The page and the files beside it, its three running states, components, the key sequence |
+| [04-data-model.md](04-data-model.md) | Pages, the attributes the script reads, the two stored preferences, every file and where it came from |
+| [05-tasks.md](05-tasks.md) | What is built and verified, and what is open |
 
-**Documents 01 through 05 describe the previous version of the page, not the one being
-built.** The page is being rebuilt from scratch, so where these documents disagree with what
-the page actually does, the page is the one that is right. The rebuild's settled decisions
-and its content live in the author's working notes, which are kept out of this repository.
+Three things worth knowing before editing:
 
-Two things worth knowing before editing:
+**Everything the page says is in its markup.** The script only adds behaviour. Change the
+words, then run `node resume/tools/make-assets.mjs` and commit the regenerated PDF with the
+change, or the PDF goes stale.
 
-**Content lives in lists in the page**, not in the markup. Updating the resume means
-editing a list. Keep it that way; a resume that is annoying to update stops being updated.
+**Pictures and evidence are claims too.** A project picture is captured from the real app or
+drawn from what its repository records. A skill links only to places whose own words show
+it, and says so when there is none.
 
-**Accessibility is the open gap.** A resume claiming front-end competence that cannot be
-used from a keyboard is arguing against itself, and heavy animation widens that gap rather
-than narrowing it.
+**Measure after any layout change.** No stage page may need its internal scroll at
+1280x720 or larger, or at 820x1180.

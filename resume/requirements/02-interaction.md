@@ -2,118 +2,85 @@
 
 ## Actors
 
-| Actor | Type | What they want |
-| --- | --- | --- |
-| Recruiter | Human | Titles, organisations, dates, location, and how to make contact |
-| Engineer | Human | What was actually built, and in what |
-| Hiring manager | Human | Scope, ownership and outcomes |
-| Owner | Human | To edit the content without it becoming a project |
-
-Three readers with different questions, arriving at the same page, none of whom will say
-which one they are. The page cannot ask, so the sequence has to serve all three.
-
-The order of the pages is the answer. A reader who stops after one page has seen the
-strongest claim. A reader who stops after two has seen the most recent role in full.
+| Actor | Type | What they want | Time they give it |
+| --- | --- | --- | --- |
+| Recruiter | Human | Who this is, what role, where, how to reach Mohamad, a PDF to attach | About ten seconds, often on a phone or through a link preview |
+| Hiring manager | Human | What Mohamad has done, with numbers, and what gets built | One to two minutes on a laptop |
+| Engineer interviewing Mohamad | Human | Evidence of how Mohamad works: the code, the measurements, the page itself | As long as it holds them, dev tools open |
+| The author | Human | To change what the page says without fighting the page | Whenever the resume changes |
+| Link unfurlers and crawlers | External system | Title, description, preview image, text they can read without running script | One request |
+| Printer / PDF reader | External system | A document that reads as a resume on paper | One print |
+| Static host | External system | Files to serve at `/` and `/resume/` | Every push |
 
 ## Interaction diagram
 
 ```mermaid
 flowchart TB
-    subgraph people[People]
-        REC[Recruiter]
-        ENG[Engineer]
-        MGR[Hiring manager]
-        OWN[Owner]
+    subgraph readers[People]
+        R[Recruiter]
+        H[Hiring manager]
+        E[Engineer]
+        A[Author]
     end
 
-    subgraph sys[The resume - inside the boundary]
-        NAV[Navigation<br/>keys, wheel, swipe, rail]
-        IDX[Index<br/>name, summary, numbers]
-        EXP[Experience<br/>one page per role]
-        CAP[Capabilities<br/>four groups]
-        PRJ[Projects]
-        EDU[Education]
-        CON[Contact]
-        THEME[Theme preference]
+    subgraph page[The page - inside the boundary]
+        DOC[Content in the markup]
+        STAGE[Stage view]
+        ONE[One page view]
+        GAL[Project gallery]
+        CAP[Capabilities evidence]
+        PRINT[Print stylesheet]
+        PREF[(Two preferences in the browser)]
     end
 
-    subgraph out[Outside the boundary]
-        PREF[(Browser storage<br/>theme only)]
-        MAIL[Email client]
-        SIB[Sibling apps<br/>in this repository]
-        GH[GitHub]
-        PRN[Printer]
+    subgraph outside[Outside the boundary]
+        UNF[Link unfurlers and crawlers]
+        HOST[Static host]
+        APPS[The projects' own pages and repositories]
+        PDF[Generated PDF, image and icon]
     end
 
-    REC --> IDX
-    REC --> EXP
-    ENG --> CAP
-    ENG --> PRJ
-    MGR --> IDX
-    MGR --> EXP
-    OWN -->|edits the lists in the page| sys
-
-    people --> NAV
-    NAV --> EXP
-
-    THEME <--> PREF
-    CON --> MAIL
-    PRJ --> SIB
-    PRJ --> GH
-    sys --> PRN
+    R -->|link preview, first screen, PDF| DOC
+    H -->|experience, projects| STAGE
+    H --> ONE
+    E -->|source, evidence links| CAP
+    E --> GAL
+    A -->|edits markup, reruns the asset script| DOC
+    DOC --> STAGE
+    DOC --> ONE
+    DOC --> PRINT
+    STAGE --> PREF
+    ONE --> PREF
+    GAL -->|Open / Code / Visit| APPS
+    CAP -->|evidence links| APPS
+    UNF -->|reads meta tags and text| DOC
+    PRINT --> PDF
+    HOST -->|serves the page and its companions| DOC
 ```
 
-Everything inside the boundary is one file. Nothing crosses it inward at runtime.
+## What the system deliberately does NOT care about
 
-## What the system is in the business of
+| Not in scope | Why |
+| --- | --- |
+| Who the reader is | No analytics, no counters, no identifiers. The page cannot tell a recruiter from anyone else and does not try |
+| Receiving messages | No contact form: nothing would receive it. Email and LinkedIn are links |
+| A phone number | The page is public and scrapeable. The phone number belongs on the copy sent with an application |
+| Tailoring per application | One resume, one address. A version per employer is not built |
+| Self-assessed skill levels | Percentages cannot be defended. A skill shows where it was used or says it has no public example |
+| Running the projects | The page links to them. The server-side projects are shown as code, measurements and diagrams |
+| Old browsers getting the motion | Anything without the needed features gets the document, not a broken stage |
 
-- Presenting one complete idea at a time, rather than a column the reader scrolls past.
-- Making movement a decision. The reader goes somewhere because they chose to.
-- Being fast. It is read in the first thirty seconds of interest or not at all, and it loads
-  with no request beyond the file itself.
-- Being credible as evidence. A hand-written page with no framework, running from a file, is
-  part of the claim it makes.
-- Being honest when the motion is unwanted, unavailable, or being printed.
+## Use cases
 
-## What the system does not care about
-
-- Knowing anything about the reader. No form, no analytics, no tracking, no contact capture.
-- Persuading. It presents; it does not sell.
-- Being a content management system. The content lives in lists in the page.
-- Multiple versions or tailoring per application.
-- Search engine placement or any distribution mechanism.
-- Scrolling and zooming. Both were offered as navigation models and both were rejected.
-
-## Main use cases
-
-| ID | Actor | Goal | Trigger | Result |
-| --- | --- | --- | --- | --- |
-| UC-1 | Any reader | Work out who this is | Open the page | Name, title, summary and four numbers, on one screen |
-| UC-2 | Any reader | Move through the resume | Press an arrow key, turn the wheel, swipe | The screen is replaced by the next composed page |
-| UC-3 | Any reader | Go straight to one section | Press a digit, or use the rail, header or menu | That section's first page, directly |
-| UC-4 | Hiring manager | Read one role properly | Reach Experience | One role per page, at full detail, nothing competing for the screen |
-| UC-5 | Engineer | Read only the banking role | Choose it from the tabs within Experience | That role, without passing through the other |
-| UC-6 | Engineer | See the range of capability | Reach Capabilities | Four groups as four columns, or one group at a time on a narrow screen |
-| UC-7 | Engineer | See something real and running | Reach Projects | Cards linking out to what is live |
-| UC-8 | Any reader | Make contact | Reach Contact | Direct links to email, phone and GitHub |
-| UC-9 | Any reader | Read in their preferred theme | Toggle it | The theme switches and is remembered next visit |
-| UC-10 | Any reader | Send someone one page | Copy the address | The address carries the page number and opens there |
-| UC-11 | Any reader | Print it or save it as a file | Print | A document with every page expanded, in order, without the machinery |
-| UC-12 | Any reader | Read it without motion | Ask the system for reduced motion | The same page with transitions and pointer effects removed |
-| UC-13 | Any reader | Read it from a keyboard alone | Tab and arrow | Every control reachable, offscreen pages inert, position announced |
-| UC-14 | Owner | Update the content | Edit the lists at the top of the script | The pages rebuild from them |
-
-## Constraints that come from the actors
-
-- Nothing may be cut to make a page fit. If content does not fit, the section gains a page.
-  This is why Experience is two pages rather than one.
-- Forward and backward must look different. It is the only orientation cue the page gives,
-  and without it a reader who goes back cannot tell that they did.
-- The wheel must do something sensible. A reader will try to scroll, and that instinct
-  should move them forward rather than do nothing.
-- The reader must always know there is more. A counter, a rail and a key hint stay on screen.
-- The content must be editable by changing a list. If updating a resume needs a build step,
-  it stops being updated.
-- No contact form. A form implies something receives it, and nothing does.
-- The page must survive its own interface being unavailable: no motion, no pointer, no
-  colour, no screen.
+| Use case | Actor | Flow | Outcome |
+| --- | --- | --- | --- |
+| Judge from the link | Recruiter | Pastes the address into LinkedIn or email; the unfurler reads the meta tags | A card with name, title, availability and three numbers |
+| First screen | Recruiter | Opens the page | Name, title, "open to full-time roles", summary, numbers, LinkedIn / GitHub / Email / PDF, all on one screen |
+| Get the PDF | Recruiter | Presses "Resume PDF" in the header, on the index, or in Contact | A two-page resume with working links |
+| Skim | Hiring manager | Reads headlines on each Experience page, opens the ones that matter | The full sentence under each headline, one at a time per role |
+| Prefer scrolling | Any reader | Sees the "Change to one page" note, or uses the header button | The whole resume as one document; the choice is remembered |
+| Check a skill | Engineer | Picks "Python" or "Docker" on Capabilities | The roles and projects that show it, each a link |
+| Look at the work | Hiring manager, engineer | Watches the gallery or swipes it | Each project in turn: its picture, its description, a link to open it or read its code |
+| Read without script | Crawler, reader with script off | Loads the page | Every section as a plain document, every detail open |
+| Print | Anyone | Prints, or the author regenerates the PDF | The print stylesheet's resume: contact line, full sentences, skills as lines, six projects |
+| Update the resume | Author | Edits the markup, reruns the asset script, commits | The page, the PDF and the preview agree |
