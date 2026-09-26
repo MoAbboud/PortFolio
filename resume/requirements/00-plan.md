@@ -58,7 +58,7 @@ flowchart LR
 | Question | Blocks | Default |
 | --- | --- | --- |
 | Where Fallacy Detector and Pneumonia Detection are hosted | Their cards linking to live apps | Link to code (Pneumonia to its current host) until the hosting work decides |
-| When Herder has a demo | Herder's card losing "In progress" | It keeps the label |
+| When the full Herder system is tested and can be shown | Herder's card losing "In progress" | It keeps the label; its card opens the browser prototype meanwhile |
 | Pneumonia's new interface | A real screenshot on its card | The drawn diagram stays |
 
 ## Risks
