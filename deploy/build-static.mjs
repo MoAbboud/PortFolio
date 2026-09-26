@@ -172,6 +172,16 @@ copy('trail/lib');
 copy('trail/examples');
 copyTrailModels();
 
+// herder's browser prototype: one self-contained file. herder itself is not hosted (it needs
+// pgvector, Ollama and a cross-encoder), but its extraction, render and residue steps are pure
+// rules and run client-side, so the system can be demonstrated on the free tier.
+//
+// index.html has the rules and the pipeline inlined, by prototype/generate.py. It is one file
+// because a module has to be fetched and a fetched script is refused unless it arrives as
+// JavaScript - and the `nosniff` header below is exactly the case that refuses it. Publishing
+// the single file also leaves generate.py, parity.mjs, smoke.mjs and tests/ unpublished.
+copy('herder/prototype/index.html');
+
 // Headers for hosts that read a _headers file (Cloudflare Pages, Netlify). GitHub Pages
 // ignores it and sets its own caching. trail's own serve.json says no-store, which is
 // right while developing and wrong for 100+ MB of models nobody edits.
