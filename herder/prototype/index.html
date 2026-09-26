@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>herder - prototype</title>
+<meta name="description" content="Paste a chat with Claude or ChatGPT and see the compact brief herder keeps of it. Runs entirely in the browser.">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: {
+    mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+  } } } };
+</script>
+<style>
+  :root { color-scheme: light dark; }
+  .kind { font-variant: small-caps; letter-spacing: .04em; }
+  textarea { field-sizing: content; }
+  @media (prefers-reduced-motion: no-preference) { .fade { animation: fade .25s ease both; } }
+  @keyframes fade { from { opacity: 0; transform: translateY(2px); } }
+</style>
+</head>
+<body class="bg-stone-50 text-stone-800 dark:bg-stone-950 dark:text-stone-200 antialiased">
+
+<div class="mx-auto max-w-6xl px-4 py-10">
+
+  <header class="mb-8">
+    <div class="flex items-baseline gap-3 flex-wrap">
+      <h1 class="text-3xl font-semibold tracking-tight">herder</h1>
+      <span class="rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-0.5 text-xs text-amber-700 dark:text-amber-400">prototype</span>
+    </div>
+    <p class="mt-3 max-w-2xl text-stone-600 dark:text-stone-400">
+      Portable memory for AI chat. Paste a conversation with Claude or ChatGPT and this keeps the part
+      worth keeping: the decisions, constraints, preferences and open threads it established, compact
+      enough to paste into the next chat.
+    </p>
+    <p class="mt-2 max-w-2xl text-sm text-stone-500">
+      Everything here runs in your browser. Nothing is uploaded, no API key, no model download.
+    </p>
+  </header>
+
+  <!-- input -->
+  <section class="rounded-xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
+    <div class="mb-3 flex items-center justify-between gap-3 flex-wrap">
+      <label for="paste" class="text-sm font-medium">Your conversation</label>
+      <div class="flex items-center gap-2 text-sm">
+        <button id="sample" class="rounded-md border border-stone-300 px-2.5 py-1 hover:bg-stone-100 dark:border-stone-700 dark:hover:bg-stone-800">Load a sample</button>
+        <button id="clear" class="rounded-md border border-stone-300 px-2.5 py-1 hover:bg-stone-100 dark:border-stone-700 dark:hover:bg-stone-800">Clear</button>
+      </div>
+    </div>
+    <textarea id="paste" rows="9" spellcheck="false"
+      class="w-full resize-y rounded-lg border border-stone-300 bg-stone-50 p-3 font-mono text-[13px] leading-relaxed outline-none focus:border-stone-400 dark:border-stone-700 dark:bg-stone-950 dark:focus:border-stone-600"
+      placeholder="Paste here. Lines labelled like&#10;&#10;You: we're using Postgres, not MySQL&#10;ChatGPT: ...&#10;&#10;'User:' / 'Assistant:' / 'Claude:' all work."></textarea>
+
+    <div class="mt-3 flex items-end justify-between gap-4 flex-wrap">
+      <div>
+        <label for="budget" class="block text-sm font-medium">Token budget <span class="font-normal text-stone-500">- how much room the next chat gets</span></label>
+        <div class="mt-1 flex items-center gap-3">
+          <input id="budget" type="range" min="200" max="3000" step="100" value="500" class="w-56 accent-stone-700 dark:accent-stone-300">
+          <output id="budgetOut" class="font-mono text-sm tabular-nums">500</output>
+        </div>
+      </div>
+      <button id="run" class="rounded-lg bg-stone-800 px-4 py-2 font-medium text-white hover:bg-stone-700 disabled:opacity-40 dark:bg-stone-200 dark:text-stone-900 dark:hover:bg-white">
+        Derive the brief
+      </button>
+    </div>
+  </section>
+
+  <!-- results -->
+  <section id="results" class="mt-6 hidden">
+
+    <div id="stats" class="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"></div>
+
+    <div id="changed" class="mb-5 hidden rounded-xl border border-amber-500/40 bg-amber-500/5 p-4"></div>
+
+    <div class="grid gap-5 lg:grid-cols-5">
+      <div class="lg:col-span-3">
+        <div class="mb-2 flex items-baseline justify-between gap-2">
+          <h2 class="font-semibold">The brief</h2>
+          <button id="copy" class="rounded-md border border-stone-300 px-2 py-0.5 text-xs hover:bg-stone-100 dark:border-stone-700 dark:hover:bg-stone-800">Copy</button>
+        </div>
+        <p class="mb-3 text-sm text-stone-500">Paste this into a new chat. Ordered by what matters most, cut to fit the budget.</p>
+        <div id="brief" class="rounded-xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900"></div>
+      </div>
+
+      <div class="lg:col-span-2">
+        <h2 class="mb-2 font-semibold">What did not fit</h2>
+        <p class="mb-3 text-sm text-stone-500">Kept, and traceable, just not in this render. Raise the budget and they come back.</p>
+        <div id="excluded" class="rounded-xl border border-stone-200 bg-white p-4 text-sm dark:border-stone-800 dark:bg-stone-900"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- the honest bit -->
+  <section class="mt-10 rounded-xl border border-stone-200 bg-white p-5 dark:border-stone-800 dark:bg-stone-900">
+    <h2 class="font-semibold">What this prototype is, and what it leaves out</h2>
+    <p class="mt-2 text-sm text-stone-600 dark:text-stone-400">
+      The full pipeline is capture, extract, <strong>merge</strong>, render, serve, verify. Three of those
+      are pure rules over text and run here exactly as they do on the server - the patterns on this page
+      are generated from the same Python source, and a test fails if they drift.
+    </p>
+    <div class="mt-4 grid gap-3 sm:grid-cols-2">
+      <div class="rounded-lg border border-emerald-600/30 bg-emerald-500/5 p-3">
+        <p class="text-sm font-medium text-emerald-700 dark:text-emerald-400">Runs here, unchanged</p>
+        <ul class="mt-1.5 space-y-1 text-sm text-stone-600 dark:text-stone-400">
+          <li><strong>Extract</strong> - only what you said is read. A chat is mostly the assistant talking, and treating its suggestions as fact fills the memory with ideas you turned down.</li>
+          <li><strong>Render</strong> - constraints first, then decisions, then open threads. A model that knows the rules can behave correctly without every fact; one with the facts and not the rules cannot.</li>
+          <li><strong>Residue</strong> - sentences no entry captured, spending only the budget left over.</li>
+        </ul>
+      </div>
+      <div class="rounded-lg border border-stone-300 bg-stone-500/5 p-3 dark:border-stone-700">
+        <p class="text-sm font-medium">Left on the server</p>
+        <ul class="mt-1.5 space-y-1 text-sm text-stone-600 dark:text-stone-400">
+          <li><strong>Merge</strong> needs sentence embeddings and a DeBERTa cross-encoder - gigabytes of weights. It decides whether a new claim repeats a stored one, refines it, or <em>retires</em> it.</li>
+          <li>So this page can spot that you changed your mind - same rule the real merge step uses - but not resolve <em>which</em> entry the change replaces. That is an entailment judgement.</li>
+          <li>Token counts here are <strong>estimates</strong>; the real pipeline counts with cl100k.</li>
+        </ul>
+      </div>
+    </div>
+    <p class="mt-4 text-sm text-stone-600 dark:text-stone-400">
+      Measured on eight long conversations against 261 hand-written facts, the full pipeline recalls
+      <strong>0.88</strong> of them at a 3,000-token budget while carrying <strong>none</strong> of the
+      40 claims that had been reversed or refused. A plain "summarise this" at the same budget manages
+      0.21, and pasting the most recent text 0.31.
+      <span class="text-stone-500">The numbers, the dead ends and what the judge got wrong are in the repository.</span>
+    </p>
+  </section>
+
+  <footer class="mt-8 text-sm text-stone-500">
+    <span id="model" class="font-mono"></span> - no network calls, no storage, nothing leaves this page.
+  </footer>
+</div>
+
+<script>
+// GENERATED - edit page.html, ui.js or herder.js, then: python prototype/generate.py
+// GENERATED FILE - do not edit by hand.
+//
+// Written by prototype/generate.py from herder's Python rules, so the browser and the
+// real pipeline cannot drift apart. Regenerate after changing any extraction or render
+// rule; prototype/tests/test_parity.py fails while this file is stale.
+//
+// Patterns are {source, flags} and become RegExp objects in herder.js. They are the
+// Python sources verbatim.
+
+const RULES = {
+  "generatedFrom": "herder/herder/{extractors/heuristic,domain/sentences,domain/render,domain/residue,domain/merge}.py",
+  "sentenceSplit": {
+    "source": "(?<=[.!?])\\s+|\\n+",
+    "flags": ""
+  },
+  "fence": {
+    "source": "```.*?```",
+    "flags": "s"
+  },
+  "rules": [
+    {
+      "kind": "decision",
+      "layer": "project",
+      "why": "an explicit reversal of something said earlier",
+      "confidence": 0.66,
+      "pattern": {
+        "source": "\\b(change of plan|changed my mind|change to|scrap (?:that|the|what)|forget (?:that|the|what)|disregard|ignore what i said|correction|i'm changing|i am changing|revis(?:e|ing|ed)|swap (?:one|that|the)|no longer|after all|instead of what i said|from what i said|(?:from|than) (?:earlier|before)|(?:said|gave|mentioned|described|told you) (?:you )?(?:earlier|before)|(?:earlier|before) (?:is|was) (?:off|out|wrong)|is off\\b)",
+        "flags": "i"
+      }
+    },
+    {
+      "kind": "open_thread",
+      "layer": "session",
+      "why": "explicitly unfinished",
+      "confidence": 0.58,
+      "pattern": {
+        "source": "\\b(still need|still have to|still to|not yet|todo|to do|open question|haven't|have not|yet to|remains to be|come back to)\\b",
+        "flags": "i"
+      }
+    },
+    {
+      "kind": "identity",
+      "layer": "stable",
+      "why": "something durable about the user",
+      "confidence": 0.55,
+      "pattern": {
+        "source": "\\b(i am a|i'm a|my name is|i work (?:at|as|on)|our team|my role|i'm the)\\b",
+        "flags": "i"
+      }
+    },
+    {
+      "kind": "preference",
+      "layer": "stable",
+      "why": "a stated preference about how to work",
+      "confidence": 0.55,
+      "pattern": {
+        "source": "\\b(i prefer|i'd rather|i would rather|i like|i don't like|i dislike|i hate|please always|please never|my preference)\\b",
+        "flags": "i"
+      }
+    },
+    {
+      "kind": "constraint",
+      "layer": "project",
+      "why": "a prohibition or limit stated by its determiner",
+      "confidence": 0.6,
+      "pattern": {
+        "source": "^(?:no|nothing|nobody|no one|none of|only)\\s+(?!thanks\\b|problem\\b|worries\\b|idea\\b|rush\\b|need\\b|pressure\\b|way\\b|doubt\\b)[a-z]",
+        "flags": "i"
+      }
+    },
+    {
+      "kind": "constraint",
+      "layer": "project",
+      "why": "modal obligation or prohibition",
+      "confidence": 0.62,
+      "pattern": {
+        "source": "\\b(must not|must|never|always|cannot|can't|can not|do not|don't|has to|have to|needs to|need to|required|mandatory|under no circumstances|only ever|no more than)\\b|\\b(?:doesn't|does not|won't|will not|may not)\\s+[a-z]",
+        "flags": "i"
+      }
+    },
+    {
+      "kind": "decision",
+      "layer": "project",
+      "why": "a choice stated as settled",
+      "confidence": 0.6,
+      "pattern": {
+        "source": "\\b(we(?:'| a)?re going to|we will|we'll|we use|we're using|we are using|let's|lets|decided|decision is|going with|switch(?:ing)? to|stick with|stay(?:ing)? on|i chose|we chose|we picked|instead of)\\b",
+        "flags": "i"
+      }
+    },
+    {
+      "kind": "open_thread",
+      "layer": "session",
+      "why": "something left unfinished",
+      "confidence": 0.5,
+      "pattern": {
+        "source": "\\b(todo|to do|next step|still need|still have to|remaining|open question|not yet|we should|haven't|have not|later on|come back to)\\b",
+        "flags": "i"
+      }
+    },
+    {
+      "kind": "fact",
+      "layer": "project",
+      "why": "a plain statement of how things are",
+      "confidence": 0.45,
+      "pattern": {
+        "source": "^(?!(?:can|could|would|should|do|does|did|what|why|how|when|where|which|who|please|tell me|explain|give me|show me|help me|walk me|remind me|assume|let me|thanks|thank you|ok|okay|yes|sure|great|hmm|that(?:'s| is| was)|it(?:'s| is| was)|this(?:'s| is| was)|those|these|they(?:'re| are)|i want (?:to (?:understand|know|see|learn)|you|your)|i'd like (?:to|you|your|help)|i would like)\\b)(?!.*[?:]\\s*$)(?!.*\\b(?:short|long|brief|quick|detailed|full|your)\\s+(?:answer|reply|response)\\b)(?!.*\\b(?:answer|reply|response)\\s+is\\s+fine\\b)(?!(?:i'm|i am|we're|we are)\\s+(?:thinking|wondering|trying|hoping|looking|curious|asking|guessing|not sure)\\b)(?:(?:i'm|i am|we're|we are|i've been|we've been)\\s+\\w+ing\\b|(?=.*\\b(?:is|are|am|was|were|will\\s+be|has|have|had|uses?|gets?|takes?|makes?|keeps?|holds?|runs?|goes?|comes?|sits?|stays?|lives?|works?|opens?|closes?|costs?|pays?|starts?|ends?|covers?|handles?|owns?|means?|counts?|allows?|requires?|includes?|follows?|happens?|tracks?|reports?)\\b))",
+        "flags": "i"
+      }
+    }
+  ],
+  "prohibitionOpening": {
+    "source": "^(?:no|nothing|nobody|no one|none of|only)\\s+(?!thanks\\b|problem\\b|worries\\b|idea\\b|rush\\b|need\\b|pressure\\b|way\\b|doubt\\b)[a-z]",
+    "flags": "i"
+  },
+  "anaphoricRejection": {
+    "source": "^(?:i|we)\\s+(?:do\\s+not|don't|dont|did\\s+not|didn't|will\\s+not|won't|cannot|can't)\\s+(?:want|like|need|think|accept)\\s+(?:that|this|it|those|these|them|either|any\\s+of\\s+(?:that|this|it|those|these|them))\\b",
+    "flags": "i"
+  },
+  "refusalWithAnaphor": {
+    "source": "^(?:no[.,!]?\\s+)?not\\b.{0,44}?\\b(?:that|this|it)\\s+(?:is|are|was|were|'s)\\b",
+    "flags": "i"
+  },
+  "emptyRather": {
+    "source": "\\b(?:i'd|i would)\\s+rather\\s+not\\s*(?:[,.!;]|$|thanks|thank you)",
+    "flags": "i"
+  },
+  "pathy": {
+    "source": "[\\w./-]+\\.(py|ts|tsx|js|sql|md|json|yml|yaml|toml|cfg|html|css|sh|ps1)\\b",
+    "flags": ""
+  },
+  "changeCue": {
+    "source": "\\b(change of plan|changed my mind|change to|scrap (?:that|the|what)|forget (?:that|the|what)|disregard|ignore what i said|correction|i'm changing|i am changing|revis(?:e|ing|ed)|swap (?:one|that|the)|no longer|after all|instead of what i said|from what i said|(?:from|than) (?:earlier|before)|(?:said|gave|mentioned|described|told you) (?:you )?(?:earlier|before)|(?:earlier|before) (?:is|was) (?:off|out|wrong)|is off\\b)",
+    "flags": "i"
+  },
+  "residueQuestion": {
+    "source": "\\?\\s*$",
+    "flags": ""
+  },
+  "minSentenceChars": 20,
+  "minProhibitionChars": 10,
+  "minResidueChars": 10,
+  "titleMax": 80,
+  "extractorModel": "rules-v2",
+  "priority": {
+    "constraint": 0,
+    "decision": 1,
+    "open_thread": 2,
+    "preference": 3,
+    "identity": 3,
+    "code_state": 4,
+    "glossary": 5,
+    "fact": 5,
+    "artifact_ref": 6
+  },
+  "kindOrder": [
+    "constraint",
+    "decision",
+    "open_thread",
+    "preference",
+    "identity",
+    "code_state",
+    "glossary",
+    "fact",
+    "artifact_ref"
+  ],
+  "layerOrder": [
+    "stable",
+    "project",
+    "session"
+  ],
+  "layerHeadings": {
+    "stable": "## Stable",
+    "project": "## Project",
+    "session": "## Session (most recent)"
+  },
+  "tailReserve": 0.1,
+  "residueKind": "unsorted",
+  "residueHeading": "## Also said (unsorted, lowest confidence)",
+  "codeStateConfidence": 0.5
+};
+
+// herder, the parts of it that run without weights.
+//
+// The real pipeline is capture -> extract -> merge -> render -> serve -> verify. Three of those
+// are pure functions over text and are ported here exactly. One is not:
+//
+//   extract   pure rules over the user's turns            PORTED, rules generated from Python
+//   render    priority ordering under a token budget      PORTED
+//   residue   user sentences no entry carries             PORTED
+//   merge     embeddings + a DeBERTa cross-encoder        NOT PORTED - gigabytes of weights
+//
+// Merge is what decides that a new claim duplicates, refines or *retires* a stored one. Without
+// it this page cannot tell you which entry a change of mind replaces, so it does the honest
+// thing instead: it finds the sentences that announce a change, using the same CHANGE_CUE regex
+// the real merge step uses, and marks them. Resolving them is an entailment judgement and it
+// stays on the server. The page says this where a visitor will read it.
+//
+// Every pattern and table in `RULES` is generated from the Python modules by
+// prototype/generate.py. Nothing here retypes a rule.
+
+const rx = ({ source, flags }) => new RegExp(source, flags);
+
+const SENTENCE_SPLIT = rx(RULES.sentenceSplit);
+const FENCE = rx(RULES.fence);
+const PROHIBITION = rx(RULES.prohibitionOpening);
+const ANAPHORIC_REJECTION = rx(RULES.anaphoricRejection);
+const REFUSAL_WITH_ANAPHOR = rx(RULES.refusalWithAnaphor);
+const EMPTY_RATHER = rx(RULES.emptyRather);
+const PATHY = rx(RULES.pathy);
+const CHANGE_CUE = rx(RULES.changeCue);
+const RESIDUE_QUESTION = rx(RULES.residueQuestion);
+const CLASSIFIERS = RULES.rules.map((r) => ({ ...r, re: rx(r.pattern) }));
+
+// Python's `re.match` is anchored at the start; JS `.test` is not. Anchoring by hand keeps the
+// three `.match()` rules behaving as they do in `heuristic.py`.
+const matchesAtStart = (re, text) => {
+  const m = text.match(re);
+  return m !== null && m.index === 0;
+};
+
+// ---------------------------------------------------------------- capture
+
+// A pasted transcript, into turns. Accepts the labels the real paste box accepts, plus the
+// "You:"/"ChatGPT:"/"Claude:" that the web UIs put on a copied conversation - which is the whole
+// point of a demo you paste into. An unlabelled paste is treated as one user turn, because a
+// visitor who pastes a paragraph should see something rather than an error.
+const USER_LABEL = /^\s*(?:user|you|me|human|q)\s*:\s*/i;
+const ASSISTANT_LABEL = /^\s*(?:assistant|claude|chatgpt|gpt|ai|bot|a)\s*:\s*/i;
+
+function parseTranscript(text) {
+  const lines = String(text ?? '').replace(/\r\n?/g, '\n').split('\n');
+  const turns = [];
+  let current = null;
+
+  for (const line of lines) {
+    const user = USER_LABEL.test(line);
+    const assistant = !user && ASSISTANT_LABEL.test(line);
+    if (user || assistant) {
+      if (current) turns.push(current);
+      current = {
+        role: user ? 'user' : 'assistant',
+        content: line.replace(user ? USER_LABEL : ASSISTANT_LABEL, ''),
+      };
+    } else if (current) {
+      current.content += '\n' + line;
+    } else if (line.trim()) {
+      current = { role: 'user', content: line };
+    }
+  }
+  if (current) turns.push(current);
+
+  return turns
+    .map((t, i) => ({ ...t, id: i + 1, content: t.content.trim() }))
+    .filter((t) => t.content);
+}
+
+// ---------------------------------------------------------------- shared with the Python domain
+
+// domain/sentences.py
+const stripFences = (text) => {
+  const without = text.replace(new RegExp(FENCE.source, FENCE.flags + 'g'), ' ');
+  return [without, without !== text];
+};
+
+const splitSentences = (text) =>
+  text
+    .split(new RegExp(SENTENCE_SPLIT.source, SENTENCE_SPLIT.flags + 'g'))
+    .map((s) => (s ?? '').trim())
+    .filter(Boolean);
+
+// domain/hashing.py normalise(): line endings and trailing whitespace only.
+const normalise = (text) =>
+  text
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map((line) => line.replace(/\s+$/, ''))
+    .join('\n')
+    .trim();
+
+// extractors/base.py make_title()
+function makeTitle(sentence, limit = RULES.titleMax) {
+  const text = sentence.replace(/\s+/g, ' ').trim().replace(/[.!?,;:]+$/, '');
+  if (text.length <= limit) return text;
+  let cut = text.slice(0, limit);
+  if (cut.includes(' ')) cut = cut.slice(0, cut.lastIndexOf(' '));
+  return cut.replace(/[.!?,;:]+$/, '');
+}
+
+// ---------------------------------------------------------------- extract
+
+function classify(sentence, hasCode) {
+  for (const rule of CLASSIFIERS) {
+    if (rule.re.test(sentence)) return { kind: rule.kind, layer: rule.layer, confidence: rule.confidence };
+  }
+  if (hasCode && PATHY.test(sentence)) {
+    return { kind: 'code_state', layer: 'project', confidence: RULES.codeStateConfidence };
+  }
+  return null;
+}
+
+/** The heuristic extractor. Only the user's turns are read - the rule that outranks every other. */
+function extract(turns) {
+  const seen = new Set();
+  const candidates = [];
+
+  for (const message of turns) {
+    if (message.role !== 'user') continue;
+    const [body, hadFence] = stripFences(message.content);
+    const hasCode = hadFence || PATHY.test(message.content);
+
+    for (const sentence of splitSentences(body)) {
+      const shortProhibition =
+        sentence.length >= RULES.minProhibitionChars && PROHIBITION.test(sentence);
+      if (sentence.length < RULES.minSentenceChars && !shortProhibition) continue;
+
+      if (
+        matchesAtStart(ANAPHORIC_REJECTION, sentence) ||
+        matchesAtStart(REFUSAL_WITH_ANAPHOR, sentence) ||
+        EMPTY_RATHER.test(sentence)
+      ) {
+        continue;
+      }
+
+      const match = classify(sentence, hasCode);
+      if (!match) continue;
+
+      const key = normalise(sentence).toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      candidates.push({
+        ...match,
+        title: makeTitle(sentence),
+        text: sentence,
+        lineage: [message.id],
+        announcesChange: CHANGE_CUE.test(sentence),
+      });
+    }
+  }
+  return candidates;
+}
+
+// ---------------------------------------------------------------- residue (domain/residue.py)
+
+const residueKey = (text) => normalise(text).toLowerCase().split(/\s+/).filter(Boolean).join(' ');
+
+function uncovered(turns, entryTexts) {
+  const covered = entryTexts.filter((t) => t && t.trim()).map(residueKey);
+  const seen = new Set();
+  const out = [];
+
+  for (const message of turns) {
+    if (message.role !== 'user') continue;
+    const [body] = stripFences(message.content);
+    for (const sentence of splitSentences(body)) {
+      const key = residueKey(sentence);
+      if (key.length < RULES.minResidueChars || seen.has(key)) continue;
+      if (RESIDUE_QUESTION.test(sentence.trim())) continue;
+      if (covered.some((entry) => key.includes(entry) || entry.includes(key))) continue;
+      seen.add(key);
+      out.push(sentence);
+    }
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------- render (domain/render.py)
+
+// cl100k is not available in a browser without shipping the vocabulary, so tokens are estimated.
+// Deliberately named an estimate everywhere it is shown: at these budgets a 10% error moves the
+// line at which the brief is cut, and a demo that prints an exact-looking number it cannot
+// compute is worse than one that admits the approximation.
+const estimateTokens = (text) => {
+  const t = String(text ?? '').trim();
+  if (!t) return 0;
+  return Math.max(Math.ceil(t.length / 4), t.split(/\s+/).length);
+};
+
+const priorityOf = (kind) =>
+  RULES.priority[kind] ?? Math.max(...Object.values(RULES.priority)) + 1;
+
+function formatEntry(entry) {
+  const one = (s) => s.split(/\s+/).filter(Boolean).join(' ');
+  const title = one(entry.title);
+  const body = one(entry.text);
+  if (!body || body === title) return `- [${entry.kind}] ${title}`;
+  // _adds_nothing: the heuristic's titles are truncations of their own sentence, so printing
+  // both spends roughly double the tokens to say one thing.
+  const trimmed = title.replace(/[ .!?,;:]+$/, '').toLowerCase();
+  const lowered = body.toLowerCase();
+  if (trimmed && lowered.startsWith(trimmed)) {
+    const rest = lowered.slice(trimmed.length);
+    if (!rest || !/[a-z0-9]/i.test(rest[0])) return `- [${entry.kind}] ${body}`;
+  }
+  return `- [${entry.kind}] ${title} - ${body}`;
+}
+
+/**
+ * Entries into a brief of at most `budget` estimated tokens.
+ *
+ * Considered in priority order - constraint, decision, open_thread, then preference and identity,
+ * then code_state, then plain facts - with the layer only breaking ties. That ordering is the
+ * design: it decides what gets thrown away. Residue spends only what is left over once every
+ * entry is placed, so it can never displace one.
+ */
+function renderBrief(entries, budget, residue = []) {
+  const ordered = [...entries]
+    .map((e, i) => ({ e, i }))
+    .sort((a, b) => {
+      const p = priorityOf(a.e.kind) - priorityOf(b.e.kind);
+      if (p) return p;
+      const la = RULES.layerOrder.indexOf(a.e.layer);
+      const lb = RULES.layerOrder.indexOf(b.e.layer);
+      if (la !== lb) return (la < 0 ? RULES.layerOrder.length : la) - (lb < 0 ? RULES.layerOrder.length : lb);
+      return a.i - b.i;
+    })
+    .map((x) => x.e);
+
+  const sections = new Map();
+  const included = [];
+  const excluded = [];
+  let used = 0;
+  let stopped = false;
+
+  for (const entry of ordered) {
+    if (stopped) {
+      excluded.push(entry);
+      continue;
+    }
+    const line = formatEntry(entry);
+    let cost = estimateTokens(line);
+    if (!sections.has(entry.layer)) {
+      cost += estimateTokens(RULES.layerHeadings[entry.layer] ?? `## ${entry.layer}`);
+    }
+    if (used + cost > budget) {
+      // Stop rather than skip: skipping would let a trivial fact that happens to fit displace a
+      // decision that did not, inverting the priority the ordering exists to enforce.
+      stopped = true;
+      excluded.push(entry);
+      continue;
+    }
+    if (!sections.has(entry.layer)) sections.set(entry.layer, []);
+    sections.get(entry.layer).push(line);
+    included.push(entry);
+    used += cost;
+  }
+
+  const parts = [];
+  for (const layer of RULES.layerOrder) {
+    if (!sections.has(layer)) continue;
+    parts.push(RULES.layerHeadings[layer]);
+    parts.push(...sections.get(layer));
+  }
+
+  // Newest first while choosing (an older uncovered sentence is likelier to have been overtaken),
+  // oldest first when printed.
+  const chosen = [];
+  let spare = budget - used;
+  for (const sentence of [...residue].reverse()) {
+    const line = `- [${RULES.residueKind}] ${sentence.split(/\s+/).filter(Boolean).join(' ')}`;
+    const cost = estimateTokens(line) + (chosen.length ? 0 : estimateTokens(RULES.residueHeading));
+    if (cost > spare) continue;
+    chosen.push(line);
+    spare -= cost;
+  }
+  if (chosen.length) {
+    parts.push(RULES.residueHeading);
+    parts.push(...chosen.reverse());
+    used = budget - spare;
+  }
+
+  const text = parts.filter((p) => p !== '').join('\n');
+  return {
+    text,
+    included,
+    excluded,
+    residueIncluded: chosen.length,
+    residueOffered: residue.length,
+    tokens: estimateTokens(text),
+    budget,
+  };
+}
+
+// ---------------------------------------------------------------- the whole thing
+
+/** Paste in, brief out. `budget` is in estimated tokens. */
+function derive(transcript, budget = 500) {
+  const turns = parseTranscript(transcript);
+  const entries = extract(turns);
+  const residue = uncovered(turns, entries.map((e) => e.text));
+  const brief = renderBrief(entries, budget, residue);
+
+  const userTurns = turns.filter((t) => t.role === 'user');
+  return {
+    turns,
+    entries,
+    residue,
+    brief,
+    changes: entries.filter((e) => e.announcesChange),
+    stats: {
+      turns: turns.length,
+      userTurns: userTurns.length,
+      sourceTokens: estimateTokens(turns.map((t) => t.content).join('\n\n')),
+      userTokens: estimateTokens(userTurns.map((t) => t.content).join('\n\n')),
+      briefTokens: brief.tokens,
+    },
+  };
+}
+
+const KIND_ORDER = RULES.kindOrder;
+const EXTRACTOR_MODEL = RULES.extractorModel;
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+$('model').textContent = `extractor: ${EXTRACTOR_MODEL}`;
+
+// A short conversation with a real change of mind in it, so the reversal flag has something to
+// find. Written for this page rather than taken from the benchmark, which stays a held-out corpus.
+const SAMPLE = `You: I'm building a stock tracker for a small bakery chain, three shops. I work on Windows and test everything from PowerShell.
+Claude: Happy to help. Do you have a database in mind?
+You: We're going with Postgres. No cloud services - it has to run on the shop's own machine.
+Claude: That's sensible for offline resilience. How should stock be counted?
+You: Amounts are always decimal, never floats. I'd rather see plain tables than charts.
+Claude: Understood. Would you like a reorder alert?
+You: Yes. Reorder suggestions go to the head baker by email.
+Claude: I can sketch the schema. Anything on rounding?
+You: Stock is rounded to the nearest 100 grams.
+Claude: Noted. Shall we look at the daily job?
+You: The nightly job runs at 3am. We still need to pick a backup approach.
+Claude: There are a few options there.
+You: Change of plan on the rounding I mentioned earlier - keep stock exact to the gram, the 100g buckets lost too much.
+Claude: Understood, exact to the gram.
+You: Also the reorder email goes to both the head baker and the shop manager now.`;
+
+$('sample').addEventListener('click', () => { $('paste').value = SAMPLE; run(); });
+$('clear').addEventListener('click', () => { $('paste').value = ''; $('results').classList.add('hidden'); $('paste').focus(); });
+$('budget').addEventListener('input', () => { $('budgetOut').textContent = $('budget').value; if (!$('results').classList.contains('hidden')) run(); });
+$('run').addEventListener('click', run);
+$('paste').addEventListener('keydown', (e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') run(); });
+
+$('copy').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText($('brief').dataset.text || '');
+    $('copy').textContent = 'Copied';
+    setTimeout(() => ($('copy').textContent = 'Copy'), 1200);
+  } catch { $('copy').textContent = 'Copy failed'; }
+});
+
+// Priority order, so the colour tells you why a line survived the budget.
+const TONE = {
+  constraint: 'bg-rose-500/10 text-rose-700 dark:text-rose-400',
+  decision: 'bg-sky-500/10 text-sky-700 dark:text-sky-400',
+  open_thread: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
+  preference: 'bg-violet-500/10 text-violet-700 dark:text-violet-400',
+  identity: 'bg-violet-500/10 text-violet-700 dark:text-violet-400',
+  code_state: 'bg-teal-500/10 text-teal-700 dark:text-teal-400',
+  fact: 'bg-stone-500/10 text-stone-600 dark:text-stone-400',
+  glossary: 'bg-stone-500/10 text-stone-600 dark:text-stone-400',
+  unsorted: 'bg-stone-500/10 text-stone-500',
+};
+const tag = (kind) =>
+  `<span class="kind shrink-0 rounded px-1.5 py-0.5 text-[11px] ${TONE[kind] ?? TONE.fact}">${esc(kind.replace('_', ' '))}</span>`;
+
+const card = (label, value, note) => `
+  <div class="rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-900">
+    <div class="text-xs uppercase tracking-wide text-stone-500">${esc(label)}</div>
+    <div class="mt-0.5 text-xl font-semibold tabular-nums">${esc(value)}</div>
+    ${note ? `<div class="text-xs text-stone-500">${esc(note)}</div>` : ''}
+  </div>`;
+
+function run() {
+  const text = $('paste').value;
+  if (!text.trim()) { $('results').classList.add('hidden'); return; }
+
+  // `|| 500` rather than bare Number(): a budget of 0 renders an empty brief and looks like a
+  // broken page rather than a misread input. Found by the smoke test, whose stub DOM had no value.
+  const budget = Number($('budget').value) || 500;
+  const out = derive(text, budget);
+  const s = out.stats;
+
+  $('results').classList.remove('hidden');
+  $('results').classList.add('fade');
+
+  const ratio = s.briefTokens ? (s.sourceTokens / s.briefTokens).toFixed(1) + 'x' : '-';
+  $('stats').innerHTML = [
+    card('Conversation', `${s.turns} turns`, `${s.userTokens} of ${s.sourceTokens} est. tokens are yours`),
+    card('Kept', `${out.entries.length} entries`, `${out.brief.included.length} in this brief`),
+    card('Brief', `${s.briefTokens} tokens`, `budget ${budget}, estimated`),
+    card('Compression', ratio, 'against the whole transcript'),
+  ].join('');
+
+  // The honest half: we can see a change was announced, not what it retires.
+  if (out.changes.length) {
+    $('changed').classList.remove('hidden');
+    $('changed').innerHTML = `
+      <p class="text-sm font-medium text-amber-700 dark:text-amber-400">
+        ${out.changes.length} sentence${out.changes.length > 1 ? 's' : ''} announce${out.changes.length > 1 ? '' : 's'} a change of mind
+      </p>
+      <ul class="mt-2 space-y-1 text-sm">
+        ${out.changes.map((c) => `<li class="font-mono text-[13px] text-stone-600 dark:text-stone-400">${esc(c.text)}</li>`).join('')}
+      </ul>
+      <p class="mt-2 text-sm text-stone-600 dark:text-stone-400">
+        The full pipeline reads these against what it already holds and retires whatever they replace, so
+        the old claim is never served again. Deciding <em>which</em> entry that is takes an entailment
+        model, which is why it is not in this page - both claims are still listed below.
+      </p>`;
+  } else {
+    $('changed').classList.add('hidden');
+  }
+
+  // The brief, as lines, with the raw text kept for the copy button.
+  const lines = out.brief.text.split('\n').map((line) => {
+    if (line.startsWith('## ')) {
+      return `<div class="mt-3 mb-1.5 text-xs font-semibold uppercase tracking-wide text-stone-500 first:mt-0">${esc(line.slice(3))}</div>`;
+    }
+    const m = line.match(/^- \[(\w+)\] ([\s\S]*)$/);
+    if (!m) return line.trim() ? `<div class="text-sm">${esc(line)}</div>` : '';
+    return `<div class="flex gap-2 py-0.5 text-sm"><span class="pt-0.5">${tag(m[1])}</span><span>${esc(m[2])}</span></div>`;
+  });
+  $('brief').innerHTML = lines.join('') || '<p class="text-sm text-stone-500">Nothing was extracted. Try a longer conversation, or one where you state decisions and constraints.</p>';
+  $('brief').dataset.text = out.brief.text;
+
+  const dropped = out.brief.excluded;
+  $('excluded').innerHTML = dropped.length
+    ? `<p class="mb-2 text-stone-500">${dropped.length} entr${dropped.length > 1 ? 'ies' : 'y'} cut for space${out.brief.residueOffered ? `, and ${out.brief.residueOffered - out.brief.residueIncluded} of ${out.brief.residueOffered} uncaptured sentences` : ''}.</p>
+       <ul class="space-y-1">${dropped.map((e) => `<li class="flex gap-2"><span class="pt-0.5">${tag(e.kind)}</span><span class="text-stone-600 dark:text-stone-400">${esc(e.text)}</span></li>`).join('')}</ul>`
+    : `<p class="text-stone-500">Everything fitted${out.brief.residueOffered ? `, including ${out.brief.residueIncluded} of ${out.brief.residueOffered} sentences no entry captured` : ''}. Lower the budget to see what gets dropped first - that ordering is the whole design.</p>`;
+}
+</script>
+</body>
+</html>
