@@ -622,35 +622,75 @@ h2.head .thin { font-weight: 200; color: var(--accent-text); }
 .points strong { color: var(--fg); font-weight: 600; }
 
 /* ============================================================
-   PAGE: CAPABILITIES, a hue per group
+   PAGE: CAPABILITIES
+   Every skill says where it was used. Pick one (hover, tap, or
+   a key) and the panel lists the roles and projects that show it.
    ============================================================ */
-.caps { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(16px, 2.4vw, 34px); }
-.cap-col { min-width: 0; }
-.cap-col:nth-child(1) { --col: var(--c2); --col-ink: var(--c2i); }
-.cap-col:nth-child(2) { --col: var(--c3); --col-ink: var(--c3i); }
-.cap-col:nth-child(3) { --col: var(--c4); --col-ink: var(--c4i); }
-.cap-col:nth-child(4) { --col: var(--c5); --col-ink: var(--c5i); }
-.cap-head {
-  width: 100%; text-align: left; background: none; border: 0; cursor: default;
-  display: flex; align-items: baseline; gap: 10px;
-  padding: 0 0 12px; border-bottom: 2px solid var(--col);
-  font-family: var(--font-mono); font-size: .66rem; letter-spacing: .15em;
-  text-transform: uppercase; color: var(--fg);
+.skills { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: clamp(20px, 3.5vw, 56px); align-items: start; }
+.skill-group {
+  display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 6px 14px;
+  padding: clamp(5px, 1vh, 11px) 0; border-top: 1px solid var(--line-soft);
 }
-.cap-head .idx { color: var(--col-ink); font-weight: 700; }
-.cap-head .chev { display: none; margin-left: auto; color: var(--fg-faint); transition: transform .35s var(--ease); }
-.cap-list { list-style: none; padding-top: 14px; display: grid; gap: 7px; }
-.cap-list li {
-  font-size: clamp(.78rem, 1.05vw, .88rem); color: var(--fg-dim);
-  padding-left: 15px; position: relative; transition: color .25s var(--ease);
+.skill-group:last-child { border-bottom: 1px solid var(--line-soft); }
+.skill-group:nth-child(1) { --col: var(--c2); --col-ink: var(--c2i); }
+.skill-group:nth-child(2) { --col: var(--c3); --col-ink: var(--c3i); }
+.skill-group:nth-child(3) { --col: var(--c4); --col-ink: var(--c4i); }
+.skill-group:nth-child(4) { --col: var(--c5); --col-ink: var(--c5i); }
+.skill-group:nth-child(5) { --col: var(--c1); --col-ink: var(--c1i); }
+.skill-head {
+  display: flex; gap: 10px; padding-top: 7px;
+  font-family: var(--font-mono); font-size: .64rem; font-weight: 400; letter-spacing: .15em; text-transform: uppercase; color: var(--fg);
 }
-.cap-list li::before {
-  content: ''; position: absolute; left: 0; top: .58em;
-  width: 6px; height: 2px; border-radius: 2px; background-color: var(--col);
-  transition: width .3s var(--ease);
+.skill-head .idx { color: var(--col-ink); font-weight: 700; }
+.skill-list { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+.skill {
+  display: inline-flex; align-items: baseline; gap: 6px;
+  font-family: var(--font-body); font-size: clamp(.76rem, .92vw, .84rem); line-height: 1.2;
+  padding: clamp(4px, .75vh, 6px) 11px; border: 1px solid var(--line); border-radius: 999px;
+  background-color: var(--surface); color: var(--fg); cursor: pointer;
+  transition: border-color .25s var(--ease), background-color .25s var(--ease), color .25s var(--ease);
 }
-.cap-list li:hover { color: var(--fg); }
-.cap-list li:hover::before { width: 10px; }
+/* How many places show it */
+.skill[data-places]::after { content: attr(data-places); font: 700 .58rem/1 var(--font-mono); color: var(--col-ink); }
+.skill.is-bare { color: var(--fg-faint); border-style: dashed; background: none; }
+.skill:hover { border-color: var(--col); }
+.skill[aria-pressed="true"] { background-color: var(--col-ink); border-color: var(--col-ink); color: #fff; }
+.skill[aria-pressed="true"]::after { color: inherit; }
+[data-theme="dark"] .skill[aria-pressed="true"] { color: var(--bg); }
+html:not(.scripted) .skill { cursor: default; }
+
+.proof {
+  padding: clamp(16px, 2.4vh, 24px); border: 1px solid var(--line); border-radius: 14px;
+  background-color: var(--surface-2);
+  box-shadow: 0 22px 44px -30px color-mix(in srgb, var(--fg) 45%, transparent);
+}
+.proof[data-group="1"] { --col: var(--c2); --col-ink: var(--c2i); }
+.proof[data-group="2"] { --col: var(--c3); --col-ink: var(--c3i); }
+.proof[data-group="3"] { --col: var(--c4); --col-ink: var(--c4i); }
+.proof[data-group="4"] { --col: var(--c5); --col-ink: var(--c5i); }
+.proof[data-group="5"] { --col: var(--c1); --col-ink: var(--c1i); }
+.proof-k { font-family: var(--font-mono); font-size: .6rem; letter-spacing: .16em; text-transform: uppercase; color: var(--fg-faint); }
+.proof-name { margin-top: 6px; font-family: var(--font-head); font-size: clamp(1.3rem, 2.2vw, 1.85rem); font-weight: 700; letter-spacing: -.03em; line-height: 1.1; text-wrap: balance; }
+.proof-count { margin-top: 6px; font-family: var(--font-mono); font-size: .62rem; letter-spacing: .14em; text-transform: uppercase; color: var(--col-ink); font-weight: 700; }
+.proof-list { list-style: none; margin-top: clamp(8px, 1.6vh, 14px); display: grid; }
+.proof-list li { animation: proof-in .45s var(--ease-out) both; animation-delay: calc(var(--i, 0) * 45ms); }
+@keyframes proof-in { from { opacity: 0; transform: translateX(10px); } }
+.proof-list a {
+  display: grid; grid-template-columns: 64px minmax(0, 1fr); column-gap: 10px;
+  padding: clamp(4px, .8vh, 10px) 0; border-top: 1px solid var(--line-soft);
+  text-decoration: none; color: inherit;
+}
+.proof-list .k { grid-row: span 2; padding-top: 3px; font-family: var(--font-mono); font-size: .56rem; letter-spacing: .14em; text-transform: uppercase; color: var(--col-ink); font-weight: 700; }
+.proof-list b { font-weight: 600; font-size: .92rem; transition: color .25s var(--ease); }
+.proof-list .l { color: var(--fg-dim); font-size: .8rem; line-height: 1.4; }
+.proof-list a:hover b { color: var(--col-ink); }
+@media (max-width: 1000px) {
+  .skill-groups .proof { margin: 4px 0 12px; animation: proof-in .4s var(--ease-out) both; }
+}
+/* A tablet has the width for the places side by side, and the height is better spent. */
+@media (min-width: 641px) and (max-width: 1000px) {
+  .proof-list { grid-template-columns: 1fr 1fr; column-gap: 24px; }
+}
 
 /* ============================================================
    PAGE: PROJECTS, a gallery
@@ -687,6 +727,12 @@ h2.head .thin { font-weight: 200; color: var(--accent-text); }
   font-family: var(--font-mono); font-size: .6rem; letter-spacing: .14em; text-transform: uppercase; color: var(--fg-faint);
 }
 .gal-top .n { color: var(--col-ink); font-weight: 700; }
+.gal-status {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--font-mono); font-size: .58rem; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--col-ink); font-weight: 700;
+}
+.gal-status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background-color: var(--col); }
 .gal-card h3 { font-size: clamp(1.1rem, 1.7vw, 1.45rem); font-weight: 650; letter-spacing: -.025em; line-height: 1.15; }
 .gal-card p { color: var(--fg-dim); font-size: clamp(.8rem, .95vw, .9rem); line-height: 1.55; }
 .gal-card .go {
@@ -865,7 +911,7 @@ h2.head .thin { font-weight: 200; color: var(--accent-text); }
    RESPONSIVE
    ============================================================ */
 @media (max-width: 1000px) {
-  .caps { grid-template-columns: repeat(2, 1fr); }
+  .skills { grid-template-columns: 1fr; }
   .rail .lbl { display: none; }
 }
 @media (max-width: 860px) {
@@ -888,13 +934,8 @@ h2.head .thin { font-weight: 200; color: var(--accent-text); }
   .pdf-link .long { display: none; }
   .view-btn { padding: 0; width: 34px; justify-content: center; }
   .view-btn .txt { display: none; }
-  .caps { grid-template-columns: 1fr; gap: 0; }
-  .cap-col { border-bottom: 1px solid var(--line-soft); }
-  .js .cap-head { cursor: pointer; padding: 15px 0; border-bottom: 0; }
-  .js .cap-head .chev { display: block; }
-  .js .cap-col.is-open .cap-head .chev { transform: rotate(180deg); }
-  .js .cap-list { display: none; padding: 0 0 16px; }
-  .js .cap-col.is-open .cap-list { display: grid; }
+  .skill-group { grid-template-columns: 1fr; }
+  .skill-head { padding-top: 0; }
 }
 
 /* ============================================================
@@ -981,14 +1022,15 @@ h2.head .thin { font-weight: 200; color: var(--accent-text); }
   .points strong { font-weight: 600; }
 
   /* capabilities as four lines */
-  .caps { display: block; }
-  .cap-col { display: flex; gap: 3mm; padding: .5mm 0; border: 0; break-inside: avoid; }
-  .cap-head { width: 42mm; flex-shrink: 0; padding: 0; border: 0; font-size: 7pt; }
-  .cap-head .chev { display: none !important; }
-  .cap-list { display: block !important; padding: 0; }
-  .cap-list li { display: inline; padding: 0; font-size: 8.8pt; color: var(--fg); }
-  .cap-list li::before { display: none; }
-  .cap-list li:not(:last-child)::after { content: ',  '; color: var(--fg-faint); }
+  .skills { display: block; }
+  .skill-group { display: flex; gap: 3mm; padding: .5mm 0; border: 0; break-inside: avoid; }
+  .skill-group:last-child { border: 0; }
+  .skill-head { width: 42mm; flex-shrink: 0; padding: 0; font-size: 7pt; }
+  .skill-list { display: block; }
+  .skill-list li { display: inline; }
+  .skill { display: inline; padding: 0; border: 0; background: none; font-size: 8.8pt; color: var(--fg); }
+  .skill::after { content: none !important; }
+  .skill-list li:not(:last-child)::after { content: ',  '; color: var(--fg-faint); }
 
   /* the selected projects, two columns; the inline positions the gallery set are undone */
   .gal-track { display: grid !important; grid-template-columns: 1fr 1fr; gap: 2mm 6mm; }
@@ -1221,39 +1263,109 @@ h2.head .thin { font-weight: 200; color: var(--accent-text); }
     </div>
   </section>
 
-  <!-- CAPABILITIES: the resume's own four groups. Architecture &
-       Delivery is deliberately not a technology list. -->
+  <!-- CAPABILITIES: every skill says where it was used. data-used lists the places, by the
+       ids in .sources below, and only places whose own words on this page (or in the
+       repository) show the skill. A skill with no public example keeps no data-used: it
+       stays listed and says so, rather than being given proof it does not have.
+       Machine Learning is not in the supplied résumé's four groups; it was added for the
+       2026 work, from the projects that show it. -->
   <section class="page wide" id="capabilities" data-section="Capabilities">
     <div class="page-inner">
-      <p class="eyebrow" data-anim><b>02</b><span class="sep"></span><span>Capabilities</span></p>
-      <h2 class="head" style="margin-top:14px"><span class="mask"><span>What I <span class="thin">work in</span></span></span></h2>
-      <div class="rule" style="margin:clamp(20px,3.4vh,32px) 0" data-anim></div>
-      <div class="caps">
-        <div class="cap-col is-open" data-anim>
-          <button type="button" class="cap-head" aria-expanded="true"><span class="idx">01</span><span>Languages</span><span class="chev" aria-hidden="true">⌄</span></button>
-          <ul class="cap-list">
-            <li data-anim="fast">PHP</li><li data-anim="fast">Python</li><li data-anim="fast">JavaScript</li><li data-anim="fast">C#</li><li data-anim="fast">SQL</li>
-          </ul>
+      <p class="eyebrow" data-anim><b>02</b><span class="sep"></span><span>Capabilities</span><span class="sep"></span><span class="count needs-js">Pick one to see where it was used</span></p>
+      <h2 class="head" style="margin-top:12px"><span class="mask"><span>What I <span class="thin">work in</span></span></span></h2>
+      <div class="spacer" style="height:clamp(14px,2.4vh,26px)"></div>
+      <div class="skills">
+        <div class="skill-groups">
+          <div class="skill-group" data-anim>
+            <h3 class="skill-head"><span class="idx">01</span>Languages</h3>
+            <ul class="skill-list">
+              <li><button type="button" class="skill" data-used="tekkii">PHP</button></li>
+              <li><button type="button" class="skill" data-used="tekkii mailman fallacy herder evaluaters pneumonia">Python</button></li>
+              <li><button type="button" class="skill" data-used="trail site apps">JavaScript</button></li>
+              <li><button type="button" class="skill" data-used="allied">C#</button></li>
+              <li><button type="button" class="skill" data-used="allied tekkii mailman">SQL</button></li>
+            </ul>
+          </div>
+          <div class="skill-group" data-anim>
+            <h3 class="skill-head"><span class="idx">02</span>Web Development</h3>
+            <ul class="skill-list">
+              <li><button type="button" class="skill" data-used="tekkii site">Public-Facing Web Applications</button></li>
+              <li><button type="button" class="skill" data-used="tekkii">REST APIs</button></li>
+              <li><button type="button" class="skill" data-used="site trail apps">HTML / CSS</button></li>
+              <li><button type="button" class="skill">Vue.js</button></li>
+              <li><button type="button" class="skill">React</button></li>
+              <li><button type="button" class="skill">Angular</button></li>
+              <li><button type="button" class="skill" data-used="site trail">Node.js</button></li>
+              <li><button type="button" class="skill" data-used="site">Responsive Design</button></li>
+            </ul>
+          </div>
+          <div class="skill-group" data-anim>
+            <h3 class="skill-head"><span class="idx">03</span>Databases</h3>
+            <ul class="skill-list">
+              <li><button type="button" class="skill" data-used="tekkii mailman herder">PostgreSQL</button></li>
+              <li><button type="button" class="skill" data-used="allied tekkii">SQL Server</button></li>
+              <li><button type="button" class="skill" data-used="tekkii">MySQL</button></li>
+              <li><button type="button" class="skill" data-used="allied tekkii">Query Optimization</button></li>
+              <li><button type="button" class="skill" data-used="allied">Stored Procedures</button></li>
+              <li><button type="button" class="skill" data-used="allied">Schema Design</button></li>
+              <li><button type="button" class="skill" data-used="allied">Data Modeling</button></li>
+              <li><button type="button" class="skill" data-used="allied">Large Dataset Processing</button></li>
+            </ul>
+          </div>
+          <div class="skill-group" data-anim>
+            <h3 class="skill-head"><span class="idx">04</span>Architecture &amp; Delivery</h3>
+            <ul class="skill-list">
+              <li><button type="button" class="skill" data-used="tekkii mailman herder">System Design</button></li>
+              <li><button type="button" class="skill" data-used="tekkii">API Design</button></li>
+              <li><button type="button" class="skill" data-used="tekkii">Legacy System Modernization</button></li>
+              <li><button type="button" class="skill" data-used="allied">Web Application Security</button></li>
+              <li><button type="button" class="skill">Authentication</button></li>
+              <li><button type="button" class="skill" data-used="site">Git / GitHub</button></li>
+              <li><button type="button" class="skill" data-used="mailman site">Docker</button></li>
+              <li><button type="button" class="skill" data-used="site">CI/CD Pipelines</button></li>
+              <li><button type="button" class="skill">Server Administration (SSH/FTP)</button></li>
+              <li><button type="button" class="skill" data-used="tekkii">Agile / Scrum</button></li>
+              <li><button type="button" class="skill" data-used="allied tekkii independent">Requirements Gathering</button></li>
+              <li><button type="button" class="skill" data-used="allied tekkii">Stakeholder Communication</button></li>
+            </ul>
+          </div>
+          <div class="skill-group" data-anim>
+            <h3 class="skill-head"><span class="idx">05</span>Machine Learning</h3>
+            <ul class="skill-list">
+              <li><button type="button" class="skill" data-used="fallacy">PyTorch</button></li>
+              <li><button type="button" class="skill" data-used="fallacy">Fine-Tuning Transformers</button></li>
+              <li><button type="button" class="skill" data-used="pneumonia fallacy umkc">Deep Learning</button></li>
+              <li><button type="button" class="skill" data-used="mailman herder evaluaters fallacy">Model Evaluation</button></li>
+              <li><button type="button" class="skill" data-used="fallacy herder">Local Models, No Hosted APIs</button></li>
+              <li><button type="button" class="skill" data-used="herder">Vector Search</button></li>
+            </ul>
+          </div>
         </div>
-        <div class="cap-col" data-anim>
-          <button type="button" class="cap-head" aria-expanded="false"><span class="idx">02</span><span>Web Development</span><span class="chev" aria-hidden="true">⌄</span></button>
-          <ul class="cap-list">
-            <li data-anim="fast">Public-Facing Web Applications</li><li data-anim="fast">REST APIs</li><li data-anim="fast">HTML / CSS</li><li data-anim="fast">Vue.js</li><li data-anim="fast">React</li><li data-anim="fast">Angular</li><li data-anim="fast">Node.js</li><li data-anim="fast">Responsive Design</li>
-          </ul>
-        </div>
-        <div class="cap-col" data-anim>
-          <button type="button" class="cap-head" aria-expanded="false"><span class="idx">03</span><span>Databases</span><span class="chev" aria-hidden="true">⌄</span></button>
-          <ul class="cap-list">
-            <li data-anim="fast">PostgreSQL</li><li data-anim="fast">SQL Server</li><li data-anim="fast">MySQL</li><li data-anim="fast">Query Optimization</li><li data-anim="fast">Stored Procedures</li><li data-anim="fast">Schema Design</li><li data-anim="fast">Data Modeling</li><li data-anim="fast">Large Dataset Processing</li>
-          </ul>
-        </div>
-        <div class="cap-col" data-anim>
-          <button type="button" class="cap-head" aria-expanded="false"><span class="idx">04</span><span>Architecture &amp; Delivery</span><span class="chev" aria-hidden="true">⌄</span></button>
-          <ul class="cap-list">
-            <li data-anim="fast">System Design</li><li data-anim="fast">API Design</li><li data-anim="fast">Legacy System Modernization</li><li data-anim="fast">Web Application Security</li><li data-anim="fast">Authentication</li><li data-anim="fast">Git / GitHub</li><li data-anim="fast">Docker</li><li data-anim="fast">CI/CD Pipelines</li><li data-anim="fast">Server Administration (SSH/FTP)</li><li data-anim="fast">Agile / Scrum</li><li data-anim="fast">Requirements Gathering</li><li data-anim="fast">Stakeholder Communication</li>
-          </ul>
-        </div>
+
+        <aside class="proof needs-js" data-anim aria-label="Where the chosen skill was used">
+          <p class="proof-k">Where it was used</p>
+          <p class="proof-name"></p>
+          <p class="proof-count"></p>
+          <ul class="proof-list"></ul>
+        </aside>
       </div>
+
+      <!-- The places a skill can point to. Their lines repeat what the page already says. -->
+      <ul class="sources" hidden>
+        <li data-src="independent" data-kind="Role" data-name="Independent Projects" data-line="2026 to now, own projects and models" data-href="#experience"></li>
+        <li data-src="tekkii" data-kind="Role" data-name="Tekkii" data-line="Full Stack Web Developer, 2023 to 2026" data-href="#experience-tekkii"></li>
+        <li data-src="allied" data-kind="Role" data-name="Allied Engineering Group" data-line="Software Engineer, SWIFT platforms, 2019 to 2021" data-href="#experience-allied"></li>
+        <li data-src="mailman" data-kind="Project" data-name="Mailman" data-line="Invoice intake, 98.3% field accuracy, 355 tests" data-href="https://github.com/MoAbboud/PortFolio/tree/main/mailman"></li>
+        <li data-src="fallacy" data-kind="Project" data-name="Fallacy Detector" data-line="Two-stage classifier trained for 13 fallacy types" data-href="https://github.com/MoAbboud/PortFolio/tree/main/fallacysuspect"></li>
+        <li data-src="herder" data-kind="Project" data-name="Herder" data-line="AI-chat memory traced to its sources" data-href="https://github.com/MoAbboud/PortFolio/tree/main/herder"></li>
+        <li data-src="trail" data-kind="Project" data-name="Trail" data-line="Hand-written WebGL2, 620 tests" data-href="/trail/"></li>
+        <li data-src="pneumonia" data-kind="Project" data-name="Pneumonia Detection" data-line="Deep learning on chest X-rays" data-href="https://pneumonia-x9mz.onrender.com/"></li>
+        <li data-src="evaluaters" data-kind="Project" data-name="Evaluaters" data-line="Structured extraction scored case by case" data-href="https://github.com/MoAbboud/PortFolio/tree/main/evaluaters"></li>
+        <li data-src="site" data-kind="Project" data-name="This site" data-line="Written by hand, published by GitHub Actions" data-href="https://github.com/MoAbboud/PortFolio/tree/main/deploy"></li>
+        <li data-src="apps" data-kind="Projects" data-name="Browser apps" data-line="Story Takes, WhereYaGo, Snowball, TekTak" data-href="#projects"></li>
+        <li data-src="umkc" data-kind="Education" data-name="UMKC" data-line="MS Computer Science, pneumonia course project" data-href="#education"></li>
+      </ul>
+      <p class="skill-live vh" aria-live="polite"></p>
     </div>
   </section>
 
@@ -1344,6 +1456,7 @@ h2.head .thin { font-weight: 200; color: var(--accent-text); }
               <span class="gal-body">
                 <span class="gal-top"><span class="n">04</span><span>FastAPI · pgvector · local models</span></span>
                 <h3>Herder</h3>
+                <span class="gal-status">In progress: testing and a live demo still to come</span>
                 <p>Portable memory for AI chat: a long conversation becomes a compact brief where every line traces back to the messages it came from. Benchmarked against a plain summary at the same token budget, on a 261-fact answer key written by hand.</p>
                 <span class="go">Code <span aria-hidden="true">→</span></span>
               </span></a></li>
@@ -1812,19 +1925,65 @@ function init() {
   stage.addEventListener('toggle', () => updateMore(pages[current]), true);
   addEventListener('resize', () => updateMore(pages[current]));
 
-  /* Capability groups are real buttons, so they work from a keyboard */
-  stage.addEventListener('click', e => {
-    const head = e.target.closest('.cap-head');
-    if (!head) return;
-    const col = head.parentElement;
-    const open = !col.classList.contains('is-open');
-    $$('.cap-col', col.parentElement).forEach(c => {
-      c.classList.remove('is-open');
-      $('.cap-head', c).setAttribute('aria-expanded', 'false');
+  /* ---- capabilities: where each skill was used ------------------
+     A mouse over a skill previews it; a click, a tap or a key picks
+     it. The panel lists the places named in its data-used. */
+  const proof = $('.proof', stage);
+  if (proof) (function () {
+    const skills = $$('.skill', stage);
+    const groups = $$('.skill-group', stage);
+    const sources = {};
+    $$('.sources li', stage).forEach(li => { sources[li.dataset.src] = li.dataset; });
+    const liveBox = $('.skill-live', stage);
+    const usedOf = b => (b.dataset.used || '').split(/\s+/).filter(id => sources[id]);
+    skills.forEach(b => {
+      const n = usedOf(b).length;
+      if (n) b.dataset.places = n; else b.classList.add('is-bare');
+      b.setAttribute('aria-pressed', 'false');
     });
-    if (open) { col.classList.add('is-open'); head.setAttribute('aria-expanded', 'true'); }
-    updateMore(pages[current]);
-  });
+    let pinned = skills.find(b => b.textContent.trim() === 'Python') || skills[0];
+    let shown = null, back = 0;
+    function render(b) {
+      if (b === shown) return;
+      shown = b;
+      const used = usedOf(b);
+      proof.dataset.group = String(groups.indexOf(b.closest('.skill-group')) + 1);
+      $('.proof-name', proof).textContent = b.textContent.trim();
+      $('.proof-count', proof).textContent = used.length
+        ? `Used in ${used.length} ${used.length === 1 ? 'place' : 'places'}`
+        : 'No public example on this page';
+      $('.proof-list', proof).innerHTML = used.map((id, i) => {
+        const src = sources[id];
+        const ext = /^https?:/.test(src.href);
+        return `<li style="--i:${i}"><a href="${esc(src.href)}"${ext ? ' target="_blank" rel="noopener"' : ''}>` +
+               `<span class="k">${esc(src.kind)}</span><b>${esc(src.name)}</b><span class="l">${esc(src.line)}</span></a></li>`;
+      }).join('');
+      updateMore(pages[current]);
+    }
+    /* In one column the panel opens under the group that was tapped, where the eye is;
+       side by side it keeps its own column. */
+    const skillsBox = $('.skills', stage);
+    const oneColumn = matchMedia('(max-width: 1000px)');
+    function place() {
+      if (oneColumn.matches) pinned.closest('.skill-group').after(proof);
+      else if (proof.parentElement !== skillsBox) skillsBox.appendChild(proof);
+    }
+    oneColumn.addEventListener('change', place);
+    function pin(b, announce) {
+      pinned = b;
+      skills.forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      place();
+      render(b);
+      if (announce) liveBox.textContent = `${b.textContent.trim()}: ${$('.proof-count', proof).textContent}`;
+    }
+    skills.forEach(b => {
+      b.addEventListener('click', () => pin(b, true));
+      b.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') { clearTimeout(back); render(b); } });
+      /* A short wait, so sweeping across the chips does not flash the pinned one between them. */
+      b.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') back = setTimeout(() => render(pinned), 160); });
+    });
+    pin(pinned, false);
+  })();
 
   /* ---- clips ------------------------------------------------
      A clip plays only while its page is on stage and the tab is
