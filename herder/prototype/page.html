@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>herder - prototype</title>
+<meta name="description" content="Paste a chat with Claude or ChatGPT and see the compact brief herder keeps of it. Runs entirely in the browser.">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: {
+    mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+  } } } };
+</script>
+<style>
+  :root { color-scheme: light dark; }
+  .kind { font-variant: small-caps; letter-spacing: .04em; }
+  textarea { field-sizing: content; }
+  @media (prefers-reduced-motion: no-preference) { .fade { animation: fade .25s ease both; } }
+  @keyframes fade { from { opacity: 0; transform: translateY(2px); } }
+</style>
+</head>
+<body class="bg-stone-50 text-stone-800 dark:bg-stone-950 dark:text-stone-200 antialiased">
+
+<div class="mx-auto max-w-6xl px-4 py-10">
+
+  <header class="mb-8">
+    <div class="flex items-baseline gap-3 flex-wrap">
+      <h1 class="text-3xl font-semibold tracking-tight">herder</h1>
+      <span class="rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-0.5 text-xs text-amber-700 dark:text-amber-400">prototype</span>
+    </div>
+    <p class="mt-3 max-w-2xl text-stone-600 dark:text-stone-400">
+      Portable memory for AI chat. Paste a conversation with Claude or ChatGPT and this keeps the part
+      worth keeping: the decisions, constraints, preferences and open threads it established, compact
+      enough to paste into the next chat.
+    </p>
+    <p class="mt-2 max-w-2xl text-sm text-stone-500">
+      Everything here runs in your browser. Nothing is uploaded, no API key, no model download.
+    </p>
+  </header>
+
+  <!-- input -->
+  <section class="rounded-xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
+    <div class="mb-3 flex items-center justify-between gap-3 flex-wrap">
+      <label for="paste" class="text-sm font-medium">Your conversation</label>
+      <div class="flex items-center gap-2 text-sm">
+        <button id="sample" class="rounded-md border border-stone-300 px-2.5 py-1 hover:bg-stone-100 dark:border-stone-700 dark:hover:bg-stone-800">Load a sample</button>
+        <button id="clear" class="rounded-md border border-stone-300 px-2.5 py-1 hover:bg-stone-100 dark:border-stone-700 dark:hover:bg-stone-800">Clear</button>
+      </div>
+    </div>
+    <textarea id="paste" rows="9" spellcheck="false"
+      class="w-full resize-y rounded-lg border border-stone-300 bg-stone-50 p-3 font-mono text-[13px] leading-relaxed outline-none focus:border-stone-400 dark:border-stone-700 dark:bg-stone-950 dark:focus:border-stone-600"
+      placeholder="Paste here. Lines labelled like&#10;&#10;You: we're using Postgres, not MySQL&#10;ChatGPT: ...&#10;&#10;'User:' / 'Assistant:' / 'Claude:' all work."></textarea>
+
+    <div class="mt-3 flex items-end justify-between gap-4 flex-wrap">
+      <div>
+        <label for="budget" class="block text-sm font-medium">Token budget <span class="font-normal text-stone-500">- how much room the next chat gets</span></label>
+        <div class="mt-1 flex items-center gap-3">
+          <input id="budget" type="range" min="200" max="3000" step="100" value="500" class="w-56 accent-stone-700 dark:accent-stone-300">
+          <output id="budgetOut" class="font-mono text-sm tabular-nums">500</output>
+        </div>
+      </div>
+      <button id="run" class="rounded-lg bg-stone-800 px-4 py-2 font-medium text-white hover:bg-stone-700 disabled:opacity-40 dark:bg-stone-200 dark:text-stone-900 dark:hover:bg-white">
+        Derive the brief
+      </button>
+    </div>
+  </section>
+
+  <!-- results -->
+  <section id="results" class="mt-6 hidden">
+
+    <div id="stats" class="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"></div>
+
+    <div id="changed" class="mb-5 hidden rounded-xl border border-amber-500/40 bg-amber-500/5 p-4"></div>
+
+    <div class="grid gap-5 lg:grid-cols-5">
+      <div class="lg:col-span-3">
+        <div class="mb-2 flex items-baseline justify-between gap-2">
+          <h2 class="font-semibold">The brief</h2>
+          <button id="copy" class="rounded-md border border-stone-300 px-2 py-0.5 text-xs hover:bg-stone-100 dark:border-stone-700 dark:hover:bg-stone-800">Copy</button>
+        </div>
+        <p class="mb-3 text-sm text-stone-500">Paste this into a new chat. Ordered by what matters most, cut to fit the budget.</p>
+        <div id="brief" class="rounded-xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900"></div>
+      </div>
+
+      <div class="lg:col-span-2">
+        <h2 class="mb-2 font-semibold">What did not fit</h2>
+        <p class="mb-3 text-sm text-stone-500">Kept, and traceable, just not in this render. Raise the budget and they come back.</p>
+        <div id="excluded" class="rounded-xl border border-stone-200 bg-white p-4 text-sm dark:border-stone-800 dark:bg-stone-900"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- the honest bit -->
+  <section class="mt-10 rounded-xl border border-stone-200 bg-white p-5 dark:border-stone-800 dark:bg-stone-900">
+    <h2 class="font-semibold">What this prototype is, and what it leaves out</h2>
+    <p class="mt-2 text-sm text-stone-600 dark:text-stone-400">
+      The full pipeline is capture, extract, <strong>merge</strong>, render, serve, verify. Three of those
+      are pure rules over text and run here exactly as they do on the server - the patterns on this page
+      are generated from the same Python source, and a test fails if they drift.
+    </p>
+    <div class="mt-4 grid gap-3 sm:grid-cols-2">
+      <div class="rounded-lg border border-emerald-600/30 bg-emerald-500/5 p-3">
+        <p class="text-sm font-medium text-emerald-700 dark:text-emerald-400">Runs here, unchanged</p>
+        <ul class="mt-1.5 space-y-1 text-sm text-stone-600 dark:text-stone-400">
+          <li><strong>Extract</strong> - only what you said is read. A chat is mostly the assistant talking, and treating its suggestions as fact fills the memory with ideas you turned down.</li>
+          <li><strong>Render</strong> - constraints first, then decisions, then open threads. A model that knows the rules can behave correctly without every fact; one with the facts and not the rules cannot.</li>
+          <li><strong>Residue</strong> - sentences no entry captured, spending only the budget left over.</li>
+        </ul>
+      </div>
+      <div class="rounded-lg border border-stone-300 bg-stone-500/5 p-3 dark:border-stone-700">
+        <p class="text-sm font-medium">Left on the server</p>
+        <ul class="mt-1.5 space-y-1 text-sm text-stone-600 dark:text-stone-400">
+          <li><strong>Merge</strong> needs sentence embeddings and a DeBERTa cross-encoder - gigabytes of weights. It decides whether a new claim repeats a stored one, refines it, or <em>retires</em> it.</li>
+          <li>So this page can spot that you changed your mind - same rule the real merge step uses - but not resolve <em>which</em> entry the change replaces. That is an entailment judgement.</li>
+          <li>Token counts here are <strong>estimates</strong>; the real pipeline counts with cl100k.</li>
+        </ul>
+      </div>
+    </div>
+    <p class="mt-4 text-sm text-stone-600 dark:text-stone-400">
+      Measured on eight long conversations against 261 hand-written facts, the full pipeline recalls
+      <strong>0.88</strong> of them at a 3,000-token budget while carrying <strong>none</strong> of the
+      40 claims that had been reversed or refused. A plain "summarise this" at the same budget manages
+      0.21, and pasting the most recent text 0.31.
+      <span class="text-stone-500">The numbers, the dead ends and what the judge got wrong are in the repository.</span>
+    </p>
+  </section>
+
+  <footer class="mt-8 text-sm text-stone-500">
+    <span id="model" class="font-mono"></span> - no network calls, no storage, nothing leaves this page.
+  </footer>
+</div>
+
+<script>
+/* BUNDLE */
+</script>
+</body>
+</html>

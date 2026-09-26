@@ -20,6 +20,10 @@ on:
       - trail/lib/**
       - trail/examples/**
       - trail/models/**
+      # herder's prototype: the generated page is the only published file, so it is the only one
+      # worth triggering on. Editing page.html, ui.js or herder.js without regenerating changes
+      # nothing a visitor loads, and prototype/tests/test_parity.py is what catches that.
+      - herder/prototype/index.html
       - deploy/build-static.mjs
       - .github/workflows/pages.yml
   workflow_dispatch:
