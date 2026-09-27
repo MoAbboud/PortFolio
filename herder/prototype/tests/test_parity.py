@@ -13,6 +13,7 @@ conversations, which is the risk that generating the patterns does not cover.
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -95,15 +96,40 @@ def test_the_page_renders_a_brief_from_its_own_sample() -> None:
     assert result.returncode == 0, f"{result.stdout}\n{result.stderr}"
 
 
-@needs_node
-def test_the_published_page_needs_no_other_file() -> None:
-    """`deploy/build-static.mjs` publishes `index.html` alone, so anything it still reaches for at
+def test_the_published_page_loads_no_script_of_its_own() -> None:
+    """`deploy/build-static.mjs` publishes `index.html` alone, so a script it still reached for at
     runtime would 404 on the live site."""
     page = (PROTOTYPE / "index.html").read_text(encoding="utf-8")
     for forbidden in ("herder.js", "rules.generated.js", "ui.js"):
         assert f'"./{forbidden}"' not in page and f"'./{forbidden}'" not in page, (
             f"index.html still loads {forbidden} at runtime"
         )
+
+
+def test_every_asset_the_page_asks_for_exists() -> None:
+    """The page takes Geist from `resume/fonts/`, which is a dependency across two app folders and
+    the kind that breaks silently - the text just falls back to a system font and nobody notices.
+
+    Relative rather than the resume's own absolute `/resume/fonts/...` on purpose: relative resolves
+    from disk, from a domain root and from a project-pages subpath, and the page is meant to open by
+    double-click as well as over HTTP.
+    """
+    page = PROTOTYPE / "index.html"
+    urls = re.findall(r'url\("([^"]+)"\)', page.read_text(encoding="utf-8"))
+    assert urls, "no font is being loaded - did the stylesheet lose its @font-face rules?"
+    for ref in urls:
+        assert not ref.startswith(("http://", "https://", "/")), (
+            f"{ref} is absolute; it will not resolve from a file:// open or a subpath"
+        )
+        assert (page.parent / ref).resolve().exists(), f"{ref} does not exist"
+
+
+def test_the_page_carries_no_cdn() -> None:
+    """Dropping Tailwind was the point of the redesign: with the fonts alongside, the page is one
+    file that works with no network at all. A CDN creeping back would undo that quietly."""
+    page = (PROTOTYPE / "index.html").read_text(encoding="utf-8")
+    for host in ("cdn.tailwindcss.com", "unpkg.com", "cdn.jsdelivr.net", "fonts.googleapis.com"):
+        assert host not in page, f"{host} is back in the page"
 
 
 @needs_node
