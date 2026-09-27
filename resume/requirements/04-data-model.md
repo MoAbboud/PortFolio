@@ -59,7 +59,7 @@ Every read and write is wrapped, so a browser that refuses storage gets the defa
 | `fonts/geist.woff2`, `fonts/geist-mono.woff2` | Google Fonts Latin subset | Geist, SIL OFL 1.1 (`fonts/OFL-Geist.txt`) | 29 KB, 23 KB |
 | `media/trail-loop.webm`, `media/trail-poster.webp` | Recorded from Trail's own canvas in headless Chrome | The example scene: ring, into the street, back to the ring | 568 KB, 6 KB |
 | `media/fallacy-detector.webp` | Screenshot of the app running its own models locally | `fallacysuspect/argument.txt` | 35 KB |
-| `media/herder-prototype.webp` | Screenshot of herder's browser prototype (`/herder/prototype/`) | Its own sample chat, run at a 500-token budget | 31 KB |
+| `media/herder-prototype.webp` | Screenshot of herder's browser prototype (`/herder/prototype/`), after its restyle in the resume's type and palette | Its opening screen with its own sample chat loaded | 36 KB |
 | `media/story-takes.webp` | Screenshot of the app | A short demo story, labelled as a sample | 12 KB |
 | `media/whereyago.webp`, `media/tektak.webp`, `media/snowball.webp` | Screenshots of the apps | Their own demo data; Snowball seeded with one thought | 17 to 33 KB |
 | `og.png` | `tools/make-assets.mjs` | `tools/og.html` | 1200x630 |
