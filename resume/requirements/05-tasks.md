@@ -31,7 +31,8 @@ Chrome driven over the DevTools protocol, unless it says otherwise), not only wr
 - [ ] Turn the layout and behaviour checks into tests that run in CI on every push
 - [ ] Fallacy Detector and Pneumonia Detection link to live apps once hosted
 - [ ] A real screenshot for Pneumonia Detection after its new interface
-- [ ] Herder: drop "In progress" once testing is done and a demo exists
+- [x] Herder's card opens its browser prototype and shows a screenshot of it
+- [ ] Herder: drop "In progress" once the full system is tested and demonstrable
 - [ ] Update the Claude Design project to the current page
 
 ## Optional
