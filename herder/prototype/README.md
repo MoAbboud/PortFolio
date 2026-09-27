@@ -16,9 +16,14 @@ this folder.
 Open `index.html`. That is all - it is one self-contained file, so a double-click works and so does
 a USB stick. Hosted, it is `/herder/prototype/` on the static site.
 
-It needs the network for one thing only: Tailwind from a CDN, as the other browser apps here do.
-Offline the page works and looks unstyled. Removing that last dependency means replacing Tailwind
-with hand-written CSS, which has not been done.
+**No network at all.** No CDN, no Tailwind. The stylesheet is the resume's own design system - the
+same tokens, the same six hues, the same easing, copied from `resume/index.html` rather than
+approximated - and Geist comes from `../../resume/fonts/`, which the site already publishes. A test
+resolves every `url()` on disk, because a missing font does not fail loudly, it just falls back to
+Arial and nobody notices.
+
+The font paths are relative, not the resume's own absolute `/resume/fonts/...`, so they resolve from
+a `file://` open, from a domain root and from a project-pages subpath alike.
 
 **Why one file rather than three modules.** A module is fetched, and a fetched script is refused
 unless it arrives as JavaScript. Python's `http.server` on Windows reads MIME types from the
@@ -79,13 +84,24 @@ so that extraction and residue cannot split sentences differently.
 
 Only `index.html` is published. Everything else is build and test machinery and stays in the repo.
 
+## The page
+
+Titles, not explanations. Everything that explains itself sits behind a `<summary>` and opens on a
+click: what runs in the browser, what stays on the server, how it is measured, the change-of-mind
+notice, and what the budget cut. **47 words are visible at rest against 396 before**, with 289 of
+them one click away. The stat row is four numbers with a three-word label each and nothing else.
+
+The six hues carry the *kind* of each line - constraint, decision, open thread, preference, code
+state, plain fact - so the colour says why a line survived the budget, which is what the render order
+is about.
+
 ## The guard
 
 ```powershell
 .\.venv\Scripts\python -m pytest prototype
 ```
 
-21 tests, and they fail in four distinct ways:
+23 tests, and they fail in five distinct ways:
 
 - **Stale** - regenerating changes a checked-in generated file, so a rule moved in Python, or
   `page.html`/`ui.js`/`herder.js` changed and the page was not rebuilt.
@@ -96,7 +112,10 @@ Only `index.html` is published. Everything else is build and test machinery and 
   checks a brief came out with the ordering and the reversal notice in it. Without this a UI mistake
   shows up as a blank panel and no error the author will see. It caught two things already: a budget
   read as `0` rendering an empty brief, and the MIME problem above.
-- **Self-containment** - the published page must not reach for a file that is not published.
+- **Self-containment** - the published page must not load a script that is not published.
+- **Assets** - every `url()` in the stylesheet has to resolve, and none of them may be absolute or a
+  CDN. A missing font is the failure that does not announce itself: the page renders in Arial and
+  looks merely a bit wrong.
 
 One test asserts the rule that outranks every other rule, on what a visitor actually sees: nothing
 an assistant said ever reaches the brief.

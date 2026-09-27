@@ -1,132 +1,297 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>herder - prototype</title>
-<meta name="description" content="Paste a chat with Claude or ChatGPT and see the compact brief herder keeps of it. Runs entirely in the browser.">
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: {
-    mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
-  } } } };
-</script>
+<meta name="description" content="Paste a chat with Claude or ChatGPT and keep what was decided. Runs entirely in your browser.">
 <style>
-  :root { color-scheme: light dark; }
-  .kind { font-variant: small-caps; letter-spacing: .04em; }
-  textarea { field-sizing: content; }
-  @media (prefers-reduced-motion: no-preference) { .fade { animation: fade .25s ease both; } }
-  @keyframes fade { from { opacity: 0; transform: translateY(2px); } }
+/* ============================================================
+   The resume's design system, the part this page needs.
+   resume/index.html is the source: same tokens, same two fonts,
+   same easing. Six hues there carry sections; here they carry
+   the kind of thing a line is, which is what the render order
+   is about. Nothing is restated from memory - the values are
+   copied from that file.
+
+   No Tailwind and no CDN: with the fonts alongside, the page
+   is one file that works offline and on a USB stick.
+   ============================================================ */
+:root {
+  --bg:        #fbf8f3;
+  --bg-2:      #f4ede2;
+  --fg:        #1a1720;
+  --fg-dim:    #5a5462;
+  --fg-faint:  #6b6474;
+  --line:      rgba(26, 23, 32, 0.15);
+  --line-soft: rgba(26, 23, 32, 0.07);
+  --surface:   rgba(255, 255, 255, 0.60);
+  --surface-2: rgba(255, 255, 255, 0.85);
+
+  --c1: #f04e2a; --c1i: #bd3410;
+  --c2: #5b4be8; --c2i: #3a2cb5;
+  --c3: #0ba99a; --c3i: #076f64;
+  --c4: #e89000; --c4i: #965b00;
+  --c5: #e0357f; --c5i: #a81257;
+  --c6: #24a85a; --c6i: #147038;
+
+  --accent: var(--c2); --accent-ink: var(--c2i);
+
+  --font-body: "Geist", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "Cascadia Mono", "Segoe UI Mono", Consolas, "SF Mono", Menlo, monospace;
+
+  --ease:     cubic-bezier(.22,.61,.24,1);
+  --ease-out: cubic-bezier(.16,1,.30,1);
+
+  --gutter:  clamp(20px, 5vw, 76px);
+  --measure: 1000px;
+}
+/* The night counterpart, the same six hues lifted so they still sing. Taken by system preference,
+   or forced with data-theme on <html> the way the resume does it. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:        #14121a;
+    --bg-2:      #1c1926;
+    --fg:        #f3eff8;
+    --fg-dim:    #a9a2b5;
+    --fg-faint:  #8f889d;
+    --line:      rgba(243, 239, 248, 0.15);
+    --line-soft: rgba(243, 239, 248, 0.07);
+    --surface:   rgba(243, 239, 248, 0.04);
+    --surface-2: rgba(243, 239, 248, 0.08);
+    --c1: #ff7350; --c1i: #ff9c80;
+    --c2: #8b7dff; --c2i: #a99fff;
+    --c3: #24d3c0; --c3i: #6ae4d6;
+    --c4: #ffb02e; --c4i: #ffc768;
+    --c5: #ff5f9e; --c5i: #ff8cba;
+    --c6: #45d47c; --c6i: #7ee5a4;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14121a; --bg-2: #1c1926; --fg: #f3eff8; --fg-dim: #a9a2b5; --fg-faint: #8f889d;
+  --line: rgba(243,239,248,0.15); --line-soft: rgba(243,239,248,0.07);
+  --surface: rgba(243,239,248,0.04); --surface-2: rgba(243,239,248,0.08);
+  --c1: #ff7350; --c1i: #ff9c80; --c2: #8b7dff; --c2i: #a99fff; --c3: #24d3c0; --c3i: #6ae4d6;
+  --c4: #ffb02e; --c4i: #ffc768; --c5: #ff5f9e; --c5i: #ff8cba; --c6: #45d47c; --c6i: #7ee5a4;
+}
+
+/* Latin only, about 50 KB each, SIL OFL - licence beside them in resume/fonts/. Relative so the
+   page resolves them from disk, from a domain root and from a project-pages subpath alike. */
+@font-face {
+  font-family: "Geist"; font-style: normal; font-weight: 100 900; font-display: swap;
+  src: url("../../resume/fonts/geist.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Geist Mono"; font-style: normal; font-weight: 100 900; font-display: swap;
+  src: url("../../resume/fonts/geist-mono.woff2") format("woff2");
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+::selection { background: var(--accent); color: #fff; }
+:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 3px; border-radius: 3px; }
+
+.wrap { max-width: var(--measure); margin: 0 auto; padding: clamp(36px, 7vh, 80px) var(--gutter) 80px; }
+
+/* ---------------------------------------------------------- type */
+.eyebrow {
+  font-family: var(--font-mono); font-size: .68rem; letter-spacing: .22em;
+  text-transform: uppercase; color: var(--fg-faint);
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.eyebrow .sep { width: 26px; height: 1px; background: var(--line); }
+.display {
+  font-size: clamp(2.4rem, 7vw, 4.2rem); line-height: .95; font-weight: 700;
+  letter-spacing: -.045em; margin: .32em 0 .2em;
+}
+.display .thin { font-weight: 200; color: var(--accent); }
+.lede { color: var(--fg-dim); max-width: 46ch; }
+
+h2 { font-size: 1.02rem; font-weight: 600; letter-spacing: -.01em; }
+.mono { font-family: var(--font-mono); }
+
+/* ---------------------------------------------------------- the box you paste into */
+.panel {
+  border: 1px solid var(--line); border-radius: 14px; background: var(--surface);
+  padding: clamp(14px, 2.2vw, 20px);
+}
+.row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.spread { justify-content: space-between; }
+
+textarea {
+  width: 100%; min-height: 150px; resize: vertical; margin-top: 12px;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--bg);
+  color: var(--fg); padding: 12px 14px;
+  font-family: var(--font-mono); font-size: 13px; line-height: 1.6;
+}
+textarea:focus { outline: none; border-color: var(--accent); }
+textarea::placeholder { color: var(--fg-faint); }
+
+button {
+  font: inherit; color: inherit; cursor: pointer; background: none;
+  border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px;
+  transition: border-color .2s var(--ease), background .2s var(--ease);
+}
+button:hover { border-color: var(--accent); }
+.ghost { font-family: var(--font-mono); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--fg-faint); }
+.primary {
+  background: var(--fg); color: var(--bg); border-color: var(--fg);
+  padding: 9px 20px; font-weight: 600;
+}
+.primary:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+input[type="range"] { accent-color: var(--accent); width: 170px; }
+
+/* ---------------------------------------------------------- numbers */
+.stats { display: grid; gap: 1px; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  background: var(--line-soft); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; margin: 28px 0; }
+.stat { background: var(--bg); padding: 14px 16px; }
+.stat .n { font-size: 1.5rem; font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.stat .k { font-family: var(--font-mono); font-size: .62rem; letter-spacing: .18em; text-transform: uppercase; color: var(--fg-faint); }
+
+/* ---------------------------------------------------------- the brief */
+.brief { font-size: .94rem; }
+.brief .sec {
+  font-family: var(--font-mono); font-size: .62rem; letter-spacing: .2em; text-transform: uppercase;
+  color: var(--fg-faint); margin: 18px 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--line-soft);
+}
+.brief .sec:first-child { margin-top: 0; }
+.brief .ln { display: flex; gap: 11px; padding: 3px 0; align-items: baseline; }
+.tag {
+  flex: none; font-family: var(--font-mono); font-size: .58rem; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--kc, var(--fg-faint));
+  border-left: 2px solid var(--kc, var(--line)); padding-left: 7px; min-width: 6.4em;
+}
+.k-constraint  { --kc: var(--c1i); }
+.k-decision    { --kc: var(--c2i); }
+.k-open_thread { --kc: var(--c4i); }
+.k-preference, .k-identity { --kc: var(--c5i); }
+.k-code_state  { --kc: var(--c3i); }
+.k-fact, .k-glossary { --kc: var(--fg-faint); }
+.k-unsorted, .k-tail { --kc: var(--line); color: var(--fg-faint); }
+
+.empty { color: var(--fg-faint); }
+
+/* ---------------------------------------------------------- click a title, get the detail */
+details { border-top: 1px solid var(--line-soft); }
+details > summary {
+  cursor: pointer; list-style: none; padding: 13px 0;
+  display: flex; align-items: center; gap: 10px;
+  font-weight: 600; font-size: .95rem;
+}
+details > summary::-webkit-details-marker { display: none; }
+details > summary::after {
+  content: ""; margin-left: auto; flex: none; width: 8px; height: 8px;
+  border-right: 1.5px solid var(--fg-faint); border-bottom: 1.5px solid var(--fg-faint);
+  transform: rotate(45deg) translateY(-2px); transition: transform .25s var(--ease-out);
+}
+details[open] > summary::after { transform: rotate(-135deg) translateY(-2px); }
+details > summary:hover { color: var(--accent); }
+details .body { padding: 0 0 16px; color: var(--fg-dim); font-size: .92rem; max-width: 72ch; }
+details .body > * + * { margin-top: .6em; }
+details .body ul { padding-left: 1.1em; }
+details .body li + li { margin-top: .35em; }
+details .body b { color: var(--fg); font-weight: 600; }
+.count { font-family: var(--font-mono); font-size: .68rem; color: var(--fg-faint); letter-spacing: .08em; }
+
+.note { border-left: 2px solid var(--c4i); padding-left: 14px; }
+
+hr { border: 0; border-top: 1px solid var(--line); margin: 34px 0 0; }
+footer { margin-top: 26px; color: var(--fg-faint); font-size: .8rem; }
+.hidden { display: none !important; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .fade { animation: fade .3s var(--ease-out) both; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } }
+}
+@media (max-width: 620px) { .tag { min-width: 0; } }
 </style>
 </head>
-<body class="bg-stone-50 text-stone-800 dark:bg-stone-950 dark:text-stone-200 antialiased">
+<body>
+<div class="wrap">
 
-<div class="mx-auto max-w-6xl px-4 py-10">
-
-  <header class="mb-8">
-    <div class="flex items-baseline gap-3 flex-wrap">
-      <h1 class="text-3xl font-semibold tracking-tight">herder</h1>
-      <span class="rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-0.5 text-xs text-amber-700 dark:text-amber-400">prototype</span>
-    </div>
-    <p class="mt-3 max-w-2xl text-stone-600 dark:text-stone-400">
-      Portable memory for AI chat. Paste a conversation with Claude or ChatGPT and this keeps the part
-      worth keeping: the decisions, constraints, preferences and open threads it established, compact
-      enough to paste into the next chat.
-    </p>
-    <p class="mt-2 max-w-2xl text-sm text-stone-500">
-      Everything here runs in your browser. Nothing is uploaded, no API key, no model download.
-    </p>
+  <header>
+    <p class="eyebrow"><span>herder</span><span class="sep"></span><span>prototype</span></p>
+    <h1 class="display">Keep what was <span class="thin">decided</span>.</h1>
+    <p class="lede">Paste a chat with Claude or ChatGPT. Get a brief small enough to hand to the next one.</p>
   </header>
 
-  <!-- input -->
-  <section class="rounded-xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
-    <div class="mb-3 flex items-center justify-between gap-3 flex-wrap">
-      <label for="paste" class="text-sm font-medium">Your conversation</label>
-      <div class="flex items-center gap-2 text-sm">
-        <button id="sample" class="rounded-md border border-stone-300 px-2.5 py-1 hover:bg-stone-100 dark:border-stone-700 dark:hover:bg-stone-800">Load a sample</button>
-        <button id="clear" class="rounded-md border border-stone-300 px-2.5 py-1 hover:bg-stone-100 dark:border-stone-700 dark:hover:bg-stone-800">Clear</button>
+  <section class="panel" style="margin-top: 34px">
+    <div class="row spread">
+      <h2>Your conversation</h2>
+      <div class="row">
+        <button id="sample" class="ghost">Sample</button>
+        <button id="clear" class="ghost">Clear</button>
       </div>
     </div>
-    <textarea id="paste" rows="9" spellcheck="false"
-      class="w-full resize-y rounded-lg border border-stone-300 bg-stone-50 p-3 font-mono text-[13px] leading-relaxed outline-none focus:border-stone-400 dark:border-stone-700 dark:bg-stone-950 dark:focus:border-stone-600"
-      placeholder="Paste here. Lines labelled like&#10;&#10;You: we're using Postgres, not MySQL&#10;ChatGPT: ...&#10;&#10;'User:' / 'Assistant:' / 'Claude:' all work."></textarea>
-
-    <div class="mt-3 flex items-end justify-between gap-4 flex-wrap">
-      <div>
-        <label for="budget" class="block text-sm font-medium">Token budget <span class="font-normal text-stone-500">- how much room the next chat gets</span></label>
-        <div class="mt-1 flex items-center gap-3">
-          <input id="budget" type="range" min="200" max="3000" step="100" value="500" class="w-56 accent-stone-700 dark:accent-stone-300">
-          <output id="budgetOut" class="font-mono text-sm tabular-nums">500</output>
-        </div>
-      </div>
-      <button id="run" class="rounded-lg bg-stone-800 px-4 py-2 font-medium text-white hover:bg-stone-700 disabled:opacity-40 dark:bg-stone-200 dark:text-stone-900 dark:hover:bg-white">
-        Derive the brief
-      </button>
+    <textarea id="paste" spellcheck="false" placeholder="You: we're using Postgres, not MySQL&#10;ChatGPT: ..."></textarea>
+    <div class="row spread" style="margin-top: 14px">
+      <label class="row" for="budget">
+        <span class="mono" style="font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-faint)">Budget</span>
+        <input id="budget" type="range" min="200" max="3000" step="100" value="500">
+        <output id="budgetOut" class="mono" style="font-variant-numeric:tabular-nums">500</output>
+      </label>
+      <button id="run" class="primary">Derive</button>
     </div>
   </section>
 
-  <!-- results -->
-  <section id="results" class="mt-6 hidden">
+  <section id="results" class="hidden">
+    <div id="stats" class="stats"></div>
 
-    <div id="stats" class="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"></div>
+    <div id="changed" class="hidden"></div>
 
-    <div id="changed" class="mb-5 hidden rounded-xl border border-amber-500/40 bg-amber-500/5 p-4"></div>
-
-    <div class="grid gap-5 lg:grid-cols-5">
-      <div class="lg:col-span-3">
-        <div class="mb-2 flex items-baseline justify-between gap-2">
-          <h2 class="font-semibold">The brief</h2>
-          <button id="copy" class="rounded-md border border-stone-300 px-2 py-0.5 text-xs hover:bg-stone-100 dark:border-stone-700 dark:hover:bg-stone-800">Copy</button>
-        </div>
-        <p class="mb-3 text-sm text-stone-500">Paste this into a new chat. Ordered by what matters most, cut to fit the budget.</p>
-        <div id="brief" class="rounded-xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900"></div>
-      </div>
-
-      <div class="lg:col-span-2">
-        <h2 class="mb-2 font-semibold">What did not fit</h2>
-        <p class="mb-3 text-sm text-stone-500">Kept, and traceable, just not in this render. Raise the budget and they come back.</p>
-        <div id="excluded" class="rounded-xl border border-stone-200 bg-white p-4 text-sm dark:border-stone-800 dark:bg-stone-900"></div>
-      </div>
+    <div class="row spread" style="margin: 26px 0 14px">
+      <h2>The brief</h2>
+      <button id="copy" class="ghost">Copy</button>
     </div>
+    <div id="brief" class="panel brief"></div>
+
+    <div id="excludedWrap" class="hidden" style="margin-top: 22px"></div>
   </section>
 
-  <!-- the honest bit -->
-  <section class="mt-10 rounded-xl border border-stone-200 bg-white p-5 dark:border-stone-800 dark:bg-stone-900">
-    <h2 class="font-semibold">What this prototype is, and what it leaves out</h2>
-    <p class="mt-2 text-sm text-stone-600 dark:text-stone-400">
-      The full pipeline is capture, extract, <strong>merge</strong>, render, serve, verify. Three of those
-      are pure rules over text and run here exactly as they do on the server - the patterns on this page
-      are generated from the same Python source, and a test fails if they drift.
-    </p>
-    <div class="mt-4 grid gap-3 sm:grid-cols-2">
-      <div class="rounded-lg border border-emerald-600/30 bg-emerald-500/5 p-3">
-        <p class="text-sm font-medium text-emerald-700 dark:text-emerald-400">Runs here, unchanged</p>
-        <ul class="mt-1.5 space-y-1 text-sm text-stone-600 dark:text-stone-400">
-          <li><strong>Extract</strong> - only what you said is read. A chat is mostly the assistant talking, and treating its suggestions as fact fills the memory with ideas you turned down.</li>
-          <li><strong>Render</strong> - constraints first, then decisions, then open threads. A model that knows the rules can behave correctly without every fact; one with the facts and not the rules cannot.</li>
-          <li><strong>Residue</strong> - sentences no entry captured, spending only the budget left over.</li>
-        </ul>
-      </div>
-      <div class="rounded-lg border border-stone-300 bg-stone-500/5 p-3 dark:border-stone-700">
-        <p class="text-sm font-medium">Left on the server</p>
-        <ul class="mt-1.5 space-y-1 text-sm text-stone-600 dark:text-stone-400">
-          <li><strong>Merge</strong> needs sentence embeddings and a DeBERTa cross-encoder - gigabytes of weights. It decides whether a new claim repeats a stored one, refines it, or <em>retires</em> it.</li>
-          <li>So this page can spot that you changed your mind - same rule the real merge step uses - but not resolve <em>which</em> entry the change replaces. That is an entailment judgement.</li>
-          <li>Token counts here are <strong>estimates</strong>; the real pipeline counts with cl100k.</li>
-        </ul>
-      </div>
-    </div>
-    <p class="mt-4 text-sm text-stone-600 dark:text-stone-400">
-      Measured on eight long conversations against 261 hand-written facts, the full pipeline recalls
-      <strong>0.88</strong> of them at a 3,000-token budget while carrying <strong>none</strong> of the
-      40 claims that had been reversed or refused. A plain "summarise this" at the same budget manages
-      0.21, and pasting the most recent text 0.31.
-      <span class="text-stone-500">The numbers, the dead ends and what the judge got wrong are in the repository.</span>
-    </p>
-  </section>
+  <hr>
 
-  <footer class="mt-8 text-sm text-stone-500">
-    <span id="model" class="font-mono"></span> - no network calls, no storage, nothing leaves this page.
+  <details>
+    <summary>What runs in your browser</summary>
+    <div class="body">
+      <ul>
+        <li><b>Extract.</b> Only what you said is read. A chat is mostly the assistant talking, and treating its suggestions as fact fills the memory with ideas you turned down.</li>
+        <li><b>Render.</b> Constraints first, then decisions, then open threads. A model told the rules can behave correctly without every fact; one with the facts and not the rules cannot.</li>
+        <li><b>Residue.</b> Sentences no entry captured, spending only the budget left over.</li>
+      </ul>
+      <p>These are the same rules the real system runs - generated from its Python source, with a test that fails if they drift.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>What this leaves out</summary>
+    <div class="body">
+      <p><b>Merge</b> needs sentence embeddings and a DeBERTa cross-encoder - gigabytes of weights - so it stays on the server. It decides whether a new claim repeats a stored one, refines it, or <b>retires</b> it.</p>
+      <p>So this page can see that you changed your mind, using the same rule the real merge step uses, but not resolve <i>which</i> entry the change replaces. Load the sample and you can watch it happen.</p>
+      <p>Token counts here are <b>estimates</b>. The real pipeline counts with cl100k.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>How it is measured</summary>
+    <div class="body">
+      <p>Eight long conversations, 261 facts written by hand, 40 of them false on purpose - suggestions refused and decisions later reversed.</p>
+      <p>At a 3,000-token budget the full pipeline recalls <b>0.88</b> of the true ones and carries <b>none</b> of the 40 false ones. A plain "summarise this" at the same budget manages 0.21; pasting the most recent text, 0.31.</p>
+      <p>A model extracts, a model answers and a model grades, so the answer key is hand-written and was audited blind. The grader disagrees with itself on about 3.4% of verdicts, which puts the noise floor near four facts - small differences are reported as no difference.</p>
+    </div>
+  </details>
+
+  <footer>
+    <span id="model" class="mono"></span> - no network, no storage, nothing leaves this page.
   </footer>
 </div>
 
@@ -646,11 +811,11 @@ const KIND_ORDER = RULES.kindOrder;
 const EXTRACTOR_MODEL = RULES.extractorModel;
 
 const $ = (id) => document.getElementById(id);
-const esc = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 
-$('model').textContent = `extractor: ${EXTRACTOR_MODEL}`;
+$('model').textContent = EXTRACTOR_MODEL;
 
-// A short conversation with a real change of mind in it, so the reversal flag has something to
+// A short conversation with a real change of mind in it, so the reversal notice has something to
 // find. Written for this page rather than taken from the benchmark, which stays a held-out corpus.
 const SAMPLE = `You: I'm building a stock tracker for a small bakery chain, three shops. I work on Windows and test everything from PowerShell.
 Claude: Happy to help. Do you have a database in mind?
@@ -669,8 +834,15 @@ Claude: Understood, exact to the gram.
 You: Also the reorder email goes to both the head baker and the shop manager now.`;
 
 $('sample').addEventListener('click', () => { $('paste').value = SAMPLE; run(); });
-$('clear').addEventListener('click', () => { $('paste').value = ''; $('results').classList.add('hidden'); $('paste').focus(); });
-$('budget').addEventListener('input', () => { $('budgetOut').textContent = $('budget').value; if (!$('results').classList.contains('hidden')) run(); });
+$('clear').addEventListener('click', () => {
+  $('paste').value = '';
+  $('results').classList.add('hidden');
+  $('paste').focus();
+});
+$('budget').addEventListener('input', () => {
+  $('budgetOut').textContent = $('budget').value;
+  if (!$('results').classList.contains('hidden')) run();
+});
 $('run').addEventListener('click', run);
 $('paste').addEventListener('keydown', (e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') run(); });
 
@@ -682,27 +854,11 @@ $('copy').addEventListener('click', async () => {
   } catch { $('copy').textContent = 'Copy failed'; }
 });
 
-// Priority order, so the colour tells you why a line survived the budget.
-const TONE = {
-  constraint: 'bg-rose-500/10 text-rose-700 dark:text-rose-400',
-  decision: 'bg-sky-500/10 text-sky-700 dark:text-sky-400',
-  open_thread: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
-  preference: 'bg-violet-500/10 text-violet-700 dark:text-violet-400',
-  identity: 'bg-violet-500/10 text-violet-700 dark:text-violet-400',
-  code_state: 'bg-teal-500/10 text-teal-700 dark:text-teal-400',
-  fact: 'bg-stone-500/10 text-stone-600 dark:text-stone-400',
-  glossary: 'bg-stone-500/10 text-stone-600 dark:text-stone-400',
-  unsorted: 'bg-stone-500/10 text-stone-500',
-};
-const tag = (kind) =>
-  `<span class="kind shrink-0 rounded px-1.5 py-0.5 text-[11px] ${TONE[kind] ?? TONE.fact}">${esc(kind.replace('_', ' '))}</span>`;
+// The kind is shown as a label whose colour comes from the stylesheet, one hue per kind in the
+// render's own priority order. Reading the colour tells you why a line survived the budget.
+const label = (kind) => `<span class="tag k-${esc(kind)}">${esc(kind.replace(/_/g, ' '))}</span>`;
 
-const card = (label, value, note) => `
-  <div class="rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-900">
-    <div class="text-xs uppercase tracking-wide text-stone-500">${esc(label)}</div>
-    <div class="mt-0.5 text-xl font-semibold tabular-nums">${esc(value)}</div>
-    ${note ? `<div class="text-xs text-stone-500">${esc(note)}</div>` : ''}
-  </div>`;
+const stat = (n, k) => `<div class="stat"><div class="n">${esc(n)}</div><div class="k">${esc(k)}</div></div>`;
 
 function run() {
   const text = $('paste').value;
@@ -717,50 +873,64 @@ function run() {
   $('results').classList.remove('hidden');
   $('results').classList.add('fade');
 
-  const ratio = s.briefTokens ? (s.sourceTokens / s.briefTokens).toFixed(1) + 'x' : '-';
+  // Numbers only. What each one means lives behind a title, not beside it.
   $('stats').innerHTML = [
-    card('Conversation', `${s.turns} turns`, `${s.userTokens} of ${s.sourceTokens} est. tokens are yours`),
-    card('Kept', `${out.entries.length} entries`, `${out.brief.included.length} in this brief`),
-    card('Brief', `${s.briefTokens} tokens`, `budget ${budget}, estimated`),
-    card('Compression', ratio, 'against the whole transcript'),
+    stat(s.turns, 'turns in'),
+    stat(out.entries.length, 'kept'),
+    stat(s.briefTokens, 'tokens out'),
+    stat(s.briefTokens ? (s.sourceTokens / s.briefTokens).toFixed(1) + '×' : '–', 'smaller'),
   ].join('');
 
-  // The honest half: we can see a change was announced, not what it retires.
+  // The honest half: the page can see a change was announced, not what it retires.
+  const changed = $('changed');
   if (out.changes.length) {
-    $('changed').classList.remove('hidden');
-    $('changed').innerHTML = `
-      <p class="text-sm font-medium text-amber-700 dark:text-amber-400">
-        ${out.changes.length} sentence${out.changes.length > 1 ? 's' : ''} announce${out.changes.length > 1 ? '' : 's'} a change of mind
-      </p>
-      <ul class="mt-2 space-y-1 text-sm">
-        ${out.changes.map((c) => `<li class="font-mono text-[13px] text-stone-600 dark:text-stone-400">${esc(c.text)}</li>`).join('')}
-      </ul>
-      <p class="mt-2 text-sm text-stone-600 dark:text-stone-400">
-        The full pipeline reads these against what it already holds and retires whatever they replace, so
-        the old claim is never served again. Deciding <em>which</em> entry that is takes an entailment
-        model, which is why it is not in this page - both claims are still listed below.
-      </p>`;
+    const n = out.changes.length;
+    changed.classList.remove('hidden');
+    changed.innerHTML = `
+      <details class="note" style="border-top:0">
+        <summary>You changed your mind <span class="count">${n} time${n > 1 ? 's' : ''}</span></summary>
+        <div class="body">
+          <ul>${out.changes.map((c) => `<li class="mono" style="font-size:.85rem">${esc(c.text)}</li>`).join('')}</ul>
+          <p>The full pipeline reads these against what it already holds and retires whatever they
+          replace, so the old claim is never served again. Deciding <b>which</b> entry that is takes an
+          entailment model, which is why it is not in this page - both claims are still listed above.</p>
+        </div>
+      </details>`;
   } else {
-    $('changed').classList.add('hidden');
+    changed.classList.add('hidden');
   }
 
-  // The brief, as lines, with the raw text kept for the copy button.
-  const lines = out.brief.text.split('\n').map((line) => {
-    if (line.startsWith('## ')) {
-      return `<div class="mt-3 mb-1.5 text-xs font-semibold uppercase tracking-wide text-stone-500 first:mt-0">${esc(line.slice(3))}</div>`;
-    }
+  // The brief, as lines. The raw text is kept on the element for the copy button.
+  const rendered = out.brief.text.split('\n').map((line) => {
+    if (line.startsWith('## ')) return `<div class="sec">${esc(line.slice(3))}</div>`;
     const m = line.match(/^- \[(\w+)\] ([\s\S]*)$/);
-    if (!m) return line.trim() ? `<div class="text-sm">${esc(line)}</div>` : '';
-    return `<div class="flex gap-2 py-0.5 text-sm"><span class="pt-0.5">${tag(m[1])}</span><span>${esc(m[2])}</span></div>`;
+    if (!m) return line.trim() ? `<div class="ln">${esc(line)}</div>` : '';
+    return `<div class="ln">${label(m[1])}<span>${esc(m[2])}</span></div>`;
   });
-  $('brief').innerHTML = lines.join('') || '<p class="text-sm text-stone-500">Nothing was extracted. Try a longer conversation, or one where you state decisions and constraints.</p>';
+  $('brief').innerHTML =
+    rendered.join('') ||
+    '<p class="empty">Nothing was extracted. Try a conversation where you state decisions or constraints.</p>';
   $('brief').dataset.text = out.brief.text;
 
+  // What the budget cut, behind a title with its count on it.
   const dropped = out.brief.excluded;
-  $('excluded').innerHTML = dropped.length
-    ? `<p class="mb-2 text-stone-500">${dropped.length} entr${dropped.length > 1 ? 'ies' : 'y'} cut for space${out.brief.residueOffered ? `, and ${out.brief.residueOffered - out.brief.residueIncluded} of ${out.brief.residueOffered} uncaptured sentences` : ''}.</p>
-       <ul class="space-y-1">${dropped.map((e) => `<li class="flex gap-2"><span class="pt-0.5">${tag(e.kind)}</span><span class="text-stone-600 dark:text-stone-400">${esc(e.text)}</span></li>`).join('')}</ul>`
-    : `<p class="text-stone-500">Everything fitted${out.brief.residueOffered ? `, including ${out.brief.residueIncluded} of ${out.brief.residueOffered} sentences no entry captured` : ''}. Lower the budget to see what gets dropped first - that ordering is the whole design.</p>`;
+  const spare = out.brief.residueOffered - out.brief.residueIncluded;
+  const wrap = $('excludedWrap');
+  if (dropped.length || spare) {
+    wrap.classList.remove('hidden');
+    wrap.innerHTML = `
+      <details>
+        <summary>Cut for space <span class="count">${dropped.length + spare}</span></summary>
+        <div class="body">
+          <div class="brief">${dropped.map((e) => `<div class="ln">${label(e.kind)}<span>${esc(e.text)}</span></div>`).join('')}</div>
+          ${spare ? `<p>And ${spare} sentence${spare > 1 ? 's' : ''} no entry captured.</p>` : ''}
+          <p>Still kept, still traceable - just not in this render. Raise the budget and they come back;
+          lower it and the order they leave in is the whole design.</p>
+        </div>
+      </details>`;
+  } else {
+    wrap.classList.add('hidden');
+  }
 }
 </script>
 </body>
