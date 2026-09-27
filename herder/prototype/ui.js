@@ -1,11 +1,11 @@
 import { derive, EXTRACTOR_MODEL } from './herder.js';
 
 const $ = (id) => document.getElementById(id);
-const esc = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 
-$('model').textContent = `extractor: ${EXTRACTOR_MODEL}`;
+$('model').textContent = EXTRACTOR_MODEL;
 
-// A short conversation with a real change of mind in it, so the reversal flag has something to
+// A short conversation with a real change of mind in it, so the reversal notice has something to
 // find. Written for this page rather than taken from the benchmark, which stays a held-out corpus.
 const SAMPLE = `You: I'm building a stock tracker for a small bakery chain, three shops. I work on Windows and test everything from PowerShell.
 Claude: Happy to help. Do you have a database in mind?
@@ -24,8 +24,15 @@ Claude: Understood, exact to the gram.
 You: Also the reorder email goes to both the head baker and the shop manager now.`;
 
 $('sample').addEventListener('click', () => { $('paste').value = SAMPLE; run(); });
-$('clear').addEventListener('click', () => { $('paste').value = ''; $('results').classList.add('hidden'); $('paste').focus(); });
-$('budget').addEventListener('input', () => { $('budgetOut').textContent = $('budget').value; if (!$('results').classList.contains('hidden')) run(); });
+$('clear').addEventListener('click', () => {
+  $('paste').value = '';
+  $('results').classList.add('hidden');
+  $('paste').focus();
+});
+$('budget').addEventListener('input', () => {
+  $('budgetOut').textContent = $('budget').value;
+  if (!$('results').classList.contains('hidden')) run();
+});
 $('run').addEventListener('click', run);
 $('paste').addEventListener('keydown', (e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') run(); });
 
@@ -37,27 +44,11 @@ $('copy').addEventListener('click', async () => {
   } catch { $('copy').textContent = 'Copy failed'; }
 });
 
-// Priority order, so the colour tells you why a line survived the budget.
-const TONE = {
-  constraint: 'bg-rose-500/10 text-rose-700 dark:text-rose-400',
-  decision: 'bg-sky-500/10 text-sky-700 dark:text-sky-400',
-  open_thread: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
-  preference: 'bg-violet-500/10 text-violet-700 dark:text-violet-400',
-  identity: 'bg-violet-500/10 text-violet-700 dark:text-violet-400',
-  code_state: 'bg-teal-500/10 text-teal-700 dark:text-teal-400',
-  fact: 'bg-stone-500/10 text-stone-600 dark:text-stone-400',
-  glossary: 'bg-stone-500/10 text-stone-600 dark:text-stone-400',
-  unsorted: 'bg-stone-500/10 text-stone-500',
-};
-const tag = (kind) =>
-  `<span class="kind shrink-0 rounded px-1.5 py-0.5 text-[11px] ${TONE[kind] ?? TONE.fact}">${esc(kind.replace('_', ' '))}</span>`;
+// The kind is shown as a label whose colour comes from the stylesheet, one hue per kind in the
+// render's own priority order. Reading the colour tells you why a line survived the budget.
+const label = (kind) => `<span class="tag k-${esc(kind)}">${esc(kind.replace(/_/g, ' '))}</span>`;
 
-const card = (label, value, note) => `
-  <div class="rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-900">
-    <div class="text-xs uppercase tracking-wide text-stone-500">${esc(label)}</div>
-    <div class="mt-0.5 text-xl font-semibold tabular-nums">${esc(value)}</div>
-    ${note ? `<div class="text-xs text-stone-500">${esc(note)}</div>` : ''}
-  </div>`;
+const stat = (n, k) => `<div class="stat"><div class="n">${esc(n)}</div><div class="k">${esc(k)}</div></div>`;
 
 function run() {
   const text = $('paste').value;
@@ -72,48 +63,62 @@ function run() {
   $('results').classList.remove('hidden');
   $('results').classList.add('fade');
 
-  const ratio = s.briefTokens ? (s.sourceTokens / s.briefTokens).toFixed(1) + 'x' : '-';
+  // Numbers only. What each one means lives behind a title, not beside it.
   $('stats').innerHTML = [
-    card('Conversation', `${s.turns} turns`, `${s.userTokens} of ${s.sourceTokens} est. tokens are yours`),
-    card('Kept', `${out.entries.length} entries`, `${out.brief.included.length} in this brief`),
-    card('Brief', `${s.briefTokens} tokens`, `budget ${budget}, estimated`),
-    card('Compression', ratio, 'against the whole transcript'),
+    stat(s.turns, 'turns in'),
+    stat(out.entries.length, 'kept'),
+    stat(s.briefTokens, 'tokens out'),
+    stat(s.briefTokens ? (s.sourceTokens / s.briefTokens).toFixed(1) + '×' : '–', 'smaller'),
   ].join('');
 
-  // The honest half: we can see a change was announced, not what it retires.
+  // The honest half: the page can see a change was announced, not what it retires.
+  const changed = $('changed');
   if (out.changes.length) {
-    $('changed').classList.remove('hidden');
-    $('changed').innerHTML = `
-      <p class="text-sm font-medium text-amber-700 dark:text-amber-400">
-        ${out.changes.length} sentence${out.changes.length > 1 ? 's' : ''} announce${out.changes.length > 1 ? '' : 's'} a change of mind
-      </p>
-      <ul class="mt-2 space-y-1 text-sm">
-        ${out.changes.map((c) => `<li class="font-mono text-[13px] text-stone-600 dark:text-stone-400">${esc(c.text)}</li>`).join('')}
-      </ul>
-      <p class="mt-2 text-sm text-stone-600 dark:text-stone-400">
-        The full pipeline reads these against what it already holds and retires whatever they replace, so
-        the old claim is never served again. Deciding <em>which</em> entry that is takes an entailment
-        model, which is why it is not in this page - both claims are still listed below.
-      </p>`;
+    const n = out.changes.length;
+    changed.classList.remove('hidden');
+    changed.innerHTML = `
+      <details class="note" style="border-top:0">
+        <summary>You changed your mind <span class="count">${n} time${n > 1 ? 's' : ''}</span></summary>
+        <div class="body">
+          <ul>${out.changes.map((c) => `<li class="mono" style="font-size:.85rem">${esc(c.text)}</li>`).join('')}</ul>
+          <p>The full pipeline reads these against what it already holds and retires whatever they
+          replace, so the old claim is never served again. Deciding <b>which</b> entry that is takes an
+          entailment model, which is why it is not in this page - both claims are still listed above.</p>
+        </div>
+      </details>`;
   } else {
-    $('changed').classList.add('hidden');
+    changed.classList.add('hidden');
   }
 
-  // The brief, as lines, with the raw text kept for the copy button.
-  const lines = out.brief.text.split('\n').map((line) => {
-    if (line.startsWith('## ')) {
-      return `<div class="mt-3 mb-1.5 text-xs font-semibold uppercase tracking-wide text-stone-500 first:mt-0">${esc(line.slice(3))}</div>`;
-    }
+  // The brief, as lines. The raw text is kept on the element for the copy button.
+  const rendered = out.brief.text.split('\n').map((line) => {
+    if (line.startsWith('## ')) return `<div class="sec">${esc(line.slice(3))}</div>`;
     const m = line.match(/^- \[(\w+)\] ([\s\S]*)$/);
-    if (!m) return line.trim() ? `<div class="text-sm">${esc(line)}</div>` : '';
-    return `<div class="flex gap-2 py-0.5 text-sm"><span class="pt-0.5">${tag(m[1])}</span><span>${esc(m[2])}</span></div>`;
+    if (!m) return line.trim() ? `<div class="ln">${esc(line)}</div>` : '';
+    return `<div class="ln">${label(m[1])}<span>${esc(m[2])}</span></div>`;
   });
-  $('brief').innerHTML = lines.join('') || '<p class="text-sm text-stone-500">Nothing was extracted. Try a longer conversation, or one where you state decisions and constraints.</p>';
+  $('brief').innerHTML =
+    rendered.join('') ||
+    '<p class="empty">Nothing was extracted. Try a conversation where you state decisions or constraints.</p>';
   $('brief').dataset.text = out.brief.text;
 
+  // What the budget cut, behind a title with its count on it.
   const dropped = out.brief.excluded;
-  $('excluded').innerHTML = dropped.length
-    ? `<p class="mb-2 text-stone-500">${dropped.length} entr${dropped.length > 1 ? 'ies' : 'y'} cut for space${out.brief.residueOffered ? `, and ${out.brief.residueOffered - out.brief.residueIncluded} of ${out.brief.residueOffered} uncaptured sentences` : ''}.</p>
-       <ul class="space-y-1">${dropped.map((e) => `<li class="flex gap-2"><span class="pt-0.5">${tag(e.kind)}</span><span class="text-stone-600 dark:text-stone-400">${esc(e.text)}</span></li>`).join('')}</ul>`
-    : `<p class="text-stone-500">Everything fitted${out.brief.residueOffered ? `, including ${out.brief.residueIncluded} of ${out.brief.residueOffered} sentences no entry captured` : ''}. Lower the budget to see what gets dropped first - that ordering is the whole design.</p>`;
+  const spare = out.brief.residueOffered - out.brief.residueIncluded;
+  const wrap = $('excludedWrap');
+  if (dropped.length || spare) {
+    wrap.classList.remove('hidden');
+    wrap.innerHTML = `
+      <details>
+        <summary>Cut for space <span class="count">${dropped.length + spare}</span></summary>
+        <div class="body">
+          <div class="brief">${dropped.map((e) => `<div class="ln">${label(e.kind)}<span>${esc(e.text)}</span></div>`).join('')}</div>
+          ${spare ? `<p>And ${spare} sentence${spare > 1 ? 's' : ''} no entry captured.</p>` : ''}
+          <p>Still kept, still traceable - just not in this render. Raise the budget and they come back;
+          lower it and the order they leave in is the whole design.</p>
+        </div>
+      </details>`;
+  } else {
+    wrap.classList.add('hidden');
+  }
 }

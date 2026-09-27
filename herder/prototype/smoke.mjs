@@ -108,7 +108,10 @@ const slide = listeners.get('budget:input');
 if (!slide) fail('the budget slider has no handler');
 slide();
 if (!brief.dataset.text) fail('the brief went empty at a small budget');
-if (elements.get('excluded').innerHTML === '') fail('nothing reported as excluded at 200 tokens');
+const cut = elements.get('excludedWrap');
+if (cut.innerHTML === '') fail('nothing reported as cut for space at 200 tokens');
+if (cut.classList.contains('hidden')) fail('the "cut for space" disclosure stayed hidden at 200 tokens');
+if (!cut.innerHTML.includes('<summary>')) fail('what was cut is not behind a clickable title');
 
 // Lowering the budget has to drop something, or the budget is not being applied at all - which
 // would make the whole render step look like it works while doing nothing.
