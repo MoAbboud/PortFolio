@@ -39,7 +39,7 @@ function element(id) {
     textContent: '',
     innerHTML: '',
     dataset: {},
-    classes: new Set(id === 'results' || id === 'changed' ? ['hidden'] : []),
+    classes: new Set(['results', 'changed', 'notice'].includes(id) ? ['hidden'] : []),
     classList: {
       add: (...c) => c.forEach((x) => el.classes.add(x)),
       remove: (...c) => c.forEach((x) => el.classes.delete(x)),
@@ -118,4 +118,39 @@ if (!cut.innerHTML.includes('<summary>')) fail('what was cut is not behind a cli
 const atSmall = brief.dataset.text.split('\n').length;
 if (atSmall >= atDefault) fail(`200 tokens kept ${atSmall} lines against ${atDefault} at the default`);
 
-console.log(`smoke ok - ${atDefault} lines at the default budget, ${atSmall} at 200`);
+// The strip has to name the models the full system runs, or the page reads as the whole product.
+for (const id of ['m-extract', 'm-embed', 'm-nli', 'm-nli2']) {
+  if (!elements.get(id)?.textContent) fail(`the pipeline strip has no model name in #${id}`);
+}
+if (elements.get('m-nli').textContent.includes('/')) fail('the NLI model is shown with its hub namespace');
+
+// Real pastes, the way people actually copy a chat. The sample is labelled by hand; visitors' chats
+// are not, and this is where the assistant's advice used to arrive in the brief as the user's.
+const paste = elements.get('paste');
+const run = listeners.get('run:click');
+const notice = elements.get('notice');
+budget.value = '500';
+
+paste.value = [
+  'You said:',
+  "We're going with Postgres. No cloud services.",
+  'ChatGPT said:',
+  'Great choice. You should always use connection pooling and never store secrets in the repo.',
+  'You said:',
+  'Amounts are always decimal, never floats.',
+  'ChatGPT said:',
+  "Sounds good. I'd recommend using Redis for caching.",
+].join('\n');
+run();
+if (results.classList.contains('hidden')) fail('a copied ChatGPT page produced no brief');
+for (const line of ['connection pooling', 'Redis', 'Great choice', 'ChatGPT said']) {
+  if (brief.dataset.text.includes(line)) fail(`assistant text from a "said:" paste reached the brief: ${line}`);
+}
+if (!brief.dataset.text.includes('decimal, never floats')) fail('the user\'s constraint was lost from a "said:" paste');
+
+paste.value = "We're going with Postgres.\n\nGreat choice. You should always use connection pooling.";
+run();
+if (notice.classList.contains('hidden')) fail('an unlabelled paste was read instead of refused');
+if (!results.classList.contains('hidden')) fail('an unlabelled paste still shows a brief');
+
+console.log(`smoke ok - ${atDefault} lines at the default budget, ${atSmall} at 200; real pastes handled`);

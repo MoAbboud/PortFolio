@@ -29,6 +29,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from herder.core.config import Settings  # noqa: E402
 from herder.domain import render as R  # noqa: E402
 from herder.domain import residue as RES  # noqa: E402
 from herder.domain import sentences as S  # noqa: E402
@@ -84,11 +85,27 @@ def main() -> int:
         "residueKind": R.RESIDUE_KIND,
         "residueHeading": R.RESIDUE_HEADING,
         "codeStateConfidence": 0.50,
+        "fullSystem": full_system(),
     }
 
     write_rules(payload)
     write_page()
     return 0
+
+
+def full_system() -> dict:
+    """The models the full pipeline loads, so the page can name what it is a preview of.
+
+    Read from the `Settings` field defaults rather than `get_settings()`, which reads the
+    environment: a shell with `HERDER_NLI_MODEL` pointing at a fine-tune would otherwise write a
+    different file and make the staleness test depend on who ran it.
+    """
+    default = lambda name: Settings.model_fields[name].default  # noqa: E731
+    return {
+        "extractModel": default("llm_model"),
+        "embedModel": default("embed_model_tag"),
+        "nliModel": default("nli_model"),
+    }
 
 
 # Lines that only exist to wire the modules together. Stripped when the three files are

@@ -39,7 +39,7 @@ functions over text; one is not.
 
 | Step | Here | Why |
 | --- | --- | --- |
-| Capture | yes | Splitting a transcript into turns is string work. Accepts `User:`/`You:`/`Human:` and `Assistant:`/`Claude:`/`ChatGPT:`, which is what a copied chat actually looks like |
+| Capture | yes | Splitting a transcript into turns is string work. Accepts `User:`/`You:`/`Human:` and `Assistant:`/`Claude:`/`ChatGPT:`, and the `You said:`/`ChatGPT said:` headings a copied ChatGPT page carries. **A paste with no labels at all is refused with a message, not read** - it used to become one user turn, and a copied chat then put the assistant's advice in the brief as the user's constraints |
 | Extract | yes, unchanged | Rules over the user's turns. No weights - the shipping extractor never had any |
 | Merge | **no** | Needs `all-minilm` embeddings and `cross-encoder/nli-deberta-v3-base`. Gigabytes |
 | Render | yes, unchanged | Priority ordering under a budget, pure |
@@ -86,9 +86,18 @@ Only `index.html` is published. Everything else is build and test machinery and 
 
 ## The page
 
+**It says what it is a preview of.** Under the headline, a strip of the six pipeline steps: Capture
+and Render run here, Extract is marked "rules only", and Merge, Serve and Verify are drawn dashed as
+"full system" with the models that run them. Those names are generated from the `Settings` field
+defaults in `core/config.py` - not `get_settings()`, which reads the environment - so they cannot
+drift from what the app loads. Without the strip, a visitor judges herder by the slice.
+
+The compression stat shows only once the chat is bigger than the budget (invariant 7) and reads
+"fits / under budget" otherwise, because "1.1x smaller" on a short chat says nothing about the method.
+
 Titles, not explanations. Everything that explains itself sits behind a `<summary>` and opens on a
-click: what runs in the browser, what stays on the server, how it is measured, the change-of-mind
-notice, and what the budget cut. **47 words are visible at rest against 396 before**, with 289 of
+click: what the full system adds, how the full system is measured, the change-of-mind notice, and
+what the budget cut. **47 words are visible at rest against 396 before**, with 289 of
 them one click away. The stat row is four numbers with a three-word label each and nothing else.
 
 The six hues carry the *kind* of each line - constraint, decision, open thread, preference, code
@@ -109,7 +118,9 @@ is about.
   Generating the patterns does not protect the hand-ported *algorithms*; this is what does.
   Extraction and residue are compared candidate by candidate, in order, on all eight.
 - **The page** - `smoke.mjs` runs the built script against a stub DOM, clicks "Load a sample", and
-  checks a brief came out with the ordering and the reversal notice in it. Without this a UI mistake
+  checks a brief came out with the ordering and the reversal notice in it, that the strip names the
+  full system's models, and that real pastes behave: a `You said:` ChatGPT copy keeps every
+  assistant line out of the brief, and an unlabelled paste is refused. Without this a UI mistake
   shows up as a blank panel and no error the author will see. It caught two things already: a budget
   read as `0` rendering an empty brief, and the MIME problem above.
 - **Self-containment** - the published page must not load a script that is not published.

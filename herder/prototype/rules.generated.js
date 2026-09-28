@@ -177,7 +177,12 @@ export const RULES = {
   "tailReserve": 0.1,
   "residueKind": "unsorted",
   "residueHeading": "## Also said (unsorted, lowest confidence)",
-  "codeStateConfidence": 0.5
+  "codeStateConfidence": 0.5,
+  "fullSystem": {
+    "extractModel": "qwen2.5:3b",
+    "embedModel": "all-minilm",
+    "nliModel": "cross-encoder/nli-deberta-v3-base"
+  }
 };
 
 export default RULES;
