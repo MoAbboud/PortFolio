@@ -138,6 +138,7 @@ is not installed.
 
 Not a second implementation of herder, and not where its behaviour is decided. The Python is the
 system; this is a window onto three of its six steps. The measured results - 0.88 recall at a
-3,000-token budget, none of 40 reversed claims carried forward, against 0.21 for a plain summary -
+3,000-token budget, none of 40 reversed claims carried forward, against 0.91 with 6 of them carried
+for the user's own recent messages and 0.21 for a plain summary -
 come from the real pipeline on the real corpus, and are in [the repository README](../README.md) and
 [NOTES.md](../NOTES.md).

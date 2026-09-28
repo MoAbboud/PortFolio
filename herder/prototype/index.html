@@ -315,7 +315,8 @@ footer { margin-top: 26px; color: var(--fg-faint); font-size: .8rem; }
     <summary>How the full system is measured</summary>
     <div class="body">
       <p>Eight long conversations, 261 facts written by hand, 40 of them false on purpose - suggestions refused and decisions later reversed.</p>
-      <p>At a 3,000-token budget the full pipeline recalls <b>0.88</b> of the true ones and carries <b>none</b> of the 40 false ones. A plain "summarise this" at the same budget manages 0.21; pasting the most recent text, 0.31.</p>
+      <p>At a 3,000-token budget the full pipeline recalls <b>0.88</b> of the true ones and carries <b>none</b> of the 40 false ones. The strongest simple alternative - keeping only your own most recent messages - recalls 0.91 but carries 6 of the false ones, all decisions later reversed. A plain "summarise this" manages 0.21; pasting the most recent text, 0.31.</p>
+      <p>At 500 tokens, where the budget forces a choice, the pipeline keeps <b>0.52</b> against 0.38 for your own messages.</p>
       <p>A model extracts, a model answers and a model grades, so the answer key is hand-written and was audited blind. The grader disagrees with itself on about 3.4% of verdicts, which puts the noise floor near four facts - small differences are reported as no difference.</p>
     </div>
   </details>
