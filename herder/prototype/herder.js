@@ -42,11 +42,20 @@ const matchesAtStart = (re, text) => {
 // ---------------------------------------------------------------- capture
 
 // A pasted transcript, into turns. Accepts the labels the real paste box accepts, plus the
-// "You:"/"ChatGPT:"/"Claude:" that the web UIs put on a copied conversation - which is the whole
-// point of a demo you paste into. An unlabelled paste is treated as one user turn, because a
-// visitor who pastes a paragraph should see something rather than an error.
-const USER_LABEL = /^\s*(?:user|you|me|human|q)\s*:\s*/i;
-const ASSISTANT_LABEL = /^\s*(?:assistant|claude|chatgpt|gpt|ai|bot|a)\s*:\s*/i;
+// "You:"/"ChatGPT:"/"Claude:" people type and the "You said:"/"ChatGPT said:" headings a copied
+// ChatGPT page carries - which is the whole point of a demo you paste into.
+//
+// A paste with no labels at all is refused by `derive` rather than read as one user turn. It used
+// to be read that way, and a copied chat then put the assistant's own advice in the brief as the
+// user's constraints - the one thing this pipeline exists never to do.
+const USER_LABEL = /^\s*(?:user|you|me|human|q)(?:\s+said)?\s*:\s*/i;
+const ASSISTANT_LABEL = /^\s*(?:assistant|claude|chatgpt|gpt|gemini|copilot|ai|bot|a)(?:\s+said)?\s*:\s*/i;
+
+/** Whether any line of the paste says who is speaking. */
+export const hasRoleLabels = (text) =>
+  String(text ?? '')
+    .split(/\r\n?|\n/)
+    .some((line) => USER_LABEL.test(line) || ASSISTANT_LABEL.test(line));
 
 export function parseTranscript(text) {
   const lines = String(text ?? '').replace(/\r\n?/g, '\n').split('\n');
@@ -306,6 +315,7 @@ export function renderBrief(entries, budget, residue = []) {
 
 /** Paste in, brief out. `budget` is in estimated tokens. */
 export function derive(transcript, budget = 500) {
+  if (!hasRoleLabels(transcript)) return { unlabelled: true };
   const turns = parseTranscript(transcript);
   const entries = extract(turns);
   const residue = uncovered(turns, entries.map((e) => e.text));
@@ -330,4 +340,5 @@ export function derive(transcript, budget = 500) {
 
 export const KIND_ORDER = RULES.kindOrder;
 export const EXTRACTOR_MODEL = RULES.extractorModel;
-export default { derive, extract, renderBrief, uncovered, parseTranscript, estimateTokens };
+export const FULL_SYSTEM = RULES.fullSystem;
+export default { derive, extract, renderBrief, uncovered, parseTranscript, hasRoleLabels, estimateTokens };

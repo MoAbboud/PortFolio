@@ -1,9 +1,17 @@
-import { derive, EXTRACTOR_MODEL } from './herder.js';
+import { derive, EXTRACTOR_MODEL, FULL_SYSTEM } from './herder.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 
 $('model').textContent = EXTRACTOR_MODEL;
+
+// The models the full pipeline runs, generated from herder's config defaults so the strip names
+// what the system actually loads. "cross-encoder/" is the hub namespace, not part of the name.
+const shortName = (id) => String(id).replace(/^[^/]+\//, '');
+$('m-extract').textContent = FULL_SYSTEM.extractModel;
+$('m-embed').textContent = FULL_SYSTEM.embedModel;
+$('m-nli').textContent = shortName(FULL_SYSTEM.nliModel);
+$('m-nli2').textContent = shortName(FULL_SYSTEM.nliModel);
 
 // A short conversation with a real change of mind in it, so the reversal notice has something to
 // find. Written for this page rather than taken from the benchmark, which stays a held-out corpus.
@@ -27,6 +35,7 @@ $('sample').addEventListener('click', () => { $('paste').value = SAMPLE; run(); 
 $('clear').addEventListener('click', () => {
   $('paste').value = '';
   $('results').classList.add('hidden');
+  $('notice').classList.add('hidden');
   $('paste').focus();
 });
 $('budget').addEventListener('input', () => {
@@ -52,23 +61,41 @@ const stat = (n, k) => `<div class="stat"><div class="n">${esc(n)}</div><div cla
 
 function run() {
   const text = $('paste').value;
+  $('notice').classList.add('hidden');
   if (!text.trim()) { $('results').classList.add('hidden'); return; }
 
   // `|| 500` rather than bare Number(): a budget of 0 renders an empty brief and looks like a
   // broken page rather than a misread input. Found by the smoke test, whose stub DOM had no value.
   const budget = Number($('budget').value) || 500;
   const out = derive(text, budget);
+
+  // No speaker labels means no way to tell the user from the assistant, and reading the
+  // assistant's advice as the user's decisions is the failure this whole pipeline exists to
+  // prevent. Say so instead of guessing.
+  if (out.unlabelled) {
+    $('results').classList.add('hidden');
+    $('notice').classList.remove('hidden');
+    $('notice').innerHTML =
+      "<b>Couldn't tell who said what.</b> Start each turn with <span class=\"mono\">You:</span> or " +
+      '<span class="mono">Claude:</span> / <span class="mono">ChatGPT:</span>. A copied ChatGPT page ' +
+      '("You said:") works as it is.';
+    return;
+  }
   const s = out.stats;
 
   $('results').classList.remove('hidden');
   $('results').classList.add('fade');
 
-  // Numbers only. What each one means lives behind a title, not beside it.
+  // Numbers only. What each one means lives behind a title, not beside it. Compression only means
+  // something once the chat is bigger than the budget (invariant 7) - a short chat that already
+  // fits would print "1.1x smaller", which says nothing about the method.
   $('stats').innerHTML = [
     stat(s.turns, 'turns in'),
     stat(out.entries.length, 'kept'),
     stat(s.briefTokens, 'tokens out'),
-    stat(s.briefTokens ? (s.sourceTokens / s.briefTokens).toFixed(1) + '×' : '–', 'smaller'),
+    s.sourceTokens > budget && s.briefTokens
+      ? stat((s.sourceTokens / s.briefTokens).toFixed(1) + '×', 'smaller')
+      : stat('fits', 'under budget'),
   ].join('');
 
   // The honest half: the page can see a change was announced, not what it retires.

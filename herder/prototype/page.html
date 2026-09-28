@@ -204,6 +204,30 @@ details .body b { color: var(--fg); font-weight: 600; }
 .count { font-family: var(--font-mono); font-size: .68rem; color: var(--fg-faint); letter-spacing: .08em; }
 
 .note { border-left: 2px solid var(--c4i); padding-left: 14px; }
+.notice { margin-top: 28px; color: var(--fg-dim); border-left: 2px solid var(--c1i); }
+.notice b { color: var(--fg); }
+
+/* ---------------------------------------------------------- what this is a preview of
+   Six steps, three of them here. The ones that need models are drawn as outlines and named with
+   the models that run them, so a visitor reads this page as a slice of the system, not the system. */
+.pipeline { margin-top: 30px; }
+.steps { list-style: none; display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 12px; }
+.step {
+  border: 1px solid var(--line); border-radius: 12px; padding: 11px 12px 12px;
+  display: flex; flex-direction: column; gap: 3px; min-width: 0;
+}
+.step b { font-size: .9rem; font-weight: 600; letter-spacing: -.01em; }
+.step .by { font-family: var(--font-mono); font-size: .64rem; line-height: 1.45; color: var(--fg-faint); overflow-wrap: anywhere; }
+.step .st { font-family: var(--font-mono); font-size: .56rem; letter-spacing: .16em; text-transform: uppercase; }
+.step.on   { background: var(--surface-2); }
+.step.on .st   { color: var(--c6i); }
+.step.part { background: var(--surface-2); }
+.step.part .st { color: var(--c4i); }
+.step.off  { border-style: dashed; }
+.step.off b { color: var(--fg-dim); }
+.step.off .st  { color: var(--fg-faint); }
+@media (max-width: 820px) { .steps { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 460px) { .steps { grid-template-columns: repeat(2, 1fr); } }
 
 hr { border: 0; border-top: 1px solid var(--line); margin: 34px 0 0; }
 footer { margin-top: 26px; color: var(--fg-faint); font-size: .8rem; }
@@ -220,10 +244,22 @@ footer { margin-top: 26px; color: var(--fg-faint); font-size: .8rem; }
 <div class="wrap">
 
   <header>
-    <p class="eyebrow"><span>herder</span><span class="sep"></span><span>prototype</span></p>
+    <p class="eyebrow"><span>herder</span><span class="sep"></span><span>preview</span></p>
     <h1 class="display">Keep what was <span class="thin">decided</span>.</h1>
     <p class="lede">Paste a chat with Claude or ChatGPT. Get a brief small enough to hand to the next one.</p>
   </header>
+
+  <section class="pipeline" aria-label="Which of herder's steps this page runs">
+    <p class="eyebrow"><span>This preview runs 3 of 6 steps</span></p>
+    <ol class="steps">
+      <li class="step on"><span class="st">here</span><b>Capture</b><span class="by">paste parser</span></li>
+      <li class="step part"><span class="st">rules only</span><b>Extract</b><span class="by">full: rules + <span id="m-extract"></span></span></li>
+      <li class="step off"><span class="st">full system</span><b>Merge</b><span class="by"><span id="m-embed"></span> + <span id="m-nli"></span></span></li>
+      <li class="step on"><span class="st">here</span><b>Render</b><span class="by">priority under budget</span></li>
+      <li class="step off"><span class="st">full system</span><b>Serve</b><span class="by">resume pack, any chatbot</span></li>
+      <li class="step off"><span class="st">full system</span><b>Verify</b><span class="by">probes, graded by <span id="m-nli2"></span></span></li>
+    </ol>
+  </section>
 
   <section class="panel" style="margin-top: 34px">
     <div class="row spread">
@@ -244,13 +280,15 @@ footer { margin-top: 26px; color: var(--fg-faint); font-size: .8rem; }
     </div>
   </section>
 
+  <p id="notice" class="panel notice hidden"></p>
+
   <section id="results" class="hidden">
     <div id="stats" class="stats"></div>
 
     <div id="changed" class="hidden"></div>
 
     <div class="row spread" style="margin: 26px 0 14px">
-      <h2>The brief</h2>
+      <h2>The brief <span class="count">preview - rules only</span></h2>
       <button id="copy" class="ghost">Copy</button>
     </div>
     <div id="brief" class="panel brief"></div>
@@ -261,28 +299,20 @@ footer { margin-top: 26px; color: var(--fg-faint); font-size: .8rem; }
   <hr>
 
   <details>
-    <summary>What runs in your browser</summary>
+    <summary>What the full system adds</summary>
     <div class="body">
+      <p>This page is the rules-only slice of herder, small enough to run in a browser. It reads only what you said, and puts constraints first, then decisions, then open threads - a model told the rules can behave without every fact.</p>
       <ul>
-        <li><b>Extract.</b> Only what you said is read. A chat is mostly the assistant talking, and treating its suggestions as fact fills the memory with ideas you turned down.</li>
-        <li><b>Render.</b> Constraints first, then decisions, then open threads. A model told the rules can behave correctly without every fact; one with the facts and not the rules cannot.</li>
-        <li><b>Residue.</b> Sentences no entry captured, spending only the budget left over.</li>
+        <li><b>Merge</b> - embeddings and an entailment model decide whether a new claim repeats, refines or <b>retires</b> an old one. Without it, a change of mind shows both lines.</li>
+        <li><b>Memory across chats</b> - a versioned store where every line links back to the messages it came from, and anything you remove stays removed.</li>
+        <li><b>Serve and verify</b> - a resume pack for any chatbot, then questions only the brief can answer, graded to show what survived.</li>
       </ul>
-      <p>These are the same rules the real system runs - generated from its Python source, with a test that fails if they drift.</p>
+      <p>Token counts here are estimates.</p>
     </div>
   </details>
 
   <details>
-    <summary>What this leaves out</summary>
-    <div class="body">
-      <p><b>Merge</b> needs sentence embeddings and a DeBERTa cross-encoder - gigabytes of weights - so it stays on the server. It decides whether a new claim repeats a stored one, refines it, or <b>retires</b> it.</p>
-      <p>So this page can see that you changed your mind, using the same rule the real merge step uses, but not resolve <i>which</i> entry the change replaces. Load the sample and you can watch it happen.</p>
-      <p>Token counts here are <b>estimates</b>. The real pipeline counts with cl100k.</p>
-    </div>
-  </details>
-
-  <details>
-    <summary>How it is measured</summary>
+    <summary>How the full system is measured</summary>
     <div class="body">
       <p>Eight long conversations, 261 facts written by hand, 40 of them false on purpose - suggestions refused and decisions later reversed.</p>
       <p>At a 3,000-token budget the full pipeline recalls <b>0.88</b> of the true ones and carries <b>none</b> of the 40 false ones. A plain "summarise this" at the same budget manages 0.21; pasting the most recent text, 0.31.</p>
@@ -291,7 +321,7 @@ footer { margin-top: 26px; color: var(--fg-faint); font-size: .8rem; }
   </details>
 
   <footer>
-    <span id="model" class="mono"></span> - no network, no storage, nothing leaves this page.
+    Preview, rules only (<span id="model" class="mono"></span>) - no network, no storage, nothing leaves this page.
   </footer>
 </div>
 
