@@ -107,7 +107,7 @@ the core does not get hosted.
 | Pulling in social media posts automatically is a later feature | The brief. And the owner still has to come and claim it to get the badge |
 | It starts as a demo with made-up listings and a functioning preview | A public demo carries none of a real service's duties - real phone numbers, answering reports, a privacy notice - and still shows every flow working |
 | Python, FastAPI, server-rendered pages, PostgreSQL, Docker Compose | Same stack as mailman and herder. The deploy, CI and test patterns already exist, so the effort goes into the app |
-| Leaflet and OpenStreetMap, not Google Maps | No key and no billing account, matching the rest of the repo. Looks and works the same for this job |
+| Leaflet and OpenStreetMap data, not Google Maps; drawn in OpenFreeMap's muted Positron style | No key and no billing account, matching the rest of the repo. The muted style is the author's request: the standard colours overwhelmed the pins |
 | `cube` and `earthdistance`, not PostGIS | The shared server's database image does not include PostGIS. These ship with PostgreSQL and do the one spatial query the app needs, with an index |
 | An admin section with full control of the map | The author asked for it: list, hide, approve and anything else needed to control what the map shows. One admin, the author |
 | Visitors never get the admin section, but are told an admin exists and can reach one | The author's call. An open admin lets one visitor empty the map for the next. A Help page says what the admin does and has a contact form, so a visitor with a problem has somewhere to go. The admin section is shown to reviewers in the README with screenshots and a recording |

@@ -28,4 +28,5 @@ The database is published on 5434 and the app on 8010, so roamer runs beside mai
 herder, which take 5432 and 8000.
 
 Python, FastAPI, PostgreSQL with the `cube` and `earthdistance` extensions for distance
-queries, and server-rendered pages with Leaflet and OpenStreetMap. No API keys.
+queries, and server-rendered pages with Leaflet and a muted OpenFreeMap base map built
+from OpenStreetMap data. No API keys.

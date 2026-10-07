@@ -11,7 +11,7 @@ to be wrong it is changed here first.
 | --- | --- | --- | --- |
 | Server | Python, FastAPI | The same stack as mailman and herder, so the deploy, the tests and the CI pattern already exist. The OpenAPI page comes free | Node and Express - a second backend stack in the repo for no gain; Laravel - the repo's old ignore rules mention it, nothing current uses it |
 | Pages | Server-rendered Jinja templates, plain JavaScript where a page needs it | No build step, runs from PowerShell, deploys as one process. A map, a form and a list do not need a framework | React or a single-page app - a Node build for three screens |
-| Map | Leaflet with OpenStreetMap tiles, loaded from a CDN | Free, no key, no account. Leaflet is small and does markers, clustering and popups | Google Maps - needs a billing account and a key. Mapbox - needs a key |
+| Map | Leaflet, with OpenFreeMap's Positron base map drawn by MapLibre GL; OpenStreetMap's own tiles, greyed out, as the fallback | The author asked for a muted map - mostly white and grey, like Google's - because the standard OpenStreetMap colours overwhelm the pins. Positron is that, and OpenFreeMap serves it with no key, no account and no request limit, commercial use allowed. Leaflet stays for markers, clustering and popups | Google Maps - billing account and key. Mapbox - key. CARTO's Positron raster tiles - now need a key: a tile fetched without one is an "API KEY REQUIRED" watermark (checked). OpenStreetMap tiles alone - the colours the author did not want |
 | Address search | OpenStreetMap Nominatim, called from the server, cached | Free and keyless. Calling it from the server lets the cache and the rate limit live in one place | Calling it from the browser - every visitor counts against one public policy limit with no cache |
 | Database | PostgreSQL 16 | A real database is part of what this shows, and the server already runs one | SQLite - fine for a demo, but the deploy story is a shared Postgres |
 | Distance queries | PostgreSQL's `cube` and `earthdistance` extensions, with a GiST index | Ship with PostgreSQL itself, so they work on the shared server's existing image. "Listings within 5 km of here, nearest first" is the only spatial question the app asks, and these answer it with an index | PostGIS - the right tool in general, but the shared server runs pgvector's image, which does not include it. Swapping the database image under mailman and herder for one app is a bad trade. If a query ever needs polygons, revisit. Plain latitude and longitude columns with arithmetic and no index - works at a hundred rows and teaches nothing |
@@ -52,7 +52,8 @@ flowchart LR
 
     BR --> PAGES
     BR --> API
-    BR -->|tiles| OSM[OpenStreetMap tiles]
+    BR -->|vector tiles| OFM[OpenFreeMap]
+    BR -.->|fallback tiles| OSM[OpenStreetMap tiles]
     PAGES --> SVC
     API --> SVC
     SVC --> DB
@@ -141,9 +142,19 @@ JSON, used by the map page:
 
 One stylesheet and four small scripts in `roamer/static/`, no framework and no build:
 `common.js` (the base map, pin icons, relative times), `map.js`, `form.js`,
-`listing.js`. Leaflet 1.9.4 and markercluster 1.5.3 come from cdnjs with `integrity`
-hashes computed from the files cdnjs serves, so a changed file is refused rather than
-run.
+`listing.js`. Leaflet 1.9.4, markercluster 1.5.3 and MapLibre GL 5.24.0 come from cdnjs,
+and maplibre-gl-leaflet 0.1.4 from jsdelivr (it is not on cdnjs), all with `integrity`
+hashes computed from the files served, so a changed file is refused rather than run.
+
+The base map is OpenFreeMap's Positron style: vector tiles drawn by MapLibre GL inside
+Leaflet. MapLibre is held at 5.x because 6.x is published only as an ES module, which the
+Leaflet bridge cannot load from a plain script tag. If MapLibre does not load or the
+browser has no WebGL, `common.js` falls back to OpenStreetMap's raster tiles with a CSS
+greyscale filter, so the map is never blank. Two ordering rules come with the vector
+layer: the map's view is set before the layer is added (the layer reads the centre as it
+is added and throws on a map with none), and `maxZoom` is set on the map itself
+(markercluster requires it, and only the raster layer used to supply it). Cluster bubbles
+are drawn in the site's dark ink rather than markercluster's green, yellow and orange.
 
 Pins are `divIcon`s - a dot coloured by species - so they cluster and need no image
 files. Anything a stranger typed reaches the page through Jinja's autoescaping or, in

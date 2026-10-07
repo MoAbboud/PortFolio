@@ -62,6 +62,8 @@ fill in, submit, land on the new listing - and every page was looked at at 1280p
 - [x] An approximate location is snapped to a 0.005 degree grid on the way in, so the exact
       point is never stored, and drawn as a 500 m circle
 - [x] Map attribution for OpenStreetMap
+- [x] Muted base map, at the author's request: OpenFreeMap's Positron through MapLibre GL,
+      greyed OpenStreetMap tiles as the fallback, cluster bubbles in the site's ink
 - [x] Leaflet and markercluster from cdnjs with integrity hashes computed from the served
       files
 - [x] Seed script: twelve made-up animals at real Kansas City places, 555-01xx numbers,

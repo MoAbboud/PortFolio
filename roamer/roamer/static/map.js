@@ -8,11 +8,16 @@
   var filters = document.getElementById("filters");
   var count = document.getElementById("map-count");
 
-  var map = roamer.baseMap(element).setView(
+  var map = roamer.baseMap(
+    element,
     [Number(element.dataset.lat), Number(element.dataset.lng)],
     Number(element.dataset.zoom)
   );
-  var cluster = L.markerClusterGroup({ showCoverageOnHover: false, maxClusterRadius: 40 });
+  var cluster = L.markerClusterGroup({
+    showCoverageOnHover: false,
+    maxClusterRadius: 40,
+    iconCreateFunction: roamer.clusterIcon,
+  });
   map.addLayer(cluster);
 
   var SPECIES = { dog: "Dog", cat: "Cat", other: "Animal" };

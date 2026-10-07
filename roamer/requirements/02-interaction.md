@@ -11,7 +11,7 @@
 | Importer | Human, later | A volunteer who brings a public lost-pet post onto the map so that finders see it. Not the owner. Only exists once post import is built |
 | Demo visitor | Human, the public | Someone looking at the portfolio. Wants to see the whole thing work in a few minutes without giving a real email address. Plays every role above except Admin |
 | Mail service | External system | Delivers the confirmation and check-in emails. Not used by the demo, which shows its emails in a demo inbox on the site |
-| Map tiles | External system | OpenStreetMap's tile server. Draws the map. No key |
+| Map tiles | External system | OpenFreeMap, which serves the muted Positron base map. No key, no account. OpenStreetMap's own tile server is the fallback |
 | Geocoder | External system | Turns a typed address into a point. OpenStreetMap's Nominatim, under its usage policy |
 | Social media sites | External, later | Where lost-pet posts already live. The system does not read them by itself - see the plan for why |
 

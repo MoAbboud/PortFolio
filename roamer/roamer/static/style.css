@@ -166,6 +166,20 @@ h2 { font-size: 1.15rem; margin: 1.5rem 0 0.5rem; }
 .pin-other { background: var(--other); }
 .pin-approximate { border-style: dashed; }
 
+.cluster {
+  border-radius: 50%;
+  background: #2b2f36;
+  border: 3px solid #fff;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+  color: #fff;
+  font: 700 13px system-ui, sans-serif;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+/* Only when the vector map could not be drawn: OpenStreetMap's tiles, greyed out. */
+.tiles-muted .leaflet-tile-pane { filter: grayscale(1) brightness(1.06) contrast(0.92); }
+
 .popup h3 { margin: 0 0 2px; font-size: 1rem; }
 .popup p { margin: 0 0 4px; }
 

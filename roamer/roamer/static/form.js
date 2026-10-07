@@ -10,7 +10,8 @@
   var localInput = document.getElementById("last_seen_local");
   var isoInput = document.getElementById("last_seen_at");
 
-  var map = roamer.baseMap(element).setView(
+  var map = roamer.baseMap(
+    element,
     [Number(element.dataset.lat), Number(element.dataset.lng)],
     Number(element.dataset.zoom)
   );

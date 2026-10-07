@@ -122,7 +122,8 @@ For a finder:
 ## Requirements to run it
 
 Docker, and one Docker Compose command, driven from a PowerShell terminal on Windows. The
-map uses OpenStreetMap, which needs no account and no key. In development, email goes to a
+map is built from OpenStreetMap data, served by OpenFreeMap in a quiet white-and-grey style,
+and needs no account and no key. In development, email goes to a
 local mail catcher that shows every message in a browser, so nothing needs to be signed up
 for to run the whole thing. The hosted demo sends no email at all. Running it as a real
 service would need mail server credentials supplied through the environment.
