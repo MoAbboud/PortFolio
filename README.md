@@ -11,12 +11,14 @@ change, so the reasoning behind a design is readable without reading the diff.
 
 ## Tests
 
-Every project with a suite runs it on GitHub on every push. herder's and mailman's jobs bring up a
-real PostgreSQL (pgvector's image for herder) and set `REQUIRE_DB=1`, which turns "no database, skip"
-into a failure - so a green badge here cannot mean a job that quietly skipped its database tests.
+Every project with a suite runs it on GitHub on every push. herder's, mailman's and roamer's jobs
+bring up a real PostgreSQL (pgvector's image for herder) and set `REQUIRE_DB=1`, which turns "no
+database, skip" into a failure - so a green badge here cannot mean a job that quietly skipped its
+database tests.
 
 [![herder](https://github.com/MoAbboud/PortFolio/actions/workflows/test-herder.yml/badge.svg)](https://github.com/MoAbboud/PortFolio/actions/workflows/test-herder.yml)
 [![mailman](https://github.com/MoAbboud/PortFolio/actions/workflows/test-mailman.yml/badge.svg)](https://github.com/MoAbboud/PortFolio/actions/workflows/test-mailman.yml)
+[![roamer](https://github.com/MoAbboud/PortFolio/actions/workflows/test-roamer.yml/badge.svg)](https://github.com/MoAbboud/PortFolio/actions/workflows/test-roamer.yml)
 [![trail](https://github.com/MoAbboud/PortFolio/actions/workflows/test-trail.yml/badge.svg)](https://github.com/MoAbboud/PortFolio/actions/workflows/test-trail.yml)
 [![whereyago](https://github.com/MoAbboud/PortFolio/actions/workflows/test-whereyago.yml/badge.svg)](https://github.com/MoAbboud/PortFolio/actions/workflows/test-whereyago.yml)
 [![triage-agent](https://github.com/MoAbboud/PortFolio/actions/workflows/test-triage-agent.yml/badge.svg)](https://github.com/MoAbboud/PortFolio/actions/workflows/test-triage-agent.yml)

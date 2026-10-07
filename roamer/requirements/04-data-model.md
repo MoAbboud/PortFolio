@@ -10,7 +10,7 @@ erDiagram
     LISTINGS ||--o{ LISTING_EVENTS : "history"
     LISTINGS ||--o{ EMAIL_TOKENS : "for"
     OWNERS ||--o{ EMAIL_TOKENS : "sent to"
-    LISTINGS ||--o{ REPORTS : "flagged by"
+    LISTINGS |o--o{ MESSAGES : "about"
     OWNERS ||--o| BLOCKED_EMAILS : "may be"
 
     OWNERS {
@@ -68,8 +68,9 @@ erDiagram
         text status
         int attempts
     }
-    REPORTS {
+    MESSAGES {
         bigint id PK
+        text kind
         uuid listing_id FK
         text reason
         text detail
@@ -244,17 +245,28 @@ Email waiting to be sent, and the record of what was.
 Written in the same transaction as the change that caused it. Sent rows are cleared after a
 retention period.
 
-## `reports`
+## `messages`
+
+Everything a visitor sends the admin: a report about a listing, or a request for help from
+the Help page. One table, because the admin reads them in one place and they share every
+column but two.
 
 | Column | Type | Notes |
 | --- | --- | --- |
 | `id` | bigint | Primary key |
-| `listing_id` | uuid | References `listings` |
-| `reason` | text | `scam`, `not_lost`, `wrong_details`, `abusive`, `other` |
-| `detail` | text | Free text from the reporter |
-| `reporter_hash` | bytea | Salted hash of the IP address. For rate limiting, never shown |
+| `kind` | text | `report` or `help` |
+| `listing_id` | uuid | References `listings`, set null if the listing is deleted. Required for a report, optional for help |
+| `reason` | text | Reports: `scam`, `not_lost`, `wrong_details`, `abusive`, `other`. Null for help |
+| `detail` | text | Free text from the sender |
+| `reply_to` | citext | Optional, help only. Shown only in the admin section |
+| `sender_hash` | bytea | Salted hash of the IP address. For rate limiting, never shown |
 | `created_at` | timestamptz | |
-| `resolved_at`, `resolution` | timestamptz, text | `hidden` or `dismissed`, set by the admin |
+| `resolved_at`, `resolution` | timestamptz, text | Reports: `hidden` or `dismissed`. Help: `handled`. Set by the admin |
+
+The demo reset does not clear this table. Messages are for the admin, not part of the demo's
+made-up content, and the admin deletes them once read. A `reply_to` address is the one piece
+of real personal data the demo may hold, which is why the Help page says not to send
+anything personal.
 
 ## `blocked_emails`
 
@@ -290,7 +302,7 @@ Append-only log of everything the admin does. Never updated.
 | Column | Type | Notes |
 | --- | --- | --- |
 | `id` | bigint | Primary key |
-| `action` | text | `login`, `login_failed`, `approve`, `reject`, `hide`, `unhide`, `edit`, `delete`, `photo_remove`, `report_dismiss`, `block`, `unblock`, `setting_change`, `demo_reset` |
+| `action` | text | `login`, `login_failed`, `approve`, `reject`, `hide`, `unhide`, `edit`, `delete`, `photo_remove`, `report_dismiss`, `message_handled`, `message_delete`, `block`, `unblock`, `setting_change`, `demo_reset` |
 | `target` | text | A listing code, an email address, a setting key, or nothing |
 | `reason` | text | Required for reject, hide, delete and block |
 | `detail` | jsonb | What changed |

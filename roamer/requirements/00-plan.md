@@ -65,10 +65,13 @@ flowchart LR
 | 5 | Check-ins and freshness | The worker sends check-ins on interval. Answers move `last_confirmed_at`. The badge lapses and listings leave the default map on the configured schedule, and a test drives the clock through all three states |
 | 6 | Manage, edit, close | Manage link by email, a short session, edit, still lost, home, withdraw. Withdraw deletes. Every change is an event row |
 | 7 | Printable flyer | A print stylesheet and a QR code to `/l/{code}`, generated on the server with no outside service. A phone camera opens it |
-| 8 | Admin section and abuse | Report button, rate limits, honeypot field. A password-protected admin section with full control of the map: dashboard, a map of every listing in every state, listings table, approval queue, reports, edit, hide, delete, block an address, settings, activity log |
+| 8 | Admin section and abuse | Report button, a Help page with a contact form to the admin, rate limits, honeypot field. A password-protected admin section with full control of the map: dashboard, a map of every listing in every state, listings table, approval queue, reports, edit, hide, delete, block an address, settings, activity log |
 | 9 | Demo mode, host it, write the README | `ROAMER_DEMO=1`: a banner on every page, the demo inbox in place of sending, seeded listings restored and visitor posts wiped on a schedule. A `roamer` profile on the shared server at `roamer.<domain>`, and a README with what it is, a screenshot, how to run it, and what it deliberately does not do |
 | 10 | Post import | Later. See the open question below. Not started before stage 9 is done |
 | 11 | Sightings and found reports | Later |
+
+**Stage 0 is done.** The scaffold runs from one `docker compose up`, `/health` is green,
+and the suite runs in CI against a real database. Stage 1 is next.
 
 ### Why the map comes before verification
 
@@ -105,6 +108,7 @@ the core does not get hosted.
 | Leaflet and OpenStreetMap, not Google Maps | No key and no billing account, matching the rest of the repo. Looks and works the same for this job |
 | `cube` and `earthdistance`, not PostGIS | The shared server's database image does not include PostGIS. These ship with PostgreSQL and do the one spatial query the app needs, with an index |
 | An admin section with full control of the map | The author asked for it: list, hide, approve and anything else needed to control what the map shows. One admin, the author |
+| Visitors never get the admin section, but are told an admin exists and can reach one | The author's call. An open admin lets one visitor empty the map for the next. A Help page says what the admin does and has a contact form, so a visitor with a problem has somewhere to go. The admin section is shown to reviewers in the README with screenshots and a recording |
 | Every flow works in the demo ("functioning preview") | Confirmed: a visitor can post, verify, get a check-in, close a listing, search and print, not just look |
 
 ## Decisions proposed, waiting for the author's confirmation
@@ -154,7 +158,6 @@ can be overturned - if it is, the row moves to the context log with what replace
 
 | Question | Blocks | Notes |
 | --- | --- | --- |
-| Can demo visitors try the admin section? | Stage 9 | It is the part a software reviewer would most like to see. But an open admin lets one visitor hide every listing and leave the next visitor an empty map. Options: author-only, with screenshots and a short recording in the README (recommended to start); or a read-only "admin preview" login that shows every screen and refuses every action |
 | Bulk actions in the admin table? | After stage 8 | Hide or delete many at once. Not needed at demo scale |
 
 ## Risks
