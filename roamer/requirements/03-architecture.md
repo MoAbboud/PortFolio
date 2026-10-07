@@ -137,6 +137,25 @@ JSON, used by the map page:
 | `GET /api/listings/near?lat=&lng=&radius_km=&species=` | Nearest active listings to a point, with the distance |
 | `GET /api/geocode?q=` | Server-side address search. Cached, rate limited to the provider's policy |
 
+## Front end
+
+One stylesheet and four small scripts in `roamer/static/`, no framework and no build:
+`common.js` (the base map, pin icons, relative times), `map.js`, `form.js`,
+`listing.js`. Leaflet 1.9.4 and markercluster 1.5.3 come from cdnjs with `integrity`
+hashes computed from the files cdnjs serves, so a changed file is refused rather than
+run.
+
+Pins are `divIcon`s - a dot coloured by species - so they cluster and need no image
+files. Anything a stranger typed reaches the page through Jinja's autoescaping or, in
+the map's popups, `textContent`; never `innerHTML`.
+
+The form needs JavaScript: the pin is placed on a map, and the `datetime-local` value,
+which has no time zone, is converted to UTC in the browser before posting. The server
+refuses a time with no zone rather than guess whose evening it was.
+
+Where the map opens is configuration (`map_center_lat`, `map_center_lng`, `map_zoom`,
+Kansas City by default) until stage 8 moves it into the admin's settings.
+
 ## Email links and why every one is a GET then a POST
 
 Every link in an email - verify, manage, check-in - opens a page with a button, and the

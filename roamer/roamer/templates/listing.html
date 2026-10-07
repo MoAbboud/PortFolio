@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% set label = SPECIES_LABELS[listing.species] %}
+{% set home = listing.status == 'reunited' %}
+{% block title %}{% if home %}Home{% else %}Lost{% endif %} {{ label | lower }}{% if listing.name %}: {{ listing.name }}{% endif %} - roamer{% endblock %}
+{% block head %}{% include "_leaflet.html" %}{% endblock %}
+
+{% block content %}
+{% if posted %}
+<div class="notice notice-ok" role="status">
+  Your listing is on the map. Its code is <strong>{{ listing.code }}</strong> - it is in the
+  address of this page, so this page can be shared or printed.
+</div>
+{% endif %}
+
+{% if home %}
+<div class="notice notice-ok">{{ listing.name or 'This animal' }} is home. Thank you to
+  everyone who looked.</div>
+{% endif %}
+
+<article class="listing">
+  <header class="listing-head">
+    <p class="listing-kind">{% if home %}Found{% else %}Lost{% endif %} {{ label | lower }}</p>
+    <h1>{{ listing.name or 'Name not known' }}</h1>
+    <p class="listing-seen">
+      Last seen {{ time_ago(listing.last_seen_at) }}
+      <time datetime="{{ listing.last_seen_at.isoformat() }}" data-local></time>
+      {% if listing.area_label %} - {{ listing.area_label }}{% endif %}
+    </p>
+  </header>
+
+  <div class="listing-body">
+    <div class="listing-photo" aria-hidden="true">
+      <span>No photo yet</span>
+    </div>
+
+    <div class="listing-facts">
+      {% if listing.approach_advice %}
+      <div class="approach">
+        <h2>If you see {{ listing.name or 'it' }}</h2>
+        <p>{{ listing.approach_advice }}</p>
+      </div>
+      {% endif %}
+
+      <dl class="facts">
+        <dt>Animal</dt><dd>{{ label }}</dd>
+        <dt>Sex</dt><dd>{{ SEX_LABELS[listing.sex] }}</dd>
+        {% if listing.size %}<dt>Size</dt><dd>{{ SIZE_LABELS[listing.size] }}</dd>{% endif %}
+        {% if listing.age_text %}<dt>Age</dt><dd>{{ listing.age_text }}</dd>{% endif %}
+        {% if listing.breed %}<dt>Breed</dt><dd>{{ listing.breed }}</dd>{% endif %}
+        {% if listing.colours %}<dt>Colours</dt><dd>{{ listing.colours }}</dd>{% endif %}
+      </dl>
+
+      {% if listing.description %}
+      <h2>Description</h2>
+      <p class="description">{{ listing.description }}</p>
+      {% endif %}
+
+      {% if not home %}
+      <div class="contact">
+        <h2>Seen {{ listing.name or 'this animal' }}?</h2>
+        {% if listing.show_phone %}
+        <p>Call {{ listing.contact_name or 'the owner' }}:
+          <a class="phone" href="tel:{{ listing.contact_phone | replace(' ', '') }}">{{ listing.contact_phone }}</a></p>
+        {% else %}
+        <p>The owner has chosen not to show a phone number.</p>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <section class="listing-where">
+    <h2>Where {{ listing.name or 'it' }} was last seen</h2>
+    {% if listing.location_precision == 'approximate' %}
+    <p class="hint">Somewhere in the circle. The owner chose not to give the exact spot.</p>
+    {% endif %}
+    <div id="listing-map" class="map-small"
+         data-lat="{{ listing.last_seen_lat }}" data-lng="{{ listing.last_seen_lng }}"
+         data-approximate="{{ 'true' if listing.location_precision == 'approximate' else 'false' }}"
+         data-radius="{{ APPROXIMATE_RADIUS_M }}"></div>
+  </section>
+
+  <p class="listing-code">Listing code: <strong>{{ listing.code }}</strong></p>
+</article>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/listing.js" defer></script>
+{% endblock %}

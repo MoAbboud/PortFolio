@@ -35,5 +35,13 @@ class Settings(BaseSettings):
     # that says nothing about the other two.
     database_url: str = "postgresql+psycopg://roamer:roamer@localhost:5434/roamer"
 
+    # Where the public map opens. Kansas City, where the demo's made-up listings are.
+    #
+    # Configuration for now. Stage 8 moves it into the `settings` table, so the admin can
+    # set it from the admin section by moving the map, and these become the fallback.
+    map_center_lat: float = 39.0997
+    map_center_lng: float = -94.5786
+    map_zoom: int = 12
+
 
 settings = Settings()

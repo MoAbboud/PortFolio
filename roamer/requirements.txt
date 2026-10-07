@@ -10,3 +10,10 @@ pydantic>=2.10
 pydantic-settings>=2.7
 pytest>=8.3
 httpx>=0.28
+
+# Stage 1 - the map, the form and the listing page. Server-rendered, so there is no Node
+# build step; Leaflet comes from a CDN. python-multipart reads the form, email-validator is
+# what pydantic's EmailStr checks addresses with.
+jinja2>=3.1
+python-multipart>=0.0.20
+email-validator>=2.2
