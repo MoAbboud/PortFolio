@@ -7,9 +7,10 @@
 | Owner | Human, the public | To get the animal in front of as many people near the last sighting as possible, fast, and to be called by anyone who sees it. Frightened, often in a hurry, often posting from a phone in the street |
 | Finder | Human, the public | Has an animal in hand, or has just seen one, and wants to know in a minute or two whether somebody nearby is missing it. Owes the site nothing and will leave if it is slow or asks them to sign up |
 | Neighbour | Human, the public | Browses the map for their area, shares a listing, keeps an eye out. Never posts |
-| Moderator | Human, the author | To take down a fake, abusive or scam listing quickly, and to see what has been reported |
+| Admin | Human, the author | Full control of the map: see every listing in every state, approve, hide, edit, delete, deal with reports, block an address, and reset the demo. One person, behind a login |
 | Importer | Human, later | A volunteer who brings a public lost-pet post onto the map so that finders see it. Not the owner. Only exists once post import is built |
-| Mail service | External system | Delivers the confirmation and check-in emails |
+| Demo visitor | Human, the public | Someone looking at the portfolio. Wants to see the whole thing work in a few minutes without giving a real email address. Plays every role above except Admin |
+| Mail service | External system | Delivers the confirmation and check-in emails. Not used by the demo, which shows its emails in a demo inbox on the site |
 | Map tiles | External system | OpenStreetMap's tile server. Draws the map. No key |
 | Geocoder | External system | Turns a typed address into a point. OpenStreetMap's Nominatim, under its usage policy |
 | Social media sites | External, later | Where lost-pet posts already live. The system does not read them by itself - see the plan for why |
@@ -26,7 +27,7 @@ flowchart TB
         OW[Owner]
         FI[Finder]
         NB[Neighbour]
-        MO[Moderator]
+        AD[Admin]
         IM[Importer - later]
     end
 
@@ -37,7 +38,7 @@ flowchart TB
         MAN[Manage by email link]
         CHK[Check-in scheduler]
         OUT[Email outbox]
-        MOD[Moderation]
+        ADM[Admin section]
         IMP[Post import - later]
         DB[(Listings)]
     end
@@ -68,9 +69,9 @@ flowchart TB
     MAP --> LP
     FI -->|calls the number| OW
 
-    FI -->|reports a listing| MOD
-    MO --> MOD
-    MOD --> DB
+    FI -->|reports a listing| ADM
+    AD -->|approves, hides, edits, resets| ADM
+    ADM --> DB
 
     SOC -.->|a person copies a post| IM
     IM -.-> IMP
@@ -113,7 +114,7 @@ The site's job ends when the finder has the right number.
   outside posts might get in later is an open question, and scraping a site against its
   terms is not one of the answers.
 - Scale. One server, one database, listings in the hundreds for one area.
-- Multiple moderators, roles or permissions. There is one moderator.
+- Multiple admins, roles or permissions. There is one admin, and the admin section is all or nothing.
 
 ## Main use cases
 
@@ -129,8 +130,13 @@ The site's job ends when the finder has the right number.
 | UC-8 | Owner | Edit the listing | Asks for a manage link by email | The owner can change details, photos and the pin |
 | UC-9 | Owner | Take the listing down | Manage page | The listing and its photos are removed |
 | UC-10 | Owner | Put up flyers | Prints the listing's flyer | A printable page with the details and a code that opens the listing |
-| UC-11 | Anyone | Flag a listing | "Report this listing" | A report waits for the moderator. The listing stays up until the moderator acts |
-| UC-12 | Moderator | Deal with a bad listing | A report, or noticing one | The listing is hidden with a reason, or the report is dismissed. Either is recorded |
+| UC-11 | Anyone | Flag a listing | "Report this listing" | A report waits for the admin. The listing stays up until the admin acts |
+| UC-12 | Admin | Deal with a bad listing | A report, or noticing one | The listing is hidden with a reason, or the report is dismissed. Either is recorded |
+| UC-12a | Admin | Approve a new listing | Approval is switched on and a verified listing is waiting | Approved: it goes on the map. Rejected: it is deleted and the owner gets the reason by email |
+| UC-12b | Admin | See everything | Opens the admin map or the listings table | Every listing in every state - waiting, live, quiet, stale, hidden, home - with filters, and actions on each |
+| UC-12c | Admin | Fix or remove a listing | A wrong pin, a typo, a bad photo, a duplicate | Edited, photo removed, or deleted outright. Recorded in the listing's history as the admin's change |
+| UC-12d | Admin | Stop a repeat abuser | The same address posting junk | The address is blocked. Its listings are hidden and it cannot post again |
+| UC-12e | Admin | Control the demo | The demo looks wrong, or a reviewer is about to look | Reset now to the made-up listings, switch approval on or off, set where the map opens |
 | UC-13 | System | Notice a silent owner | A listing's last confirmation is older than the check-in interval | A check-in email is sent. If it goes unanswered, the badge lapses, and later the listing leaves the default map |
 
 Later, not in the first version:
@@ -141,6 +147,126 @@ Later, not in the first version:
 | UC-15 | Owner | Claim an imported listing | After proving it is theirs, the listing becomes an owner listing and can be verified |
 | UC-16 | Finder | Report a sighting | A sighting waits for the owner to accept it, then shows on the listing's map |
 | UC-17 | Finder | Report a found animal | A found listing on the map for owners to search |
+
+## User journeys
+
+What each person sees, screen by screen, in the hosted demo. The real service is the same
+except where a step says "demo".
+
+```mermaid
+flowchart LR
+    V[Lands on the map] --> P[Clicks a pin] --> L[Listing page]
+    V --> R[Report a lost animal] --> F[Form and pin] --> C[Check your email]
+    C --> I[Demo inbox] --> B[Publish button]
+    B -->|approval off| LIVE[Live on the map]
+    B -->|approval on| W[Waiting for approval] -->|admin approves| LIVE
+    LIVE --> K[Check-in email] --> A{Still missing?}
+    A -->|yes| LIVE
+    A -->|home| H[Off the map, page says home]
+    A -->|take it down| D[Deleted]
+    V --> FD[I found an animal] --> Q[Location] --> RES[Nearest listings] --> L
+    L --> CALL[Calls the number]
+```
+
+### J1 - A demo visitor arrives
+
+1. Opens the link. A map of the demo area fills the screen with about a dozen pins already
+   on it. A banner across the top: this is a demo, the listings are made up, do not enter
+   real details, everything resets daily.
+2. Clicks a pin. A popup: photo, name, "last seen 2 days ago", the verified badge, and
+   "View listing".
+3. The listing page: photos, description, how to approach the animal, where and when it was
+   last seen on a small map, the contact number, "confirmed still lost 1 day ago", the scam
+   warning, and buttons for "Print flyer" and "Report this listing".
+4. From here the visitor can try J2 as an owner and J3 as a finder.
+
+### J2 - An owner posts a lost animal
+
+1. "Report a lost animal" on the map page.
+2. The form, in the order a flyer reads: species, name, photos, what it looks like, how to
+   approach it, when it was last seen. Then a map to drop the pin where it was last seen,
+   with an address search and a choice of exact point or approximate area. Then the name and
+   number to call, whether to show the number, and an email address.
+3. Submit. A page says "Check your email to publish your listing". **Demo:** a button "Open
+   the demo inbox", already filled in with the address typed.
+4. The inbox has "Confirm your listing for Biscuit". The link opens a page with one button,
+   "Publish my listing".
+5. **Approval off** (the demo default): the listing page opens with "Your listing is live",
+   the verified badge, and links to print a flyer and to manage the listing. **Approval on:**
+   a page says it is waiting for a check by the site, and an email follows when it is
+   approved or turned down, with the reason.
+6. A check-in arrives - days later for real, minutes later in the demo, or at once from
+   "Send check-in now" on the manage page: "Is Biscuit still missing?" with three choices.
+   Each opens a page with a button to confirm the choice.
+7. **Still missing:** the badge stays, and the page says "confirmed still lost just now".
+   **Home:** the pin leaves the map, and the listing page says Biscuit is home. **Take it
+   down:** the listing and its photos are deleted.
+8. If the owner never answers: a few days later the badge goes and the page says "not
+   confirmed for 4 days". After longer, the pin leaves the default map.
+
+### J3 - A finder has an animal
+
+1. "I found an animal" on the map page.
+2. "Use my location" - the browser asks permission - or type an address and press Search.
+3. Results, nearest first: photo, name, distance, when last seen, and either the verified
+   badge or "not confirmed for N days". A small map beside them shows the finder's point and
+   the pins. A species filter narrows it.
+4. Opens the one that matches, compares the photo and the marks, calls the number.
+5. The listing reminds the finder to ask for proof at the handover - a photo of the owner
+   with the animal, a vet record, the microchip number - and that nobody genuine asks a
+   finder for money.
+6. **No match:** the page says what to do next - check for a tag, have a vet or shelter scan
+   for a microchip, call the local shelter. Found-animal listings come later.
+
+### J4 - An owner comes back to change something
+
+1. "Manage my listing" in the footer. Type the email address.
+2. The same answer whether or not the address is known: "If there is a listing for that
+   address, a link is on its way". **Demo:** the demo inbox button again.
+3. The link opens a page with a button, then the manage page: every listing for that
+   address.
+4. Edit details, move the pin, add or remove photos, save. Saving counts as confirming the
+   animal is still missing.
+5. Or mark it home, reopen it if the animal got out again, or withdraw it, which deletes it
+   after one "are you sure".
+
+### J5 - Putting up flyers
+
+1. "Print flyer" on a listing page.
+2. A print layout: the main photo large, name, "LOST", where and when last seen, how to
+   approach, the number, and a QR code.
+3. The browser's print dialog, to paper or PDF. A phone camera pointed at the code opens
+   the current listing - so a flyer on a pole shows "home" once the animal is back.
+
+### J6 - Someone reports a listing
+
+1. "Report this listing" on a listing page.
+2. A reason - scam, not actually lost, wrong details, abusive, other - and a box for more.
+3. "Thanks. The site's admin will look at it." The listing stays up until the admin acts.
+
+### J7 - The admin runs the map
+
+1. `/admin`. A login page: password only. Wrong passwords are slowed down.
+2. **Dashboard.** Counts at the top - waiting for approval, open reports, live, gone quiet,
+   stale, hidden, home - each a link to that list. The latest activity underneath.
+3. **Admin map.** Every listing in every state, coloured by state, with filters. Clicking a
+   pin opens the admin panel for that listing: open it, edit, approve, hide or unhide with a
+   reason, mark home, delete, see its full history.
+4. **Approval queue** (when approval is on). Each waiting listing with its photos, details
+   and pin. Approve, or reject with a reason that is emailed to the owner.
+5. **Reports.** Each open report beside the listing it is about. Hide the listing with a
+   reason, or dismiss the report.
+6. **Listings table.** Every listing, searchable by name, code, area or email, filterable by
+   state, species and source, sortable by date. The same actions as the panel.
+7. **Owners.** Look up an email address, see its listings, block it - which hides its
+   listings and stops it posting - or unblock it.
+8. **Settings.** Approval on or off. Where the map opens: centre and zoom, set by moving the
+   map and pressing "Use this view". The check-in timings and whether this is the demo are
+   shown, not edited, because they come from configuration.
+9. **Demo.** "Reset demo now" - back to the made-up listings, everything else deleted. Every
+   message in the demo inbox, for any address.
+10. **Activity log.** Every admin action, newest first, with what it was done to and why.
+11. Log out.
 
 ## Constraints that come from the actors
 
@@ -159,7 +285,7 @@ Later, not in the first version:
 - Lost-pet scammers read lost-pet listings. Fake finders ask owners for money or for a
   verification code sent to the owner's phone. The site cannot stop that, but every listing
   carries a short warning, and there is no reward field to give them a number to ask for.
-- The moderator is one person. A report must not take a listing down by itself, or one
+- The admin is one person. A report must not take a listing down by itself, or one
   hostile person can remove a real owner's listing; it waits for a person.
 - The map provider and the geocoder are free services with usage policies. The geocoder
   allows about one request a second and forbids search-as-you-type, so address search runs

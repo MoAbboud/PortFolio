@@ -15,6 +15,11 @@ that has been confirmed recently carries a verified badge. One that has not says
 
 It is a website, built for a desktop browser first and usable on a phone.
 
+**It is a demo for now.** The listings on the hosted copy are made up. Everything works -
+posting, verifying, the check-ins, searching, printing a flyer - but the emails it would
+send appear in a demo inbox on the site instead of going anywhere, and anything a visitor
+posts is wiped every day. Do not enter real details.
+
 ## The problem it exists for
 
 When a dog goes missing, the owner prints flyers and puts them up where the dog might turn
@@ -41,7 +46,8 @@ roamer puts the flyers on one map, in the place they belong, and keeps each one 
 | Show how current it is | Each listing shows when the owner last confirmed it. A verified badge appears only when that confirmation is recent |
 | Update or close | An owner can edit the listing, mark the animal as home, or withdraw it, from a link sent to their email. No account, no password |
 | Print a flyer | Any listing can be printed as a flyer with a code that a phone camera opens straight to the listing page, so the paper on the pole points back to the current information |
-| Report a problem | Anyone can flag a listing as wrong, abusive or a scam. A moderator reviews it |
+| Report a problem | Anyone can flag a listing as wrong, abusive or a scam. An admin reviews it |
+| Admin control | One admin, behind a password, sees every listing in every state on a map and in a table, and can approve, hide, edit, delete, block an address, and choose whether new listings need approval before they appear |
 
 Planned for later, and not part of the first version:
 
@@ -117,5 +123,5 @@ For a finder:
 Docker, and one Docker Compose command, driven from a PowerShell terminal on Windows. The
 map uses OpenStreetMap, which needs no account and no key. In development, email goes to a
 local mail catcher that shows every message in a browser, so nothing needs to be signed up
-for to run the whole thing. Sending real email from a hosted copy needs mail server
-credentials supplied through the environment.
+for to run the whole thing. The hosted demo sends no email at all. Running it as a real
+service would need mail server credentials supplied through the environment.

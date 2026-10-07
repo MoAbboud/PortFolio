@@ -1,6 +1,6 @@
 # roamer - Data model
 
-PostgreSQL. Seven tables in the first version, two more planned for the later stages. The
+PostgreSQL. Ten tables in the first version, two more planned for the later stages. The
 shape matters more than the exact columns, and nothing here exists yet.
 
 ```mermaid
@@ -11,6 +11,7 @@ erDiagram
     LISTINGS ||--o{ EMAIL_TOKENS : "for"
     OWNERS ||--o{ EMAIL_TOKENS : "sent to"
     LISTINGS ||--o{ REPORTS : "flagged by"
+    OWNERS ||--o| BLOCKED_EMAILS : "may be"
 
     OWNERS {
         uuid id PK
@@ -74,6 +75,24 @@ erDiagram
         text detail
         timestamptz resolved_at
     }
+    BLOCKED_EMAILS {
+        citext email PK
+        text reason
+        timestamptz created_at
+    }
+    SETTINGS {
+        text key PK
+        jsonb value
+        timestamptz updated_at
+    }
+    ADMIN_ACTIONS {
+        bigint id PK
+        text action
+        text target
+        text reason
+        jsonb detail
+        timestamptz created_at
+    }
 ```
 
 ## `owners`
@@ -118,6 +137,7 @@ for each.
 | `show_phone` | boolean | Default true |
 | `last_confirmed_at` | timestamptz | Set at verification, and by every check-in answer and every owner edit |
 | `hidden_at`, `hidden_reason` | timestamptz, text | Moderation. Separate from `status` on purpose - see below |
+| `seeded` | boolean | True for the made-up demo listings. The demo's daily reset restores these and deletes everything else |
 | `created_at`, `updated_at` | timestamptz | |
 
 Index: GiST on `ll_to_earth(last_seen_lat, last_seen_lng)`, partial on `status = 'lost'
@@ -131,26 +151,36 @@ No reward column. See [00-plan.md](00-plan.md).
 ```mermaid
 stateDiagram-v2
     [*] --> pending_verification: owner posts
-    pending_verification --> lost: email link confirmed
+    pending_verification --> lost: email link confirmed, approval off
+    pending_verification --> awaiting_approval: email link confirmed, approval on
+    awaiting_approval --> lost: admin approves
+    awaiting_approval --> [*]: admin rejects, deleted, owner told why
     pending_verification --> [*]: never confirmed, deleted after 7 days
     lost --> reunited: owner says home
     lost --> withdrawn: owner takes it down
     reunited --> lost: owner reopens - it got out again
     reunited --> [*]: deleted after a retention period
     withdrawn --> [*]: deleted at once
+    lost --> [*]: admin deletes
 ```
+
+`awaiting_approval` only happens when the admin has switched approval on (the `settings`
+table). The demo starts with it off, so a visitor's listing goes live as soon as they
+verify. Switching it on affects listings verified after that; nothing already live is
+pulled back into the queue.
 
 `stale` is not a status. Whether a listing has gone quiet is worked out from
 `last_confirmed_at` when it is read, the same way the verified badge is. Storing it would
 need a job to move it there and another to move it back when the owner answers, and two
 jobs that have to agree is two ways to be wrong.
 
-`hidden_at` is not a status either. A moderator hiding a listing is a different fact from
+`hidden_at` is not a status either. An admin hiding a listing is a different fact from
 an owner's dog coming home, and a listing hidden by mistake must come back in exactly the
 state it was in.
 
 `withdrawn` means delete. The owner asked for it to be gone, so the row, its photos and its
-events are removed, and only the moderation record survives if there was one.
+events are removed, and only the moderation record survives if there was one. An admin
+delete is the same, with an `admin_actions` row saying who was deleted and why.
 
 ## `photos`
 
@@ -175,8 +205,8 @@ Append-only history of a listing. Never updated.
 | --- | --- | --- |
 | `id` | bigint | Primary key |
 | `listing_id` | uuid | References `listings`, cascade delete |
-| `kind` | text | `created`, `verified`, `edited`, `confirmed`, `reunited`, `reopened`, `hidden`, `unhidden`, `claimed` (later) |
-| `actor` | text | `owner`, `moderator`, `system` |
+| `kind` | text | `created`, `verified`, `approved`, `edited`, `photo_removed`, `confirmed`, `reunited`, `reopened`, `hidden`, `unhidden`, `claimed` (later) |
+| `actor` | text | `owner`, `admin`, `system` |
 | `detail` | jsonb | What changed. For `edited`, the field names - not the old values, which may be the very thing the owner wanted gone |
 | `created_at` | timestamptz | |
 
@@ -224,7 +254,51 @@ retention period.
 | `detail` | text | Free text from the reporter |
 | `reporter_hash` | bytea | Salted hash of the IP address. For rate limiting, never shown |
 | `created_at` | timestamptz | |
-| `resolved_at`, `resolution` | timestamptz, text | `hidden` or `dismissed`, set by the moderator |
+| `resolved_at`, `resolution` | timestamptz, text | `hidden` or `dismissed`, set by the admin |
+
+## `blocked_emails`
+
+Addresses the admin has stopped from posting.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `email` | citext | Primary key |
+| `reason` | text | Why. Shown to the admin, never to the address |
+| `created_at` | timestamptz | |
+
+Blocking hides every listing the address has (`hidden_at`, with the block as the reason) and
+refuses new posts and manage links from it. The refusal looks the same as success, so a
+blocked address learns nothing. Unblocking unhides only the listings the block hid.
+
+## `settings`
+
+The few things the admin can change from the admin section without a redeploy.
+
+| Key | Value | Notes |
+| --- | --- | --- |
+| `approval_required` | boolean | Off in the demo by default |
+| `map_default_view` | `{lat, lng, zoom}` | Where the public map opens |
+
+Anything else - check-in timings, demo mode, credentials - is configuration and is only
+shown in the admin section, not edited there. A setting that can change a security property
+from a web form is one stolen session away from being changed by someone else.
+
+## `admin_actions`
+
+Append-only log of everything the admin does. Never updated.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | bigint | Primary key |
+| `action` | text | `login`, `login_failed`, `approve`, `reject`, `hide`, `unhide`, `edit`, `delete`, `photo_remove`, `report_dismiss`, `block`, `unblock`, `setting_change`, `demo_reset` |
+| `target` | text | A listing code, an email address, a setting key, or nothing |
+| `reason` | text | Required for reject, hide, delete and block |
+| `detail` | jsonb | What changed |
+| `created_at` | timestamptz | |
+
+Actions on a listing also write a `listing_events` row with actor `admin`, so the listing's
+own history is complete. This table is the admin's history across everything, and it
+survives the listing being deleted. The demo reset does not clear it.
 
 ## Later: `imported_posts`
 
@@ -257,7 +331,8 @@ invoice.
 
 ## What is deliberately not stored
 
-- Passwords. There are none.
+- Owner passwords. There are none. The admin's password is a hash in configuration, not a
+  row.
 - An owner's email anywhere it could be read by a page.
 - The original uploaded image, or any of its metadata.
 - Raw IP addresses.
