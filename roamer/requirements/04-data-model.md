@@ -131,7 +131,7 @@ for each.
 | `approach_advice` | text | "Do not chase, she runs" - what a finder should do. Lost dogs often flee from strangers and this is often the most useful line on a flyer |
 | `last_seen_at` | timestamptz | When |
 | `last_seen_lat`, `last_seen_lng` | float8 | Where. The point the owner chose |
-| `location_precision` | text | `exact` or `approximate`. Approximate is shown as a circle, and the query point is the circle's centre |
+| `location_precision` | text | `exact` or `approximate`. An approximate point is snapped to a 0.005 degree grid when it is written, so the exact spot the owner clicked is never stored; it is drawn as a 500 m circle around the snapped point, which covers the grid cell |
 | `area_label` | text | "Near Elm Park". Filled from the geocoder or typed by the owner |
 | `contact_name` | text | Who to ask for |
 | `contact_phone` | text | Shown on the listing unless `show_phone` is false |
@@ -143,7 +143,13 @@ for each.
 
 Index: GiST on `ll_to_earth(last_seen_lat, last_seen_lng)`, partial on `status = 'lost'
 and hidden_at is null`. The map and the finder search only ever look at active listings, so
-the index holds only those.
+the index holds only those. It arrives at stage 4 with the distance query. Until then a
+partial index on `last_seen_at` over the same active rows serves the map, which asks for
+a box of active listings, newest first.
+
+The vocabularies (species, statuses, event kinds and so on) are CHECK constraints. The
+migration keeps its own frozen copy of each list rather than importing the models', so
+an old migration keeps meaning what it meant; a test fails when the two disagree.
 
 No reward column. See [00-plan.md](00-plan.md).
 
@@ -179,7 +185,8 @@ jobs that have to agree is two ways to be wrong.
 an owner's dog coming home, and a listing hidden by mistake must come back in exactly the
 state it was in.
 
-`withdrawn` means delete. The owner asked for it to be gone, so the row, its photos and its
+`withdrawn` means delete, so it is never a stored value and the CHECK on `status` leaves
+it out. The owner asked for it to be gone, so the row, its photos and its
 events are removed, and only the moderation record survives if there was one. An admin
 delete is the same, with an `admin_actions` row saying who was deleted and why.
 

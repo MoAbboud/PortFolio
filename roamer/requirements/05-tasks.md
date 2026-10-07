@@ -40,26 +40,48 @@ Check:
 
 ## Stage 1 - Listings on a map
 
-The current work.
+Done. 58 tests. The form was also driven end to end in headless Chrome - click the map,
+fill in, submit, land on the new listing - and every page was looked at at 1280px and at
+390px.
 
-- [ ] Migration: `owners`, `listings`, `listing_events`
-- [ ] Short listing codes: unambiguous characters only, unique, collision retried
-- [ ] Listing form, server-rendered, with a Leaflet map to drop the pin
-- [ ] `POST /listings` and the JSON equivalent, validated with Pydantic
-- [ ] `GET /api/listings?bbox=` returns only what a pin needs
-- [ ] The map page: pins, popups, species filter, how-recently filter, clustering
-- [ ] The listing page at `/l/{code}`
-- [ ] Map attribution for OpenStreetMap
-- [ ] Seed script: a dozen listings, every one obviously fictional and labelled as a demo
-- [ ] Tests: create, read, bbox filter, code uniqueness
+- [x] Migration `0002_listings`: `owners`, `listings`, `listing_events`, hand-written, with
+      the vocabularies as CHECK constraints frozen in the migration and a test that fails
+      if the models drift from them
+- [x] Short listing codes: six characters with no 0, o, 1, l or i; unique; a collision
+      draws again, five tries, then a loud error
+- [x] Listing form, server-rendered, with a Leaflet map to drop and drag the pin, "use my
+      location", and the browser's local time sent as UTC
+- [x] `POST /listings` and `POST /api/listings`, validated by the same Pydantic model; a bad
+      form comes back with the problem beside the field and what was typed still in it
+- [x] `GET /api/listings?bbox=` returns only what a pin needs - no email, no phone. Handles
+      a view across the 180th meridian
+- [x] The map page: pins coloured by species, popups, clustering, species filter, "missing
+      since" filter, a count of what is in view
+- [x] The listing page at `/l/{code}`: pin or circle, phone as a tap-to-call link unless
+      hidden, "home" banner and no number once reunited, 404 for hidden or unknown codes
+- [x] An approximate location is snapped to a 0.005 degree grid on the way in, so the exact
+      point is never stored, and drawn as a 500 m circle
+- [x] Map attribution for OpenStreetMap
+- [x] Leaflet and markercluster from cdnjs with integrity hashes computed from the served
+      files
+- [x] Seed script: twelve made-up animals at real Kansas City places, 555-01xx numbers,
+      example.com addresses, "This is a demo listing" in every description; re-running
+      replaces them and never touches a person's listing
+- [x] Tests: create, owner reuse across letter case, approximate snapping, code collision
+      and exhaustion, bbox and filters, hidden and reunited off the map, escaping, no email
+      or phone in the JSON, form errors, API parity with the form, seeding
 
 Check:
 
+    docker compose up -d --build        # the new dependencies and migration 0002
     docker compose exec web python -m roamer.seed
-    Invoke-RestMethod "http://localhost:8010/api/listings?bbox=-180,-90,180,90"
+    Invoke-RestMethod "http://localhost:8010/api/listings?bbox=-94.7,38.9,-94.4,39.2"
     Start-Process http://localhost:8010
 
 ## Stage 2 - Email verification
+
+The current work.
+
 
 - [ ] Compose: add `mailpit` (web UI on 8025) and the `worker` service
 - [ ] Migration: `email_tokens`, `outbox`
@@ -246,6 +268,7 @@ Not started before stage 9 is done.
 - [x] Decided: no admin for visitors; a Help page tells them an admin exists and how to
       reach one
 - [x] Stage 0, the scaffold
+- [x] Stage 1, listings on a map
 
 ## Blocked
 

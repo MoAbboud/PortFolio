@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}roamer{% endblock %}</title>
+  <meta name="description" content="A map of lost animals, kept current by their owners.">
+  {% block head %}{% endblock %}
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  <header class="site-header">
+    <a class="brand" href="/">roamer</a>
+    <nav class="site-nav">
+      <a href="/">Map</a>
+      <a class="button button-primary" href="/listings/new">Report a lost animal</a>
+    </nav>
+  </header>
+  <main class="{% block main_class %}page{% endblock %}">
+    {% block content %}{% endblock %}
+  </main>
+  {# Deferred scripts run in document order: Leaflet from the head, then this, then the page's. #}
+  <script src="/static/common.js" defer></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

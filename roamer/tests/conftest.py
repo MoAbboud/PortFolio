@@ -4,13 +4,18 @@ from __future__ import annotations
 
 import os
 from collections.abc import Iterator
+from datetime import datetime, timedelta, timezone
+from typing import Any
 
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import text as sql_text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from roamer.db import engine
+from roamer.db import engine, get_session
+from roamer.main import app
+from roamer.schemas import ListingCreate
 
 # Imported for the side effect of registering the tables on Base.metadata.
 from roamer import models  # noqa: F401
@@ -48,3 +53,33 @@ def db_session() -> Iterator[Session]:
         session.close()
         transaction.rollback()
         connection.close()
+
+
+def listing_data(**overrides: Any) -> ListingCreate:
+    """A valid listing, with any field replaced. Last seen an hour ago in Kansas City."""
+    fields: dict[str, Any] = {
+        "species": "dog",
+        "name": "Testdog",
+        "last_seen_at": datetime.now(timezone.utc) - timedelta(hours=1),
+        "last_seen_lat": 39.0329,
+        "last_seen_lng": -94.5936,
+        "contact_phone": "(816) 555-0199",
+        "email": "owner@example.com",
+    }
+    fields.update(overrides)
+    return ListingCreate(**fields)
+
+
+@pytest.fixture
+def client(db_session: Session) -> Iterator[TestClient]:
+    """The app, reading and writing through the rolled-back test session."""
+
+    def override() -> Iterator[Session]:
+        yield db_session
+
+    app.dependency_overrides[get_session] = override
+    try:
+        with TestClient(app) as test_client:
+            yield test_client
+    finally:
+        app.dependency_overrides.pop(get_session, None)

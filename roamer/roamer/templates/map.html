@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}roamer - lost animals near you{% endblock %}
+{% block body_class %}full-height{% endblock %}
+{% block main_class %}map-page{% endblock %}
+
+{% block head %}
+{% include "_leaflet.html" %}
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css"
+      integrity="sha384-pmjIAcz2bAn0xukfxADbZIb3t8oRT9Sv0rvO+BR5Csr6Dhqq+nZs59P0pPKQJkEV"
+      crossorigin="anonymous" referrerpolicy="no-referrer">
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css"
+      integrity="sha384-wgw+aLYNQ7dlhK47ZPK7FRACiq7ROZwgFNg0m04avm4CaXS+Z9Y7nMu8yNjBKYC+"
+      crossorigin="anonymous" referrerpolicy="no-referrer">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"
+        integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr"
+        crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+{% endblock %}
+
+{% block content %}
+<form class="map-filters" id="filters" aria-label="Filter the map">
+  <label>
+    <span>Animal</span>
+    <select name="species">
+      <option value="">All</option>
+      <option value="dog">Dogs</option>
+      <option value="cat">Cats</option>
+      <option value="other">Other</option>
+    </select>
+  </label>
+  <label>
+    <span>Missing since</span>
+    <select name="since_days">
+      <option value="7">Last 7 days</option>
+      <option value="30" selected>Last 30 days</option>
+      <option value="90">Last 90 days</option>
+      <option value="">Any time</option>
+    </select>
+  </label>
+  <p class="map-count" id="map-count" aria-live="polite"></p>
+</form>
+<div id="map" class="map-full"
+     data-lat="{{ map.lat }}" data-lng="{{ map.lng }}" data-zoom="{{ map.zoom }}"></div>
+<noscript><p class="page notice">The map needs JavaScript.</p></noscript>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/map.js" defer></script>
+{% endblock %}

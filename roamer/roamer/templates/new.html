@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}Report a lost animal - roamer{% endblock %}
+{% block head %}{% include "_leaflet.html" %}{% endblock %}
+
+{% macro error(field) -%}
+  {% if errors.get(field) %}<p class="field-error" id="{{ field }}-error">{{ errors[field] }}</p>{% endif %}
+{%- endmacro %}
+
+{% block content %}
+<h1>Report a lost animal</h1>
+<p class="lede">What would go on a flyer. It takes a few minutes, and only the species, when
+and where it was last seen, and a number to call are required.</p>
+
+{% if errors %}
+<div class="notice notice-error" role="alert">
+  Some of this needs another look - see the notes below.
+</div>
+{% endif %}
+
+<form method="post" action="/listings" class="listing-form" id="listing-form" novalidate>
+
+  <fieldset>
+    <legend>The animal</legend>
+
+    <div class="field">
+      <span class="label">What kind of animal <span class="required">required</span></span>
+      <div class="choices">
+        {% for value, label in SPECIES_LABELS.items() %}
+        <label class="choice">
+          <input type="radio" name="species" value="{{ value }}"
+                 {% if values.get('species', 'dog') == value %}checked{% endif %}>
+          {{ label }}
+        </label>
+        {% endfor %}
+      </div>
+      {{ error('species') }}
+    </div>
+
+    <label class="field">
+      <span class="label">Name</span>
+      <input type="text" name="name" maxlength="60" value="{{ values.get('name', '') }}"
+             autocomplete="off">
+      {{ error('name') }}
+    </label>
+
+    <div class="field-row">
+      <label class="field">
+        <span class="label">Sex</span>
+        <select name="sex">
+          {% for value, label in SEX_LABELS.items() %}
+          <option value="{{ value }}" {% if values.get('sex', 'unknown') == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="field">
+        <span class="label">Size</span>
+        <select name="size">
+          <option value="">Not sure</option>
+          {% for value, label in SIZE_LABELS.items() %}
+          <option value="{{ value }}" {% if values.get('size') == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="field">
+        <span class="label">Age</span>
+        <input type="text" name="age_text" maxlength="40" placeholder="About 3, puppy, old"
+               value="{{ values.get('age_text', '') }}">
+      </label>
+    </div>
+
+    <div class="field-row">
+      <label class="field">
+        <span class="label">Breed</span>
+        <input type="text" name="breed" maxlength="120" value="{{ values.get('breed', '') }}">
+      </label>
+      <label class="field">
+        <span class="label">Colours</span>
+        <input type="text" name="colours" maxlength="120" value="{{ values.get('colours', '') }}">
+      </label>
+    </div>
+
+    <label class="field">
+      <span class="label">What it looks like, collar, marks</span>
+      <textarea name="description" rows="4" maxlength="2000">{{ values.get('description', '') }}</textarea>
+      {{ error('description') }}
+    </label>
+
+    <label class="field">
+      <span class="label">If someone sees it, what should they do?</span>
+      <textarea name="approach_advice" rows="2" maxlength="500"
+                placeholder="Do not chase her - she runs. Sit down and call her name.">{{ values.get('approach_advice', '') }}</textarea>
+      {{ error('approach_advice') }}
+    </label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Where and when it was last seen</legend>
+
+    <label class="field">
+      <span class="label">When <span class="required">required</span></span>
+      <input type="datetime-local" name="last_seen_local" id="last_seen_local" required
+             value="{{ values.get('last_seen_local', '') }}">
+      <input type="hidden" name="last_seen_at" id="last_seen_at" value="{{ values.get('last_seen_at', '') }}">
+      {{ error('last_seen_at') }}
+    </label>
+
+    <div class="field">
+      <span class="label">Where <span class="required">required</span></span>
+      <p class="hint">Click the map where the animal was last seen - not your home, unless that
+        is where it was. You can drag the pin.</p>
+      <button type="button" class="button" id="use-location">Use my location</button>
+      <div id="pick-map" class="map-pick"
+           data-lat="{{ map.lat }}" data-lng="{{ map.lng }}" data-zoom="{{ map.zoom }}"></div>
+      <input type="hidden" name="last_seen_lat" id="last_seen_lat" value="{{ values.get('last_seen_lat', '') }}">
+      <input type="hidden" name="last_seen_lng" id="last_seen_lng" value="{{ values.get('last_seen_lng', '') }}">
+      {% if errors.get('last_seen_lat') or errors.get('last_seen_lng') %}
+      <p class="field-error">Drop a pin on the map where the animal was last seen.</p>
+      {% endif %}
+    </div>
+
+    <div class="field">
+      <span class="label">How exact to show it</span>
+      <div class="choices">
+        <label class="choice">
+          <input type="radio" name="location_precision" value="exact"
+                 {% if values.get('location_precision', 'exact') == 'exact' %}checked{% endif %}>
+          The exact spot
+        </label>
+        <label class="choice">
+          <input type="radio" name="location_precision" value="approximate"
+                 {% if values.get('location_precision') == 'approximate' %}checked{% endif %}>
+          An area of about {{ (APPROXIMATE_RADIUS_M / 1000) | round(1) }} km
+        </label>
+      </div>
+      <p class="hint">An area is shown as a circle, and the exact spot is not kept.</p>
+    </div>
+
+    <label class="field">
+      <span class="label">Name for the place</span>
+      <input type="text" name="area_label" maxlength="120" placeholder="Near Loose Park"
+             value="{{ values.get('area_label', '') }}">
+    </label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Who to call</legend>
+
+    <div class="field-row">
+      <label class="field">
+        <span class="label">Name to ask for</span>
+        <input type="text" name="contact_name" maxlength="80" autocomplete="name"
+               value="{{ values.get('contact_name', '') }}">
+      </label>
+      <label class="field">
+        <span class="label">Phone number <span class="required">required</span></span>
+        <input type="tel" name="contact_phone" maxlength="40" autocomplete="tel" required
+               value="{{ values.get('contact_phone', '') }}">
+        {{ error('contact_phone') }}
+      </label>
+    </div>
+
+    <label class="choice">
+      <input type="checkbox" name="show_phone"
+             {% if not values or values.get('show_phone') %}checked{% endif %}>
+      Show this number on the listing
+    </label>
+
+    <label class="field">
+      <span class="label">Your email <span class="required">required</span></span>
+      <input type="email" name="email" autocomplete="email" required
+             value="{{ values.get('email', '') }}">
+      <p class="hint">Never shown. Used to manage the listing and to ask now and then whether
+        the animal is still missing.</p>
+      {{ error('email') }}
+    </label>
+  </fieldset>
+
+  <button type="submit" class="button button-primary button-large">Put it on the map</button>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/form.js" defer></script>
+{% endblock %}

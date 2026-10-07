@@ -70,8 +70,10 @@ flowchart LR
 | 10 | Post import | Later. See the open question below. Not started before stage 9 is done |
 | 11 | Sightings and found reports | Later |
 
-**Stage 0 is done.** The scaffold runs from one `docker compose up`, `/health` is green,
-and the suite runs in CI against a real database. Stage 1 is next.
+**Stages 0 and 1 are done.** The scaffold runs from one `docker compose up` and is tested
+in CI against a real database. The map shows twelve made-up Kansas City listings, a
+person can post one through the form and land on its page, and there are 58 tests.
+Stage 2, email verification, is next.
 
 ### Why the map comes before verification
 
