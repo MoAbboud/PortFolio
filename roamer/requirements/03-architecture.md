@@ -106,14 +106,26 @@ Pages:
 | `GET /listings/new`, `POST /listings` | The listing form |
 | `GET /l/{code}` | The listing page. A short code, so it fits a printed flyer and a QR code |
 | `GET /l/{code}/flyer` | Printable flyer with a QR code to the listing page |
-| `POST /l/{code}/report` | Flag a listing for the moderator |
+| `POST /l/{code}/report` | Flag a listing for the admin |
 | `GET /verify/{token}`, `POST /verify/{token}` | Confirm an email address and publish |
 | `GET /manage`, `POST /manage` | Ask for a manage link by email |
 | `GET /manage/{token}` | Exchange a manage link for a short session, then redirect |
 | `GET /l/{code}/edit`, `POST /l/{code}/edit` | Edit, under that session |
 | `POST /l/{code}/status` | Still lost, home, or withdrawn, under that session |
 | `GET /checkin/{token}`, `POST /checkin/{token}` | The check-in email's links |
-| `GET /admin` | Moderator: open reports, hidden listings |
+| `GET /admin/login`, `POST /admin/login`, `POST /admin/logout` | The admin's login |
+| `GET /admin` | Dashboard: counts by state, latest activity |
+| `GET /admin/map` | Every listing in every state, coloured by state, with an action panel per pin |
+| `GET /admin/listings` | Searchable, filterable table of every listing |
+| `GET /admin/approvals` | Listings waiting for approval |
+| `GET /admin/reports` | Open reports beside their listings |
+| `POST /admin/l/{code}/{action}` | `approve`, `reject`, `hide`, `unhide`, `home`, `delete`, `photo-remove`. Reason required where the data model says so |
+| `GET /admin/l/{code}/edit`, `POST` | Edit any listing |
+| `GET /admin/owners`, `POST /admin/owners/block`, `POST /admin/owners/unblock` | Look up an address, block, unblock |
+| `GET /admin/settings`, `POST` | Approval on or off, where the map opens |
+| `POST /admin/demo/reset` | Demo only. Reset now |
+| `GET /admin/activity` | The admin action log |
+| `GET /demo/inbox` | Demo mode only. The emails the site would have sent to an address |
 | `GET /health` | Liveness and database reachability |
 
 JSON, used by the map page:
@@ -168,6 +180,65 @@ Apply the EXIF orientation, then drop all metadata, then resize to a display siz
 thumbnail. The original is not kept, because the original is the thing with the location
 inside it. Stored as `listings/{listing_id}/{image_id}-{size}.jpg`.
 
+## The admin section
+
+One admin, the author, with full control of the map. Server-rendered like the rest, under
+`/admin`, sharing the listing service rather than having its own queries - an admin hide and
+an owner withdraw go through the same code that owns the status rules.
+
+**Login.** A password, checked against an Argon2 hash in `ROAMER_ADMIN_PASSWORD_HASH`. No
+username, no admin table, no "forgot password" - the author resets it by changing the
+configuration. A successful login sets a signed, HttpOnly, SameSite=Strict session cookie
+that expires after a few hours. Failed logins are slowed down per IP address and logged.
+Every admin form carries a CSRF token. Every `/admin` route except the login page refuses
+without the session, and is excluded from search engines.
+
+**Rejected:** the shared `ROAMER_ADMIN_TOKEN` the first draft had - a token is easy to
+paste into a URL, where it ends up in browser history, server logs and screenshots. And admin accounts in the database - one
+person does not need a user table, and one more table of credentials is one more thing to
+leak.
+
+**Approval.** `settings.approval_required` decides whether a verified listing goes straight
+on the map or into the approval queue. It is read at the moment of verification. Off in the
+demo by default, so a visitor's own listing goes live and the flow can be seen end to end;
+the admin can switch it on to show the queue.
+
+**What the admin can do to a listing**, every one written to `listing_events` with actor
+`admin` and to `admin_actions`:
+
+| Action | Effect |
+| --- | --- |
+| Approve | `awaiting_approval` to `lost`, on the map, owner emailed |
+| Reject | Deleted, owner emailed the reason |
+| Hide, unhide | `hidden_at` set or cleared. `status` untouched, so unhiding restores the listing exactly |
+| Edit | Any field, the pin, the photos. Does not move `last_confirmed_at` - only the owner can confirm the animal is still missing |
+| Mark home | `reunited`, as if the owner had said so. For when the owner phones instead of clicking |
+| Remove a photo | One photo deleted from the volume |
+| Delete | Gone, like an owner withdraw, with the reason kept in `admin_actions` |
+
+**What the admin can do beyond listings:** dismiss reports, block and unblock an email
+address, change the two settings, reset the demo, and read the demo inbox for every address.
+
+**What the admin cannot do:** read an owner's email from a public page (only the admin
+pages show it), confirm a listing on the owner's behalf, or change configuration such as
+check-in timings or the demo switch.
+
+## Demo mode
+
+roamer starts as a demo. `ROAMER_DEMO=1` changes four things and nothing else, so the same
+code runs the demo and, later, the real service:
+
+| What | Demo | Real |
+| --- | --- | --- |
+| Email | The mailer is a no-op. `GET /demo/inbox?to=` lists outbox messages for the address the visitor typed, with working links | SMTP to a relay |
+| Check-in clock | Minutes, plus a "send check-in now" button on the manage page | Days |
+| Data | Seeded listings carry `seeded = true`. A reset job in the worker restores them and deletes every other listing and its photos, daily | Nothing reset |
+| Pages | A banner: a demo, made-up listings, do not enter real details | No banner |
+
+The demo inbox is safe to be public because nothing real is ever in it: the reset clears
+it, and the banner tells visitors not to use a real address. It only exists when the switch
+is on.
+
 ## Abuse
 
 - An owner listing is not public until its email is verified. Nothing anonymous reaches the
@@ -175,7 +246,7 @@ inside it. Stored as `listings/{listing_id}/{image_id}-{size}.jpg`.
 - Rate limits on posting, on asking for manage links, and on reports, per IP address and
   per email address.
 - A hidden form field that people never fill in and simple bots always do.
-- A report never hides a listing by itself. The moderator acts.
+- A report never hides a listing by itself. The admin acts.
 - IP addresses are stored only as a salted hash, only on reports and rate-limit counters,
   and expire.
 
@@ -260,7 +331,10 @@ sequenceDiagram
 | `CHECKIN_INTERVAL`, `CHECKIN_GRACE`, `STALE_AFTER` | The freshness rules |
 | `TOKEN_SALT` | For hashing IP addresses on reports and rate limits |
 | `NOMINATIM_URL`, `NOMINATIM_USER_AGENT` | Nominatim's policy requires an identifying user agent |
-| `ROAMER_ADMIN_TOKEN` | The moderator's login, for now. One person |
+| `ROAMER_ADMIN_PASSWORD_HASH` | Argon2 hash of the admin's password. One person |
+| `ROAMER_SESSION_SECRET` | Signs the admin session cookie and the owner's manage session |
+| `ROAMER_DEMO` | `1` for the demo: demo inbox instead of sending, fast check-ins, daily reset, banner |
+| `DEMO_RESET_AT` | Time of day the demo resets |
 
 ## Deployment
 
@@ -270,4 +344,5 @@ created by `deploy/initdb/` the same way as the others. If the app login is not 
 create the `cube` and `earthdistance` extensions, they are created in `initdb` as the
 superuser, the way herder's vector extension is. That is checked at stage 0, not assumed.
 
-The shared server is the only host. No second bill.
+The hosted copy runs with `ROAMER_DEMO=1`, so it needs no mail relay and no mail
+credentials. The shared server is the only host. No second bill.

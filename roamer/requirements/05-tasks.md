@@ -8,7 +8,7 @@ in the browser's device view.
 
 ## Stage 0 - Scaffold
 
-The current work, once the open questions marked "now" in the context log are answered.
+The current work. Nothing blocks it.
 
 - [ ] `roamer/` project layout: `app/`, `migrations/`, `tests/`, `Dockerfile`,
       `docker-compose.yml`, `pyproject.toml`, `.env.example`
@@ -121,27 +121,78 @@ Check:
 - [ ] QR code generated on the server by a library, no outside service
 - [ ] Check: print to PDF from the browser, scan the code with a phone, it opens the listing
 
-## Stage 8 - Abuse and moderation
+## Stage 8 - The admin section, abuse and moderation
 
-- [ ] Migration: `reports`
+The admin has full control of the map. J7 in 02-interaction is the screen-by-screen target.
+
+Abuse:
+
+- [ ] Migration: `reports`, `blocked_emails`, `settings`, `admin_actions`
 - [ ] Report form on every listing
 - [ ] Rate limits on posting, manage links and reports, per hashed IP and per email
 - [ ] Honeypot field on the listing form
-- [ ] `/admin` behind `ROAMER_ADMIN_TOKEN`: open reports, hide with a reason, unhide,
-      dismiss
-- [ ] Hiding never changes `status`; unhiding returns the listing exactly as it was
 - [ ] Scam warning on every listing page
 
-## Stage 9 - Host it, write the README
+Admin login:
 
-- [ ] Decide the open question: real service or demo
-- [ ] Decide the mail relay
+- [ ] `/admin/login` against `ROAMER_ADMIN_PASSWORD_HASH`; a script that prints a hash for a
+      password typed at the prompt
+- [ ] Signed session cookie, HttpOnly, SameSite=Strict, a few hours long; logout
+- [ ] Failed logins slowed per IP and logged
+- [ ] CSRF token on every admin form; `/admin` kept out of search engines
+
+Admin screens:
+
+- [ ] Dashboard: counts by state, each linking to its list; latest activity
+- [ ] Admin map: every listing in every state, coloured by state, filters, an action panel
+      per pin
+- [ ] Listings table: search by name, code, area, email; filter by state, species, source;
+      sort by date
+- [ ] Approval: `awaiting_approval` status; queue page; approve; reject with a reason
+      emailed to the owner
+- [ ] Reports page: hide with a reason, or dismiss
+- [ ] Per listing: edit any field, move the pin, remove a photo, hide, unhide, mark home,
+      delete with a reason
+- [ ] Owners: look up an address, block (hides its listings, refuses posts quietly),
+      unblock (unhides only what the block hid)
+- [ ] Settings: approval on or off; "use this view" for where the public map opens;
+      configuration shown read-only
+- [ ] Activity log page
+- [ ] Every admin action writes `admin_actions`, and a `listing_events` row when it touches a
+      listing
+
+Tests:
+
+- [ ] Every `/admin` route refuses without a session, except the login page
+- [ ] Hide then unhide returns the listing exactly as it was
+- [ ] An admin edit does not move `last_confirmed_at`
+- [ ] Approval on: a verified listing waits; approval off: it goes live
+- [ ] A blocked address gets the same response as anyone else and posts nothing
+- [ ] A rejected or deleted listing leaves its `admin_actions` row behind
+
+Check:
+
+    docker compose exec web python -m app.admin_hash      # prints a hash; put it in .env
+    Start-Process http://localhost:8000/admin
+
+## Stage 9 - Demo mode, host it, write the README
+
+It starts as a demo: made-up listings, every flow working, nothing
+reaching a real person.
+
+- [ ] `ROAMER_DEMO=1` switch, read in one place
+- [ ] Banner on every page: a demo, made-up listings, do not enter real details
+- [ ] "Reset demo now" and the all-addresses demo inbox on the admin pages
+- [ ] Demo inbox page: lists outbox messages for an address the visitor typed, with the links
+      clickable. The mailer sends nothing in demo mode
+- [ ] Demo check-in clock in minutes, and a "send check-in now" button on the manage page
+- [ ] Seed listings marked as seeded; a scheduled reset restores them and deletes everything
+      visitors posted, with their photos
+- [ ] Check: post, verify through the demo inbox, send a check-in, mark home, search, print
+      a flyer - all from a fresh browser with no real email address
 - [ ] `roamer` profile in `deploy/docker-compose.prod.yml` with memory limits
 - [ ] Database and login in `deploy/initdb/01-databases.sh`; extensions if needed
 - [ ] Caddy block for `roamer.<domain>`; DNS record at Cloudflare, grey cloud like the others
-- [ ] Sender records for the mail domain; a test message to several providers lands in the
-      inbox
-- [ ] Image volume backed up with the database
 - [ ] `roamer/README.md`: what it is, a screenshot, how to run it, what verified means, what
       it does not do
 - [ ] Root README: roamer in "Everything here"
@@ -169,12 +220,17 @@ Not started before stage 9 is done.
 - [x] Brief taken down; requirements written: plan, overview, interaction, architecture,
       data model, tasks, and the private context log
 - [x] `06-context.md` confirmed covered by the repo-wide ignore rule before the first commit
+- [x] Decided: it starts as a demo with made-up listings and a functioning preview - every
+      flow works for a visitor
+- [x] Decided: the stack (FastAPI, Jinja, PostgreSQL with `earthdistance`, Leaflet and
+      OpenStreetMap, Docker Compose)
+- [x] Decided: an admin section with full control of the map; user journeys written
 
 ## Blocked
 
 | Task | Waiting on |
 | --- | --- |
-| Stage 9 hosting | Real service or demo; which mail relay |
+| Going live for real, after the demo | Which mail relay; sender records; a privacy notice |
 | Stage 10 claim flow | How an owner proves an imported post is theirs |
 
 ## Explicitly not doing
