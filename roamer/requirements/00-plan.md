@@ -1,0 +1,146 @@
+# roamer - Build plan
+
+## Objective
+
+**A map someone could actually use to get a lost dog home.** An owner posts in a few
+minutes, a finder learns in one screen whether anyone nearby is missing the animal in front
+of them, and every listing says how recently its owner confirmed it.
+
+Finished, for the first version, when five things are true:
+
+1. A person who is not the author can post a lost animal, verify it by email, and see it on
+   the map.
+2. A person who is not the author can stand somewhere, say "I found an animal", and get the
+   nearest listings with photos and a number to call.
+3. A listing whose owner goes quiet loses its badge and then leaves the default map, without
+   anyone doing anything by hand.
+4. Any listing prints as a flyer whose code opens the current listing.
+5. It is hosted on the existing server, at a link that can go on an application.
+
+There are no dates in this plan. Stages are ordered by what each one needs from the one
+before it.
+
+## Order of work
+
+```mermaid
+flowchart LR
+    subgraph A[The map works]
+        S0[0. Scaffold] --> S1[1. Listings<br/>on a map]
+        S1 --> S2[2. Email<br/>verification]
+        S2 --> S3[3. Photos]
+    end
+    subgraph B[The finder's question]
+        S4[4. I found<br/>an animal]
+    end
+    subgraph C[Staying honest]
+        S5[5. Check-ins<br/>and freshness] --> S6[6. Manage, edit,<br/>close]
+    end
+    subgraph D[Out into the world]
+        S7[7. Printable flyer] --> S8[8. Abuse and<br/>moderation]
+        S8 --> S9[9. Host it,<br/>write the README]
+    end
+    S3 --> S4 --> S5
+    S6 --> S7
+    S9 --> S10[10. Post import<br/>- later]
+    S9 --> S11[11. Sightings and<br/>found reports - later]
+```
+
+| Stage | Goal | Done when |
+| --- | --- | --- |
+| 0 | Scaffold | FastAPI, Docker Compose with PostgreSQL and Mailpit, Alembic, the `cube` and `earthdistance` extensions created, `/health` green from PowerShell, a CI workflow running pytest against a real database |
+| 1 | Listings on a map | A listing can be created through the form and the API, and shows as a pin on a Leaflet map. Clicking it opens the listing page. A seed script puts a dozen clearly fictional listings on the map. No verification yet - this stage is about the shape |
+| 2 | Email verification | A new listing is held until its email link is used. The verify page has a button, not an action-on-open link. The outbox and the worker exist and Mailpit shows the email. The verified badge is computed, not stored |
+| 3 | Photos | Upload, reject bad types and sizes, apply orientation, strip metadata, resize. A test proves a photo with GPS data in it comes out with none |
+| 4 | I found an animal | Browser location or a typed address gives the nearest active listings, with distance, from the indexed distance query. Address search goes through the server, cached, at most one provider request a second |
+| 5 | Check-ins and freshness | The worker sends check-ins on interval. Answers move `last_confirmed_at`. The badge lapses and listings leave the default map on the configured schedule, and a test drives the clock through all three states |
+| 6 | Manage, edit, close | Manage link by email, a short session, edit, still lost, home, withdraw. Withdraw deletes. Every change is an event row |
+| 7 | Printable flyer | A print stylesheet and a QR code to `/l/{code}`, generated on the server with no outside service. A phone camera opens it |
+| 8 | Abuse and moderation | Report button, rate limits, honeypot field, the admin page, hide and unhide with a reason |
+| 9 | Host it, write the README | A `roamer` profile on the shared server, `roamer.<domain>`, real email delivery, and a README with what it is, a screenshot, how to run it, and what it deliberately does not do |
+| 10 | Post import | Later. See the open question below. Not started before stage 9 is done |
+| 11 | Sightings and found reports | Later |
+
+### Why the map comes before verification
+
+Stage 1 puts unverified listings on a map, which the finished site will never do. That is on
+purpose. The map, the listing page and the data shape are where the design is most likely to
+be wrong, and they are the parts worth looking at early. Verification is well understood and
+goes in at stage 2, before anything is hosted.
+
+### Why the finder's search comes before check-ins
+
+The finder's question is the reason the site exists. If "I found an animal" does not work
+well, nothing about freshness matters. It comes as early as it can - right after there are
+photos to show in the results.
+
+### Why import waits
+
+It is the feature with the hardest constraints and the least certain answer (see open
+questions), and the site is useful without it. Starting it before the core is hosted is how
+the core does not get hosted.
+
+## Decisions settled by the author
+
+| Decision | Reason |
+| --- | --- |
+| A website, not a mobile app | Stated in the brief. Built desktop-first, and it still has to work in a phone browser, because a finder is standing in the street holding a dog |
+| A big map with pins where each animal was last seen | The brief. The pin is the flyer, put in the place it belongs |
+| Flyer information and contact details on each listing | The brief. What is on the paper is what is on the site |
+| A database server behind it | The brief. Listings are shared, current data from many people; this cannot be a single-file localStorage app like the static ones in this repo |
+| Owners verify by email and get a verified badge | The brief. The badge exists so a finder can tell a current listing from an abandoned one |
+| Owners keep the listing current: still lost, still looking, found | The brief. A listing nobody updates is the problem with lost-pet posts today |
+| Pulling in social media posts automatically is a later feature | The brief. And the owner still has to come and claim it to get the badge |
+
+## Decisions proposed, waiting for the author's confirmation
+
+These are the design's recommendations. Each is used by the documents as written, and each
+can be overturned - if it is, the row moves to the context log with what replaced it.
+
+| Decision | Reason |
+| --- | --- |
+| Python, FastAPI, server-rendered pages, PostgreSQL, Docker Compose | Same stack as mailman and herder. The deploy, CI and test patterns already exist, so the effort goes into the app |
+| Leaflet and OpenStreetMap, not Google Maps | No key and no billing account, matching the rest of the repo. Looks and works the same for this job |
+| `cube` and `earthdistance`, not PostGIS | The shared server's database image does not include PostGIS. These ship with PostgreSQL and do the one spatial query the app needs, with an index |
+| "Verified" means the email was confirmed and the owner answered recently | It is all a website can check. The site says plainly that it does not prove ownership |
+| The badge and staleness are computed, not stored | A stored flag is right the day it is set and wrong later, which is the exact failure the badge is for |
+| No accounts, no passwords. Email links only | One fewer thing to build and secure, and an owner in a panic does not want to choose a password |
+| A listing is not public until its email is verified | Keeps anonymous spam off the map from the first day |
+| Every email link opens a page with a button | Mail link scanners open links before people do. A link that acted on open would close listings by itself |
+| The phone number is shown publicly by default, and can be turned off | It is on the paper flyer already. A finder calling is the whole point |
+| No reward field, and a scam warning on every listing | Fake finders demanding money are the most common lost-pet scam. A reward amount on the page is the number they ask for |
+| Photos lose all metadata on upload, and the original is not kept | A photo taken at home carries the home's coordinates |
+| Withdrawing a listing deletes it | The owner asked for it to be gone |
+| A report never hides a listing by itself | Otherwise one hostile person can take down a real owner's listing |
+| Email goes through an outbox table and a worker | A listing posted while mail is down still gets its email later, and a failed send is visible |
+| Development email goes to Mailpit | Runs with nothing signed up for, and the links can be clicked |
+| A `roamer` profile on the existing server | One host, no second bill |
+
+## Open questions
+
+| Question | Blocks | Notes |
+| --- | --- | --- |
+| Is this a real public service, or a portfolio demo? | Stage 9 | The biggest one. A real service means real people's phone numbers, a privacy notice, someone answering reports, and keeping it running. A demo means seeded fictional listings and posting turned off or clearly marked. A real one is more impressive and more responsibility. It can be built the same way either way until stage 9 |
+| How do posts from social media get in? | Stage 10 | Facebook does not offer an API for reading group posts - it was withdrawn in 2024 - and scraping is against its terms and is actively blocked. Nextdoor and similar sites are the same. The realistic version is a person pasting a post (text and photo) into roamer, and an extractor filling in the form from it, built the mailman way: a heuristic baseline, then a model trained or run locally, measured by a harness. No hosted model and no key. To be re-checked against the sites' current terms when the stage starts |
+| How does an owner prove an imported listing is theirs? | Stage 10 | An email address does not connect a person to a Facebook post. Options: the owner edits the original post to include a code roamer gives them; the owner calls from the number in the post; or the moderator decides. The first is the strongest and the cheapest to build |
+| Which mail relay sends real email? | Stage 9 | Self-hosted mail from a cloud server lands in spam, and many hosts block the port. Options: a mailbox the author already has, through its SMTP with an app password; or a transactional mail service's free tier. Either is SMTP, so the code does not change. This is not a language model key, so the no-keys rule does not cover it, but it is still an account and a credential |
+| How often to check in, and when to lapse and go stale? | Stage 5 | A starting guess: check in every 7 days, lose the badge after 3 more days without an answer, leave the default map after 30. Real lost-pet searches often run for weeks, so stale must not be too quick |
+| Should finders be able to message an owner through the site? | After stage 9 | Hides the phone number, which some owners will want. Also builds a relay that scammers would use. Not in the first version |
+| Should a found-animal report be part of the first version? | Stage 11 | The brief is about lost animals. A finder who has a dog and finds no matching listing currently has nowhere to post it. Likely the most useful later feature |
+| Should owners be able to mark where they put up flyers? | Later | Useful to the owner for coordinating with helpers. Private to the owner. Not part of the finder's map |
+| How long are reunited listings kept? | Stage 6 | Long enough for the owner to see "home" on the page and for the reunion to count in any figures. A starting guess is 30 days |
+| Does the map need a pin cluster plugin? | Stage 1 | Probably. One area with twenty pins is unreadable without it |
+
+## Risks
+
+| Risk | Effect if it happens | Response |
+| --- | --- | --- |
+| The badge is read as "this person owns the dog" | A scammer with a verified email gets trusted with someone else's animal | The badge's wording is narrow, there is a line under it saying what it does not mean, and every listing tells finders to ask for proof at the handover |
+| Scammers use listings to target owners | Owners lose money to fake finders | No reward field, a scam warning on every page, the email address never shown, and the phone can be hidden |
+| Spam or fake listings | The map stops being trustworthy | Nothing is public until an email is verified, rate limits, the report button, one moderator |
+| The free map and geocoder policies are broken | The site gets blocked by OpenStreetMap | Server-side geocoding with a cache and a rate limit, an identifying user agent, attribution on the map. If traffic ever grows past the tile policy, a tile provider is a configuration change |
+| Real email ends up in spam | Owners never get the verify link and give up | A real relay with proper sender records on the domain, checked at stage 9 with a test to several providers. The page after posting tells the owner to check spam |
+| Exact last-seen pins expose owners' homes | A privacy harm the site caused | The form says the pin is where the animal was last seen, the approximate option draws a circle, and photo metadata is stripped |
+| The import feature eats the project | A half-built scraper and no hosted site | Import does not start until stage 9 is done |
+| Scraping temptation | A ban, or a project that breaks the moment the site changes its markup, in a public portfolio | Not built. Import is a person pasting a post |
+| It works on a desktop and not in the street | The finder, the person the site exists for, cannot use it | Every stage that touches a page is checked at phone width before it is done |
+| Stale listings pile up | The map looks busy and is mostly wrong | Staleness is automatic and off the default view. That is stage 5's whole job |
