@@ -1,0 +1,19 @@
+# What does not belong in the image. Without this `COPY . .` takes everything, including a
+# local virtualenv and the requirements documents, none of which the running service opens.
+
+.venv/
+venv/
+data/
+requirements/
+
+.git/
+.gitignore
+.dockerignore
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+
+# Secrets never enter the image. They arrive as environment variables.
+.env

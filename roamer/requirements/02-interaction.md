@@ -131,6 +131,7 @@ The site's job ends when the finder has the right number.
 | UC-9 | Owner | Take the listing down | Manage page | The listing and its photos are removed |
 | UC-10 | Owner | Put up flyers | Prints the listing's flyer | A printable page with the details and a code that opens the listing |
 | UC-11 | Anyone | Flag a listing | "Report this listing" | A report waits for the admin. The listing stays up until the admin acts |
+| UC-11a | Anyone | Get help from a person | "Help", then "Contact the admin" | A message waits in the admin section. The visitor is told an admin exists and will read it, and never sees the admin section |
 | UC-12 | Admin | Deal with a bad listing | A report, or noticing one | The listing is hidden with a reason, or the report is dismissed. Either is recorded |
 | UC-12a | Admin | Approve a new listing | Approval is switched on and a verified listing is waiting | Approved: it goes on the map. Rejected: it is deleted and the owner gets the reason by email |
 | UC-12b | Admin | See everything | Opens the admin map or the listings table | Every listing in every state - waiting, live, quiet, stale, hidden, home - with filters, and actions on each |
@@ -178,7 +179,8 @@ flowchart LR
 3. The listing page: photos, description, how to approach the animal, where and when it was
    last seen on a small map, the contact number, "confirmed still lost 1 day ago", the scam
    warning, and buttons for "Print flyer" and "Report this listing".
-4. From here the visitor can try J2 as an owner and J3 as a finder.
+4. From here the visitor can try J2 as an owner and J3 as a finder. A "Help" link in the
+   footer of every page leads to J8.
 
 ### J2 - An owner posts a lost animal
 
@@ -244,18 +246,33 @@ flowchart LR
 2. A reason - scam, not actually lost, wrong details, abusive, other - and a box for more.
 3. "Thanks. The site's admin will look at it." The listing stays up until the admin acts.
 
+### J8 - Someone needs help from a person
+
+1. "Help" in the footer of any page.
+2. A short page: this site has an admin, who reviews reports, takes down scams and wrong
+   listings, fixes details an owner cannot, and helps an owner who has lost access to their
+   email. Then the common answers - how to manage a listing, what verified means, what to do
+   if someone asks for money. **Demo:** a line saying the admin reads messages but this is a
+   demo, so do not send anything personal.
+3. "Contact the admin": a message, which listing it is about if any, and an optional email
+   address for a reply.
+4. "Sent. The admin will read it." There is no way in from here to the admin section; the
+   visitor only learns that a person is behind the site and how to reach them.
+
 ### J7 - The admin runs the map
 
 1. `/admin`. A login page: password only. Wrong passwords are slowed down.
-2. **Dashboard.** Counts at the top - waiting for approval, open reports, live, gone quiet,
+2. **Dashboard.** Counts at the top - waiting for approval, open reports, help messages, live, gone quiet,
    stale, hidden, home - each a link to that list. The latest activity underneath.
 3. **Admin map.** Every listing in every state, coloured by state, with filters. Clicking a
    pin opens the admin panel for that listing: open it, edit, approve, hide or unhide with a
    reason, mark home, delete, see its full history.
 4. **Approval queue** (when approval is on). Each waiting listing with its photos, details
    and pin. Approve, or reject with a reason that is emailed to the owner.
-5. **Reports.** Each open report beside the listing it is about. Hide the listing with a
-   reason, or dismiss the report.
+5. **Messages.** Reports about listings, each beside the listing it is about - hide the
+   listing with a reason, or dismiss. Help messages from the contact form - mark handled. A
+   reply, when there is a reply address, is written from the admin's own mail, outside the
+   site.
 6. **Listings table.** Every listing, searchable by name, code, area or email, filterable by
    state, species and source, sortable by date. The same actions as the panel.
 7. **Owners.** Look up an email address, see its listings, block it - which hides its

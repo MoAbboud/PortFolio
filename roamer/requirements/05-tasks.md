@@ -8,27 +8,39 @@ in the browser's device view.
 
 ## Stage 0 - Scaffold
 
-The current work. Nothing blocks it.
+Done. 7 tests: health green, 503 on an unreachable database without leaking the
+connection string, 503 naming a missing extension, and the three extensions doing what
+the distance query will need. Checked in the container and from Windows, with the
+database up, down, and down with `REQUIRE_DB=1`.
 
-- [ ] `roamer/` project layout: `app/`, `migrations/`, `tests/`, `Dockerfile`,
-      `docker-compose.yml`, `pyproject.toml`, `.env.example`
-- [ ] Compose services: `db` (Postgres 16), `mailpit`, `web`, `worker`
-- [ ] Alembic set up, first migration creates `cube`, `earthdistance`, `citext`
-- [ ] Find out whether the app login can create those extensions or whether they go in
-      `deploy/initdb/` as the superuser. Write the answer into 03-architecture
-- [ ] `/health` reports the database reachable
-- [ ] pytest runs against the compose database; a `REQUIRE_DB=1` switch makes "no database"
-      a failure in CI rather than a skip, as mailman and herder do
-- [ ] `.github/workflows/test-roamer.yml`, and the badge in the root README
+- [x] `roamer/` project layout: the `roamer` package, `migrations/`, `tests/`, `Dockerfile`,
+      `docker-compose.yml`, `requirements.txt`, `.env.example` - `requirements.txt` rather
+      than `pyproject.toml`, the same as mailman, since nothing here is installed as a package
+- [x] Compose services: `db` (Postgres 16 on host port 5434) and `web` (host port 8010).
+      Mailpit and the worker moved to stage 2, the first stage with mail to catch and a job to
+      run. Ports chosen so roamer runs beside mailman and herder, which both take 5432 and 8000
+- [x] Alembic set up, first migration creates `citext`, `cube`, `earthdistance`
+- [x] Find out whether the app login can create those extensions. Answer: `citext` and
+      `cube` yes, `earthdistance` no - it needs the superuser, so `deploy/initdb/` creates
+      it. Written into 03-architecture, Deployment
+- [x] A database that is not there fails in 5 seconds instead of hanging: psycopg on
+      Windows never returns from a refused connection without `connect_timeout`
+- [x] `/health` reports the database reachable and the three extensions installed; 503 names
+      what is missing, and never echoes a connection string
+- [x] pytest runs against the compose database; `REQUIRE_DB=1` makes "no database" a failure
+      in CI rather than a skip, as mailman and herder do
+- [x] `.github/workflows/test-roamer.yml`, and the badge in the root README
 
 Check:
 
+    cd roamer
     docker compose up -d --build
-    Invoke-RestMethod http://localhost:8000/health
-    Start-Process http://localhost:8025    # Mailpit
-    docker compose exec web pytest
+    Invoke-RestMethod http://localhost:8010/health
+    docker compose exec web python -m pytest -q -rs
 
 ## Stage 1 - Listings on a map
+
+The current work.
 
 - [ ] Migration: `owners`, `listings`, `listing_events`
 - [ ] Short listing codes: unambiguous characters only, unique, collision retried
@@ -43,12 +55,13 @@ Check:
 
 Check:
 
-    docker compose exec web python -m app.seed
-    Invoke-RestMethod "http://localhost:8000/api/listings?bbox=-180,-90,180,90"
-    Start-Process http://localhost:8000
+    docker compose exec web python -m roamer.seed
+    Invoke-RestMethod "http://localhost:8010/api/listings?bbox=-180,-90,180,90"
+    Start-Process http://localhost:8010
 
 ## Stage 2 - Email verification
 
+- [ ] Compose: add `mailpit` (web UI on 8025) and the `worker` service
 - [ ] Migration: `email_tokens`, `outbox`
 - [ ] Token create, hash, look up, expire, single use
 - [ ] New listings start `pending_verification` and are not returned by the map or search
@@ -89,7 +102,7 @@ Check:
 
 Check:
 
-    Invoke-RestMethod "http://localhost:8000/api/listings/near?lat=51.5&lng=-0.12&radius_km=5"
+    Invoke-RestMethod "http://localhost:8010/api/listings/near?lat=51.5&lng=-0.12&radius_km=5"
 
 ## Stage 5 - Check-ins and freshness
 
@@ -127,9 +140,11 @@ The admin has full control of the map. J7 in 02-interaction is the screen-by-scr
 
 Abuse:
 
-- [ ] Migration: `reports`, `blocked_emails`, `settings`, `admin_actions`
+- [ ] Migration: `messages`, `blocked_emails`, `settings`, `admin_actions`
 - [ ] Report form on every listing
-- [ ] Rate limits on posting, manage links and reports, per hashed IP and per email
+- [ ] Help page, linked from every footer: that an admin exists, what they do, common
+      answers, and the contact form. No link into the admin section
+- [ ] Rate limits on posting, manage links and messages, per hashed IP and per email
 - [ ] Honeypot field on the listing form
 - [ ] Scam warning on every listing page
 
@@ -150,7 +165,8 @@ Admin screens:
       sort by date
 - [ ] Approval: `awaiting_approval` status; queue page; approve; reject with a reason
       emailed to the owner
-- [ ] Reports page: hide with a reason, or dismiss
+- [ ] Messages page: reports (hide with a reason, or dismiss) and help messages (mark
+      handled, delete)
 - [ ] Per listing: edit any field, move the pin, remove a photo, hide, unhide, mark home,
       delete with a reason
 - [ ] Owners: look up an address, block (hides its listings, refuses posts quietly),
@@ -173,7 +189,7 @@ Tests:
 Check:
 
     docker compose exec web python -m app.admin_hash      # prints a hash; put it in .env
-    Start-Process http://localhost:8000/admin
+    Start-Process http://localhost:8010/admin
 
 ## Stage 9 - Demo mode, host it, write the README
 
@@ -191,7 +207,9 @@ reaching a real person.
 - [ ] Check: post, verify through the demo inbox, send a check-in, mark home, search, print
       a flyer - all from a fresh browser with no real email address
 - [ ] `roamer` profile in `deploy/docker-compose.prod.yml` with memory limits
-- [ ] Database and login in `deploy/initdb/01-databases.sh`; extensions if needed
+- [ ] Database and login in `deploy/initdb/01-databases.sh`, plus `earthdistance` created
+      there as the superuser (stage 0 found the app login cannot). On the live server,
+      where initdb has already run, the same by hand per DEPLOYMENT-GUIDE.md
 - [ ] Caddy block for `roamer.<domain>`; DNS record at Cloudflare, grey cloud like the others
 - [ ] `roamer/README.md`: what it is, a screenshot, how to run it, what verified means, what
       it does not do
@@ -225,6 +243,9 @@ Not started before stage 9 is done.
 - [x] Decided: the stack (FastAPI, Jinja, PostgreSQL with `earthdistance`, Leaflet and
       OpenStreetMap, Docker Compose)
 - [x] Decided: an admin section with full control of the map; user journeys written
+- [x] Decided: no admin for visitors; a Help page tells them an admin exists and how to
+      reach one
+- [x] Stage 0, the scaffold
 
 ## Blocked
 

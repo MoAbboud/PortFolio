@@ -106,6 +106,7 @@ Pages:
 | `GET /listings/new`, `POST /listings` | The listing form |
 | `GET /l/{code}` | The listing page. A short code, so it fits a printed flyer and a QR code |
 | `GET /l/{code}/flyer` | Printable flyer with a QR code to the listing page |
+| `GET /help`, `POST /help` | Who the admin is and what they do, common answers, and the contact form |
 | `POST /l/{code}/report` | Flag a listing for the admin |
 | `GET /verify/{token}`, `POST /verify/{token}` | Confirm an email address and publish |
 | `GET /manage`, `POST /manage` | Ask for a manage link by email |
@@ -118,7 +119,7 @@ Pages:
 | `GET /admin/map` | Every listing in every state, coloured by state, with an action panel per pin |
 | `GET /admin/listings` | Searchable, filterable table of every listing |
 | `GET /admin/approvals` | Listings waiting for approval |
-| `GET /admin/reports` | Open reports beside their listings |
+| `GET /admin/messages` | Open reports beside their listings, and help messages |
 | `POST /admin/l/{code}/{action}` | `approve`, `reject`, `hide`, `unhide`, `home`, `delete`, `photo-remove`. Reason required where the data model says so |
 | `GET /admin/l/{code}/edit`, `POST` | Edit any listing |
 | `GET /admin/owners`, `POST /admin/owners/block`, `POST /admin/owners/unblock` | Look up an address, block, unblock |
@@ -216,8 +217,12 @@ the admin can switch it on to show the queue.
 | Remove a photo | One photo deleted from the volume |
 | Delete | Gone, like an owner withdraw, with the reason kept in `admin_actions` |
 
-**What the admin can do beyond listings:** dismiss reports, block and unblock an email
+**What the admin can do beyond listings:** dismiss reports, mark help messages handled, block and unblock an email
 address, change the two settings, reset the demo, and read the demo inbox for every address.
+
+**Visitors never reach it.** The admin section is the author's alone, in the demo too. What
+visitors get is the Help page: that an admin exists, what they can do, and a form to reach
+them. Reviewers see the admin section through the README's screenshots and recording.
 
 **What the admin cannot do:** read an owner's email from a public page (only the admin
 pages show it), confirm a listing on the owner's behalf, or change configuration such as
@@ -243,11 +248,11 @@ is on.
 
 - An owner listing is not public until its email is verified. Nothing anonymous reaches the
   map.
-- Rate limits on posting, on asking for manage links, and on reports, per IP address and
+- Rate limits on posting, on asking for manage links, and on messages to the admin, per IP address and
   per email address.
 - A hidden form field that people never fill in and simple bots always do.
 - A report never hides a listing by itself. The admin acts.
-- IP addresses are stored only as a salted hash, only on reports and rate-limit counters,
+- IP addresses are stored only as a salted hash, only on messages and rate-limit counters,
   and expire.
 
 A CAPTCHA is the next step if this is not enough. Every free one needs a site key, which is
@@ -329,7 +334,7 @@ sequenceDiagram
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM` | The relay. Mailpit in development, with no credentials |
 | `IMAGE_DIR` | The image volume |
 | `CHECKIN_INTERVAL`, `CHECKIN_GRACE`, `STALE_AFTER` | The freshness rules |
-| `TOKEN_SALT` | For hashing IP addresses on reports and rate limits |
+| `TOKEN_SALT` | For hashing IP addresses on messages and rate limits |
 | `NOMINATIM_URL`, `NOMINATIM_USER_AGENT` | Nominatim's policy requires an identifying user agent |
 | `ROAMER_ADMIN_PASSWORD_HASH` | Argon2 hash of the admin's password. One person |
 | `ROAMER_SESSION_SECRET` | Signs the admin session cookie and the owner's manage session |
@@ -340,9 +345,20 @@ sequenceDiagram
 
 A `roamer` profile in `deploy/docker-compose.prod.yml`, on the same server as mailman: the
 `web` and `worker` containers, a Caddy block for `roamer.<domain>`, and a database and login
-created by `deploy/initdb/` the same way as the others. If the app login is not allowed to
-create the `cube` and `earthdistance` extensions, they are created in `initdb` as the
-superuser, the way herder's vector extension is. That is checked at stage 0, not assumed.
+created by `deploy/initdb/` the same way as the others.
+
+**`earthdistance` has to be created by the superuser.** Checked at stage 0 against
+PostgreSQL 16, with a login that owns its database and is not a superuser - exactly what
+`initdb` gives each app. `citext` and `cube` are marked trusted and that login creates them
+itself. `earthdistance` is not: "permission denied to create extension, must be
+superuser". So `initdb` creates it as the superuser in roamer's database, the way it
+creates herder's vector extension, and the migration's `IF NOT EXISTS` then finds it
+already there. Locally and in CI the compose login is the superuser, so neither notices.
+
+`initdb` only runs when the database volume is first created, and on the live server it
+already has been. Switching roamer on there follows "Switching on another app" in
+DEPLOYMENT-GUIDE.md, plus one superuser `CREATE EXTENSION earthdistance` in roamer's
+database - if it is forgotten, the migration fails on first start with that same message.
 
 The hosted copy runs with `ROAMER_DEMO=1`, so it needs no mail relay and no mail
 credentials. The shared server is the only host. No second bill.

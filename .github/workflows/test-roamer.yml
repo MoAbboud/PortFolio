@@ -1,0 +1,73 @@
+# roamer's suite, against a real Postgres.
+#
+# REQUIRE_DB=1 is the point of this job. Without it the database tests skip when nothing
+# answers, and a job whose service container failed would report green having tested the
+# pure functions only. With it, an unreachable database fails the run. See
+# roamer/tests/conftest.py.
+
+name: roamer
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - roamer/**
+      - .github/workflows/test-roamer.yml
+  # No path filter on pull requests, deliberately, as in the other suites: a required status
+  # check that never runs leaves the pull request waiting for it forever.
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    # The status check's name in branch protection. Unique per workflow.
+    name: roamer tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: roamer
+
+    services:
+      db:
+        # The same image as roamer's docker-compose.yml. cube, earthdistance and citext ship
+        # with it.
+        image: postgres:16
+        env:
+          POSTGRES_USER: roamer
+          POSTGRES_PASSWORD: roamer
+          POSTGRES_DB: roamer
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U roamer"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      # 5432 here, not the 5434 of a local run: on the runner nothing else wants the port.
+      DATABASE_URL: postgresql+psycopg://roamer:roamer@localhost:5432/roamer
+      REQUIRE_DB: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: roamer/requirements.txt
+
+      - name: Install
+        run: pip install -r requirements.txt
+
+      # The schema is the migrations, so running them here tests them as well.
+      - name: Migrate
+        run: alembic upgrade head
+
+      - name: Test
+        # -rs lists anything skipped, so a skip creeping in is visible in the log.
+        run: python -m pytest -q -rs

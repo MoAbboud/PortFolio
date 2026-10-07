@@ -47,7 +47,8 @@ roamer puts the flyers on one map, in the place they belong, and keeps each one 
 | Update or close | An owner can edit the listing, mark the animal as home, or withdraw it, from a link sent to their email. No account, no password |
 | Print a flyer | Any listing can be printed as a flyer with a code that a phone camera opens straight to the listing page, so the paper on the pole points back to the current information |
 | Report a problem | Anyone can flag a listing as wrong, abusive or a scam. An admin reviews it |
-| Admin control | One admin, behind a password, sees every listing in every state on a map and in a table, and can approve, hide, edit, delete, block an address, and choose whether new listings need approval before they appear |
+| Get help | A Help page, linked from every page, says the site has an admin, what the admin can do - take down a scam, fix wrong details, help an owner who has lost access to their listing - and has a form to send them a message |
+| Admin control | One admin, behind a password - the admin section is never open to visitors - sees every listing in every state on a map and in a table, and can approve, hide, edit, delete, block an address, and choose whether new listings need approval before they appear |
 
 Planned for later, and not part of the first version:
 

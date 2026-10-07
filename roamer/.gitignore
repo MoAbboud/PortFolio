@@ -1,0 +1,12 @@
+# Secrets. In before the first commit, not after.
+.env
+
+# Uploaded photos, from stage 3. Never in git.
+data/
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/

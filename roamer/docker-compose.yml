@@ -1,0 +1,50 @@
+# Local development. Production is a `roamer` profile in deploy/docker-compose.prod.yml,
+# added at stage 9.
+#
+# Host ports are 5434 and 8010, not 5432 and 8000, because mailman and herder already take
+# those. All three can run at once.
+#
+# Mailpit and the worker are not here yet. Nothing sends email and nothing runs in the
+# background until stage 2, and a service with no job is a service somebody wonders about.
+
+services:
+  db:
+    # postgres:16, the same major version and the same Debian base as the production
+    # server's pgvector/pgvector:pg16, and as the CI job. cube, earthdistance and citext ship
+    # in all three.
+    image: postgres:16
+    environment:
+      POSTGRES_USER: roamer
+      POSTGRES_PASSWORD: roamer
+      POSTGRES_DB: roamer
+    ports:
+      # Exposed so pytest, alembic and psql can reach it from Windows directly.
+      - "5434:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U roamer -d roamer"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  web:
+    build: .
+    depends_on:
+      db:
+        # Waits for a database that answers, not just a container that started. Without
+        # this the first run races and looks like a broken build.
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://roamer:roamer@db:5432/roamer
+    ports:
+      - "8010:8000"
+    volumes:
+      # Source mounted so an edit is picked up without a rebuild.
+      - .:/app
+    # Migrations on start, so `docker compose up` is the whole setup. The production profile
+    # does the same, which makes a deploy one command.
+    command: sh -c "alembic upgrade head && uvicorn roamer.main:app --host 0.0.0.0 --port 8000 --reload"
+
+volumes:
+  pgdata:
