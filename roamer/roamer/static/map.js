@@ -26,6 +26,14 @@
     var box = document.createElement("div");
     box.className = "popup";
 
+    if (pin.thumb_url) {
+      var img = document.createElement("img");
+      img.className = "popup-photo";
+      img.src = pin.thumb_url;
+      img.alt = "";
+      box.appendChild(img);
+    }
+
     var title = document.createElement("h3");
     title.textContent = (pin.name || "Name not known") + " - lost " +
       (SPECIES[pin.species] || "animal").toLowerCase();

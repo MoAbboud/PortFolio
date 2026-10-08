@@ -58,6 +58,8 @@ EVENT_KINDS = (
 )
 ACTORS = ("owner", "admin", "system")
 
+PHOTO_KINDS = ("photo", "flyer")
+
 TOKEN_PURPOSES = ("verify", "manage", "checkin")
 OUTBOX_STATUSES = ("queued", "sent", "failed")
 OUTBOX_TEMPLATES = ("verify", "manage", "checkin", "report_received")
@@ -127,6 +129,52 @@ class Listing(Base):
     events: Mapped[list[ListingEvent]] = relationship(
         back_populates="listing", order_by="ListingEvent.id", passive_deletes=True
     )
+    photos: Mapped[list[Photo]] = relationship(
+        back_populates="listing",
+        order_by="[Photo.kind, Photo.position]",
+        passive_deletes=True,
+    )
+
+    @property
+    def animal_photos(self) -> list[Photo]:
+        return [p for p in self.photos if p.kind == "photo"]
+
+    @property
+    def flyer(self) -> Photo | None:
+        return next((p for p in self.photos if p.kind == "flyer"), None)
+
+
+class Photo(Base):
+    """One uploaded image, stored twice: a display size and a thumbnail.
+
+    The files live in the image store under `storage_key`; this row is what points at them.
+    The original upload was never kept.
+    """
+
+    __tablename__ = "photos"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    listing_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("listings.id", ondelete="CASCADE")
+    )
+    kind: Mapped[str] = mapped_column(Text)
+    storage_key: Mapped[str] = mapped_column(Text)
+    width: Mapped[int] = mapped_column(Integer)
+    height: Mapped[int] = mapped_column(Integer)
+    position: Mapped[int] = mapped_column(Integer, server_default="0")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    listing: Mapped[Listing] = relationship(back_populates="photos")
+
+    @property
+    def display_url(self) -> str:
+        return f"/media/{self.storage_key}-display.jpg"
+
+    @property
+    def thumb_url(self) -> str:
+        return f"/media/{self.storage_key}-thumb.jpg"
 
 
 class ListingEvent(Base):

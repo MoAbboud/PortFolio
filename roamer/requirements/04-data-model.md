@@ -209,6 +209,11 @@ delete is the same, with an `admin_actions` row saying who was deleted and why.
 The file itself is on the image volume. Its metadata was stripped before it was written,
 and the original upload was never kept.
 
+Constraints: `kind` is `photo` or `flyer`; (`listing_id`, `kind`, `position`) is unique;
+a partial unique index allows one flyer per listing; `storage_key` is unique; width and
+height are positive. `id` is generated in Python, because the storage key is built from it
+before the row is written.
+
 ## `listing_events`
 
 Append-only history of a listing. Never updated.

@@ -72,10 +72,11 @@ flowchart LR
 | 11 | Sightings and found reports | Later. Sightings are also data: the path between the lost point and the found point |
 | 12 | A model of where lost pets go | Later, and only once real reunions exist. A harness compares the search circles (the baseline) with a model on reunions it has not seen. Nothing is shown to users as a prediction until it beats the circles |
 
-**Stages 0, 1 and 2 are done.** The scaffold runs from one `docker compose up` and is
-tested in CI against a real database. The map shows twelve made-up Kansas City listings. A
-person can post one, gets an email, and the listing goes on the map with a verified badge
-only when the link is used. 74 tests. Stage 3, photos, is next.
+**Stages 0 to 3 are done.** The scaffold runs from one `docker compose up` and is tested in
+CI against a real database. The map shows twelve made-up Kansas City listings. A person can
+post one with photos and a flyer, gets an email, and the listing goes on the map with a
+verified badge only when the link is used. Photos are stored upright with every byte of
+metadata removed. 91 tests. Stage 4 - search circles and the finder's search - is next.
 
 ### Why the map comes before verification
 

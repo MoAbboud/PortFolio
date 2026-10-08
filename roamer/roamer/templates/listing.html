@@ -44,8 +44,33 @@
   </header>
 
   <div class="listing-body">
-    <div class="listing-photo" aria-hidden="true">
-      <span>No photo yet</span>
+    <div class="listing-photos">
+      {% set pictures = listing.animal_photos %}
+      {% if pictures %}
+      <a href="{{ pictures[0].display_url }}" target="_blank" rel="noopener">
+        <img class="photo-main" src="{{ pictures[0].display_url }}"
+             width="{{ pictures[0].width }}" height="{{ pictures[0].height }}"
+             alt="Photo of {{ listing.name or 'the ' ~ label | lower }}">
+      </a>
+      {% if pictures | length > 1 %}
+      <div class="photo-strip">
+        {% for photo in pictures[1:] %}
+        <a href="{{ photo.display_url }}" target="_blank" rel="noopener">
+          <img src="{{ photo.thumb_url }}" alt="Another photo of {{ listing.name or 'the ' ~ label | lower }}" loading="lazy">
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% else %}
+      <div class="listing-photo" aria-hidden="true"><span>No photo</span></div>
+      {% endif %}
+
+      {% if listing.flyer %}
+      <a class="flyer-link" href="{{ listing.flyer.display_url }}" target="_blank" rel="noopener">
+        <img src="{{ listing.flyer.thumb_url }}" alt="The owner's flyer" loading="lazy">
+        <span>The owner's flyer</span>
+      </a>
+      {% endif %}
     </div>
 
     <div class="listing-facts">
