@@ -4,8 +4,8 @@
 # Host ports are 5434 and 8010, not 5432 and 8000, because mailman and herder already take
 # those. All three can run at once.
 #
-# Mailpit and the worker are not here yet. Nothing sends email and nothing runs in the
-# background until stage 2, and a service with no job is a service somebody wonders about.
+# Email goes to Mailpit, which catches everything and sends nothing: read it at
+# http://localhost:8025. The worker sends what the web process queues.
 
 services:
   db:
@@ -35,8 +35,12 @@ services:
         # Waits for a database that answers, not just a container that started. Without
         # this the first run races and looks like a broken build.
         condition: service_healthy
-    environment:
+    environment: &app-env
       DATABASE_URL: postgresql+psycopg://roamer:roamer@db:5432/roamer
+      ROAMER_BASE_URL: http://localhost:8010
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      MAIL_VIEWER_URL: http://localhost:8025
     ports:
       - "8010:8000"
     volumes:
@@ -45,6 +49,28 @@ services:
     # Migrations on start, so `docker compose up` is the whole setup. The production profile
     # does the same, which makes a deploy one command.
     command: sh -c "alembic upgrade head && uvicorn roamer.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  worker:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+      # Not a hard wait for the migrations web runs: until the tables exist a cycle logs an
+      # error and the next one tries again, which is the behaviour wanted anyway.
+      web:
+        condition: service_started
+    environment: *app-env
+    volumes:
+      - .:/app
+    command: python -m roamer.worker
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      # The web inbox. SMTP stays inside the compose network.
+      - "8025:8025"
 
 volumes:
   pgdata:

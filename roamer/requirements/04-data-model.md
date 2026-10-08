@@ -138,7 +138,11 @@ for each.
 | `show_phone` | boolean | Default true |
 | `last_confirmed_at` | timestamptz | Set at verification, and by every check-in answer and every owner edit |
 | `hidden_at`, `hidden_reason` | timestamptz, text | Moderation. Separate from `status` on purpose - see below |
-| `seeded` | boolean | True for the made-up demo listings. The demo's daily reset restores these and deletes everything else |
+| `seeded` | boolean | True for the made-up demo listings. The demo's daily reset restores these and deletes everything else. Never part of the model dataset |
+| `outdoor_access` | text | Stage 4. `indoor_only`, `indoor_outdoor`, `outdoor`, `unknown`. Changes the search circle for cats, and is a model feature |
+| `found_lat`, `found_lng` | float8 | Stage 6. Where the animal was found, if the owner says. Optional. Never shown publicly - it is research data, and can be close to the owner's home |
+| `found_at` | timestamptz | Stage 6. When it was found. Time missing is `found_at - last_seen_at` |
+| `found_how` | text | Stage 6. `came_home`, `neighbour`, `flyer`, `roamer`, `shelter`, `microchip`, `social_media`, `other` - the categories the studies use |
 | `created_at`, `updated_at` | timestamptz | |
 
 Index: GiST on `ll_to_earth(last_seen_lat, last_seen_lng)`, partial on `status = 'lost'
@@ -245,8 +249,9 @@ Email waiting to be sent, and the record of what was.
 | `template` | text | `verify`, `manage`, `checkin`, `report_received` |
 | `payload` | jsonb | What the template needs. The raw token is in here until sent, then removed |
 | `status` | text | `queued`, `sent`, `failed` |
-| `attempts` | int | |
-| `last_error` | text | |
+| `attempts` | int | Tries so far. After `OUTBOX_MAX_ATTEMPTS` the row is `failed` |
+| `next_attempt_at` | timestamptz | When the worker may try it. Backs off 30 s, 1, 2, 4 min after each failure. A partial index on queued rows serves the worker's query |
+| `last_error` | text | The exception class and message, cut to 500 characters |
 | `created_at`, `sent_at` | timestamptz | |
 
 Written in the same transaction as the change that caused it. Sent rows are cleared after a

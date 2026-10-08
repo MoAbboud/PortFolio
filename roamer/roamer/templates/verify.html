@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% set listing = result.listing %}
+{% set outcome = result.outcome.value %}
+{% block title %}Publish your listing - roamer{% endblock %}
+{% block content %}
+
+{% if outcome == 'ready' %}
+<h1>Publish your listing</h1>
+<p class="lede">One last step: this puts
+  {{ listing.name or ('the ' ~ SPECIES_LABELS[listing.species] | lower) }} on the map, with a
+  verified badge.</p>
+{# A button, not an action on opening the link: mail scanners open links before people do. #}
+<form method="post" action="/verify/{{ token }}">
+  <button type="submit" class="button button-primary button-large">Publish my listing</button>
+</form>
+
+{% elif outcome == 'stale' %}
+<h1>This link has run out</h1>
+<p class="lede">The listing for {{ listing.name or ('your ' ~ SPECIES_LABELS[listing.species] | lower) }}
+  is still saved, but this link has expired or been replaced by a newer one.</p>
+<form method="post" action="/verify/{{ token }}/resend">
+  <button type="submit" class="button button-primary">Email me a new link</button>
+</form>
+
+{% elif outcome == 'already' %}
+<h1>Already published</h1>
+<p class="lede">This listing is already live.</p>
+<p><a class="button button-primary" href="/l/{{ listing.code }}">See the listing</a></p>
+
+{% else %}
+<h1>This link does not work</h1>
+<p class="lede">It may have been copied only partly, or the listing may have been deleted -
+  a listing that is never published is removed after a week.</p>
+<p><a class="button" href="/listings/new">Post the listing again</a></p>
+{% endif %}
+
+{% endblock %}

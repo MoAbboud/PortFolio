@@ -9,12 +9,15 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 from sqlalchemy import text as sql_text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from roamer import listings as service
 from roamer.db import engine, get_session
 from roamer.main import app
+from roamer.models import Listing, OutboxMessage
 from roamer.schemas import ListingCreate
 
 # Imported for the side effect of registering the tables on Base.metadata.
@@ -83,3 +86,25 @@ def client(db_session: Session) -> Iterator[TestClient]:
             yield test_client
     finally:
         app.dependency_overrides.pop(get_session, None)
+
+
+def create_live(session: Session, data: ListingCreate) -> Listing:
+    """A listing already published - for tests about the map and the page, not about verifying."""
+    return service.create_listing(session, data, pre_verified=True)
+
+
+def verify_token_for(session: Session, listing: Listing) -> str:
+    """The raw token in the newest verify email queued for this listing.
+
+    Read from the outbox because that is the only place it exists: the database keeps its
+    hash, and the email is the token's one copy.
+    """
+    rows = session.scalars(
+        select(OutboxMessage)
+        .where(OutboxMessage.template == "verify")
+        .order_by(OutboxMessage.id.desc())
+    ).all()
+    for row in rows:
+        if row.payload.get("code") == listing.code and "token" in row.payload:
+            return row.payload["token"]
+    raise AssertionError(f"no verify email queued for {listing.code}")

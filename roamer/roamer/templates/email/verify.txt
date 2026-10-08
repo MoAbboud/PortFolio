@@ -1,0 +1,15 @@
+Subject: Confirm your listing for {{ name or "your " ~ species }}
+
+Someone - hopefully you - posted a lost {{ species }} on roamer with this email address.
+
+To put {{ name or "it" }} on the map, open this link and press "Publish my listing":
+
+{{ base_url }}/verify/{{ token }}
+
+The link works for {{ hours }} hours. If you did not post this, ignore this email: nothing
+is published without the link, and the listing is deleted after a week.
+
+Your email address is never shown on the site. It is used to manage the listing and to ask
+now and then whether {{ name or "the animal" }} is still missing.
+
+- roamer

@@ -15,17 +15,17 @@ is wrong and it gets fixed rather than worked around.
 [00-plan.md](00-plan.md) is the one to read first: the stage order, the decisions already
 settled with the reason each one was taken, and the open questions still outstanding.
 
-**Stages 0 and 1 are done**: the map, the form and the listing page work. Stage 2, email
-verification, is next. It starts as a
-demo: made-up listings, every flow working, nothing reaching a real person.
+**Stages 0 to 2 are done**: the map, the form, the listing page, and email verification
+with the badge. Stage 3, photos, is next. It starts as a demo: made-up listings, every flow
+working, nothing reaching a real person.
 
 Two things about this project worth stating here so they are not discovered as surprises:
 
 - **It needs a server and a database.** The static apps in this repository keep their data
   in the browser. roamer's listings are shared between strangers and have to be current, so
   it runs like mailman and herder: Python, PostgreSQL, Docker Compose.
-- **It uses no key for anything it does not have to.** The map is OpenStreetMap through
-  Leaflet. Development email goes to a local mail catcher, and the hosted demo shows its
+- **It uses no key for anything it does not have to.** The map is OpenStreetMap data in
+  OpenFreeMap's muted style, through Leaflet. Development email goes to a local mail catcher, and the hosted demo shows its
   emails on the site instead of sending them, so it needs no outside credential at all. A
   real service would need one, for a mail relay. The later post-import feature uses no
   hosted language model.

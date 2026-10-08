@@ -8,11 +8,16 @@
   var filters = document.getElementById("filters");
   var count = document.getElementById("map-count");
 
-  var map = roamer.baseMap(element).setView(
+  var map = roamer.baseMap(
+    element,
     [Number(element.dataset.lat), Number(element.dataset.lng)],
     Number(element.dataset.zoom)
   );
-  var cluster = L.markerClusterGroup({ showCoverageOnHover: false, maxClusterRadius: 40 });
+  var cluster = L.markerClusterGroup({
+    showCoverageOnHover: false,
+    maxClusterRadius: 40,
+    iconCreateFunction: roamer.clusterIcon,
+  });
   map.addLayer(cluster);
 
   var SPECIES = { dog: "Dog", cat: "Cat", other: "Animal" };
@@ -25,6 +30,13 @@
     title.textContent = (pin.name || "Name not known") + " - lost " +
       (SPECIES[pin.species] || "animal").toLowerCase();
     box.appendChild(title);
+
+    if (pin.verified) {
+      var badge = document.createElement("p");
+      badge.className = "badge badge-verified badge-small";
+      badge.textContent = "Verified";
+      box.appendChild(badge);
+    }
 
     var seen = document.createElement("p");
     seen.textContent = "Last seen " + roamer.timeAgo(pin.last_seen_at) +

@@ -8,8 +8,10 @@ missing, so the verified badge means the listing is current, not just real.
 It will start as a demo: made-up listings, every flow working, nothing reaching a real
 person.
 
-**Status: stage 1 of 9.** The map, the listing form and the listing page work, with twelve
-made-up listings in Kansas City. Anyone can post for now - email verification is stage 2.
+**Status: stage 2 of 9.** The map, the listing form and the listing page work, with twelve
+made-up listings in Kansas City. A new listing goes on the map, with a verified badge, only
+once the link emailed to its owner is used. Locally every email lands in Mailpit at
+http://localhost:8025.
 The plan, the user journeys and the reasoning behind each decision are in
 [requirements/](requirements/).
 
@@ -28,4 +30,5 @@ The database is published on 5434 and the app on 8010, so roamer runs beside mai
 herder, which take 5432 and 8000.
 
 Python, FastAPI, PostgreSQL with the `cube` and `earthdistance` extensions for distance
-queries, and server-rendered pages with Leaflet and OpenStreetMap. No API keys.
+queries, and server-rendered pages with Leaflet and a muted OpenFreeMap base map built
+from OpenStreetMap data. No API keys.

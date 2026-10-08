@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Check your email - roamer{% endblock %}
+{% block content %}
+<h1>Check your email</h1>
+<p class="lede">The listing is saved, but it is not on the map yet.</p>
+
+<div class="notice">
+  We sent a link to <strong>{{ masked }}</strong>. Open it and press
+  <strong>Publish my listing</strong>, and it goes on the map.
+</div>
+
+<p>Not there? Look in spam or junk. The link works for {{ hours }} hours; if it runs out,
+  opening it offers to send a new one. If that address is wrong, post the listing again with
+  the right one - a listing nobody publishes is deleted after a week.</p>
+
+{% if mail_viewer_url %}
+<div class="notice notice-dev">
+  <strong>Running locally:</strong> nothing is really sent. The email is in the local mail
+  catcher at <a href="{{ mail_viewer_url }}" target="_blank" rel="noopener">{{ mail_viewer_url }}</a>.
+</div>
+{% endif %}
+
+<p><a class="button" href="/">Back to the map</a></p>
+{% endblock %}

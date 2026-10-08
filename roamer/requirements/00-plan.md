@@ -53,6 +53,7 @@ flowchart LR
     S6 --> S7
     S9 --> S10[10. Post import<br/>- later]
     S9 --> S11[11. Sightings and<br/>found reports - later]
+    S11 --> S12[12. A model of where<br/>lost pets go - later]
 ```
 
 | Stage | Goal | Done when |
@@ -61,19 +62,20 @@ flowchart LR
 | 1 | Listings on a map | A listing can be created through the form and the API, and shows as a pin on a Leaflet map. Clicking it opens the listing page. A seed script puts a dozen clearly fictional listings on the map. No verification yet - this stage is about the shape |
 | 2 | Email verification | A new listing is held until its email link is used. The verify page has a button, not an action-on-open link. The outbox and the worker exist and Mailpit shows the email. The verified badge is computed, not stored |
 | 3 | Photos | Upload, reject bad types and sizes, apply orientation, strip metadata, resize. A test proves a photo with GPS data in it comes out with none |
-| 4 | I found an animal | Browser location or a typed address gives the nearest active listings, with distance, from the indexed distance query. Address search goes through the server, cached, at most one provider request a second |
+| 4 | I found an animal, and search circles | **Search circles** on every listing's map: the published distance within which most lost animals of that kind are found, drawn around the last-seen point and labelled with the study it comes from. A must. Plus `outdoor_access` on the form, because it changes the circle for cats. Then: Browser location or a typed address gives the nearest active listings, with distance, from the indexed distance query. Address search goes through the server, cached, at most one provider request a second |
 | 5 | Check-ins and freshness | The worker sends check-ins on interval. Answers move `last_confirmed_at`. The badge lapses and listings leave the default map on the configured schedule, and a test drives the clock through all three states |
-| 6 | Manage, edit, close | Manage link by email, a short session, edit, still lost, home, withdraw. Withdraw deletes. Every change is an event row |
-| 7 | Printable flyer | A print stylesheet and a QR code to `/l/{code}`, generated on the server with no outside service. A phone camera opens it |
+| 6 | Manage, edit, close | Manage link by email, a short session, edit, still lost, home, withdraw. Withdraw deletes. Every change is an event row. **Marking an animal home asks, optionally, where it was found and how** - the pair a future model needs |
+| 7 | Printable flyer | A print stylesheet and a QR code to `/l/{code}`, generated on the server with no outside service. A phone camera opens it. The flyer carries the search circle, as "most dogs are found inside this circle" |
 | 8 | Admin section and abuse | Report button, a Help page with a contact form to the admin, rate limits, honeypot field. A password-protected admin section with full control of the map: dashboard, a map of every listing in every state, listings table, approval queue, reports, edit, hide, delete, block an address, settings, activity log |
 | 9 | Demo mode, host it, write the README | `ROAMER_DEMO=1`: a banner on every page, the demo inbox in place of sending, seeded listings restored and visitor posts wiped on a schedule. A `roamer` profile on the shared server at `roamer.<domain>`, and a README with what it is, a screenshot, how to run it, and what it deliberately does not do |
 | 10 | Post import | Later. See the open question below. Not started before stage 9 is done |
-| 11 | Sightings and found reports | Later |
+| 11 | Sightings and found reports | Later. Sightings are also data: the path between the lost point and the found point |
+| 12 | A model of where lost pets go | Later, and only once real reunions exist. A harness compares the search circles (the baseline) with a model on reunions it has not seen. Nothing is shown to users as a prediction until it beats the circles |
 
-**Stages 0 and 1 are done.** The scaffold runs from one `docker compose up` and is tested
-in CI against a real database. The map shows twelve made-up Kansas City listings, a
-person can post one through the form and land on its page, and there are 58 tests.
-Stage 2, email verification, is next.
+**Stages 0, 1 and 2 are done.** The scaffold runs from one `docker compose up` and is
+tested in CI against a real database. The map shows twelve made-up Kansas City listings. A
+person can post one, gets an email, and the listing goes on the map with a verified badge
+only when the link is used. 74 tests. Stage 3, photos, is next.
 
 ### Why the map comes before verification
 
@@ -87,6 +89,37 @@ goes in at stage 2, before anything is hosted.
 The finder's question is the reason the site exists. If "I found an animal" does not work
 well, nothing about freshness matters. It comes as early as it can - right after there are
 photos to show in the results.
+
+### Roamer is a data collector for a future model
+
+Decided by the author on 2026-10-08. The research behind it: no public dataset pairs
+where an animal went missing with where it was found. King County's lost-and-found feed
+has both kinds of report but never links them; Austin's 174,000 shelter intakes record
+only where a stray was picked up; the platforms that hold the pairs do not publish them.
+So a model of where lost pets go cannot be trained today, and roamer is built to collect
+the data that would make one possible.
+
+What that means in practice:
+
+1. **Search circles first (stage 4), as the honest baseline.** A published base rate,
+   drawn and labelled as one - not a prediction. Figures come from reading the papers
+   themselves (Huang et al. 2018 for cats, Lord et al. 2007 for dogs), not from summaries.
+2. **Every listing records what a model would need**, as fields on the form rather than
+   guessed later: species, size, age, last-seen point and time, and whether the animal
+   normally goes outdoors. Temperament and approach advice are already there.
+3. **Every reunion records the other half (stage 6)**: where it was found, when, and how
+   (came home, neighbour, flyer, roamer, shelter, microchip, social media). Optional, and
+   the form says what it is for.
+4. **Sightings (stage 11) record the path in between.**
+5. **The admin can export the pairs (stage 8)** for model work, never the contact
+   details.
+6. **Demo and test data never enters the dataset.** Seeded listings are flagged and
+   excluded; so is anything posted while the site runs in demo mode.
+7. **The model (stage 12) is measured before it is shown**, the mailman way: baseline
+   against model, on held-out reunions, results written down including the failures.
+
+While roamer is a demo with made-up listings, no real pairs accumulate. The collection is
+built and tested now so that it is already there if the site goes live.
 
 ### Why import waits
 
@@ -105,9 +138,11 @@ the core does not get hosted.
 | Owners verify by email and get a verified badge | The brief. The badge exists so a finder can tell a current listing from an abandoned one |
 | Owners keep the listing current: still lost, still looking, found | The brief. A listing nobody updates is the problem with lost-pet posts today |
 | Pulling in social media posts automatically is a later feature | The brief. And the owner still has to come and claim it to get the badge |
+| Search circles on every listing - a must | The author's favourite of the three options from the dataset research. A published distance base rate around the last-seen point tells a searcher and a flyer-hanger where to concentrate, and it is honest because it says where the number comes from |
+| roamer is a data collector for a future model | No public dataset pairs lost and found locations. The site records both halves of every reunion, so a model becomes possible later; see "Roamer is a data collector" above |
 | It starts as a demo with made-up listings and a functioning preview | A public demo carries none of a real service's duties - real phone numbers, answering reports, a privacy notice - and still shows every flow working |
 | Python, FastAPI, server-rendered pages, PostgreSQL, Docker Compose | Same stack as mailman and herder. The deploy, CI and test patterns already exist, so the effort goes into the app |
-| Leaflet and OpenStreetMap, not Google Maps | No key and no billing account, matching the rest of the repo. Looks and works the same for this job |
+| Leaflet and OpenStreetMap data, not Google Maps; drawn in OpenFreeMap's muted Positron style | No key and no billing account, matching the rest of the repo. The muted style is the author's request: the standard colours overwhelmed the pins |
 | `cube` and `earthdistance`, not PostGIS | The shared server's database image does not include PostGIS. These ship with PostgreSQL and do the one spatial query the app needs, with an index |
 | An admin section with full control of the map | The author asked for it: list, hide, approve and anything else needed to control what the map shows. One admin, the author |
 | Visitors never get the admin section, but are told an admin exists and can reach one | The author's call. An open admin lets one visitor empty the map for the next. A Help page says what the admin does and has a contact form, so a visitor with a problem has somewhere to go. The admin section is shown to reviewers in the README with screenshots and a recording |

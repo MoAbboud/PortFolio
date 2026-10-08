@@ -16,6 +16,8 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Integer,
+    LargeBinary,
     Text,
     func,
 )
@@ -55,6 +57,10 @@ EVENT_KINDS = (
     "claimed",
 )
 ACTORS = ("owner", "admin", "system")
+
+TOKEN_PURPOSES = ("verify", "manage", "checkin")
+OUTBOX_STATUSES = ("queued", "sent", "failed")
+OUTBOX_TEMPLATES = ("verify", "manage", "checkin", "report_received")
 
 
 class Owner(Base):
@@ -140,3 +146,50 @@ class ListingEvent(Base):
     )
 
     listing: Mapped[Listing] = relationship(back_populates="events")
+
+
+class EmailToken(Base):
+    """A link sent by email. Only the SHA-256 of the token is stored."""
+
+    __tablename__ = "email_tokens"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
+    )
+    token_hash: Mapped[bytes] = mapped_column(LargeBinary, unique=True)
+    purpose: Mapped[str] = mapped_column(Text)
+    owner_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("owners.id", ondelete="CASCADE")
+    )
+    listing_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("listings.id", ondelete="CASCADE")
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    owner: Mapped[Owner] = relationship()
+    listing: Mapped[Listing | None] = relationship()
+
+
+class OutboxMessage(Base):
+    """An email waiting to be sent, and the record of what was."""
+
+    __tablename__ = "outbox"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    to_address: Mapped[str] = mapped_column(CITEXT)
+    template: Mapped[str] = mapped_column(Text)
+    payload: Mapped[dict] = mapped_column(JSONB, server_default="{}")
+    status: Mapped[str] = mapped_column(Text, server_default="queued")
+    attempts: Mapped[int] = mapped_column(Integer, server_default="0")
+    next_attempt_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    last_error: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

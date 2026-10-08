@@ -21,6 +21,21 @@
   <header class="listing-head">
     <p class="listing-kind">{% if home %}Found{% else %}Lost{% endif %} {{ label | lower }}</p>
     <h1>{{ listing.name or 'Name not known' }}</h1>
+    {% if not home %}
+    {% if is_verified(listing) %}
+    <p class="badge badge-verified">Verified - the owner confirmed it is still missing
+      {{ time_ago(listing.last_confirmed_at) }}</p>
+    {% elif listing.last_confirmed_at %}
+    <p class="badge badge-quiet">Not confirmed for {{ time_ago(listing.last_confirmed_at) | replace(' ago', '') }}</p>
+    {% endif %}
+    <details class="badge-meaning">
+      <summary>What verified means</summary>
+      <p>The person managing this listing controls the email address it was posted with, and
+        said recently that the animal is still missing. It does not prove who owns the
+        animal: before handing an animal over, ask for proof - a photo of them with it, a vet
+        record, or the microchip number.</p>
+    </details>
+    {% endif %}
     <p class="listing-seen">
       Last seen {{ time_ago(listing.last_seen_at) }}
       <time datetime="{{ listing.last_seen_at.isoformat() }}" data-local></time>
