@@ -12,6 +12,8 @@ the exact failure the badge exists to prevent.
 from __future__ import annotations
 
 import enum
+import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
@@ -19,9 +21,9 @@ from sqlalchemy import and_, delete, exists, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
-from roamer import codes, mail, tokens
+from roamer import codes, images, mail, tokens
 from roamer.config import settings
-from roamer.models import ACTIVE_STATUS, EmailToken, Listing, ListingEvent, Owner
+from roamer.models import ACTIVE_STATUS, EmailToken, Listing, ListingEvent, Owner, Photo
 from roamer.schemas import ListingCreate
 
 PENDING = "pending_verification"
@@ -90,12 +92,18 @@ def create_listing(
     *,
     seeded: bool = False,
     pre_verified: bool = False,
+    photos: Sequence[images.ProcessedImage] = (),
+    flyer: images.ProcessedImage | None = None,
+    store: images.ImageStore | None = None,
     now: datetime | None = None,
 ) -> Listing:
-    """Store a new listing, with its owner, a `created` event and its verify email; commit.
+    """Store a new listing, with its owner, photos, a `created` event and its verify email.
 
     `pre_verified` puts it straight on the map with no email. Only the demo's made-up
     listings use it - their addresses are at example.com and could never answer a link.
+
+    Photos arrive already processed (see roamer.images). Their files are written before the
+    commit; if the commit fails they are deleted again, so a failed post leaves no files.
     """
     now = now or datetime.now(timezone.utc)
     owner = _owner_for(session, str(data.email))
@@ -132,18 +140,80 @@ def create_listing(
     else:
         raise CodeExhausted(f"no unique code after {CODE_ATTEMPTS} attempts")
 
-    session.add(
-        ListingEvent(
-            listing_id=listing.id,
-            kind="created",
-            actor="system" if seeded else "owner",
-            detail={"seeded": True} if seeded else {},
+    store = store or images.default_store()
+    # Read now: after a rollback the object's attributes cannot be loaded any more.
+    listing_id = listing.id
+    try:
+        _store_photos(session, store, listing, photos, flyer)
+        session.add(
+            ListingEvent(
+                listing_id=listing.id,
+                kind="created",
+                actor="system" if seeded else "owner",
+                detail={"seeded": True} if seeded else {},
+            )
         )
-    )
-    if not pre_verified:
-        _queue_verify_email(session, listing, owner, now)
-    session.commit()
+        if not pre_verified:
+            _queue_verify_email(session, listing, owner, now)
+        session.commit()
+    except Exception:
+        session.rollback()
+        store.delete_prefix(listing_prefix(listing_id))
+        raise
     return listing
+
+
+def listing_prefix(listing_id: uuid.UUID) -> str:
+    return f"listings/{listing_id}/"
+
+
+def _store_photos(
+    session: Session,
+    store: images.ImageStore,
+    listing: Listing,
+    photos: Sequence[images.ProcessedImage],
+    flyer: images.ProcessedImage | None,
+) -> None:
+    if len(photos) > images.MAX_PHOTOS:
+        raise ValueError(f"at most {images.MAX_PHOTOS} photos")
+    items = [("photo", position, image) for position, image in enumerate(photos)]
+    if flyer is not None:
+        items.append(("flyer", 0, flyer))
+    for kind, position, image in items:
+        photo_id = uuid.uuid4()
+        key = images.new_storage_key(listing.id, photo_id)
+        store.put(f"{key}-display.jpg", image.display)
+        store.put(f"{key}-thumb.jpg", image.thumb)
+        session.add(
+            Photo(
+                id=photo_id,
+                listing_id=listing.id,
+                kind=kind,
+                storage_key=key,
+                width=image.width,
+                height=image.height,
+                position=position,
+            )
+        )
+
+
+def delete_listings(
+    session: Session, listing_ids: Sequence[uuid.UUID], store: images.ImageStore | None = None
+) -> int:
+    """Delete listings, their rows (by cascade) and their photo files. The caller commits.
+
+    Every path that removes a listing goes through here, so no listing leaves files behind.
+    Files go after the rows are gone from this transaction's point of view but before the
+    commit; a failed commit leaves rows without files, which shows as a missing image, rather
+    than files nobody can find, which shows as nothing at all.
+    """
+    if not listing_ids:
+        return 0
+    store = store or images.default_store()
+    removed = session.execute(delete(Listing).where(Listing.id.in_(listing_ids))).rowcount
+    for listing_id in listing_ids:
+        store.delete_prefix(listing_prefix(listing_id))
+    return removed
 
 
 def _queue_verify_email(session: Session, listing: Listing, owner: Owner, now: datetime) -> None:
@@ -237,16 +307,19 @@ def resend_verify_link(session: Session, token: str, now: datetime | None = None
     return result
 
 
-def delete_unverified(session: Session, now: datetime | None = None) -> int:
+def delete_unverified(
+    session: Session, now: datetime | None = None, store: images.ImageStore | None = None
+) -> int:
     """Delete listings never verified within the retention period, and owners left with nothing.
 
     An address that never confirmed is not kept: somebody typed it, possibly not its owner.
     """
     now = now or datetime.now(timezone.utc)
     cutoff = now - timedelta(days=settings.unverified_retention_days)
-    removed = session.execute(
-        delete(Listing).where(Listing.status == PENDING, Listing.created_at < cutoff)
-    ).rowcount
+    stale = session.scalars(
+        select(Listing.id).where(Listing.status == PENDING, Listing.created_at < cutoff)
+    ).all()
+    removed = delete_listings(session, stale, store)
     session.execute(
         delete(Owner).where(
             Owner.email_confirmed_at.is_(None),
@@ -328,7 +401,7 @@ def active_in_bbox(
     query = (
         select(Listing)
         # The badge reads the owner; load them in one query rather than one per pin.
-        .options(selectinload(Listing.owner))
+        .options(selectinload(Listing.owner), selectinload(Listing.photos))
         .where(and_(*conditions))
         .order_by(Listing.last_seen_at.desc())
         .limit(MAX_PINS)

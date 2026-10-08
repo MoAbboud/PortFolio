@@ -17,7 +17,13 @@ and where it was last seen, and a number to call are required.</p>
 </div>
 {% endif %}
 
-<form method="post" action="/listings" class="listing-form" id="listing-form" novalidate>
+{% if files_lost %}
+<div class="notice">Photos and the flyer have to be chosen again - a browser cannot keep
+  them when the form comes back.</div>
+{% endif %}
+
+<form method="post" action="/listings" class="listing-form" id="listing-form"
+      enctype="multipart/form-data" novalidate>
 
   <fieldset>
     <legend>The animal</legend>
@@ -90,6 +96,25 @@ and where it was last seen, and a number to call are required.</p>
       <textarea name="approach_advice" rows="2" maxlength="500"
                 placeholder="Do not chase her - she runs. Sit down and call her name.">{{ values.get('approach_advice', '') }}</textarea>
       {{ error('approach_advice') }}
+    </label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Photos</legend>
+
+    <label class="field">
+      <span class="label">Photos of the animal</span>
+      <input type="file" name="photos" accept="{{ IMAGE_ACCEPT }}" multiple>
+      <p class="hint">Up to {{ MAX_PHOTOS }}, {{ MAX_PHOTO_MB }} MB each. The first is the one
+        on the map. Location data inside the photos is removed before they are saved.</p>
+      {{ error('photos') }}
+    </label>
+
+    <label class="field">
+      <span class="label">Your flyer, if you have one</span>
+      <input type="file" name="flyer" accept="{{ IMAGE_ACCEPT }}">
+      <p class="hint">A photo or image of the paper flyer.</p>
+      {{ error('flyer') }}
     </label>
   </fieldset>
 

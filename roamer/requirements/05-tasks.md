@@ -117,17 +117,41 @@ Check:
 
 ## Stage 3 - Photos
 
-The current work.
+Done. 91 tests. Also run for real: a JPEG carrying a GPS position, a camera model and a
+"turn sideways" flag, uploaded through the form in Chrome; the saved file was upright and had
+no EXIF, no GPS and no camera model in its bytes.
 
-- [ ] Migration: `photos`
-- [ ] Upload on the form, several photos plus one flyer image
-- [ ] Type and size limits
-- [ ] Orientation applied, metadata removed, display size and thumbnail written
-- [ ] Image store interface with a volume implementation and a test implementation
-- [ ] Tests: a fixture JPEG with GPS EXIF comes out with no EXIF at all; a renamed text file
-      is rejected
+- [x] Migration `0004_photos`: one row per image, kind CHECK, unique (listing, kind,
+      position), at most one flyer per listing by a partial unique index, unique storage key
+- [x] Upload on the form: up to 6 photos plus one flyer image, `multipart/form-data`; the
+      first photo is the one on the map
+- [x] Type and size limits: JPEG, PNG or WebP by what the bytes are, not what the file says;
+      10 MB per file, read only to one byte past it; 40 megapixels; at most 8 file parts
+      parsed per request
+- [x] Orientation applied from EXIF, then the image rebuilt from raw pixels so no metadata
+      survives; transparency flattened onto white; JPEG display (1600 px) and thumbnail
+      (400 px); the original never written anywhere
+- [x] Image store interface: `LocalImageStore` (files under `IMAGE_DIR`, refuses keys that
+      escape its root) and `MemoryImageStore` (tests, autouse so no test touches disk)
+- [x] Served at `/media/...`; the listing page shows the main photo, a strip of the others,
+      and the flyer; map popups show the thumbnail
+- [x] Files written before the commit and deleted again if it fails; every path that removes
+      listings (`delete_unverified`, the seed reset, later withdraw and the demo reset) goes
+      through `delete_listings`, which removes the files too
+- [x] A failed form says which file was the problem and that files must be chosen again
+- [x] Tests: a JPEG with GPS EXIF comes out with no metadata at all (and the fixture is
+      checked to really carry GPS first); orientation applied; a renamed text file, a GIF,
+      an oversized file and too many pixels refused; too many photos refused; an empty file
+      input is no photo; a failed save leaves no files; deleting listings deletes files
+
+Check:
+
+    docker compose up -d --build        # Pillow, and migration 0004
+    Start-Process http://localhost:8010/listings/new    # add a photo from your phone
 
 ## Stage 4 - I found an animal, and search circles
+
+The current work.
 
 Search circles - a must:
 
@@ -321,6 +345,7 @@ set, labelled as synthetic.
 - [x] Stage 0, the scaffold
 - [x] Stage 1, listings on a map
 - [x] Stage 2, email verification
+- [x] Stage 3, photos
 
 ## Blocked
 

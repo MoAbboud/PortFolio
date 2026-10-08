@@ -15,8 +15,9 @@ is wrong and it gets fixed rather than worked around.
 [00-plan.md](00-plan.md) is the one to read first: the stage order, the decisions already
 settled with the reason each one was taken, and the open questions still outstanding.
 
-**Stages 0 to 2 are done**: the map, the form, the listing page, and email verification
-with the badge. Stage 3, photos, is next. It starts as a demo: made-up listings, every flow
+**Stages 0 to 3 are done**: the map, the form, the listing page, email verification with
+the badge, and photos with their location data removed. Stage 4 - search circles and the
+finder's search - is next. It starts as a demo: made-up listings, every flow
 working, nothing reaching a real person.
 
 Two things about this project worth stating here so they are not discovered as surprises:

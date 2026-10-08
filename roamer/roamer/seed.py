@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import delete, exists
+from sqlalchemy import delete, exists, select
 from sqlalchemy.orm import Session
 
 from roamer import listings as service
@@ -110,7 +110,8 @@ SEEDS: list[tuple[float, dict]] = [
 
 def clear(session: Session) -> int:
     """Delete every seeded listing, and demo owners left with nothing. Returns the count."""
-    removed = session.execute(delete(Listing).where(Listing.seeded.is_(True))).rowcount
+    seeded_ids = session.scalars(select(Listing.id).where(Listing.seeded.is_(True))).all()
+    removed = service.delete_listings(session, seeded_ids)
     session.execute(
         delete(Owner).where(
             Owner.email.like("demo-%@example.com"),

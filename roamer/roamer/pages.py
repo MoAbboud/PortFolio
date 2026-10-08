@@ -15,7 +15,9 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
+from starlette.datastructures import UploadFile
 
+from roamer import images
 from roamer import listings as service
 from roamer.config import settings
 from roamer.db import get_session
@@ -49,7 +51,15 @@ templates.env.globals.update(
     time_ago=time_ago,
     is_verified=service.is_verified,
     APPROXIMATE_RADIUS_M=service.APPROXIMATE_RADIUS_M,
+    IMAGE_ACCEPT=images.ACCEPT_ATTRIBUTE,
+    MAX_PHOTOS=images.MAX_PHOTOS,
+    MAX_PHOTO_MB=images.MAX_BYTES // (1024 * 1024),
 )
+
+
+def get_image_store() -> images.ImageStore:
+    """A dependency, so tests can swap in a store that never touches the disk."""
+    return images.default_store()
 
 
 def map_defaults() -> dict:
@@ -81,24 +91,85 @@ def _form_errors(exc: ValidationError) -> dict[str, str]:
     return errors
 
 
+def _chosen(value: object) -> bool:
+    # A file input left empty still sends a part, with no file name and no bytes.
+    #
+    # Starlette's UploadFile, not FastAPI's: request.form() returns Starlette's, and FastAPI's
+    # is a subclass of it, so an isinstance check against FastAPI's is always false - which
+    # silently ignored every upload the first time this was written.
+    return isinstance(value, UploadFile) and bool(value.filename)
+
+
+async def _read_image(upload: UploadFile) -> images.ProcessedImage:
+    # One byte past the limit is enough to know it is over; no need to read a huge file.
+    data = await upload.read(images.MAX_BYTES + 1)
+    return images.process(data)
+
+
+async def _process_uploads(
+    form,
+) -> tuple[list[images.ProcessedImage], images.ProcessedImage | None, dict[str, str]]:
+    errors: dict[str, str] = {}
+    photos: list[images.ProcessedImage] = []
+    uploads = [f for f in form.getlist("photos") if _chosen(f)]
+    if len(uploads) > images.MAX_PHOTOS:
+        errors["photos"] = f"Choose at most {images.MAX_PHOTOS} photos."
+    else:
+        for upload in uploads:
+            try:
+                photos.append(await _read_image(upload))
+            except images.ImageRejected as exc:
+                errors["photos"] = f"{upload.filename} {exc}."
+                break
+
+    flyer = None
+    flyer_upload = form.get("flyer")
+    if _chosen(flyer_upload):
+        try:
+            flyer = await _read_image(flyer_upload)
+        except images.ImageRejected as exc:
+            errors["flyer"] = f"{flyer_upload.filename} {exc}."
+    return photos, flyer, errors
+
+
 @router.post("/listings", response_class=HTMLResponse)
-async def create_from_form(request: Request, session: Session = Depends(get_session)):
-    form = await request.form()
+async def create_from_form(
+    request: Request,
+    session: Session = Depends(get_session),
+    store: images.ImageStore = Depends(get_image_store),
+):
+    # max_files bounds how many file parts are even parsed: the photos, the flyer, one spare.
+    form = await request.form(max_files=images.MAX_PHOTOS + 2)
     values = {key: value for key, value in form.items() if isinstance(value, str)}
     # An unticked checkbox sends nothing at all, so absence is the only way to read "no".
     payload = {**values, "show_phone": "show_phone" in values}
 
+    errors: dict[str, str] = {}
+    data = None
     try:
         data = ListingCreate.model_validate(payload)
     except ValidationError as exc:
+        errors.update(_form_errors(exc))
+    # Images are checked even when a field failed, so every problem shows at once.
+    photos, flyer, image_errors = await _process_uploads(form)
+    errors.update(image_errors)
+
+    if errors:
+        # A browser cannot refill a file input, so chosen files have to be chosen again.
+        had_files = any(_chosen(f) for f in [*form.getlist("photos"), form.get("flyer")])
         return templates.TemplateResponse(
             request,
             "new.html",
-            {"map": map_defaults(), "values": values, "errors": _form_errors(exc)},
+            {
+                "map": map_defaults(),
+                "values": values,
+                "errors": errors,
+                "files_lost": had_files,
+            },
             status_code=400,
         )
 
-    listing = service.create_listing(session, data)
+    listing = service.create_listing(session, data, photos=photos, flyer=flyer, store=store)
     # 303, so a refresh of the page it lands on is a GET and does not post the form again.
     return RedirectResponse(f"/listings/sent?code={listing.code}", status_code=303)
 

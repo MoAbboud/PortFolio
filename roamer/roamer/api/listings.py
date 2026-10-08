@@ -25,6 +25,7 @@ def to_pin(listing) -> ListingPin:
         last_seen_at=listing.last_seen_at,
         area_label=listing.area_label,
         verified=service.is_verified(listing),
+        thumb_url=listing.animal_photos[0].thumb_url if listing.animal_photos else None,
         url=f"/l/{listing.code}",
     )
 

@@ -206,10 +206,30 @@ The intervals are configuration. Starting values are an open question in the pla
 
 ## Images
 
-On upload: reject anything that is not a JPEG, PNG or WebP, or is over the size limit.
-Apply the EXIF orientation, then drop all metadata, then resize to a display size and a
-thumbnail. The original is not kept, because the original is the thing with the location
-inside it. Stored as `listings/{listing_id}/{image_id}-{size}.jpg`.
+`roamer/images.py`. On upload the bytes are opened with Pillow; what the file name or content
+type claims is ignored. Anything that is not a JPEG, PNG or WebP, is over 10 MB (read to one
+byte past the limit, no further), or is over 40 megapixels is refused with a reason shown
+beside the field.
+
+Then: apply the EXIF orientation, flatten transparency onto white, and rebuild the image from
+its raw pixels (`Image.frombytes`), which leaves nothing for an encoder to carry across - no
+EXIF, no GPS block, no maker notes, no XMP, ICC profile or comment. Save a 1600 px display JPEG
+and a 400 px thumbnail. The original is never written anywhere, because the original is the
+thing with the location inside it. Stored as `listings/{listing_id}/{photo_id}-display.jpg`
+and `-thumb.jpg`, S3-shaped, behind an `ImageStore` interface: `LocalImageStore` on a volume
+(refusing any key that would escape its root), `MemoryImageStore` for tests. Served at
+`/media/` by StaticFiles; keys are random UUIDs.
+
+The file input lists `image/jpeg,image/png,image/webp` rather than `image/*`. Given a list
+without HEIC, an iPhone converts its HEIC photos to JPEG as they are picked; Pillow cannot
+read HEIC without a plugin.
+
+Files are written before the database commit and deleted if the commit fails. Every way a
+listing is removed goes through `listings.delete_listings`, which removes its files too, so
+no path leaves photos behind.
+
+Photos come in through the HTML form only. The JSON `POST /api/listings` takes no files;
+an API upload endpoint can come later if anything needs it.
 
 ## The admin section
 
@@ -365,7 +385,7 @@ sequenceDiagram
 | `MAIL_VIEWER_URL` | Development only: where caught mail can be read. Shown on the "check your email" page when set |
 | `VERIFY_TOKEN_HOURS`, `UNVERIFIED_RETENTION_DAYS` | 24 and 7: how long a verify link works, and how long an unpublished listing is kept |
 | `WORKER_INTERVAL_SECONDS`, `OUTBOX_MAX_ATTEMPTS` | 5 and 5: how often the worker looks for work, and how many tries before an email is `failed` |
-| `IMAGE_DIR` | The image volume |
+| `IMAGE_DIR` | Where photos are written. `./data/images` by default, which in development is the git-ignored `roamer/data/images` |
 | `CHECKIN_INTERVAL_DAYS`, `CHECKIN_GRACE_DAYS`, `STALE_AFTER` | The freshness rules. 7 and 3 days for the badge, read already; `STALE_AFTER` arrives with stage 5 |
 | `TOKEN_SALT` | For hashing IP addresses on messages and rate limits |
 | `NOMINATIM_URL`, `NOMINATIM_USER_AGENT` | Nominatim's policy requires an identifying user agent |

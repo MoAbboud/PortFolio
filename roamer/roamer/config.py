@@ -74,6 +74,11 @@ class Settings(BaseSettings):
     checkin_interval_days: int = 7
     checkin_grace_days: int = 3
 
+    # Where photos are written, served at /media. Relative to the working directory, which is
+    # /app in the container - and /app is the project folder mounted from the host, so in
+    # development the files land in roamer/data/images, which git ignores.
+    image_dir: str = "./data/images"
+
     # The worker: how often it looks for work, and how many times one email is tried before
     # it is marked failed.
     worker_interval_seconds: float = 5.0

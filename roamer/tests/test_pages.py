@@ -162,7 +162,7 @@ def test_the_map_json_carries_no_email_and_no_phone(
     assert listing.code in pins
     assert set(pins[listing.code]) == {
         "code", "species", "name", "lat", "lng", "approximate",
-        "last_seen_at", "area_label", "verified", "url",
+        "last_seen_at", "area_label", "verified", "thumb_url", "url",
     }
     assert pins[listing.code]["verified"] is True
     assert "private@example.com" not in response.text

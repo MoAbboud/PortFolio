@@ -29,6 +29,10 @@ def test_listing_vocabularies_match_the_migration() -> None:
         assert getattr(migration, name) == getattr(models, name), name
 
 
+def test_photo_kinds_match_the_migration() -> None:
+    assert load_migration("0004_photos.py").PHOTO_KINDS == models.PHOTO_KINDS
+
+
 def test_email_vocabularies_match_the_migration() -> None:
     migration = load_migration("0003_email.py")
     for name in ("TOKEN_PURPOSES", "OUTBOX_STATUSES", "OUTBOX_TEMPLATES"):

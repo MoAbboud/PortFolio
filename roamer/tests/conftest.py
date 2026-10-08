@@ -14,6 +14,7 @@ from sqlalchemy import text as sql_text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from roamer import images
 from roamer import listings as service
 from roamer.db import engine, get_session
 from roamer.main import app
@@ -73,19 +74,35 @@ def listing_data(**overrides: Any) -> ListingCreate:
     return ListingCreate(**fields)
 
 
+@pytest.fixture(autouse=True)
+def image_store(monkeypatch) -> images.MemoryImageStore:
+    """Every image write and delete in every test goes here, never to disk.
+
+    Autouse, because the service falls back to the real store when none is passed, and a test
+    that reseeds or deletes listings would otherwise delete folders in the developer's own
+    photo directory.
+    """
+    store = images.MemoryImageStore()
+    monkeypatch.setattr(images, "default_store", lambda: store)
+    return store
+
+
 @pytest.fixture
-def client(db_session: Session) -> Iterator[TestClient]:
+def client(db_session: Session, image_store: images.MemoryImageStore) -> Iterator[TestClient]:
     """The app, reading and writing through the rolled-back test session."""
+    from roamer.pages import get_image_store
 
     def override() -> Iterator[Session]:
         yield db_session
 
     app.dependency_overrides[get_session] = override
+    app.dependency_overrides[get_image_store] = lambda: image_store
     try:
         with TestClient(app) as test_client:
             yield test_client
     finally:
         app.dependency_overrides.pop(get_session, None)
+        app.dependency_overrides.pop(get_image_store, None)
 
 
 def create_live(session: Session, data: ListingCreate) -> Listing:
