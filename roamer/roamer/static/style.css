@@ -43,6 +43,10 @@
 
 * { box-sizing: border-box; }
 
+/* The hidden attribute has to win over any display a class sets - .found-results is a grid,
+   and without this the empty results box showed before anyone had searched. */
+[hidden] { display: none !important; }
+
 body {
   margin: 0;
   background: var(--bg);
@@ -83,7 +87,60 @@ h2 { font-size: 1.15rem; margin: 1.5rem 0 0.5rem; }
   text-decoration: none;
 }
 
-.site-nav { display: flex; align-items: center; gap: 16px; }
+.site-nav { display: flex; align-items: center; gap: 12px; }
+.site-nav .short { display: none; }
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+/* I found an animal */
+.found-form {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.found-where { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.found-or { color: var(--ink-soft); }
+.found-address { flex: 1 1 220px; }
+.found-address input, .found-filters select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+}
+.found-filters { display: flex; gap: 16px; margin-top: 12px; }
+.found-filters label { display: flex; flex-direction: column; font-size: 0.85rem; color: var(--ink-soft); }
+.found-status { color: var(--ink-soft); min-height: 1.5em; }
+.found-places { list-style: none; padding: 0; margin: 0 0 16px; display: grid; gap: 6px; }
+.found-place {
+  width: 100%; text-align: left; padding: 8px 12px; font: inherit; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 6px; color: var(--ink);
+}
+.found-results { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.found-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; align-content: start; }
+.found-card a {
+  display: flex; gap: 12px; padding: 10px; color: var(--ink); text-decoration: none;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+}
+.found-card img, .found-card-blank {
+  width: 84px; height: 84px; object-fit: cover; border-radius: 6px; flex-shrink: 0;
+}
+.found-card-blank {
+  display: grid; place-items: center; font-size: 0.8rem; color: var(--ink-soft);
+  border: 1px dashed var(--line);
+}
+.found-card p { margin: 2px 0; color: var(--ink-soft); font-size: 0.92rem; }
+.found-none, .found-advice {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 4px 16px 12px; margin-top: 16px;
+}
 .site-nav a:not(.button) { color: var(--ink-soft); text-decoration: none; }
 
 /* Buttons */
@@ -343,6 +400,16 @@ h2 { font-size: 1.15rem; margin: 1.5rem 0 0.5rem; }
 }
 .phone { font-size: 1.3rem; font-weight: 700; white-space: nowrap; }
 
+.search-circle-note {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-left: 4px solid #2b2f36;
+  background: var(--surface);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+.search-circle-note p { margin: 0 0 6px; }
+.search-circle-note .hint { margin: 0; }
+
 .map-small {
   height: 300px;
   border-radius: var(--radius);
@@ -356,7 +423,11 @@ h2 { font-size: 1.15rem; margin: 1.5rem 0 0.5rem; }
 @media (max-width: 640px) {
   :root { --gutter: 16px; }
   .site-nav a:not(.button) { display: none; }
+  .site-nav { gap: 8px; }
   .site-nav .button { padding: 6px 10px; font-size: 0.9rem; }
+  .site-nav .long { display: none; }
+  .site-nav .short { display: inline; }
+  .found-results { grid-template-columns: 1fr; }
   .page { padding-top: 20px; }
   h1 { font-size: 1.5rem; }
   .listing-body { grid-template-columns: 1fr; }

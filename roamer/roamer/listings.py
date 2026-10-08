@@ -17,7 +17,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import and_, delete, exists, or_, select
+from sqlalchemy import and_, delete, exists, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
@@ -368,6 +368,53 @@ def is_public(listing: Listing) -> bool:
     waiting for their email link.
     """
     return listing.hidden_at is None and listing.status in (ACTIVE_STATUS, "reunited")
+
+
+# The finder's search: how far it may reach. 50 km covers a lost dog that kept running, and
+# keeps a careless request from asking for the whole country.
+MAX_NEAR_RADIUS_M = 50_000
+MAX_NEAR_RESULTS = 50
+
+
+def nearest(
+    session: Session,
+    lat: float,
+    lng: float,
+    radius_m: float,
+    *,
+    species: str | None = None,
+    limit: int = MAX_NEAR_RESULTS,
+) -> list[tuple[Listing, float]]:
+    """Active listings within radius_m of a point, nearest first, each with its distance.
+
+    The one spatial query roamer asks, in one place, so a move to PostGIS later is this
+    function and nothing else. earth_box() is a cube around the point that the GiST index
+    `listings_active_earth` can search; it is slightly larger than the circle, so
+    earth_distance() then trims it to the true radius. The indexed expression and the one
+    here must stay identical, or the planner cannot use the index.
+    """
+    radius_m = min(radius_m, MAX_NEAR_RADIUS_M)
+    here = func.ll_to_earth(lat, lng)
+    there = func.ll_to_earth(Listing.last_seen_lat, Listing.last_seen_lng)
+    distance = func.earth_distance(here, there).label("distance_m")
+
+    conditions = [
+        Listing.status == ACTIVE_STATUS,
+        Listing.hidden_at.is_(None),
+        func.earth_box(here, radius_m).op("@>")(there),
+        func.earth_distance(here, there) <= radius_m,
+    ]
+    if species:
+        conditions.append(Listing.species == species)
+
+    query = (
+        select(Listing, distance)
+        .options(selectinload(Listing.owner), selectinload(Listing.photos))
+        .where(and_(*conditions))
+        .order_by(distance, Listing.last_seen_at.desc())
+        .limit(limit)
+    )
+    return [(listing, float(metres)) for listing, metres in session.execute(query)]
 
 
 def active_in_bbox(

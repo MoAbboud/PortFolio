@@ -8,10 +8,12 @@ missing, so the verified badge means the listing is current, not just real.
 It will start as a demo: made-up listings, every flow working, nothing reaching a real
 person.
 
-**Status: stage 3 of 9.** The map, the listing form and the listing page work, with twelve
+**Status: stage 4 of 9.** The map, the listing form and the listing page work, with twelve
 made-up listings in Kansas City. A new listing can carry photos and the owner's flyer, saved
 upright with all location data removed, and goes on the map with a verified badge only once
-the link emailed to its owner is used. Locally every email lands in Mailpit at
+the link emailed to its owner is used. Every listing's map shows search circles - where most
+lost dogs or cats were found in published studies - and "I found an animal" lists the
+nearest lost animals to wherever the finder is. Locally every email lands in Mailpit at
 http://localhost:8025, and photos in `data/images/`.
 The plan, the user journeys and the reasoning behind each decision are in
 [requirements/](requirements/).

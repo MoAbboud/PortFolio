@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}I found an animal - roamer{% endblock %}
+{% block head %}{% include "_leaflet.html" %}{% endblock %}
+
+{% block content %}
+<h1>I found an animal</h1>
+<p class="lede">Say where you are, or where you found it, and see who nearby has reported a
+  lost animal - nearest first.</p>
+
+<form class="found-form" id="found-form">
+  <div class="found-where">
+    <button type="button" class="button button-primary" id="use-location">Use my location</button>
+    <span class="found-or">or</span>
+    <label class="found-address">
+      <span class="visually-hidden">Address or place</span>
+      <input type="text" name="q" id="address" placeholder="An address, street or place"
+             autocomplete="street-address" minlength="3">
+    </label>
+    <button type="submit" class="button">Search</button>
+  </div>
+  <div class="found-filters">
+    <label>
+      <span>Animal</span>
+      <select name="species" id="species">
+        <option value="">Any</option>
+        <option value="dog">Dog</option>
+        <option value="cat">Cat</option>
+        <option value="other">Other</option>
+      </select>
+    </label>
+    <label>
+      <span>Within</span>
+      <select name="radius_km" id="radius">
+        <option value="1">1 km</option>
+        <option value="2">2 km</option>
+        <option value="5" selected>5 km</option>
+        <option value="10">10 km</option>
+        <option value="25">25 km</option>
+      </select>
+    </label>
+  </div>
+</form>
+
+<p class="found-status" id="found-status" aria-live="polite"></p>
+<ul class="found-places" id="found-places" hidden></ul>
+
+<div class="found-results" id="found-results" hidden>
+  <ol class="found-list" id="found-list"></ol>
+  <div id="found-map" class="map-small"
+       data-lat="{{ map.lat }}" data-lng="{{ map.lng }}" data-zoom="{{ map.zoom }}"></div>
+</div>
+
+<section class="found-none" id="found-none" hidden>
+  <h2>No lost animal reported near here</h2>
+  <p>Nobody has posted one on roamer within that distance. What helps most next:</p>
+  <ul>
+    <li>Look for a tag or a phone number on its collar.</li>
+    <li>Any vet or animal shelter can scan it for a microchip, for free.</li>
+    <li>Call the local animal shelter - owners call there first.</li>
+    <li>Try a larger distance above; frightened animals can travel a long way.</li>
+  </ul>
+</section>
+
+<section class="found-advice">
+  <h2>Before you hand an animal over</h2>
+  <p>Ask the person to prove it is theirs - a photo of them with it, a vet record, or the
+    microchip number. Nobody genuine asks a finder for money, and nobody needs a code that
+    was sent to your phone.</p>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/found.js" defer></script>
+{% endblock %}

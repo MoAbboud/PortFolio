@@ -17,7 +17,7 @@ from pydantic import ValidationError
 from sqlalchemy.orm import Session
 from starlette.datastructures import UploadFile
 
-from roamer import images
+from roamer import circles, images
 from roamer import listings as service
 from roamer.config import settings
 from roamer.db import get_session
@@ -48,6 +48,9 @@ templates.env.globals.update(
     SPECIES_LABELS=SPECIES_LABELS,
     SEX_LABELS=SEX_LABELS,
     SIZE_LABELS=SIZE_LABELS,
+    OUTDOOR_ACCESS_LABELS=circles.OUTDOOR_ACCESS_LABELS,
+    circle_for=circles.circle_for,
+    describe_distance=circles.describe_distance,
     time_ago=time_ago,
     is_verified=service.is_verified,
     APPROXIMATE_RADIUS_M=service.APPROXIMATE_RADIUS_M,
@@ -73,6 +76,11 @@ def map_defaults() -> dict:
 @router.get("/", response_class=HTMLResponse)
 def map_page(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(request, "map.html", {"map": map_defaults()})
+
+
+@router.get("/found", response_class=HTMLResponse)
+def found_page(request: Request) -> HTMLResponse:
+    return templates.TemplateResponse(request, "found.html", {"map": map_defaults()})
 
 
 @router.get("/listings/new", response_class=HTMLResponse)
