@@ -31,6 +31,13 @@
       (SPECIES[pin.species] || "animal").toLowerCase();
     box.appendChild(title);
 
+    if (pin.verified) {
+      var badge = document.createElement("p");
+      badge.className = "badge badge-verified badge-small";
+      badge.textContent = "Verified";
+      box.appendChild(badge);
+    }
+
     var seen = document.createElement("p");
     seen.textContent = "Last seen " + roamer.timeAgo(pin.last_seen_at) +
       (pin.area_label ? " - " + pin.area_label : "");

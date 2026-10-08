@@ -82,27 +82,42 @@ Check:
 
 ## Stage 2 - Email verification
 
-The current work.
+Done. 74 tests. Also run for real, end to end: the form in Chrome, the worker sending to
+Mailpit, the link read out of Mailpit, opened, the button pressed, the badge on the page.
 
-
-- [ ] Compose: add `mailpit` (web UI on 8025) and the `worker` service
-- [ ] Migration: `email_tokens`, `outbox`
-- [ ] Token create, hash, look up, expire, single use
-- [ ] New listings start `pending_verification` and are not returned by the map or search
-- [ ] Verify page: GET shows a button, POST publishes
-- [ ] Outbox written in the same transaction as the listing
-- [ ] Worker sends from the outbox, retries with a limit, records errors
-- [ ] Verified badge computed on read, and the line under it saying what it does not mean
-- [ ] Unverified listings deleted after 7 days
-- [ ] Tests: a GET on a verify link changes nothing; a used token is refused; an expired
-      token offers a new one; the outbox row exists even when sending fails
+- [x] Compose: `mailpit` (web inbox on 8025, SMTP inside the network only) and the `worker`
+- [x] Migration `0003_email`: `email_tokens` (hash only, CHECK that it is 32 bytes) and
+      `outbox` (with `next_attempt_at` and a partial index on what is due)
+- [x] Tokens: 32 random bytes, SHA-256 stored, purpose, expiry, single use; a new link
+      retires the old ones
+- [x] New listings start `pending_verification`: not on the map, not in the API, their page
+      404s
+- [x] "Check your email" page with the address masked (`s***@example.com`), and a pointer to
+      Mailpit only when `MAIL_VIEWER_URL` is set
+- [x] Verify page: GET shows a button and changes nothing, POST publishes; used links say
+      "Already published"; expired ones offer a new link; unknown ones 404
+- [x] Outbox written in the same transaction as the listing; rendered at send time
+- [x] Worker sends from the outbox with row locks (SKIP LOCKED), commits per message,
+      backs off 30 s / 1 / 2 / 4 min, marks `failed` after 5 tries, removes the token from
+      the row once sent
+- [x] Verified badge computed on read, on the listing page and in map popups, with "What
+      verified means" under it
+- [x] Unverified listings deleted after 7 days, with addresses that never confirmed
+- [x] Seeds are published without an email (`pre_verified`) - example.com cannot answer
+- [x] Tests: a GET on a verify link changes nothing; a used link cannot publish twice; an
+      expired link offers a new one and the new one works; the listing survives a send
+      failure; retries and the failed state; the token leaves the row once sent; the badge
+      lapses; pending listings are public nowhere
 
 Check:
 
-    # post a listing in the browser, then
-    Start-Process http://localhost:8025    # the email is there; click the link
+    docker compose up -d --build        # adds mailpit and the worker, runs migration 0003
+    Start-Process http://localhost:8010/listings/new    # post one
+    Start-Process http://localhost:8025                 # the email is there; open the link
 
 ## Stage 3 - Photos
+
+The current work.
 
 - [ ] Migration: `photos`
 - [ ] Upload on the form, several photos plus one flyer image
@@ -112,7 +127,21 @@ Check:
 - [ ] Tests: a fixture JPEG with GPS EXIF comes out with no EXIF at all; a renamed text file
       is rejected
 
-## Stage 4 - I found an animal
+## Stage 4 - I found an animal, and search circles
+
+Search circles - a must:
+
+- [ ] Read Huang et al. 2018 (cats) and Lord et al. 2007 (dogs) and take the distances from
+      the papers, not from summaries; write the figures and their sources into
+      03-architecture
+- [ ] `outdoor_access` on the form and the listing (migration), because it changes the
+      circle for cats
+- [ ] The circle on every listing's map, sized by species and outdoor access, with a line
+      saying what it is and where the figure comes from
+- [ ] For species the studies do not cover, no circle rather than a made-up one
+- [ ] Tests: the right radius per species and access; no circle for `other`
+
+The finder's search:
 
 - [ ] GiST index on `ll_to_earth`, partial on active listings
 - [ ] The distance query in one function: `earth_box` prefilter, exact `earth_distance`,
@@ -147,6 +176,10 @@ Check:
 - [ ] Edit page; every save is an event row with the changed field names
 - [ ] Still lost, home, withdraw; reopen after home
 - [ ] Withdraw deletes the listing, its photos and its events
+- [ ] Marking home asks, optionally, where the animal was found (a pin), when, and how;
+      stored in `found_lat`, `found_lng`, `found_at`, `found_how` (migration). The form
+      says the answer helps learn where lost pets go, and that it is never shown
+- [ ] Tests: the found point never appears on a public page or in the map JSON
 - [ ] Reunited listings deleted after the retention period
 - [ ] CSRF protection on every form that changes something
 - [ ] Tests: another owner's session cannot edit; withdraw leaves no files on the volume
@@ -156,6 +189,7 @@ Check:
 - [ ] `/l/{code}/flyer` with a print stylesheet: photo, name, last seen, number, approach
       advice, QR code
 - [ ] QR code generated on the server by a library, no outside service
+- [ ] The search circle on the flyer's map: "most dogs are found inside this circle"
 - [ ] Check: print to PDF from the browser, scan the code with a phone, it opens the listing
 
 ## Stage 8 - The admin section, abuse and moderation
@@ -198,6 +232,9 @@ Admin screens:
 - [ ] Settings: approval on or off; "use this view" for where the public map opens;
       configuration shown read-only
 - [ ] Activity log page
+- [ ] Dataset export: reunion pairs as CSV - lost point, found point, times, species,
+      size, age, outdoor access, how found - with no names, phones, emails or codes, and
+      never seeded or demo-mode listings
 - [ ] Every admin action writes `admin_actions`, and a `listing_events` row when it touches a
       listing
 
@@ -257,6 +294,17 @@ Not started before stage 9 is done.
 - [ ] Sightings on a listing, shown after the owner accepts them
 - [ ] Found-animal listings, and the finder's search showing both kinds
 
+## Later - Stage 12, a model of where lost pets go
+
+Only once real reunions exist. Until then the harness can be built against a synthetic
+set, labelled as synthetic.
+
+- [ ] Harness: on held-out reunions, how often is the found point inside the predicted
+      area, and how large is the area - the search circles are the baseline
+- [ ] A model: distance decay shaped by streets, parks and cover from OpenStreetMap,
+      trained locally, no hosted model
+- [ ] Shown to users only if it beats the circles, and labelled with how well it does
+
 ## Done and verified
 
 - [x] Brief taken down; requirements written: plan, overview, interaction, architecture,
@@ -269,8 +317,10 @@ Not started before stage 9 is done.
 - [x] Decided: an admin section with full control of the map; user journeys written
 - [x] Decided: no admin for visitors; a Help page tells them an admin exists and how to
       reach one
+- [x] Decided: search circles are a must; roamer collects the data for a future model
 - [x] Stage 0, the scaffold
 - [x] Stage 1, listings on a map
+- [x] Stage 2, email verification
 
 ## Blocked
 

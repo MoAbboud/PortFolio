@@ -102,9 +102,11 @@ class ListingPin(BaseModel):
     approximate: bool
     last_seen_at: datetime
     area_label: str | None
+    verified: bool
     url: str
 
 
 class ListingCreated(BaseModel):
     code: str
-    url: str
+    status: str
+    message: str

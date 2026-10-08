@@ -177,8 +177,9 @@ flowchart LR
 2. Clicks a pin. A popup: photo, name, "last seen 2 days ago", the verified badge, and
    "View listing".
 3. The listing page: photos, description, how to approach the animal, where and when it was
-   last seen on a small map, the contact number, "confirmed still lost 1 day ago", the scam
-   warning, and buttons for "Print flyer" and "Report this listing".
+   last seen on a small map with a search circle around it ("most lost dogs are found
+   within 1.6 km", with the study named), the contact number, "confirmed still lost 1 day
+   ago", the scam warning, and buttons for "Print flyer" and "Report this listing".
 4. From here the visitor can try J2 as an owner and J3 as a finder. A "Help" link in the
    footer of every page leads to J8.
 
@@ -201,7 +202,10 @@ flowchart LR
    "Send check-in now" on the manage page: "Is Biscuit still missing?" with three choices.
    Each opens a page with a button to confirm the choice.
 7. **Still missing:** the badge stays, and the page says "confirmed still lost just now".
-   **Home:** the pin leaves the map, and the listing page says Biscuit is home. **Take it
+   **Home:** the page asks, optionally, where Biscuit was found (a pin) and how (came
+   home, a neighbour, a flyer, roamer, a shelter, a microchip, social media), and says
+   the answer helps learn where lost pets go. Then the pin leaves the map, and the listing
+   page says Biscuit is home. **Take it
    down:** the listing and its photos are deleted.
 8. If the owner never answers: a few days later the badge goes and the page says "not
    confirmed for 4 days". After longer, the pin leaves the default map.
@@ -236,7 +240,8 @@ flowchart LR
 
 1. "Print flyer" on a listing page.
 2. A print layout: the main photo large, name, "LOST", where and when last seen, how to
-   approach, the number, and a QR code.
+   approach, the number, a QR code, and a small map with the search circle - "most dogs
+   are found inside this circle" - which is where the flyers should go up.
 3. The browser's print dialog, to paper or PDF. A phone camera pointed at the code opens
    the current listing - so a flyer on a pole shows "home" once the animal is back.
 

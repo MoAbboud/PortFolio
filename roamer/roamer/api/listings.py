@@ -24,6 +24,7 @@ def to_pin(listing) -> ListingPin:
         approximate=listing.location_precision == "approximate",
         last_seen_at=listing.last_seen_at,
         area_label=listing.area_label,
+        verified=service.is_verified(listing),
         url=f"/l/{listing.code}",
     )
 
@@ -47,4 +48,8 @@ def listings_in_view(
 @router.post("/listings", status_code=status.HTTP_201_CREATED, response_model=ListingCreated)
 def create(data: ListingCreate, session: Session = Depends(get_session)) -> ListingCreated:
     listing = service.create_listing(session, data)
-    return ListingCreated(code=listing.code, url=f"/l/{listing.code}")
+    return ListingCreated(
+        code=listing.code,
+        status=listing.status,
+        message="Saved. It goes on the map when the link emailed to the owner is used.",
+    )

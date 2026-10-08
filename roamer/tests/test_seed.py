@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from roamer import listings as service
 from roamer import seed
 from roamer.models import Listing
-from tests.conftest import listing_data
+from tests.conftest import create_live, listing_data
 
 
 def seeded(session: Session) -> list[Listing]:
@@ -30,10 +30,13 @@ def test_every_seed_is_marked_as_made_up(db_session: Session) -> None:
         # 555-0100 to 555-0199 is the range reserved for fiction.
         assert "555-01" in listing.contact_phone
         assert listing.owner.email.endswith("@example.com")
+        # Published without an email: example.com could never answer the link.
+        assert listing.status == "lost"
+        assert service.is_verified(listing)
 
 
 def test_reseeding_never_touches_a_listing_a_person_posted(db_session: Session) -> None:
-    mine = service.create_listing(db_session, listing_data(name="Realdog"))
+    mine = create_live(db_session, listing_data(name="Realdog"))
 
     seed.reseed(db_session)
 

@@ -361,9 +361,12 @@ sequenceDiagram
 | --- | --- |
 | `DATABASE_URL` | PostgreSQL |
 | `ROAMER_BASE_URL` | Used to build the links in emails and on flyers |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM` | The relay. Mailpit in development, with no credentials |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_STARTTLS`, `MAIL_FROM` | The relay. Mailpit in development, with no credentials |
+| `MAIL_VIEWER_URL` | Development only: where caught mail can be read. Shown on the "check your email" page when set |
+| `VERIFY_TOKEN_HOURS`, `UNVERIFIED_RETENTION_DAYS` | 24 and 7: how long a verify link works, and how long an unpublished listing is kept |
+| `WORKER_INTERVAL_SECONDS`, `OUTBOX_MAX_ATTEMPTS` | 5 and 5: how often the worker looks for work, and how many tries before an email is `failed` |
 | `IMAGE_DIR` | The image volume |
-| `CHECKIN_INTERVAL`, `CHECKIN_GRACE`, `STALE_AFTER` | The freshness rules |
+| `CHECKIN_INTERVAL_DAYS`, `CHECKIN_GRACE_DAYS`, `STALE_AFTER` | The freshness rules. 7 and 3 days for the badge, read already; `STALE_AFTER` arrives with stage 5 |
 | `TOKEN_SALT` | For hashing IP addresses on messages and rate limits |
 | `NOMINATIM_URL`, `NOMINATIM_USER_AGENT` | Nominatim's policy requires an identifying user agent |
 | `ROAMER_ADMIN_PASSWORD_HASH` | Argon2 hash of the admin's password. One person |

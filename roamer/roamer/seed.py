@@ -133,7 +133,9 @@ def reseed(session: Session, now: datetime | None = None) -> list[Listing]:
             last_seen_at=now - timedelta(hours=hours_ago),
             email=f"demo-{number:02d}@example.com",
         )
-        created.append(service.create_listing(session, data, seeded=True, now=now))
+        created.append(
+            service.create_listing(session, data, seeded=True, pre_verified=True, now=now)
+        )
     return created
 
 

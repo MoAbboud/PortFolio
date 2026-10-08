@@ -15,9 +15,9 @@ is wrong and it gets fixed rather than worked around.
 [00-plan.md](00-plan.md) is the one to read first: the stage order, the decisions already
 settled with the reason each one was taken, and the open questions still outstanding.
 
-**Stages 0 and 1 are done**: the map, the form and the listing page work. Stage 2, email
-verification, is next. It starts as a
-demo: made-up listings, every flow working, nothing reaching a real person.
+**Stages 0 to 2 are done**: the map, the form, the listing page, and email verification
+with the badge. Stage 3, photos, is next. It starts as a demo: made-up listings, every flow
+working, nothing reaching a real person.
 
 Two things about this project worth stating here so they are not discovered as surprises:
 

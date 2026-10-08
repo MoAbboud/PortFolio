@@ -12,18 +12,24 @@ from pathlib import Path
 
 from roamer import models
 
-MIGRATION = Path(__file__).parent.parent / "migrations" / "versions" / "0002_listings.py"
+VERSIONS = Path(__file__).parent.parent / "migrations" / "versions"
 
 
-def load_migration():
-    spec = importlib.util.spec_from_file_location("migration_0002", MIGRATION)
+def load_migration(filename: str):
+    spec = importlib.util.spec_from_file_location(filename, VERSIONS / filename)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
 
 
-def test_vocabularies_match_the_migration() -> None:
-    migration = load_migration()
+def test_listing_vocabularies_match_the_migration() -> None:
+    migration = load_migration("0002_listings.py")
     for name in ("SOURCES", "STATUSES", "SPECIES", "SEXES", "SIZES", "PRECISIONS",
                  "EVENT_KINDS", "ACTORS"):
+        assert getattr(migration, name) == getattr(models, name), name
+
+
+def test_email_vocabularies_match_the_migration() -> None:
+    migration = load_migration("0003_email.py")
+    for name in ("TOKEN_PURPOSES", "OUTBOX_STATUSES", "OUTBOX_TEMPLATES"):
         assert getattr(migration, name) == getattr(models, name), name

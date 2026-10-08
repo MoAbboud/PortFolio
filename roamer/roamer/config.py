@@ -6,6 +6,7 @@ gitignored .env file, and anything secret defaults to empty rather than to a wor
 
 from __future__ import annotations
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -42,6 +43,41 @@ class Settings(BaseSettings):
     map_center_lat: float = 39.0997
     map_center_lng: float = -94.5786
     map_zoom: int = 12
+
+    # The address the site is reached at, for the links inside emails and on flyers.
+    base_url: str = Field(
+        default="http://localhost:8010",
+        validation_alias=AliasChoices("ROAMER_BASE_URL", "BASE_URL", "base_url"),
+    )
+
+    # Where email goes. In development, Mailpit, which catches everything and sends nothing.
+    # The hosted demo sends nothing at all (stage 9); a real service would point these at a
+    # relay, with the credentials coming from the environment and nowhere else.
+    smtp_host: str = "localhost"
+    smtp_port: int = 1025
+    smtp_user: str | None = None
+    smtp_password: str | None = None
+    smtp_starttls: bool = False
+    mail_from: str = "roamer <noreply@roamer.test>"
+
+    # Where a person can read the caught mail, shown on the "check your email" page. Set
+    # only in development; unset, the page does not mention it.
+    mail_viewer_url: str | None = None
+
+    # How long a verify link works, and how long an unverified listing is kept before it is
+    # deleted. A day is long enough to find the email; a week is long enough to come back to it.
+    verify_token_hours: int = 24
+    unverified_retention_days: int = 7
+
+    # The freshness rules behind the verified badge. The check-in emails that move
+    # last_confirmed_at arrive in stage 5; the badge already reads these.
+    checkin_interval_days: int = 7
+    checkin_grace_days: int = 3
+
+    # The worker: how often it looks for work, and how many times one email is tried before
+    # it is marked failed.
+    worker_interval_seconds: float = 5.0
+    outbox_max_attempts: int = 5
 
 
 settings = Settings()

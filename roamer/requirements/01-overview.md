@@ -45,6 +45,7 @@ roamer puts the flyers on one map, in the place they belong, and keeps each one 
 | Keep listings current | The site emails the owner at a regular interval to ask whether the animal is still missing. One click to say still lost, found, or take it down |
 | Show how current it is | Each listing shows when the owner last confirmed it. A verified badge appears only when that confirmation is recent |
 | Update or close | An owner can edit the listing, mark the animal as home, or withdraw it, from a link sent to their email. No account, no password |
+| Search circles | Around the last-seen point, the distance within which most lost animals of that kind are found, according to published studies - so searchers and flyers go where the animal most likely is. Labelled with where the figure comes from, and never presented as a prediction |
 | Print a flyer | Any listing can be printed as a flyer with a code that a phone camera opens straight to the listing page, so the paper on the pole points back to the current information |
 | Report a problem | Anyone can flag a listing as wrong, abusive or a scam. An admin reviews it |
 | Get help | A Help page, linked from every page, says the site has an admin, what the admin can do - take down a scam, fix wrong details, help an owner who has lost access to their listing - and has a form to send them a message |
@@ -57,6 +58,7 @@ Planned for later, and not part of the first version:
 | Bring in public posts | Lost-pet posts from social media added to the map as unclaimed listings, so a finder sees them in one place. The owner can then claim the listing and verify it. How posts get in is an open question - see the plan |
 | Report a sighting | "I saw this dog here, at this time" added to an existing listing, so the owner can see where it has been |
 | Report a found animal | A finder who has the animal now can put it on the map for owners to find |
+| Learn where lost pets go | When an owner marks an animal home, they can say where it was found and how. Over time that builds the record no public dataset has - where lost animals actually end up - and a model trained on it would be compared against the search circles before anyone sees it |
 
 ## What "verified" means here
 

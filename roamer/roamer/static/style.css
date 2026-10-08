@@ -239,6 +239,24 @@ h2 { font-size: 1.15rem; margin: 1.5rem 0 0.5rem; }
 }
 .listing-seen { color: var(--ink-soft); margin: 0; }
 
+.badge {
+  display: inline-block;
+  margin: 6px 0;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.badge-verified { background: var(--ok-bg); border: 1px solid var(--ok-line); }
+.badge-quiet { background: var(--surface); border: 1px dashed var(--line); color: var(--ink-soft); }
+.badge-small { font-size: 0.75rem; padding: 1px 8px; margin: 2px 0 4px; }
+
+.badge-meaning { color: var(--ink-soft); font-size: 0.9rem; margin: 0 0 8px; }
+.badge-meaning summary { cursor: pointer; }
+.badge-meaning p { margin: 6px 0 0; max-width: 60ch; }
+
+.notice-dev { border-style: dashed; }
+
 .listing-body {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);

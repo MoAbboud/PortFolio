@@ -1,22 +1,30 @@
 """The listing service. Routes call this; nothing else writes a listing.
 
-Stage 1 has no verification, so a new listing goes straight on the map as `lost`. Stage 2
-changes that one line: new listings start as `pending_verification` and wait for the email
-link. Everything else here stays.
+A new listing waits at `pending_verification` until the link emailed to its owner is used.
+Nothing anonymous reaches the map. The verify email is queued in the same transaction as the
+listing, so a listing can never exist without its email on the way.
+
+The verified badge is worked out when a listing is read, from timestamps, and never stored:
+a stored flag would be right the day it was set and quietly wrong a month later, which is
+the exact failure the badge exists to prevent.
 """
 
 from __future__ import annotations
 
+import enum
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, delete, exists, or_, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
-from roamer import codes
-from roamer.models import ACTIVE_STATUS, Listing, ListingEvent, Owner
+from roamer import codes, mail, tokens
+from roamer.config import settings
+from roamer.models import ACTIVE_STATUS, EmailToken, Listing, ListingEvent, Owner
 from roamer.schemas import ListingCreate
+
+PENDING = "pending_verification"
 
 # An approximate location is snapped to a grid on the way in, so the exact point the owner
 # clicked is never stored - not shown, not returned by the API, not in a backup. 0.005
@@ -81,11 +89,18 @@ def create_listing(
     data: ListingCreate,
     *,
     seeded: bool = False,
+    pre_verified: bool = False,
     now: datetime | None = None,
 ) -> Listing:
-    """Store a new listing, with its owner and a `created` event, and commit."""
+    """Store a new listing, with its owner, a `created` event and its verify email; commit.
+
+    `pre_verified` puts it straight on the map with no email. Only the demo's made-up
+    listings use it - their addresses are at example.com and could never answer a link.
+    """
     now = now or datetime.now(timezone.utc)
     owner = _owner_for(session, str(data.email))
+    if pre_verified and owner.email_confirmed_at is None:
+        owner.email_confirmed_at = now
 
     lat, lng = data.last_seen_lat, data.last_seen_lng
     if data.location_precision == "approximate":
@@ -98,12 +113,11 @@ def create_listing(
             code=codes.new_code(),
             owner_id=owner.id,
             source="owner",
-            status=ACTIVE_STATUS,
+            status=ACTIVE_STATUS if pre_verified else PENDING,
             last_seen_lat=lat,
             last_seen_lng=lng,
-            # Stage 1 has no verification. From stage 2 this is set when the email link is
-            # used, and by every check-in answer after that.
-            last_confirmed_at=now,
+            # Set when the email link is used, and by every check-in answer after that.
+            last_confirmed_at=now if pre_verified else None,
             seeded=seeded,
         )
         try:
@@ -126,8 +140,144 @@ def create_listing(
             detail={"seeded": True} if seeded else {},
         )
     )
+    if not pre_verified:
+        _queue_verify_email(session, listing, owner, now)
     session.commit()
     return listing
+
+
+def _queue_verify_email(session: Session, listing: Listing, owner: Owner, now: datetime) -> None:
+    token = tokens.issue(
+        session,
+        purpose="verify",
+        owner_id=owner.id,
+        listing_id=listing.id,
+        lifetime=timedelta(hours=settings.verify_token_hours),
+        now=now,
+    )
+    mail.queue(
+        session,
+        to=owner.email,
+        template="verify",
+        payload={
+            "token": token,
+            "code": listing.code,
+            "name": listing.name,
+            "species": listing.species,
+            "hours": settings.verify_token_hours,
+        },
+    )
+
+
+class Verify(enum.Enum):
+    READY = "ready"  # a valid link for a listing still waiting
+    PUBLISHED = "published"  # just published by this request
+    ALREADY = "already"  # the listing is already live; the link was used before
+    STALE = "stale"  # used or expired, and the listing is still waiting - offer a new link
+    INVALID = "invalid"  # no such link, or its listing is gone
+
+
+@dataclass
+class VerifyResult:
+    outcome: Verify
+    listing: Listing | None = None
+    token: EmailToken | None = None
+
+
+def check_verify_link(session: Session, token: str, now: datetime | None = None) -> VerifyResult:
+    """What the verify page should show for this link. Changes nothing.
+
+    The GET of an email link must never act: mail providers' link scanners open every link
+    before a person does, and a link that published on open would be published by a robot.
+    """
+    found = tokens.look_up(session, token, purpose="verify", now=now)
+    listing = found.token.listing if found.token else None
+    if listing is None:
+        return VerifyResult(Verify.INVALID)
+    if listing.status != PENDING:
+        return VerifyResult(Verify.ALREADY, listing)
+    if found.state is tokens.State.VALID:
+        return VerifyResult(Verify.READY, listing, found.token)
+    return VerifyResult(Verify.STALE, listing, found.token)
+
+
+def publish(session: Session, token: str, now: datetime | None = None) -> VerifyResult:
+    """Use a verify link: confirm the owner's address and put the listing on the map."""
+    now = now or datetime.now(timezone.utc)
+    result = check_verify_link(session, token, now)
+    if result.outcome is not Verify.READY:
+        return result
+
+    listing = result.listing
+    result.token.used_at = now
+    if listing.owner.email_confirmed_at is None:
+        listing.owner.email_confirmed_at = now
+    # Stage 8 adds the approval switch here: with approval on, `awaiting_approval` instead.
+    listing.status = ACTIVE_STATUS
+    listing.last_confirmed_at = now
+    session.add(ListingEvent(listing_id=listing.id, kind="verified", actor="owner"))
+    session.commit()
+    return VerifyResult(Verify.PUBLISHED, listing)
+
+
+def resend_verify_link(session: Session, token: str, now: datetime | None = None) -> VerifyResult:
+    """Send a fresh link for a listing still waiting, retiring the old ones.
+
+    Reached from an old link, so only someone who received the first email can ask for a
+    second, and it goes to the same address. Rate limits arrive with stage 8.
+    """
+    now = now or datetime.now(timezone.utc)
+    result = check_verify_link(session, token, now)
+    if result.outcome not in (Verify.READY, Verify.STALE):
+        return result
+    listing = result.listing
+    tokens.supersede(session, purpose="verify", listing_id=listing.id, now=now)
+    _queue_verify_email(session, listing, listing.owner, now)
+    session.commit()
+    return result
+
+
+def delete_unverified(session: Session, now: datetime | None = None) -> int:
+    """Delete listings never verified within the retention period, and owners left with nothing.
+
+    An address that never confirmed is not kept: somebody typed it, possibly not its owner.
+    """
+    now = now or datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=settings.unverified_retention_days)
+    removed = session.execute(
+        delete(Listing).where(Listing.status == PENDING, Listing.created_at < cutoff)
+    ).rowcount
+    session.execute(
+        delete(Owner).where(
+            Owner.email_confirmed_at.is_(None),
+            ~exists().where(Listing.owner_id == Owner.id),
+        )
+    )
+    session.commit()
+    return removed
+
+
+def is_verified(listing: Listing, now: datetime | None = None) -> bool:
+    """The badge: an owner listing, a confirmed address, and a recent answer.
+
+    It says the person managing the listing controls the email it was posted with and said
+    recently that the animal is still missing. It does not say who owns the animal.
+    """
+    now = now or datetime.now(timezone.utc)
+    window = timedelta(days=settings.checkin_interval_days + settings.checkin_grace_days)
+    return (
+        listing.source == "owner"
+        and listing.owner is not None
+        and listing.owner.email_confirmed_at is not None
+        and listing.last_confirmed_at is not None
+        and now - listing.last_confirmed_at <= window
+    )
+
+
+def mask_email(email: str) -> str:
+    """s***@example.com - enough to recognise your own address, not enough to harvest one."""
+    local, _, domain = email.partition("@")
+    return f"{local[:1]}***@{domain}" if domain else "***"
 
 
 def get_by_code(session: Session, code: str) -> Listing | None:
@@ -177,6 +327,8 @@ def active_in_bbox(
 
     query = (
         select(Listing)
+        # The badge reads the owner; load them in one query rather than one per pin.
+        .options(selectinload(Listing.owner))
         .where(and_(*conditions))
         .order_by(Listing.last_seen_at.desc())
         .limit(MAX_PINS)
