@@ -88,6 +88,7 @@
         {% if listing.age_text %}<dt>Age</dt><dd>{{ listing.age_text }}</dd>{% endif %}
         {% if listing.breed %}<dt>Breed</dt><dd>{{ listing.breed }}</dd>{% endif %}
         {% if listing.colours %}<dt>Colours</dt><dd>{{ listing.colours }}</dd>{% endif %}
+        {% if listing.outdoor_access != 'unknown' %}<dt>Outdoors</dt><dd>{{ OUTDOOR_ACCESS_LABELS[listing.outdoor_access] }}</dd>{% endif %}
       </dl>
 
       {% if listing.description %}
@@ -114,10 +115,24 @@
     {% if listing.location_precision == 'approximate' %}
     <p class="hint">Somewhere in the circle. The owner chose not to give the exact spot.</p>
     {% endif %}
+    {% set circle = circle_for(listing.species, listing.outdoor_access) %}
     <div id="listing-map" class="map-small"
          data-lat="{{ listing.last_seen_lat }}" data-lng="{{ listing.last_seen_lng }}"
          data-approximate="{{ 'true' if listing.location_precision == 'approximate' else 'false' }}"
-         data-radius="{{ APPROXIMATE_RADIUS_M }}"></div>
+         data-radius="{{ APPROXIMATE_RADIUS_M }}"
+         {% if circle and not home %}data-search-outer="{{ circle.outer_m }}" data-search-inner="{{ circle.inner_m }}"{% endif %}></div>
+    {% if circle and not home %}
+    <div class="search-circle-note">
+      <p><strong>Where to search.</strong> In a published study of {{ circle.sample }},
+        {{ circle.outer_share }} of {{ circle.group }} were found within
+        {{ describe_distance(circle.outer_m) }} of home or where they got out (the large
+        circle), and {{ circle.inner_share }} within {{ describe_distance(circle.inner_m) }}
+        (the small one). Search and put up flyers inside the large circle first.</p>
+      <p class="hint">A published average, not a prediction for {{ listing.name or 'this animal' }}.
+        Source: <a href="{{ circle.source.url }}" target="_blank" rel="noopener">{{ circle.source.short }}</a>.
+        The circle is drawn around where {{ listing.name or 'it' }} was last seen.</p>
+    </div>
+    {% endif %}
   </section>
 
   <p class="listing-code">Listing code: <strong>{{ listing.code }}</strong></p>

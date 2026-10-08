@@ -72,11 +72,12 @@ flowchart LR
 | 11 | Sightings and found reports | Later. Sightings are also data: the path between the lost point and the found point |
 | 12 | A model of where lost pets go | Later, and only once real reunions exist. A harness compares the search circles (the baseline) with a model on reunions it has not seen. Nothing is shown to users as a prediction until it beats the circles |
 
-**Stages 0 to 3 are done.** The scaffold runs from one `docker compose up` and is tested in
+**Stages 0 to 4 are done.** The scaffold runs from one `docker compose up` and is tested in
 CI against a real database. The map shows twelve made-up Kansas City listings. A person can
 post one with photos and a flyer, gets an email, and the listing goes on the map with a
-verified badge only when the link is used. Photos are stored upright with every byte of
-metadata removed. 91 tests. Stage 4 - search circles and the finder's search - is next.
+verified badge only when the link is used. Every listing shows search circles from published
+studies. A finder can say where they are and get the nearest lost animals. 122 tests.
+Stage 5, check-ins and freshness, is next.
 
 ### Why the map comes before verification
 
@@ -104,7 +105,8 @@ What that means in practice:
 
 1. **Search circles first (stage 4), as the honest baseline.** A published base rate,
    drawn and labelled as one - not a prediction. Figures come from reading the papers
-   themselves (Huang et al. 2018 for cats, Lord et al. 2007 for dogs), not from summaries.
+   themselves, not from summaries: Huang et al. 2018 for cats, Kremer 2021 for dogs (Lord
+   et al. 2007, first named here, turned out to publish no distances).
 2. **Every listing records what a model would need**, as fields on the form rather than
    guessed later: species, size, age, last-seen point and time, and whether the animal
    normally goes outdoors. Temperament and approach advice are already there.

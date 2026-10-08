@@ -151,37 +151,51 @@ Check:
 
 ## Stage 4 - I found an animal, and search circles
 
-The current work.
+Done. 122 tests. Also run for real: one live address lookup through Nominatim, the finder's
+page driven in Chrome with a faked GPS position and with a typed address, and the circles
+screenshotted on a dog's and an indoor cat's listing, at desktop and phone width.
 
 Search circles - a must:
 
-- [ ] Read Huang et al. 2018 (cats) and Lord et al. 2007 (dogs) and take the distances from
-      the papers, not from summaries; write the figures and their sources into
-      03-architecture
-- [ ] `outdoor_access` on the form and the listing (migration), because it changes the
-      circle for cats
-- [ ] The circle on every listing's map, sized by species and outdoor access, with a line
-      saying what it is and where the figure comes from
-- [ ] For species the studies do not cover, no circle rather than a made-up one
-- [ ] Tests: the right radius per species and access; no circle for `other`
+- [x] The papers read for the figures. Cats: Huang et al. 2018 (median and 75th percentile
+      per outdoor-access group). Dogs: **not** Lord et al. 2007 as planned - its abstract has
+      no distances - but Kremer 2021, 10,000 Dallas strays returned to owners. Figures and
+      sources in 03-architecture, "Search circles"
+- [x] `outdoor_access` on the form and the listing (migration `0005_search`), shown on the
+      listing as "Outdoors"; the made-up cats have answers
+- [x] Two rings on every listing's map, sized by species and outdoor access, with a note
+      saying what the rings are, the study and its sample, that it is not a prediction, and
+      that the rings are drawn around the last-seen point
+- [x] No circle for species the studies do not cover, and none once the animal is home
+- [x] Tests: the published figures per species and access; dogs the same whatever the
+      access; no circle for `other`; the page names the study
 
 The finder's search:
 
-- [ ] GiST index on `ll_to_earth`, partial on active listings
-- [ ] The distance query in one function: `earth_box` prefilter, exact `earth_distance`,
-      nearest first, then most recent
-- [ ] `GET /api/listings/near`
-- [ ] Geocode proxy: Nominatim with the identifying user agent, a cache table or a cache in
-      memory, one request a second at most, search on submit only
-- [ ] The `/found` page: use my location, or type an address; results as cards and on a map
-- [ ] Tests: the index is used (`EXPLAIN`); distances are right to within a few metres for
-      known points; inactive listings never appear
+- [x] GiST index `listings_active_earth` on `ll_to_earth`, partial on active listings
+- [x] `listings.nearest()`: `earth_box` prefilter, exact `earth_distance`, nearest first then
+      most recent, 50 km and 50 results at most
+- [x] `GET /api/listings/near` with `distance_m`; nonsense coordinates and radii refused
+- [x] `GET /api/geocode`: Nominatim with an identifying user agent, an in-memory LRU cache
+      (failures not cached), one request a second across the process, results biased to the
+      map's area, three characters minimum
+- [x] The `/found` page: use my location, or type an address and pick from the matches;
+      results as cards and on a map; species and distance filters; what to do when nothing
+      matches; what to ask for before handing an animal over
+- [x] "I found an animal" in the header on every page, shortened to "Found one" on phones
+- [x] Tests: the index can be used (`EXPLAIN` with sequential scans off); distances within a
+      metre of an independent calculation; the radius is a circle, not the box; inactive and
+      pending listings never appear; the cache and the rate limiter
 
 Check:
 
-    Invoke-RestMethod "http://localhost:8010/api/listings/near?lat=51.5&lng=-0.12&radius_km=5"
+    Invoke-RestMethod "http://localhost:8010/api/listings/near?lat=39.0329&lng=-94.5936&radius_km=2"
+    Invoke-RestMethod "http://localhost:8010/api/geocode?q=Loose%20Park"
+    Start-Process http://localhost:8010/found
 
 ## Stage 5 - Check-ins and freshness
+
+The current work.
 
 - [ ] Worker loop: find active listings past `CHECKIN_INTERVAL` with no check-in
       outstanding, write a token and an outbox row each
@@ -346,6 +360,7 @@ set, labelled as synthetic.
 - [x] Stage 1, listings on a map
 - [x] Stage 2, email verification
 - [x] Stage 3, photos
+- [x] Stage 4, search circles and the finder's search
 
 ## Blocked
 

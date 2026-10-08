@@ -107,6 +107,7 @@ class Listing(Base):
     last_seen_lat: Mapped[float] = mapped_column(Float)
     last_seen_lng: Mapped[float] = mapped_column(Float)
     location_precision: Mapped[str] = mapped_column(Text, server_default="exact")
+    outdoor_access: Mapped[str] = mapped_column(Text, server_default="unknown")
     area_label: Mapped[str | None] = mapped_column(Text)
 
     contact_name: Mapped[str | None] = mapped_column(Text)

@@ -231,6 +231,59 @@ no path leaves photos behind.
 Photos come in through the HTML form only. The JSON `POST /api/listings` takes no files;
 an API upload endpoint can come later if anything needs it.
 
+## Search circles
+
+`roamer/circles.py`. Two rings around the last-seen point: where a published share of lost
+animals of that kind were found. A base rate, drawn and labelled as one - every page names
+the study, its sample, and says it is not a prediction. They are also the baseline any
+future model must beat (stage 12).
+
+| Animal | Outer ring | Inner ring | Source |
+| --- | --- | --- | --- |
+| Cat, indoor-only | 137 m (75%) | 39 m (half) | Huang et al. 2018, 164 cats |
+| Cat, goes outside on its own | 1,609 m (75%) | 300 m (half) | Huang et al. 2018, 150 cats |
+| Cat, lives outdoors | 1,609 m (75%) | 300 m (half) | as above - the outdoor-only group was 15 cats, too few to use alone, and its 75th percentile was the same 1,609 m |
+| Cat, not known | 500 m (75%) | 50 m (half) | Huang et al. 2018, 477 cats found alive |
+| Dog, any | 1,609 m (70%) | 122 m (42%) | Kremer 2021, 10,000 dogs |
+| Other | none | none | no study |
+
+Sources, read in the papers themselves:
+
+- Huang L, Coradini M, Rand J, Morton J, Albrecht K, Wasson B, Robertson D. Search Methods
+  Used to Locate Missing Cats and Locations Where Missing Cats Are Found. *Animals*
+  2018;8(1):5. https://doi.org/10.3390/ani8010005. Online questionnaire, 1,044 cats; distance
+  from the point of escape for the 477 found alive. Self-selected and retrospective, which
+  the paper itself flags.
+- Kremer T. A New Web-Based Tool for RTO-Focused Animal Shelter Data Analysis. *Frontiers in
+  Veterinary Science* 2021;8:669428. https://doi.org/10.3389/fvets.2021.669428. Dallas
+  Animal Services, fiscal 2019: 10,000 stray dogs returned to owners with a known home
+  address; straight-line distance from home to where found. "70% of dogs are not found
+  beyond 1 mile away", "42% go <400 ft". One city, dogs that reached a shelter.
+
+Lord et al. 2007 (JAVMA 230:211) was the planned dog source; its abstract reports recovery
+rates and methods but no distances, so it is not used for the circle.
+
+Both studies measured from home or the point of escape; roamer's pin is where the animal was
+last seen. Usually the same place, sometimes not, and the note under the map says which point
+the rings are drawn around. No circle is drawn once an animal is home.
+
+## The finder's search
+
+`listings.nearest()` is the one spatial query: `earth_box` around the point, which the GiST
+index `listings_active_earth` can search, then exact `earth_distance` to trim the box to the
+circle, nearest first then most recent. At most 50 km and 50 results. The indexed expression
+and the query's are identical, or the planner could not use the index; a test checks the plan.
+
+`GET /api/geocode` (`roamer/geocode.py`) turns a typed address into places: Nominatim, with
+an identifying User-Agent, at most one request a second across the process, an in-memory
+LRU cache of 500 queries (failures are not cached), results biased to roughly 50 km around
+the map's default centre. Called on submit only, never as the finder types - the usage policy
+forbids search-as-you-type. A `Geocoder` protocol lets tests use a fake.
+
+The `/found` page: "Use my location" (the browser's geolocation) or an address, then the
+nearest active listings as cards and pins, filterable by species and distance. When nothing
+matches, it says what to do next: tag, microchip scan, the local shelter.
+
 ## The admin section
 
 One admin, the author, with full control of the map. Server-rendered like the rest, under

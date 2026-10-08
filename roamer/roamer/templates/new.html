@@ -74,6 +74,22 @@ and where it was last seen, and a number to call are required.</p>
       </label>
     </div>
 
+    <div class="field">
+      <span class="label">Does it go outside on its own?</span>
+      <div class="choices">
+        {% for value, label in OUTDOOR_ACCESS_LABELS.items() %}
+        <label class="choice">
+          <input type="radio" name="outdoor_access" value="{{ value }}"
+                 {% if values.get('outdoor_access', 'unknown') == value %}checked{% endif %}>
+          {{ label }}
+        </label>
+        {% endfor %}
+      </div>
+      <p class="hint">For a cat this changes where to search: an indoor-only cat is usually
+        found within a few houses, one used to roaming much further.</p>
+      {{ error('outdoor_access') }}
+    </div>
+
     <div class="field-row">
       <label class="field">
         <span class="label">Breed</span>

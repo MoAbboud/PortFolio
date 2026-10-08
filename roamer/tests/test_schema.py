@@ -29,6 +29,12 @@ def test_listing_vocabularies_match_the_migration() -> None:
         assert getattr(migration, name) == getattr(models, name), name
 
 
+def test_outdoor_access_matches_the_migration() -> None:
+    from roamer import circles
+
+    assert load_migration("0005_search.py").OUTDOOR_ACCESS == circles.OUTDOOR_ACCESS
+
+
 def test_photo_kinds_match_the_migration() -> None:
     assert load_migration("0004_photos.py").PHOTO_KINDS == models.PHOTO_KINDS
 

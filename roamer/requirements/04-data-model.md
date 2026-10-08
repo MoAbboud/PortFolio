@@ -139,7 +139,7 @@ for each.
 | `last_confirmed_at` | timestamptz | Set at verification, and by every check-in answer and every owner edit |
 | `hidden_at`, `hidden_reason` | timestamptz, text | Moderation. Separate from `status` on purpose - see below |
 | `seeded` | boolean | True for the made-up demo listings. The demo's daily reset restores these and deletes everything else. Never part of the model dataset |
-| `outdoor_access` | text | Stage 4. `indoor_only`, `indoor_outdoor`, `outdoor`, `unknown`. Changes the search circle for cats, and is a model feature |
+| `outdoor_access` | text | Migration 0005. `indoor_only`, `indoor_outdoor`, `outdoor`, `unknown` (the default). Changes the search circle for cats, and is a model feature |
 | `found_lat`, `found_lng` | float8 | Stage 6. Where the animal was found, if the owner says. Optional. Never shown publicly - it is research data, and can be close to the owner's home |
 | `found_at` | timestamptz | Stage 6. When it was found. Time missing is `found_at - last_seen_at` |
 | `found_how` | text | Stage 6. `came_home`, `neighbour`, `flyer`, `roamer`, `shelter`, `microchip`, `social_media`, `other` - the categories the studies use |
@@ -147,9 +147,13 @@ for each.
 
 Index: GiST on `ll_to_earth(last_seen_lat, last_seen_lng)`, partial on `status = 'lost'
 and hidden_at is null`. The map and the finder search only ever look at active listings, so
-the index holds only those. It arrives at stage 4 with the distance query. Until then a
-partial index on `last_seen_at` over the same active rows serves the map, which asks for
-a box of active listings, newest first.
+the index holds only those. Named `listings_active_earth`, added in migration `0005_search`
+with the distance query, which uses exactly the same expression. A partial index on
+`last_seen_at` over the same active rows serves the map, which asks for a box of active
+listings, newest first.
+
+The geocoder's cache is not a table: an in-memory LRU in the web process (see
+03-architecture). One process and a demo's worth of searches do not need more.
 
 The vocabularies (species, statuses, event kinds and so on) are CHECK constraints. The
 migration keeps its own frozen copy of each list rather than importing the models', so

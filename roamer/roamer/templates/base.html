@@ -14,7 +14,9 @@
     <a class="brand" href="/">roamer</a>
     <nav class="site-nav">
       <a href="/">Map</a>
-      <a class="button button-primary" href="/listings/new">Report a lost animal</a>
+      {# The finder is the person the site is for, so this stays visible at phone width. #}
+      <a class="button" href="/found"><span class="long">I found an animal</span><span class="short">Found one</span></a>
+      <a class="button button-primary" href="/listings/new"><span class="long">Report a lost animal</span><span class="short">Report lost</span></a>
     </nav>
   </header>
   <main class="{% block main_class %}page{% endblock %}">

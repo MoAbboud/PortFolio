@@ -17,6 +17,7 @@ Species = Literal["dog", "cat", "other"]
 Sex = Literal["male", "female", "unknown"]
 Size = Literal["small", "medium", "large"]
 Precision = Literal["exact", "approximate"]
+OutdoorAccess = Literal["indoor_only", "indoor_outdoor", "outdoor", "unknown"]
 
 # A clock a few minutes fast in the owner's phone must not make "I saw her just now" an
 # error. Ten minutes covers that and still refuses a date in the future by mistake.
@@ -38,6 +39,7 @@ class ListingCreate(BaseModel):
     age_text: str | None = Field(default=None, max_length=40)
     description: str | None = Field(default=None, max_length=2000)
     approach_advice: str | None = Field(default=None, max_length=500)
+    outdoor_access: OutdoorAccess = "unknown"
 
     last_seen_at: datetime
     last_seen_lat: float = Field(ge=-90, le=90)
@@ -105,6 +107,18 @@ class ListingPin(BaseModel):
     verified: bool
     thumb_url: str | None
     url: str
+
+
+class NearPin(ListingPin):
+    """A pin from the finder's search: the same, plus how far away it is."""
+
+    distance_m: float
+
+
+class PlaceOut(BaseModel):
+    label: str
+    lat: float
+    lng: float
 
 
 class ListingCreated(BaseModel):
