@@ -1,0 +1,40 @@
+# pedalsim's suite. No database, no services and no dependencies: plain Node.
+#
+# The suite includes test/rules.test.js, which reads every file in sim/ and fails on anything
+# that would let the same run log give different numbers on different machines. That is the
+# check most worth having on every pull request: a share link is replayed in someone else's
+# browser, and it only works while that rule holds.
+
+name: pedalsim
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - pedalsim/**
+      - .github/workflows/test-pedalsim.yml
+  # No path filter on pull requests, deliberately, as in the other suites: a required status
+  # check that never runs leaves the pull request waiting for it forever.
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    # The status check's name in branch protection. Unique per workflow.
+    name: pedalsim tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pedalsim
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Test
+        run: node --test

@@ -64,7 +64,9 @@ flowchart LR
 | 7 | 0 to 60, score, board, share link | Countdown, run recorder, ghost needle, phase-by-phase time lost, the score and the clean mark, bests and recent runs held in memory until a refresh, share links that re-drive on open. A test: a run recorded in headless Chrome scores the same in Node |
 | 8 | Publish | In `deploy/build-static.mjs` and the Pages workflow; README with what it is, a short recording, how to run it, what a shared run does and does not prove; root README lists it |
 
-**Nothing is built.**
+**Stage 0 is done**: the scaffold, the determinism rules enforced by a test, the replay that
+every later feature will drive the simulation through, the trace tool, the empty-circle page
+and CI. 26 tests. Stage 1, engines from their dimensions, is next.
 
 ### Why the maths comes first and headless
 

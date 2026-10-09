@@ -6,7 +6,7 @@ Every stage is checked from a PowerShell terminal on Windows. If a stage cannot 
 that way, it is not finished. Every stage that changes the page is also checked at phone
 width in landscape in the browser's device view.
 
-Nothing is built. Planning is in progress.
+Stage 0 is done. Stage 1, engines from their dimensions, is next.
 
 ## Planning
 
@@ -27,18 +27,36 @@ Nothing is built. Planning is in progress.
 
 ## Stage 0 - Scaffold
 
-- [ ] `pedalsim/` layout: `index.html`, `sim/`, `engines/`, `ui/`, `input/`, `tools/`,
-      `test/`, `package.json` with `"type": "module"` and `"test": "node --test"`
-- [ ] `sim/step.js` exporting `step(engine, chassis, state, inputs)` and `initialState(...)`
-- [ ] `tools/drive.js`: a scripted input list in, a CSV trace out
-- [ ] `index.html` opens under `npx serve`
+Done. 26 tests. The page served by `npx serve` loads its module in headless Chrome (the html
+element carries `data-sim="0"`), and was looked at at 1280 x 720 and at 844 x 390.
+
+- [x] `pedalsim/` layout: `index.html`, `sim/`, `ui/`, `tools/`, `test/`, `package.json`
+      with `"type": "module"` and `"test": "node --test"`, `serve.json` (no caching, as in
+      trail). `engines/` and `input/` appear with their first files in stages 1 and 4
+- [x] `sim/step.js`: `step(engine, chassis, state, inputs)` returning a new state with the
+      clock moved on, `initialState()`, `DT`, `STEPS_PER_SECOND = 1000`, `SIM_VERSION = 0`
+- [x] `sim/inputs.js`: the five channels, pedals as integers 0 to 1023, `quantise` (the one
+      place a fraction is rounded), `applyEvent` that refuses bad values
+- [x] `sim/replay.js`: drive the simulation from a script in run-log shape; refuses a broken
+      script before stepping. The ghost, the solver and share links will use it
+- [x] `tools/drive.js`: script in, CSV trace out; `--every`, and `--out`, which writes plain
+      UTF-8 and makes the folder (PowerShell 5.1's `>` can write UTF-16 or a BOM).
+      `traces/` is gitignored
+- [x] `test/rules.test.js`: reads every file in `sim/` and fails on `Math.sin` and friends,
+      `**`, `Date`, `performance`, `Math.random`, browser globals, or an import from outside
+      `sim/` - with a test that the checker itself catches each of them. Pulled forward from
+      stage 1, because the rule matters from the first line
+- [x] `index.html`: the starting state - two empty circles in the V4's colours - and a module
+      import, so a server that sends `.js` as text/plain shows up now rather than in stage 3
+- [x] `.github/workflows/test-pedalsim.yml`, pulled forward from stage 8 as roamer did at
+      its stage 0. The badge in the root README waits for stage 8, with the root README entry
 
 Check:
 
     cd pedalsim
     npm test
-    node tools/drive.js test/scripts/idle.json > idle.csv
-    npx --yes serve .
+    node tools/drive.js test/scripts/idle.json --out traces/idle.csv
+    npx --yes serve .        # then open the address it prints: two empty circles
 
 ## Stage 1 - Engines from their dimensions
 
@@ -137,7 +155,8 @@ Check:
 ## Stage 8 - Publish
 
 - [ ] `deploy/build-static.mjs` and `.github/workflows/pages.yml` include pedalsim
-- [ ] `.github/workflows/test-pedalsim.yml` running `npm test`, and the badge
+- [x] `.github/workflows/test-pedalsim.yml` running `node --test` (done at stage 0)
+- [ ] The badge in the root README
 - [ ] README: what it is, a recording, how to run it, what a shared run proves and does not
 - [ ] Credits file: Filip Zrnzevic's pen as the inspiration (no code taken), and each font with
       its licence
