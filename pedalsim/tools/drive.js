@@ -20,6 +20,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { replay } from '../sim/replay.js';
 import { ENGINES } from '../engines/index.js';
+import { CHASSIS } from '../sim/chassis.js';
 import { STEPS_PER_SECOND } from '../sim/step.js';
 
 const RAD_S_TO_RPM = 60 / (2 * Math.PI);
@@ -45,18 +46,20 @@ if (!path || !Number.isInteger(every) || every < 1 || out === '' || (engineId !=
 
 const script = JSON.parse(readFileSync(path, 'utf8'));
 
-// No chassis yet: the car arrives in stage 2, and until then the engine is in neutral.
-const rows = ['t,rpm,mph,gear,running,load,cut,thr,brake,clutch'];
+// mph is the car; wheel_mph is the rear wheels, which run ahead of it when they spin.
+const rows = ['t,rpm,mph,wheel_mph,gear,running,load,cut,tc,thr,brake,clutch'];
 replay(engine, null, script, (state, inputs) => {
   if (state.step % every !== 0) return;
   rows.push([
     (state.step / STEPS_PER_SECOND).toFixed(3),
     (state.we * RAD_S_TO_RPM).toFixed(0),
     (state.v * MS_TO_MPH).toFixed(2),
+    ((state.ww ?? 0) * CHASSIS.wheelRadius * MS_TO_MPH).toFixed(2),
     state.gear,
     state.running ? 1 : 0,
     state.load.toFixed(3),
     state.cut ? 1 : 0,
+    (state.tc ?? 1).toFixed(2),
     inputs.thr,
     inputs.brake,
     inputs.clutch,

@@ -8,7 +8,8 @@
 
 import { ENGINES } from '../engines/index.js';
 import { ENGINES as PARAMS } from '../engines/params.js';
-import { peaks, startUp, freeRev, revTime } from './measure.js';
+import { peaks, startUp, freeRev, revTime, autoZeroToSixty } from './measure.js';
+import { CHASSIS } from '../sim/chassis.js';
 
 const KW_TO_HP = 1 / 0.7457;
 const PEDALS = [0.1, 0.2, 0.3, 0.4];
@@ -52,6 +53,11 @@ for (const engine of ENGINES) {
   console.log(`  idle to redline, flat out in neutral: ${revTime(engine).toFixed(2)} s`);
   const free = PEDALS.map((q) => `${q * 100}% ${Math.round(freeRev(engine, q).mean)}`);
   console.log(`  held throttle in neutral -> rpm: ${free.join(', ')}`);
+  const g = engine.gearing;
+  console.log(`  in the car: ${engine.mass + CHASSIS.massWithoutEngine} kg, gears ${g.ratios.join(' ')} x ${g.finalDrive}, ` +
+    `top speed ${Math.round(g.topSpeed * 2.23694)} mph`);
+  console.log(`  coach changes up at ${engine.coach.upshiftRpm.join(', ')} rpm`);
+  console.log(`  automatic, flat out, traction control on: 0-60 mph in ${autoZeroToSixty(engine).toFixed(2)} s`);
   console.log('');
 }
 console.log(out ? `${out} figure(s) outside their published range` : 'every figure inside its published range');

@@ -76,7 +76,15 @@ export default {
 - **Not in the file**, on purpose: the full-throttle torque and power curves and their peaks.
   They are what the tables *produce*, so they are measured by running the engine
   (`tools/measure.js`) rather than stored where they could disagree with it.
-- **Gearing and coach points** move to stage 2, where the chassis they depend on exists.
+- **Added in stage 2**, worked out with the chassis:
+
+```
+  gearing: { wheelRadius, finalDrive: 3.4, ratios: [6], reverse, clutchMaxNm, topSpeed },
+  coach:   { upshiftRpm: [5] },                 full throttle, gear 1 to 5
+  auto:    { up: [[light, full] x 5], down: [[light, full] x 5],     m/s
+             kickdown: 0.92, lockupFromGear: 3, stallRpm,
+             converter: { K: table over speed ratio, TR: table over speed ratio } },
+```
 - **The engine hash** for a run log (stage 7) is the parameters hash in the header.
 
 ## Perfect runs - generated
@@ -94,13 +102,16 @@ export default {
 
 ## The chassis
 
-`sim/chassis.js`, plain constants. One car for every engine.
+`sim/chassis.js`, plain constants. One car for every engine. Built in stage 2.
 
 ```
-{ massWithoutEngine: 1250, cdA: 0.65, crr: 0.012, wheelRadius: 0.33,
-  wheelbase: 2.6, cgHeight: 0.5, staticRearFraction: 0.5,
-  muStatic: 1.05, muKinetic: 0.85, wheelInertia: 2.4, brakeMax: 14000 }
+{ massWithoutEngine: 1250, wheelRadius: 0.33, cdA: 0.70, crr: 0.012, airDensity: 1.2,
+  g: 9.81, wheelbase: 2.6, cgHeight: 0.5, rearWeightFraction: 0.52,
+  muStatic: 1.15, muKinetic: 0.9, wheelInertia: 2.4, brakeDecelMax: 1.0 }
 ```
+
+The chassis is part of what an engine file is built from (its gearing depends on it), so it
+is in the parameters hash: change the car and every engine file is stale until rebuilt.
 
 ## The run log
 

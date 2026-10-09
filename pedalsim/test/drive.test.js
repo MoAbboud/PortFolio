@@ -14,7 +14,7 @@ function drive(...args) {
 
 test('drive.js writes a CSV trace, one row every 10 ms by default', () => {
   const rows = drive('test/scripts/idle.json').trim().split('\n');
-  assert.equal(rows[0], 't,rpm,mph,gear,running,load,cut,thr,brake,clutch');
+  assert.equal(rows[0], 't,rpm,mph,wheel_mph,gear,running,load,cut,tc,thr,brake,clutch');
   // 6000 steps sampled every 10: 600 rows after the header, the first at 0.010 s.
   assert.equal(rows.length, 601);
   assert.match(rows[1], /^0\.010,/);
@@ -24,8 +24,8 @@ test('drive.js writes a CSV trace, one row every 10 ms by default', () => {
 test('--engine runs an engine: the key starts it and it idles', () => {
   const rows = drive('test/scripts/idle.json', '--engine', 'v8').trim().split('\n');
   const last = rows.at(-1).split(',');
-  // t, rpm, mph, gear, running ...
-  assert.equal(last[4], '1');
+  // t, rpm, mph, wheel_mph, gear, running ...
+  assert.equal(last[5], '1');
   assert.ok(Math.abs(Number(last[1]) - 650) < 60, `idling at ${last[1]}`);
 });
 

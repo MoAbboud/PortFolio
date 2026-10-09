@@ -64,12 +64,15 @@ flowchart LR
 | 7 | 0 to 60, score, board, share link | Countdown, run recorder, ghost needle, phase-by-phase time lost, the score and the clean mark, bests and recent runs held in memory until a refresh, share links that re-drive on open. A test: a run recorded in headless Chrome scores the same in Node |
 | 8 | Publish | In `deploy/build-static.mjs` and the Pages workflow; README with what it is, a short recording, how to run it, what a shared run does and does not prove; root README lists it |
 
-**Stages 0 and 1 are done.** The scaffold, the determinism rules enforced by a test, the
+**Stages 0, 1 and 2 are done.** The scaffold, the determinism rules enforced by a test, the
 replay, the trace tool, the empty-circle page and CI; then the five engines built from their
 measurements - each one's torque, power and redline inside the published figures of a real
 engine of the same bore and stroke - running in neutral with a starter, an idle controller, a
 limiter and stalling, and golden traces that fail if the numbers move without `SIM_VERSION`.
-82 tests. Stage 2, the drivetrain, is next.
+Then the drivetrain: one car for every engine, gearing worked out per engine, a clutch,
+tyres and brakes that each grip or slip through one small solver, the automatic with its
+converter and shift map, and traction control. 119 tests. Stage 3, gauges that build
+themselves, is next.
 
 ### Why the maths comes first and headless
 
@@ -143,9 +146,11 @@ measure against, and a leaderboard of raw times says nothing about how well some
 | Blowing the engine un-builds it: the faces break back into pixels and empty circles, and the run is not clean | The author's "dont blow out the engine", shown in the interface's own language |
 | The 0 to 60 run is not locked behind a built tachometer | Building is an invitation, not a gate. The coach's shift marker does wait until its part of the face exists |
 | One car carries every engine | The engine is then the only variable, and comparisons are fair |
-| Gearing is calculated per engine | First gear from grip, top gear from where power meets drag, a progression between |
+| Gearing is calculated per engine | Top gear from where power meets drag, first gear to a quarter of top speed, a progression between. Built in stage 2; first gear from grip was tried on paper and dropped - it gave the V12 a 150 mph first gear |
 | Tyres can spin, from the first version | Without a grip limit the V12 pushes at about 2 g off the line, does 0 to 60 in under two seconds, and the launch is no skill. Kinetic grip below static makes wheelspin cost time |
-| The clutch and tyres share one stick or slip rule | One well-tested piece of maths instead of two |
+| The clutch, tyres and brakes share one stick or slip rule, through one chain solver | One well-tested piece of maths instead of eight hand-written cases. Built in stage 2 |
+| Traction control on for the automatic, off for the manual | A modern automatic has it, and without it every engine above the V4 spun its way to the same 0-60. In the manual the launch is the driver's skill. Built in stage 2 |
+| No gearbox efficiency in the first version | Losses that depend on which way power flows complicate the solver for a few percent; top speeds and times are a few percent generous |
 | The perfect run is solved on the author's machine and committed | Deterministic, instant on the page, and checked by a test |
 | The perfect driver gets no faster shift than a person | Otherwise "perfect" wins by a margin no one can close |
 | Score = 1000 times perfect time over your time, plus a clean mark | Every mistake already costs time; smoothness is shown, not double-counted |

@@ -15,9 +15,10 @@ is wrong and it gets fixed rather than worked around.
 [00-plan.md](00-plan.md) is the one to read first: the stage order, the decisions already
 settled with the reason each one was taken, and the open questions still outstanding.
 
-**Stages 0 and 1 are done**: the scaffold, and five engines built from their measurements,
-each tested against the published figures of a real engine of the same bore and stroke,
-running in neutral. Stage 2, the drivetrain, is next.
+**Stages 0 to 2 are done**: the scaffold; five engines built from their measurements, each
+tested against the published figures of a real engine of the same bore and stroke; and the
+drivetrain - manual and automatic, a clutch, tyres and brakes that grip or slip, traction
+control - all headless and tested. Stage 3, the gauges, is next.
 
     cd pedalsim
     npm test

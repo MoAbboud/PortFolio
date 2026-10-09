@@ -14,14 +14,26 @@ import { PEDAL_MAX } from './inputs.js';
 // engine, and why it settles after starting rather than racing or dying.
 const IDLE_KP = 0.3;
 const IDLE_KI = 1.2; // per second
-const IDLE_MAX_PEDAL = 0.25;
+const IDLE_MAX_PEDAL = 0.1; // idle needs about 0.06 on every engine; more would be an engine, not an idle valve
 // Falling faster than this (rad/s per second, about 300 rpm a second) counts as coming down
 // from a blip rather than sitting near idle.
 const IDLE_SETTLED_DECEL = 30;
 
+// Traction control: trims the driver's throttle while the rear tyres spin faster than the car
+// by more than TC_SPIN (m/s) - the point past which a spinning tyre starts losing grip - and
+// gives it back as they recover. An integral loop: the trim moves at TC_RATE per second for
+// each m/s of error. Never trims below TC_FLOOR, so the engine is never shut off entirely.
+const TC_SPIN = 1.0;
+const TC_RATE = 1;
+const TC_FLOOR = 0.05;
+const TC_GAIN = 0.3; // and this much straight off per m/s of spin over, so it reacts at once
+
 // Below this the airflow sums divide by a nearly stopped engine. Air cannot be more than all
 // the engine can swallow anyway, so the load is the same either side of it.
 const MIN_RPM_FOR_AIRFLOW = 100;
+
+// Friction fades in over the first few rpm either way, as static friction does.
+const FRICTION_FADE_RPM = 20;
 
 // The fraction of a full cylinder of air the engine gets, for a throttle position and a speed.
 //
@@ -48,9 +60,13 @@ export function crankTorque(engine, load, rpm, firing) {
   return combustion - losses;
 }
 
-// One step of the engine. Returns only the fields it changes.
-export function engineStep(engine, state, inputs) {
-  let { we, running, load, idleI, cut } = state;
+// One step of the engine's own decisions - firing, stalling, the limiter, the idle controller,
+// the manifold - and the torque it puts on its crank this step, starter included. It does not
+// move the engine's speed: once the clutch grips, the engine and the car move as one, so the
+// drivetrain (sim/drivetrain.js) does that for everything at once.
+export function engineControl(engine, state, inputs) {
+  const { we } = state;
+  let { running, load, idleI, cut } = state;
   const rpm = we * RPM_PER_RAD_S;
   const cranking = inputs.key === 1;
 
@@ -66,7 +82,14 @@ export function engineStep(engine, state, inputs) {
   else if (rpm < engine.limiterRpm - engine.limiterHysteresisRpm) cut = false;
 
   // The driver's throttle, unless the idle controller wants more.
-  const pedal = inputs.thr / PEDAL_MAX;
+  let tc = state.tc;
+  let trim = 1;
+  if (state.tractionControl) {
+    const spin = state.ww * engine.gearing.wheelRadius - state.v;
+    tc = clamp(tc + TC_RATE * (TC_SPIN - spin) * DT, TC_FLOOR, 1);
+    trim = clamp(tc - TC_GAIN * (spin - TC_SPIN), TC_FLOOR, 1);
+  }
+  const pedal = (inputs.thr / PEDAL_MAX) * trim;
   let throttle = pedal;
   if (running) {
     const error = (engine.idleRpm - rpm) / engine.idleRpm;
@@ -97,10 +120,13 @@ export function engineStep(engine, state, inputs) {
     ? engine.starterNm * (1 - rpm / engine.starterFreeRpm)
     : 0;
 
-  const torque = crankTorque(engine, load, rpm, running && !cut) + starter;
-  we += (torque / engine.inertia) * DT;
-  // Friction can stop an engine; it cannot turn it backwards.
-  if (we < 0) we = 0;
+  // Friction and pumping oppose the way the crank is turning, and fade to nothing over the last
+  // few rpm. At rest they are static friction: they resist being turned but push nothing, so a
+  // stalled engine in gear holds a car rather than pushing it backwards. A car rolling
+  // backwards in gear turns the engine backwards, and the friction then pushes the other way.
+  const combustion = running && !cut ? load * lookup(engine.combustion, rpm) : 0;
+  const losses = lookup(engine.friction, rpm < 0 ? -rpm : rpm) + engine.pumpingNm * (1 - load);
+  const torque = combustion + starter - losses * clamp(rpm / FRICTION_FADE_RPM, -1, 1);
 
-  return { we, running, load, idleI, cut };
+  return { running, load, idleI, cut, tc, torque };
 }
