@@ -34,7 +34,11 @@ jobs:
 
     services:
       db:
-        image: postgres:16
+        # postgres:16 from Google's Docker Hub mirror, not Docker Hub itself. Runners pull
+        # anonymously from shared addresses and Docker Hub answers "toomanyrequests" when
+        # that address has pulled too much; the mirror is outside Docker Hub's limit and
+        # serves the same image (same digest).
+        image: mirror.gcr.io/library/postgres:16
         env:
           POSTGRES_USER: mailman
           POSTGRES_PASSWORD: mailman

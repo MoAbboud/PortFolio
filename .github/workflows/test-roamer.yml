@@ -33,8 +33,10 @@ jobs:
     services:
       db:
         # The same image as roamer's docker-compose.yml. cube, earthdistance and citext ship
-        # with it.
-        image: postgres:16
+        # with it. Pulled from Google's Docker Hub mirror, not Docker Hub itself: runners pull
+        # anonymously from shared addresses and Docker Hub answers "toomanyrequests" when
+        # that address has pulled too much. Same image, same digest, outside that limit.
+        image: mirror.gcr.io/library/postgres:16
         env:
           POSTGRES_USER: roamer
           POSTGRES_PASSWORD: roamer
