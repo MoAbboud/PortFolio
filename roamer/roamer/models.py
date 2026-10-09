@@ -60,6 +60,29 @@ ACTORS = ("owner", "admin", "system")
 
 PHOTO_KINDS = ("photo", "flyer")
 
+# How an animal that came home was found - the categories the studies use. Asked, optionally,
+# whenever an owner marks an animal home; the answer is research data, never shown publicly.
+FOUND_HOW = (
+    "came_home",
+    "neighbour",
+    "flyer",
+    "roamer",
+    "shelter",
+    "microchip",
+    "social_media",
+    "other",
+)
+FOUND_HOW_LABELS = {
+    "came_home": "Came home on its own",
+    "neighbour": "A neighbour or passer-by found it",
+    "flyer": "Someone saw a flyer",
+    "roamer": "Someone saw it on roamer",
+    "shelter": "It was at a shelter or vet",
+    "microchip": "Its microchip was scanned",
+    "social_media": "Through social media",
+    "other": "Something else",
+}
+
 TOKEN_PURPOSES = ("verify", "manage", "checkin")
 OUTBOX_STATUSES = ("queued", "sent", "failed")
 OUTBOX_TEMPLATES = ("verify", "manage", "checkin", "report_received")
@@ -118,6 +141,12 @@ class Listing(Base):
     hidden_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     hidden_reason: Mapped[str | None] = mapped_column(Text)
     seeded: Mapped[bool] = mapped_column(Boolean, server_default="false")
+
+    # Where, when and how it was found - set when marked home, all optional, never public.
+    found_lat: Mapped[float | None] = mapped_column(Float)
+    found_lng: Mapped[float | None] = mapped_column(Float)
+    found_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    found_how: Mapped[str | None] = mapped_column(Text)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

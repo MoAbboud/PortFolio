@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% set outcome = result.outcome.value %}
+{% set listing = result.listing %}
+{% set who = (listing.name if listing and listing.name else ('your ' ~ SPECIES_LABELS[listing.species] | lower if listing else 'your animal')) %}
+{% block title %}Is {{ who }} still missing? - roamer{% endblock %}
+{% block head %}{% if outcome == 'ready' %}{% include "_leaflet.html" %}{% endif %}{% endblock %}
+
+{% macro error(field) -%}
+  {% if errors and errors.get(field) %}<p class="field-error">{{ errors[field] }}</p>{% endif %}
+{%- endmacro %}
+
+{% block content %}
+{% if outcome == 'ready' %}
+<h1>Is {{ who }} still missing?</h1>
+<p class="lede">Your answer keeps the listing honest for whoever finds an animal near
+  {{ listing.area_label or 'where it was last seen' }}.</p>
+
+{# Buttons, not actions on opening the link: mail scanners open links before people do. #}
+<div class="checkin-choices">
+  <form method="post" action="/checkin/{{ token }}" class="checkin-choice {% if choice == 'still_lost' %}is-chosen{% endif %}">
+    <input type="hidden" name="answer" value="still_lost">
+    <h2>Still missing</h2>
+    <p>Keep the listing up, with its verified badge.</p>
+    <button type="submit" class="button button-primary">Yes, still missing</button>
+  </form>
+
+  <form method="post" action="/checkin/{{ token }}" class="checkin-choice {% if choice == 'home' %}is-chosen{% endif %}"
+        id="home-form">
+    <input type="hidden" name="answer" value="home">
+    <h2>{{ who | capitalize }} is home</h2>
+    <p>The listing comes off the map and says so.</p>
+
+    <details class="found-details" {% if choice == 'home' %}open{% endif %}>
+      <summary>Where and how was {{ who }} found? (optional)</summary>
+      <p class="hint">Nobody publishes where lost pets actually end up. Your answer is kept
+        for working that out, to help the next owner search in the right place. It is never
+        shown on the site.</p>
+
+      <label class="field">
+        <span class="label">How was {{ who }} found?</span>
+        <select name="found_how">
+          <option value="">Rather not say</option>
+          {% for value, label in FOUND_HOW_LABELS.items() %}
+          <option value="{{ value }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+        {{ error('found_how') }}
+      </label>
+
+      <label class="field">
+        <span class="label">When?</span>
+        <input type="datetime-local" id="found_local">
+        <input type="hidden" name="found_at" id="found_at">
+      </label>
+
+      <div class="field">
+        <span class="label">Where? Click the map.</span>
+        <div id="found-pick-map" class="map-pick"
+             data-lat="{{ listing.last_seen_lat }}" data-lng="{{ listing.last_seen_lng }}"></div>
+        <input type="hidden" name="found_lat" id="found_lat">
+        <input type="hidden" name="found_lng" id="found_lng">
+        <button type="button" class="button" id="found-clear" hidden>Clear the pin</button>
+        {{ error('found_point') }}
+      </div>
+    </details>
+
+    <button type="submit" class="button button-primary">{{ who | capitalize }} is home</button>
+  </form>
+
+  <form method="post" action="/checkin/{{ token }}" class="checkin-choice {% if choice == 'remove' %}is-chosen{% endif %}">
+    <input type="hidden" name="answer" value="remove">
+    <h2>Take it down</h2>
+    <p>The listing and its photos are deleted. This cannot be undone.</p>
+    <button type="submit" class="button">Delete the listing</button>
+  </form>
+</div>
+
+{% elif outcome == 'removed' %}
+<h1>Taken down</h1>
+<p class="lede">The listing and its photos have been deleted.</p>
+<p><a class="button" href="/">Back to the map</a></p>
+
+{% elif outcome == 'used' %}
+<h1>Already answered</h1>
+<p class="lede">This email has been answered, or a newer one was sent since. Only the newest
+  check-in email's links work.</p>
+{% if listing %}<p><a class="button" href="/l/{{ listing.code }}">See the listing</a></p>{% endif %}
+
+{% elif outcome == 'expired' %}
+<h1>This link has run out</h1>
+<p class="lede">Check-in links last {{ token_days }} days. A new check-in email will come if
+  the listing is still up.</p>
+{% if listing %}<p><a class="button" href="/l/{{ listing.code }}">See the listing</a></p>{% endif %}
+
+{% else %}
+<h1>This link does not work</h1>
+<p class="lede">It may have been copied only partly, or the listing has been taken down.</p>
+<p><a class="button" href="/">Back to the map</a></p>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if outcome == 'ready' %}<script src="/static/home.js" defer></script>{% endif %}
+{% endblock %}

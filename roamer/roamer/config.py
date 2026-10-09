@@ -69,10 +69,16 @@ class Settings(BaseSettings):
     verify_token_hours: int = 24
     unverified_retention_days: int = 7
 
-    # The freshness rules behind the verified badge. The check-in emails that move
-    # last_confirmed_at arrive in stage 5; the badge already reads these.
+    # The freshness rules. Every check-in interval a silent owner gets a "still missing?"
+    # email; the badge lapses after interval + grace without an answer.
     checkin_interval_days: int = 7
     checkin_grace_days: int = 3
+    # After this long without an answer a listing leaves the default map and the finder's
+    # default search, and the check-in emails stop. Still reachable by its link and by the
+    # "include unconfirmed" filters. Real searches run for weeks, so this is not quick.
+    stale_after_days: int = 30
+    # How long a check-in email's links work. A newer check-in replaces them sooner.
+    checkin_token_days: int = 30
 
     # Address search. Nominatim's policy requires a User-Agent that identifies the
     # application and how to reach whoever runs it.

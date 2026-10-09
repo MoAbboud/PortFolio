@@ -195,18 +195,47 @@ Check:
 
 ## Stage 5 - Check-ins and freshness
 
-The current work.
+Done. 137 tests. Also run for real: a listing last confirmed 8 days ago, the real worker
+queuing and sending its check-in to Mailpit, the "home" link opened in Chrome, a found pin
+dropped and "a neighbour" chosen, the button pressed, the found point checked in the database.
 
-- [ ] Worker loop: find active listings past `CHECKIN_INTERVAL` with no check-in
-      outstanding, write a token and an outbox row each
-- [ ] Check-in page: GET shows the three choices, POST records the answer
-- [ ] Badge lapse and stale computed from `last_confirmed_at` and configuration
-- [ ] The map's default view leaves out stale listings; a filter puts them back
-- [ ] The listing page says "confirmed still lost N days ago" or "not confirmed for N days"
-- [ ] Tests that move the clock: verified, then lapsed, then stale, then answered and
-      verified again
+- [x] Worker job `queue check-ins` (runs before `send email`): active, verified listings
+      silent for `CHECKIN_INTERVAL_DAYS` (7) and not asked within that interval get one
+      email; asked again each interval while silent; never once stale, never seeded demo
+      listings, never unconfirmed owners
+- [x] A new check-in retires the last one's links; links last `CHECKIN_TOKEN_DAYS` (30)
+- [x] `checkin.txt`: three links - still missing, home, take it down - each opening a page
+- [x] Check-in page: GET shows the three answers with the clicked one highlighted and changes
+      nothing; POST records the answer. Used links say "Already answered"
+- [x] Still missing: `last_confirmed_at` moves, a `confirmed` event, back on the listing with
+      a thank-you
+- [x] Home: `reunited`, with the optional found pin, time and how - **brought forward from
+      stage 6** (migration `0006_found`), because this is the first way an animal is marked
+      home and a reunion recorded without them is a data point lost. Never shown publicly
+- [x] Take it down: deleted through `delete_listings`, photos and all
+- [x] Badge lapse (interval + grace, 10 days) and stale (`STALE_AFTER_DAYS`, 30) computed
+      from `last_confirmed_at`, never stored
+- [x] The map and the finder's search leave out stale listings by default; an "include"
+      checkbox on each puts them back; the API takes `include_stale`
+- [x] Pins carry `stale` and `last_confirmed_at`; popups and cards say "Not confirmed for N
+      days" instead of only withholding the badge; a stale listing's page says it is off the
+      main map
+- [x] Tests that move the clock: verified on day 1, a check-in on day 8 (once), badge lapsed
+      but still on the map on day 11, a reminder on day 15 that retires the first email, stale
+      and off the map and the search on day 31 with no more emails, answered and back
+- [x] Tests: who is never asked; the email's three links; GET changes nothing; each answer;
+      a half point, a made-up "how" and an unknown answer all refused with nothing recorded;
+      the found point never on the page; take-down deletes photos
+
+Check:
+
+    # make a listing's last confirmation 8 days old, then watch the worker:
+    docker compose logs -f worker      # "queue check-ins: 1", "send email: 1"
+    Start-Process http://localhost:8025
 
 ## Stage 6 - Manage, edit, close
+
+The current work.
 
 - [ ] `GET /manage` and `POST /manage`: an email address in, a manage link out. The same
       response whether or not the address is known
@@ -214,10 +243,10 @@ The current work.
 - [ ] Edit page; every save is an event row with the changed field names
 - [ ] Still lost, home, withdraw; reopen after home
 - [ ] Withdraw deletes the listing, its photos and its events
-- [ ] Marking home asks, optionally, where the animal was found (a pin), when, and how;
-      stored in `found_lat`, `found_lng`, `found_at`, `found_how` (migration). The form
-      says the answer helps learn where lost pets go, and that it is never shown
-- [ ] Tests: the found point never appears on a public page or in the map JSON
+- [ ] Marking home from the manage page asks the same optional where/when/how as the
+      check-in's "home" answer (built in stage 5: `checkins.mark_home`, the `0006_found`
+      columns, `home.js`) - reuse them, do not rebuild
+- [x] Tests: the found point never appears on a public page (stage 5)
 - [ ] Reunited listings deleted after the retention period
 - [ ] CSRF protection on every form that changes something
 - [ ] Tests: another owner's session cannot edit; withdraw leaves no files on the volume
@@ -361,6 +390,7 @@ set, labelled as synthetic.
 - [x] Stage 2, email verification
 - [x] Stage 3, photos
 - [x] Stage 4, search circles and the finder's search
+- [x] Stage 5, check-ins and freshness
 
 ## Blocked
 

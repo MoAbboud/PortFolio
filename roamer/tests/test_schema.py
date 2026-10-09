@@ -29,6 +29,10 @@ def test_listing_vocabularies_match_the_migration() -> None:
         assert getattr(migration, name) == getattr(models, name), name
 
 
+def test_found_how_matches_the_migration() -> None:
+    assert load_migration("0006_found.py").FOUND_HOW == models.FOUND_HOW
+
+
 def test_outdoor_access_matches_the_migration() -> None:
     from roamer import circles
 

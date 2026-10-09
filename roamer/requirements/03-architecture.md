@@ -192,17 +192,28 @@ later, which is the exact failure the badge exists to prevent.
 
 ## Check-ins
 
-The worker runs every few minutes. Any active listing whose `last_confirmed_at` is older
-than `CHECKIN_INTERVAL` and has no check-in outstanding gets one email with three choices.
-Answering any of them moves `last_confirmed_at`. Then:
+`roamer/checkins.py`, run by the worker every cycle before it sends email. An active,
+verified listing whose `last_confirmed_at` is older than `CHECKIN_INTERVAL_DAYS` (7), and
+whose owner was not asked within that interval, gets one email with three links: still
+missing, home, take it down. Asked again each interval while silent, so a missed email is
+followed by a reminder; a new check-in retires the previous one's links. Never asked: stale
+listings (emailing a silent owner forever is spam), seeded demo listings, owners who never
+confirmed. Each link opens a page with the three answers and a button for each - the clicked
+one highlighted - and only the button acts. Still missing moves `last_confirmed_at`; home
+marks the listing `reunited` and asks, optionally, where, when and how it was found (the
+found columns, never shown); take it down deletes through `delete_listings`. Check-in links
+are single use; changing an answer later is the manage page's job (stage 6). Then:
 
 | Silent for | What the listing shows |
 | --- | --- |
 | Less than interval + grace | Verified, "confirmed still lost N days ago" |
 | Longer | No badge, "not confirmed for N days" |
-| Longer than `STALE_AFTER` | Off the default map. Still reachable by its link and by a filter that includes stale listings |
+| Longer than `STALE_AFTER_DAYS` (30) | Off the default map and the finder's default search, and the emails stop. Still reachable by its link, and by the "include listings nobody has confirmed" checkbox on each (`include_stale` in the API) |
 
-The intervals are configuration. Starting values are an open question in the plan.
+Both `is_verified` and `is_stale` are computed from `last_confirmed_at` when a listing is read,
+and the SQL filter is their twin; nothing about freshness is stored. All the intervals are
+configuration: `CHECKIN_INTERVAL_DAYS`, `CHECKIN_GRACE_DAYS`, `STALE_AFTER_DAYS`,
+`CHECKIN_TOKEN_DAYS`.
 
 ## Images
 

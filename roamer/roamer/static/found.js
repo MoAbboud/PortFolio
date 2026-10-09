@@ -13,6 +13,7 @@
   var species = document.getElementById("species");
   var radius = document.getElementById("radius");
   var locate = document.getElementById("use-location");
+  var includeStale = document.getElementById("include-stale");
 
   var map = null;
   var layer = null;
@@ -66,12 +67,17 @@
       (pin.area_label ? " - " + pin.area_label : "");
     text.appendChild(seen);
 
+    var badge = document.createElement("span");
     if (pin.verified) {
-      var badge = document.createElement("span");
       badge.className = "badge badge-verified badge-small";
       badge.textContent = "Verified";
-      text.appendChild(badge);
+    } else {
+      badge.className = "badge badge-quiet badge-small";
+      badge.textContent = pin.last_confirmed_at
+        ? "Not confirmed for " + roamer.timeAgo(pin.last_confirmed_at).replace(" ago", "")
+        : "Not confirmed";
     }
+    text.appendChild(badge);
     link.appendChild(text);
     item.appendChild(link);
     return item;
@@ -82,6 +88,7 @@
     say("Looking for lost animals near there...");
     var params = new URLSearchParams({ lat: here.lat, lng: here.lng, radius_km: radius.value });
     if (species.value) params.set("species", species.value);
+    if (includeStale.checked) params.set("include_stale", "true");
 
     fetch("/api/listings/near?" + params.toString())
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
@@ -161,4 +168,5 @@
 
   species.addEventListener("change", search);
   radius.addEventListener("change", search);
+  includeStale.addEventListener("change", search);
 })();
