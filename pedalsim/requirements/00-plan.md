@@ -55,8 +55,8 @@ flowchart LR
 | Stage | Goal | Done when |
 | --- | --- | --- |
 | 0 | Scaffold | `pedalsim/` with `index.html` opening under `npx serve`, `package.json`, `node --test` running, `sim/step.js` with its signature, `tools/drive.js` writing a CSV trace from a scripted input list |
-| 1 | Engines from their dimensions | `engines/params.js` for V4, V6, V8, V10, V12; `tools/build-engines.js` writes the tables, gearing and coach points; `tools/figures.js` prints each engine's figures. Tests: displacement and redline from the formulas; free-rev settles at one rpm per pedal; the limiter bounces; stall below stall speed; figures inside their ranges |
-| 2 | The drivetrain, headless | Clutch and tyres as stick or slip couplings with the lock test, the four cases written out; gearbox; chassis forces with weight transfer; ABS-capped brakes with the hold rule; the torque converter and shift map. Tests: pulling away gently works, dumping the clutch at idle stalls, too many launch revs spin the wheels and lose time, engine braking only in gear, top speed equals the power-drag crossing, the automatic creeps and does not hunt; golden traces and `SIM_VERSION`; no `Math.sin` and friends in `sim/` |
+| 1 | Engines from their dimensions | `engines/params.js` for V4, V6, V8, V10, V12; `tools/build-engines.js` writes the tables; `tools/figures.js` prints each engine's figures. Tests: displacement and redline from the formulas; free-rev settles at one rpm per pedal; the limiter bounces; stall below stall speed; figures inside the published figures of a real engine of the same dimensions; golden traces and `SIM_VERSION` |
+| 2 | The drivetrain, headless | Gearing and the coach's shift points, calculated per engine with the chassis. Clutch and tyres as stick or slip couplings with the lock test, the four cases written out; gearbox; chassis forces with weight transfer; ABS-capped brakes with the hold rule; the torque converter and shift map. Tests: pulling away gently works, dumping the clutch at idle stalls, too many launch revs spin the wheels and lose time, engine braking only in gear, top speed equals the power-drag crossing, the automatic creeps and does not hunt; golden traces and `SIM_VERSION`; no `Math.sin` and friends in `sim/` |
 | 3 | Gauges that build themselves | Faces laid out entirely from the engine's figures (tick spacing by a nice-numbers rule, redline arc, one shift light per cylinder). A development field per gauge that grows where the engine has been; a reveal that turns development into pixel blocks shrinking from coarse to fine; the dyno strip plotting only points the engine has produced. Empty circles at the start, a fully built tachometer after a few pulls to the limiter. Played from a stage 2 CSV trace first, so the build-up is designed before there is input. Needles with spring dynamics, crisp from the start. The author's sporty look is what gets revealed |
 | 4 | Live driving, automatic | The fixed-step loop, keyboard and pointer controls, engine picker, start key, automatic gearbox with P-R-N-D. You can rev, drive and brake every engine |
 | 5 | Manual and the coach | Clutch, H-pattern stick, grind, over-rev and the check engine light; the coach's up and down arrows, shift marker, rev-match needle, slip energy per shift. Done-when includes someone other than the author shifting through the gears on a keyboard |
@@ -64,9 +64,12 @@ flowchart LR
 | 7 | 0 to 60, score, board, share link | Countdown, run recorder, ghost needle, phase-by-phase time lost, the score and the clean mark, bests and recent runs held in memory until a refresh, share links that re-drive on open. A test: a run recorded in headless Chrome scores the same in Node |
 | 8 | Publish | In `deploy/build-static.mjs` and the Pages workflow; README with what it is, a short recording, how to run it, what a shared run does and does not prove; root README lists it |
 
-**Stage 0 is done**: the scaffold, the determinism rules enforced by a test, the replay that
-every later feature will drive the simulation through, the trace tool, the empty-circle page
-and CI. 26 tests. Stage 1, engines from their dimensions, is next.
+**Stages 0 and 1 are done.** The scaffold, the determinism rules enforced by a test, the
+replay, the trace tool, the empty-circle page and CI; then the five engines built from their
+measurements - each one's torque, power and redline inside the published figures of a real
+engine of the same bore and stroke - running in neutral with a starter, an idle controller, a
+limiter and stalling, and golden traces that fail if the numbers move without `SIM_VERSION`.
+82 tests. Stage 2, the drivetrain, is next.
 
 ### Why the maths comes first and headless
 

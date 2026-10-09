@@ -7,6 +7,9 @@
   "scripts": {
     "test": "node --test",
     "serve": "npx serve .",
-    "drive": "node tools/drive.js"
+    "drive": "node tools/drive.js",
+    "build": "node tools/build-engines.js",
+    "figures": "node tools/figures.js",
+    "golden": "node tools/golden.js"
   }
 }

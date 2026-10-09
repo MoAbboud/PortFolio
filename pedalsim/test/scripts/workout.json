@@ -1,0 +1,12 @@
+{
+  "about": "Start, idle, a 30% blip, flat out onto the limiter for two seconds, lift, and idle again. Touches every part of the engine there is so far.",
+  "steps": 12000,
+  "events": [
+    [0, "key", 1],
+    [800, "key", 0],
+    [3000, "thr", 307],
+    [3500, "thr", 0],
+    [5000, "thr", 1023],
+    [7000, "thr", 0]
+  ]
+}
