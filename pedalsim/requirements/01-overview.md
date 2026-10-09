@@ -4,9 +4,9 @@ Public document. Behaviour only.
 
 ## What this is
 
-A page of gauges with an engine behind them.
+A page of gauges with an engine behind them - and the engine draws the gauges.
 
-Pick an engine - a four-cylinder, a V6, a V8, a V10 or a V12 - and drive it by the needles.
+Pick an engine - a V4, a V6, a V8, a V10 or a V12 - and drive it by the needles.
 Press the throttle and the rev counter climbs by exactly as much as that much fuel can push
 that engine. Let it out in gear and the speedometer starts to move. Brake and watch both fall.
 There is no road, no steering and no view. The gauges are the whole car.
@@ -16,9 +16,19 @@ how wide, how long a stroke - and its torque, its redline and how quickly it rev
 out of those numbers. The clutch slips and grabs, the tyres grip and spin, the car has weight
 and air resistance. Every needle reports something the simulation actually calculated.
 
+## The gauges build themselves
+
+The page starts as two empty circles. Choose an engine and rev it, and the gauges pixelate
+in - coarse blocks first, sharpening as the needle returns - but only where the engine has
+actually been. The tachometer fills in behind the needle; the redline appears the first time
+you reach it; the torque curve draws itself from your full-throttle pulls, like a run on a
+dyno; the speedometer fills up to the fastest you have gone. Every tick and number is placed
+from that engine's own figures, so a V12's dials come out different from a V4's. Change
+engine and the faces dissolve and start again. Blow the engine and they break apart.
+
 ## What you can do
 
-- **Choose an engine.** Four cylinders to twelve. They sound different on paper and they
+- **Choose an engine.** Cycle from a V4 to a V12. They sound different on paper and they
   drive differently on the dials: the small one revs quickly and runs out of breath, the V12
   pulls from nothing and keeps going. The same car carries each one, so the engine is the only
   thing that changes.

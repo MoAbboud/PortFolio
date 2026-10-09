@@ -14,8 +14,12 @@ Nothing is built. Planning is in progress.
 - [x] The author's answers: no server, engines four to twelve cylinders, rpm follows the gas,
       manual as an option with a coach, the board scores shifting on 0 to 60, sporty, no
       hardware, car engines first, a sister app later
-- [ ] The author confirms or overturns the proposals in 00-plan, starting with "V4" and the
-      engines-from-dimensions approach
+- [x] Engines built from measurements: confirmed. Cycle between them: confirmed. Clean run:
+      confirmed. Sound: later
+- [x] New idea from the author: the maths builds the interface - empty circles that
+      pixelate in as the engine is revved. Designed in 03-architecture
+- [ ] The author answers what is still open in 00-plan: V10 in or out, whether a built
+      engine stays built between visits
 - [ ] The author picks CodePen inspiration for the look (needed by stage 3, not before)
 
 ## Stage 0 - Scaffold
@@ -36,7 +40,7 @@ Check:
 ## Stage 1 - Engines from their dimensions
 
 - [ ] `sim/curves.js`: table lookup, linear interpolation, clamped ends; 2D for the load map
-- [ ] `engines/params.js` for I4, V6, V8, V10, V12
+- [ ] `engines/params.js` for V4, V6, V8, V10, V12
 - [ ] `tools/build-engines.js`: displacement, redline from piston speed, IMEP shape to torque,
       Chen-Flynn friction, inertia, load map, ripple, gearing, coach points; writes
       `engines/<id>.js` with a hash header
@@ -63,15 +67,23 @@ Check:
       top speed at the power-drag crossing within 1 percent; automatic creep and no hunting
 - [ ] Determinism: golden traces, `SIM_VERSION`, the grep for forbidden calls in `sim/`
 
-## Stage 3 - Gauges
+## Stage 3 - Gauges that build themselves
 
-- [ ] Dial generator from the engine tables: ticks, numerals, redline arc, shift marker
-- [ ] Needle springs; key-on sweep; idle tremble from the ripple
-- [ ] Shift light bar, gear indicator, arrows, check engine light
-- [ ] Dyno strip with the live dot
-- [ ] Trace player from a CSV
-- [ ] CSS variables for the theme; the author's sporty look applied
-- [ ] Looked at at 1280 wide and phone landscape
+- [ ] Layout from the engine tables: ranges, nice-number tick steps, angles, redline arc,
+      shift marks, one shift light per cylinder. Tests: every engine gets six to ten major
+      ticks; a V4 and a V12 differ
+- [ ] Face painter: each gauge drawn once to an offscreen canvas in the author's style
+- [ ] Development field: bins, growth from revs and load, spread to neighbours, event parts
+      (redline, shift marks, numerals), dyno bins from full-throttle torque
+- [ ] Reveal shader (WebGL2): bin from angle, block size from development, ordered-dither
+      threshold; canvas 2D fallback
+- [ ] Dissolve on engine change and on a blown engine; restore on return; "build it all";
+      reduced-motion preference builds at once
+- [ ] Needles, gear indicator and arrows crisp on top; needle springs; key-on sweep; idle
+      tremble from the ripple
+- [ ] Trace player from a CSV, so the build-up is tuned before there is input: three or four
+      pulls to the limiter complete the tachometer
+- [ ] Looked at at 1280 wide and phone landscape; frame time checked on a phone
 
 ## Stage 4 - Live driving, automatic
 
@@ -84,7 +96,8 @@ Check:
 
 - [ ] Manual toggle; clutch; H-pattern knob on its gate segments; number keys
 - [ ] Grind at the synchro without the clutch; matched clutchless shifts allowed
-- [ ] Over-rev and the check engine light; stall and restart
+- [ ] Over-rev and the check engine light; past the over-rev limit the engine is blown and
+      the faces break apart; "new engine"; stall and restart
 - [ ] Coach: up arrow at the shift marker, economy upshift, down arrows (lugging, for speed,
       braking), rev-match needle, slip energy per shift
 - [ ] Done-when: someone else shifts through the gears on a keyboard

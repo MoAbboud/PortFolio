@@ -58,6 +58,8 @@ The link is the only thing that leaves a browser, and only when a driver chooses
   can, the speedometer answers the gearing and the weight, and braking takes speed off at the
   rate the brakes and the tyres allow.
 - Showing how engines differ, with nothing else changing: same car, same tyres, five engines.
+- Building its own interface from the engine: every face laid out from the engine's figures,
+  and shown only as far as the engine has been.
 - Teaching shifting: when to change up, when to change down, what revs to meet.
 - Scoring a 0 to 60 run against the best that engine can do, and saying where the time went.
 - Being plain to look at, and sporty. The page is simple; the calculation is not.
@@ -80,12 +82,14 @@ The link is the only thing that leaves a browser, and only when a driver chooses
 
 | ID | Actor | Goal | Trigger | Result |
 | --- | --- | --- | --- | --- |
-| UC-1 | Driver | Choose an engine | Clicks I4, V6, V8, V10 or V12 | The engine is swapped in the same car. The tachometer's scale and redline, and the dyno strip, change to that engine |
-| UC-2 | Driver | Start it | Start key or button | Needles sweep and return, the engine catches and idles. Idle is smoother the more cylinders there are |
-| UC-3 | Driver | Rev it in neutral | Throttle | The revs rise and settle where the throttle holds them, fall when released, bounce off the limiter if floored |
+| UC-1 | Driver | Choose an engine | Cycles V4, V6, V8, V10, V12 with one control | The engine is swapped in the same car. The faces dissolve back to empty circles and are laid out again for this engine: its own range, tick spacing, redline, one shift light per cylinder. An engine visited earlier in the visit comes back as built as it was left |
+| UC-2 | Driver | Start it | Start key or button | The needles appear and sweep, the engine catches and idles. Idle trembles less the more cylinders there are |
+| UC-3 | Driver | Rev it in neutral | Throttle | The revs rise and settle where the throttle holds them, fall when released, bounce off the limiter if floored. **The tachometer's face pixelates in wherever the needle has been**, the dyno strip draws the torque curve from the pulls, the redline appears the first time it is reached |
+| UC-3a | Driver | Skip the build-up | "Build it all" | Every face resolves fully in a second |
 | UC-4 | Driver | Drive in automatic | Selects D, throttle, brake | Creeps, accelerates, shifts up by itself, kicks down when floored, slows when braked |
 | UC-5 | Driver | Drive in manual | Switches to manual, clutch, stick, throttle | Pulls away or stalls; changes gear or grinds; the coach shows up and down arrows and the rev-match target |
 | UC-6 | Driver | Brake | Brake | The speed falls, the revs fall in gear; at a stop in gear without the clutch, it stalls |
+| UC-6a | Driver | Blow the engine | A downshift that drags the revs past the over-rev limit | The engine dies, the faces break back into pixels and empty circles, "new engine" to carry on |
 | UC-7 | Challenger | Do the 0 to 60 run | Starts the run | Countdown, the run, the time, the score card, the ghost of the perfect run |
 | UC-8 | Challenger | See where the time went | Reads the score card | Time lost on the launch and on each shift, shift revs against the best revs, wheelspin, limiter time |
 | UC-9 | Challenger | Keep a best | Finishes a run better than before | The run is the new best for that engine, kept in the browser, and can be watched again |
@@ -94,13 +98,31 @@ The link is the only thing that leaves a browser, and only when a driver chooses
 
 ## The page
 
-One screen. Proposed arrangement, to be restyled by the author's sporty design:
+One screen. Proposed arrangement, to be restyled by the author's sporty design.
+
+At the start, before any engine has run:
 
 ```
 +--------------------------------------------------------------------+
-|  pedalsim      [ I4 ][ V6 ][ V8 ][ V10 ][ V12 ]     [ AUTO | MAN ] |
+|  pedalsim          < V8 >                           [ AUTO | MAN ] |
 |                                                                    |
-|   [ shift light bar: o o o o o o o o o o ]                         |
+|        .-------------.          .-------------.                    |
+|       /               \        /               \                   |
+|      |        .        |      |        .        |                  |
+|       \               /        \               /                   |
+|        '-------------'          '-------------'                    |
+|                                                                    |
+|   [clutch] [brake] [throttle]      H-pattern stick   [ START ]     |
++--------------------------------------------------------------------+
+```
+
+After some revving and driving:
+
+```
++--------------------------------------------------------------------+
+|  pedalsim          < V8 >                           [ AUTO | MAN ] |
+|                                                                    |
+|   [ shift lights, one per cylinder: o o o o o o o o ]              |
 |                                                                    |
 |        .-------------.          .-------------.                    |
 |       /  TACHOMETER   \        /  SPEEDOMETER  \       GEAR        |
@@ -122,13 +144,19 @@ The pedals and stick are simple on-screen controls that also show what the keybo
 
 ### J1 - First visit
 
-1. The page opens on the four-cylinder, automatic, engine off.
-2. Start. The needles sweep and settle; the tach trembles at idle.
-3. Throttle in neutral: the revs climb, settle, drop when released. Floored: the limiter.
-4. D, throttle: the speed builds, the box shifts at the shift marker, the light bar fills.
+1. The page opens on two empty circles and the V4, automatic, engine off.
+2. Start. The needles appear, sweep and settle; the tach trembles at idle, and a few coarse
+   blocks of face appear around the idle mark.
+3. Throttle in neutral: the revs climb, settle, drop when released, and the face fills in
+   behind the needle, coarse blocks first, sharpening as they are revisited. Floored: the
+   limiter, the redline arc appears, and the dyno strip draws the torque curve left to right.
+   A few more pulls and the tachometer is complete.
+4. D, throttle: the speed builds and the speedometer's face pixelates in up to the speed
+   reached. The box shifts at the shift marker; the lights fill.
 5. Brake: speed and revs fall together; the box shifts down.
-6. Swap to the V12 and do it again. The dyno strip changes shape and the needles move
-   differently. That comparison is the point.
+6. Cycle to the V12. The faces dissolve to empty circles. Rev it: the new tachometer comes in
+   with a higher redline, different spacing and twelve shift lights. That comparison is the
+   point.
 
 ### J2 - Manual and the coach
 

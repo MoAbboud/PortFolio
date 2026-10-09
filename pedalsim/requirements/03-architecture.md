@@ -28,7 +28,7 @@ flowchart LR
         SIM[sim/<br/>pure, deterministic]
         GHOST[Ghost sim<br/>replays the perfect run]
         COACH[Shift coach]
-        UI[Gauges, light bar,<br/>dyno strip]
+        UI[Gauges that build<br/>themselves, lights,<br/>dyno strip]
         SCORE[Run recorder<br/>and score]
         LS[(localStorage)]
     end
@@ -54,16 +54,20 @@ and a shared link reproduce a run on someone else's machine.
 
 The engines are not five hand-drawn torque curves. Each one is a short list of physical
 parameters, and `tools/build-engines.js` turns that into the tables the simulation uses. The
-point: an I4 and a V12 behave differently *because* of their dimensions, and the page can say
+point: a V4 and a V12 behave differently *because* of their dimensions, and the page can say
 why.
 
-| Parameter | I4 | V6 | V8 | V10 | V12 |
+| Parameter | V4 | V6 | V8 | V10 | V12 |
 | --- | --- | --- | --- | --- | --- |
 | Cylinders | 4 | 6 | 8 | 10 | 12 |
-| Bore x stroke, mm (starting guess) | 86 x 86 | 94 x 84 | 92 x 94 | 92 x 79 | 89 x 87 |
+| Bore x stroke, mm (starting guess) | 90 x 78 | 94 x 84 | 92 x 94 | 92 x 79 | 89 x 87 |
 | Displacement, litres (derived) | 2.0 | 3.5 | 5.0 | 5.2 | 6.5 |
 | Peak mean piston speed, m/s | 20 | 20 | 21 | 23 | 23 |
-| Character | Peaky | Broad | Low-down | Peaky, high | Broad, high |
+| Character | Peaky, rough | Broad | Low-down | Peaky, high | Broad, high |
+
+The engine picker cycles through them in order of cylinder count. A V4 is rare in cars and
+rough by nature - its banks do not cancel each other's shaking the way an inline-4's pistons
+do - which the ripple table carries.
 
 Everything below is derived, not entered:
 
@@ -158,7 +162,10 @@ pedal_eff = max(pedal, idle controller)
   bounce is a real consequence, not an animation.
 - **Stall**: below the stall speed the engine stops until the start key.
 - **Over-rev**: combustion cannot pass the limiter, but the wheels can drag the engine past it
-  through a locked clutch after a bad downshift. That lights the check engine light.
+  through a locked clutch after a bad downshift. Past the limiter, the check engine light.
+  Past the engine's over-rev limit, **the engine is blown**: it stops, will not restart until
+  "new engine", and its gauges break back into pixels and empty circles. Either one makes a
+  run not clean.
 
 ### Two friction couplings, one rule
 
@@ -341,8 +348,9 @@ run's; time with the clutch in; slip energy; time on the limiter.
 score = round(1000 * perfect time / your time)        1000 is perfect
 ```
 
-with a "clean" mark for a run with no grind, no over-rev and low clutch heat. A stall ends the
-run. Every other mistake already costs time, so it is not penalised twice.
+with a "clean" mark for a run with no grind, no over-rev, no blown engine and low clutch
+heat (the author's definition: "dont blow out the engine etc"). A stall or a blown engine ends
+the run. Every other mistake already costs time, so it is not penalised twice.
 
 ## The board and the share link
 
@@ -361,10 +369,97 @@ both. Received runs can be kept in a "friends" list on the receiver's board.
 **What a link proves.** That the run is possible in this simulation. It cannot prove a person
 drove it: a program could write a perfect input log. The page says so.
 
+## The interface the engine builds
+
+The author's idea: the gauges start as empty circles, and revving the engine makes them
+pixelate in. Two pieces of maths: the **layout**, which decides what each face would show,
+entirely from the engine's figures; and the **development field**, which decides how much of
+it has been earned, entirely from what the engine has done.
+
+```mermaid
+flowchart LR
+    TAB[(Engine tables)] --> LAY[Layout<br/>nice-number ticks, redline,<br/>shift marker, lights]
+    LAY --> FACE[Face texture<br/>drawn once per engine]
+    SIM[Simulation state<br/>every frame] --> DEV[Development field<br/>per gauge, per bin]
+    DEV --> SH[Reveal shader]
+    FACE --> SH
+    SH --> SCR[Screen]
+    NEED[Needles, crisp] --> SCR
+```
+
+### The layout, from the engine's figures
+
+Nothing on a face is placed by hand.
+
+- **Range**: the tachometer runs to the over-rev limit rounded up to a tidy figure; the
+  speedometer to the top speed the gearing allows, rounded up.
+- **Tick spacing** by a nice-numbers rule (the one plotting libraries use for axis labels):
+  of the steps 1, 2 and 5 times a power of ten, the one that gives six to ten major ticks.
+  A V4's tachometer and a V12's come out spaced differently because their redlines differ.
+- **Angle** of any value: `a0 + (x / max) * sweep`.
+- **Redline arc** from the redline to the limiter; **shift marker** from the coach's
+  crossover point for the current gear.
+- **Shift lights: one per cylinder.** A V4 gets four, a V12 twelve.
+- The face is drawn once per engine to an offscreen canvas, in the author's sporty style.
+  That texture is the finished gauge; the reveal decides how much of it is shown.
+
+### The development field
+
+Each gauge is cut into bins: the tachometer one per 100 rpm, the speedometer one per mph.
+Each bin holds a development value `d` from 0 (not there) to 1 (fully built).
+
+```
+while the engine runs at revs n, every frame:
+    d[bin(n)] += rate * dt * (0.3 + load)            lingering builds; full throttle builds faster
+    spread a little to the neighbouring bins          so the face grows smoothly, not in stripes
+speedometer: the same, from the car's speed
+```
+
+- **Some parts wait for an event, not for time.** The redline arc appears the first time the
+  revs reach the redline. The shift marker for a gear appears the first time the engine passes
+  it in that gear under load. The numerals appear once their bin is half built.
+- **The dyno strip is a measurement, not a drawing.** For each rpm bin it plots the largest
+  torque the engine has actually produced there at full throttle. A full-throttle pull in
+  neutral draws the curve left to right, like a dyno run.
+- **Rates are tuned by feel**: three or four full-throttle pulls to the limiter should
+  complete the tachometer.
+- **It is display-side.** The simulation never reads `d`. A replay rebuilds the same gauges
+  because it produces the same states.
+
+### The reveal: pixelating in
+
+A fragment shader draws each gauge. For each pixel it finds the bin under it (from its angle
+around the centre), reads that bin's `d`, and decides two things:
+
+```
+block size   b = 2 ^ round(5 * (1 - d))              32, 16, 8, 4, 2, 1 pixels
+sample       the face texture at the centre of the b-by-b block the pixel falls in
+shown        if  d > bayer(block x, block y)          a 4 x 4 ordered-dither threshold
+```
+
+So at `d = 0` nothing is shown but the circle outline; a little development scatters a few
+big blocks; as it grows, the blocks multiply and shrink until the face is sharp. Ordered
+dithering makes the blocks appear in a fixed, even pattern rather than fading, which is what
+reads as pixelating in.
+
+- **Blowing the engine** runs it backwards: every `d` drains to zero over a second and the
+  face breaks back into blocks.
+- **Cycling engines** dissolves the faces the same way, swaps in the new engine's face
+  texture and its own development field. Returning to an engine restores what it had built,
+  for the rest of the visit.
+- **"Build it all"** sets every `d` to 1 over a second. It is also the default when the
+  browser reports a preference for reduced motion.
+- **Fallback**: without WebGL2, the same reveal in canvas 2D, redrawing a face only when its
+  development changes.
+
+### What stays crisp
+
+The needles, the gear indicator and the coach's arrows are drawn sharp from the start,
+outside the reveal. A newcomer can always read the revs and be told when to shift; what they
+earn is the face around them.
+
 ## The page
 
-- **SVG gauges** generated from each engine's tables: tick at `a0 + (x / max) * sweep`, the
-  redline arc, the shift marker. A new engine gets a correct tachometer for free.
 - **Needles have mass**: a damped spring chasing the value, quicker on the tachometer than the
   speedometer:
 
@@ -372,13 +467,16 @@ drove it: a program could write a perfect input log. The page says so.
 acc = wn^2 * (target - angle) - 2 * zeta * wn * vel
 ```
 
-- **Shift light bar**, **gear and arrow**, **ghost needle**, **rev-match needle**.
-- **Dyno strip**: the engine's torque and power curves with a dot at the current revs and
-  load. The calculation, on screen.
+- **Shift lights** (one per cylinder), **gear and arrow**, **ghost needle**, **rev-match
+  needle**.
+- **Dyno strip**: the torque and power curves as the engine has measured them, with a dot at
+  the current revs and load. The calculation, on screen.
+- **Engine picker**: one control that cycles V4, V6, V8, V10, V12 in order; keyboard too.
 - **Pedals and stick**: simple controls that also show what the keyboard is doing. The H-pattern
   knob is projected onto its gate segments, so it moves only where a real one can.
-- **Styling** through CSS custom properties, so the sporty look the author picks can be applied
-  without touching the gauge maths.
+- **Styling**: the sporty look the author picks lives in the face painter's palette and fonts
+  and in a few CSS custom properties for the page around the gauges. Changing the look never
+  touches the layout maths.
 
 ## Controls
 
@@ -394,8 +492,9 @@ acc = wn^2 * (target - angle) - 2 * zeta * wn * vel
 pedalsim/
   index.html
   sim/        step, engine, couplings, converter, gearbox, chassis, coach, score, log
-  engines/    params.js (entered), i4.js ... v12.js (generated), perfect/*.js (generated)
-  ui/         gauge, needle, lightbar, dyno, pedals, stick, board, scorecard
+  engines/    params.js (entered), v4.js ... v12.js (generated), perfect/*.js (generated)
+  ui/         layout (nice numbers, angles), face painter, development field, reveal shader
+              and its canvas 2D fallback, needle, lights, dyno, pedals, stick, board, scorecard
   input/      keyboard, pointer, gamepad
   tools/      build-engines.js, solve.js, drive.js (scripted run to CSV), figures.js
   test/

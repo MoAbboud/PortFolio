@@ -114,6 +114,31 @@ https://<site>/pedalsim/#run=<base64url( deflate-raw( packed log ) )>
 
 The fragment never reaches any server. `CompressionStream` in the browser does the deflate.
 
+## The gauge layout and development - in memory only
+
+Built when an engine is chosen, thrown away when the tab closes.
+
+```
+layout[engine] = {
+  tach:  { max, majorStep, minorStep, a0, sweep, redline, limiter, shiftMarks: [per gear] },
+  speed: { max, majorStep, minorStep, a0, sweep },
+  lights: cylinders,
+  faces: { tach: <texture>, speed: <texture> }          painted once
+}
+
+development[engine] = {
+  tach:  Float32Array(bins),            one per 100 rpm, 0..1
+  speed: Float32Array(bins),            one per mph, 0..1
+  events: { redlineSeen, shiftMarkSeen: [per gear] },
+  dyno:  Float32Array(bins)             largest full-throttle torque seen per rpm bin
+}
+```
+
+- Kept per engine, so cycling back restores what that engine had built.
+- Not saved to the browser: every visit starts with empty circles (proposed; an open
+  question in 00-plan).
+- Never read by `sim/`.
+
 ## What the browser keeps
 
 `localStorage`, one key per concern, each with a format number.
