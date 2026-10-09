@@ -24,7 +24,12 @@ actually been. The tachometer fills in behind the needle; the redline appears th
 you reach it; the torque curve draws itself from your full-throttle pulls, like a run on a
 dyno; the speedometer fills up to the fastest you have gone. Every tick and number is placed
 from that engine's own figures, so a V12's dials come out different from a V4's. Change
-engine and the faces dissolve and start again. Blow the engine and they break apart.
+engine and the faces dissolve and start again, in that engine's own colours. Blow the engine
+and they break apart.
+
+Behind the gauges, three faint lines trace the engine's power pulses through one full cycle
+(two turns of the crankshaft): each bank of cylinders, and the two added together. A V4's are jagged; a V12's add up
+to nearly flat. That is why a V12 feels smooth, drawn.
 
 ## What you can do
 

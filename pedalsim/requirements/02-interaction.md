@@ -84,7 +84,7 @@ The link is the only thing that leaves a browser, and only when a driver chooses
 
 | ID | Actor | Goal | Trigger | Result |
 | --- | --- | --- | --- | --- |
-| UC-1 | Driver | Choose an engine | Cycles V4, V6, V8, V10, V12 with one control | The engine is swapped in the same car. The faces dissolve back to empty circles and are laid out again for this engine: its own range, tick spacing, redline, one shift light per cylinder. An engine visited earlier since the last refresh comes back as built as it was left |
+| UC-1 | Driver | Choose an engine | Cycles V4, V6, V8, V10, V12 with one control | The engine is swapped in the same car. The faces dissolve back to empty circles and are laid out again for this engine: its own range, tick spacing, redline, one shift light per cylinder, and the colours cross-fade to that engine's palette. An engine visited earlier since the last refresh comes back as built as it was left |
 | UC-2 | Driver | Start it | Start key or button | The needles appear and sweep, the engine catches and idles. Idle trembles less the more cylinders there are |
 | UC-3 | Driver | Rev it in neutral | Throttle | The revs rise and settle where the throttle holds them, fall when released, bounce off the limiter if floored. **The tachometer's face pixelates in wherever the needle has been**, the dyno strip draws the torque curve from the pulls, the redline appears the first time it is reached |
 | UC-3a | Driver | Skip the build-up | "Build it all" | Every face resolves fully in a second |

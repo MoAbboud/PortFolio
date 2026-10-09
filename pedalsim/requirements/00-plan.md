@@ -114,6 +114,8 @@ measure against, and a leaderboard of raw times says nothing about how well some
 | A sandbox: every refresh is a new run, nothing is saved | The author: "each refresh is a new run, no need for sessions and stuff like that, its a sandbox that resets". Empty circles, no bests, default settings on every load. Nothing in the browser's storage |
 | The board lasts while the page is open; a run is kept past a refresh only by sharing it as a link, which the receiver's page re-drives | Follows from no server and the sandbox. The link carries the inputs, never the score, so it cannot be edited into a better time |
 | The look starts from the CodePen pen filipz/pen/dPygJGM, with ma77os/pen/xxyywo as the backup | The author's pick. Public pens are MIT licensed by CodePen; credit the author and keep the notice |
+| The engine lines: bank A, bank B and their sum against crank angle, faint behind the gauges | The author: "engine lines are cool". The pen's sound-reactive lines turned into the engine's own signal |
+| The colours cycle: each engine has its own palette, changing as the engine cycles | The author: "cycle between colors" |
 | The rpm represents the amount of gas given | The author's first requirement for the gauges |
 | Show speed rising, and what happens when you brake | The author's |
 | Automatic, with manual shifting as an option | "with options to use a manual shift" |
@@ -146,7 +148,8 @@ measure against, and a leaderboard of raw times says nothing about how well some
 | A ghost needle shows the perfect run during your run | The clearest picture of "shift here, not there" |
 | Simple ABS: the wheels never lock under braking | Braking stays readable on the gauges; a locked wheel would drop the speedometer to zero while the car still moves |
 | Plain JavaScript modules, no build step | The trail pattern; already deploys on Pages |
-| From the pen take the Warm palette, Boldonse and Bodoni Moda (copies served from the repo), glow-line needles and arcs, and film grain; write all code fresh | The author's pick, made into gauges. The pen's shader is based on a Shadertoy shader whose default licence is non-commercial share-alike, so its code is not copied - see 03-architecture, "The look, from the pen" |
+| From the pen take its colour presets, Boldonse and Bodoni Moda (copies served from the repo), glow-line needles and arcs, and film grain; write all code fresh | The author's pick, made into gauges. The pen's shader is based on a Shadertoy shader whose default licence is non-commercial share-alike, so its code is not copied - see 03-architecture, "The look, from the pen" |
+| Palettes: V4 Cool, V6 Neon, V8 Warm, V10 Cyberpunk, V12 Monochrome; the redline always red and the type always light grey | The redline has to read as a redline whatever the colours. On the V12's silver it is the only colour, which suits it |
 | Gauge faces drawn to an offscreen canvas from a generated description, revealed through a WebGL2 shader, with a canvas 2D fallback; needles drawn crisp on top | Per-pixel decisions every frame are what a shader is for, and trail already uses WebGL2 here. SVG, the first proposal, cannot pixelate |
 | 1000 simulation steps a second; no transcendental functions in the step | Stable couplings; the same run on every browser |
 | mph by default, km/h as a setting | US-facing, like the author's other projects |
@@ -157,8 +160,6 @@ measure against, and a leaderboard of raw times says nothing about how well some
 | --- | --- | --- |
 | How long should a full build take? | Stage 3 | Proposed: three or four full-throttle pulls to the limiter in neutral build the tachometer; the speedometer builds to whatever speed has been reached. Tuned by feel |
 | What does the empty state show? | Stage 3 | Proposed: the circle outlines and the needle hubs only. The needles appear with the start key |
-| The engine line behind the gauges? | Stage 3 | Proposed: yes - the pen's sound-reactive lines become the two cylinder banks' torque and their sum, so a V4 looks jagged and a V12 flat. One faint background element; see 03-architecture, "The engine line" |
-| One palette, or a colour per engine? | Stage 3 | Proposed: the Warm palette for all. The pen's other presets (Neon, Cool, Cyberpunk) could give each engine its own, which the cycle would show off |
 | Sound | Later | Settled as later. When it comes: a note synthesised from rpm, load and cylinder count |
 | Should the automatic have a 0 to 60 run too? | Stage 7 | Proposed: yes, timed, but not scored - there is no shifting skill in it beyond the launch |
 | More engine kinds later | After stage 8 | Turbocharged (boost gauge, lag), diesel (low redline, huge torque), rotary, motorcycle, electric (no gears at all). Each is a parameter set and a few new curves |

@@ -21,7 +21,7 @@ Nothing is built. Planning is in progress.
 - [x] V10 is in. Every refresh is a new run: a sandbox, nothing saved
 - [x] The author pasted the pen's HTML, CSS and JS; read, and written up in 03-architecture,
       "The look, from the pen"
-- [ ] The author decides: the engine line behind the gauges, and one palette or one per engine
+- [x] Engine lines: yes. Colours: cycle with the engine
 - [x] The author picked CodePen inspiration: filipz/pen/dPygJGM, with ma77os/pen/xxyywo as a
       backup
 
@@ -75,11 +75,12 @@ Check:
 - [ ] Layout from the engine tables: ranges, nice-number tick steps, angles, redline arc,
       shift marks, one shift light per cylinder. Tests: every engine gets six to ten major
       ticks; a V4 and a V12 differ
-- [ ] Face painter: each gauge drawn once to an offscreen canvas in the Warm palette, with
+- [ ] Face painter: each gauge drawn once to an offscreen canvas in that engine's palette, with
       Boldonse numerals and Bodoni Moda labels served from the repo
 - [ ] Glow-line needles and arcs (core colour to edge colour, added on the dark); film grain
       in the reveal shader
-- [ ] The engine line, if the author wants it: bank A, bank B and their sum against crank
+- [ ] Palette cross-fade on engine cycle; redline and type fixed across palettes
+- [ ] The engine lines: bank A, bank B and their sum against crank
       angle, from the ripple table
 - [ ] Development field: bins, growth from revs and load, spread to neighbours, event parts
       (redline, shift marks, numerals), dyno bins from full-throttle torque

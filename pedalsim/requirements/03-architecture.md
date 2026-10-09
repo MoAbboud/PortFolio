@@ -476,8 +476,8 @@ acc = wn^2 * (target - angle) - 2 * zeta * wn * vel
 - **Engine picker**: one control that cycles V4, V6, V8, V10, V12 in order; keyboard too.
 - **Pedals and stick**: simple controls that also show what the keyboard is doing. The H-pattern
   knob is projected onto its gate segments, so it moves only where a real one can.
-- **Styling**: the sporty look the author picks lives in the face painter's palette and fonts
-  and in a few CSS custom properties for the page around the gauges. Changing the look never
+- **Styling**: the look lives in the face painter's per-engine palettes and fonts, and in a
+  few CSS custom properties for the page around the gauges, swapped as the engine cycles. Changing the look never
   touches the layout maths.
 
 ## The look, from the pen
@@ -499,36 +499,50 @@ names the pen as the inspiration.
 
 | From the pen | In pedalsim |
 | --- | --- |
-| The "Warm" colour preset | The palette below |
+| The colour presets: Cool, Neon, Warm, Cyberpunk, Monochrome | One per engine, cycling with it - below |
 | Boldonse, a very wide heavy display face, in capitals | Gauge numerals, the gear number, the engine name. Heavy shapes pixelate in cleanly |
 | Bodoni Moda italic, small, for captions | Labels: rpm x1000, mph, the score card's notes |
 | Lines drawn as a glow: bright core colour fading to an edge colour, added onto the dark | Needles, the redline arc, the shift marks, the ghost needle |
 | Film grain over the whole frame | Grain in the reveal shader, so coarse pixels and grain read as one texture. No outside image |
 | An idle state that eases into a live state when the music starts | Engine off to engine running: the page eases from still to live on the start key |
-| Lines that react to sound, with a bounce and ripple on each kick drum | **The engine line** - see below. Proposed, waiting for the author |
+| Lines that react to sound, with a bounce and ripple on each kick drum | **The engine lines** - below. The author: "engine lines are cool" |
 
 **Not taken**: the song, the beat detector, three.js, dat.gui, the FPS counter, the profile
 card, the noise image, the hidden cursor (a dragged pedal wants a real pointer).
 
-**The palette** (the pen's Warm preset, as RGB):
+**The colours cycle with the engine.** The author: "cycle between colors". Each engine
+brings one of the pen's colour presets, and cycling the engine cycles the colours with it: the
+faces dissolve, the palette cross-fades, the new engine's gauges pixelate in in their own
+colours. Proposed assignment, as RGB:
 
-| Role | Colour |
+| Engine | Preset | Background, top to bottom | Needle and tach arc, bank A line: core, edge | Bank B line: core, edge | Speedometer, shift lights, sum line: core, edge |
+| --- | --- | --- | --- | --- | --- |
+| V4 | Cool | 5 10 20 to 10 20 30 | 100 200 255, 0 100 200 | 100 255 200, 0 150 100 | 150 200 255, 50 100 200 |
+| V6 | Neon | 5 5 15 to 10 10 20 | 255 0 255, 128 0 255 | 0 255 255, 0 128 255 | 255 255 0, 255 128 0 |
+| V8 | Warm | 20 10 5 to 40 20 10 | 255 200 0, 255 100 0 | 255 100 100, 200 50 50 | 255 150 50, 200 100 0 |
+| V10 | Cyberpunk | 0 20 40 to 20 0 40 | 255 0 128, 200 0 100 | 0 255 128, 0 200 100 | 255 255 0, 200 200 0 |
+| V12 | Monochrome | 20 20 20 to 10 10 10 | 200 200 200, 150 150 150 | 255 255 255, 100 100 100 | 180 180 180, 120 120 120 |
+
+The pen's sixth preset, Default, is spare. Two roles do **not** change with the palette,
+because they carry meaning:
+
+| Role | Colour, every engine |
 | --- | --- |
-| Background, top to bottom | 20 10 5 to 40 20 10 - near black, warm |
-| Needle and tach arc: core, edge | 255 200 0 gold, 255 100 0 orange |
-| Redline and blown engine: core, edge | 255 100 100, 200 50 50 |
-| Speedometer and shift lights: core, edge | 255 150 50, 200 100 0 |
+| Redline, over-rev and blown engine: core, edge | 255 100 100, 200 50 50 - always red |
 | Type | 224 224 224 |
 | Ghost needle | Type colour at a third strength |
+
+So the redline reads as a redline whatever the engine - and on the V12's silver Monochrome it
+is the only colour on the page, which is no bad thing.
 
 **The fonts** come from Google Fonts in the pen. pedalsim serves its own copies from the
 repo, so the page works offline and fetches nothing; both are to be checked for an open font
 licence before they are copied in.
 
-### The engine line (proposed)
+### The engine lines
 
 The pen's three lines dance to a song's bass, middle and treble. pedalsim has its own signal:
-the torque each cylinder bank puts on the crankshaft. One faint glowing line across the page
+the torque each cylinder bank puts on the crankshaft. Three faint glowing lines across the page
 behind the gauges, drawn against crank angle over two turns - one full engine cycle:
 
 - **Line A**: bank one's torque pulses. **Line B**: bank two's. **Line C**: the two added -
@@ -539,6 +553,8 @@ behind the gauges, drawn against crank angle over two turns - one full engine cy
   watchable; the pen's "kick" bounce fires on a gear change and on each limiter cut.
 - Engine off: the lines lie flat, as the pen's do before the music starts.
 - It comes from the ripple table the idle tremble already uses, on the display side only.
+- The lines are in the engine's colours: bank A the needle colour, bank B the second colour,
+  the sum the speedometer colour.
 
 ## Controls
 
