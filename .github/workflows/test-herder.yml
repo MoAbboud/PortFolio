@@ -38,7 +38,11 @@ jobs:
 
     services:
       db:
-        image: pgvector/pgvector:pg16
+        # pgvector/pgvector:pg16 from Google's Docker Hub mirror, not Docker Hub itself.
+        # Runners pull anonymously from shared addresses and Docker Hub answers
+        # "toomanyrequests" when that address has pulled too much; the mirror is outside
+        # Docker Hub's limit and serves the same image (same digest).
+        image: mirror.gcr.io/pgvector/pgvector:pg16
         env:
           POSTGRES_USER: herder
           POSTGRES_PASSWORD: herder
