@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pedalsim</title>
+<!-- Inline, so the browser never requests a favicon and never logs a 404 for it. -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='8' cy='8' r='6.5' fill='none' stroke='%2364c8ff' stroke-width='1.5'/></svg>">
+<style>
+  /* Stage 0: the page is its own starting state - two empty circles, nothing in them. The
+     gauges are built by the engine from stage 3. The colours are the V4's (the pen's Cool
+     preset), the engine the page opens on. */
+  :root {
+    --bg-top: rgb(5 10 20);
+    --bg-bottom: rgb(10 20 30);
+    --ring: rgb(100 200 255 / 0.35);
+    --type: rgb(224 224 224);
+  }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: linear-gradient(var(--bg-top), var(--bg-bottom));
+    color: var(--type);
+    font: 13px/1.5 system-ui, sans-serif;
+    display: grid;
+    grid-template-rows: auto 1fr;
+  }
+  header { padding: 16px 20px; letter-spacing: 0.04em; }
+  main {
+    display: flex; align-items: center; justify-content: center;
+    gap: min(6vw, 64px); padding: 16px; flex-wrap: wrap;
+  }
+  .gauge {
+    width: min(40vw, 42vh, 380px); aspect-ratio: 1; border-radius: 50%;
+    border: 2px solid var(--ring);
+  }
+  .gauge.speed { width: min(32vw, 34vh, 300px); }
+</style>
+</head>
+<body>
+<header>pedalsim <span id="engine">V4</span></header>
+<main>
+  <div class="gauge tach" aria-label="Tachometer, not built yet"></div>
+  <div class="gauge speed" aria-label="Speedometer, not built yet"></div>
+</main>
+<script type="module" src="ui/main.js"></script>
+</body>
+</html>

@@ -15,8 +15,13 @@ is wrong and it gets fixed rather than worked around.
 [00-plan.md](00-plan.md) is the one to read first: the stage order, the decisions already
 settled with the reason each one was taken, and the open questions still outstanding.
 
-**Nothing is built.** This folder is the whole project so far. It is being planned, not
-coded.
+**Stage 0 is done**: the scaffold, a test that holds every file in `sim/` to the determinism
+rules, the replay, the trace tool and a page of two empty circles. Stage 1 is next.
+
+    cd pedalsim
+    npm test
+    node tools/drive.js test/scripts/idle.json --out traces/idle.csv
+    npx --yes serve .
 
 Three things worth stating here so they are not discovered as surprises:
 

@@ -1,0 +1,12 @@
+{
+  "name": "pedalsim",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A car that is only its gauges: engines from a V4 to a V12, built from their measurements, and gauges that the engine builds as it revs.",
+  "scripts": {
+    "test": "node --test",
+    "serve": "npx serve .",
+    "drive": "node tools/drive.js"
+  }
+}

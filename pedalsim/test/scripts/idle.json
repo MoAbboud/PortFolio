@@ -1,0 +1,8 @@
+{
+  "about": "Turn the key for 0.6 s, let go, and leave it idling in neutral for three seconds.",
+  "steps": 3000,
+  "events": [
+    [0, "key", 1],
+    [600, "key", 0]
+  ]
+}

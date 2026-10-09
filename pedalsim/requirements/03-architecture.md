@@ -569,7 +569,8 @@ behind the gauges, drawn against crank angle over two turns - one full engine cy
 ```
 pedalsim/
   index.html
-  sim/        step, engine, couplings, converter, gearbox, chassis, coach, score, log
+  sim/        step, inputs, replay (stage 0); engine, couplings, converter, gearbox,
+              chassis, coach, score, log
   engines/    params.js (entered), v4.js ... v12.js (generated), perfect/*.js (generated)
   ui/         layout (nice numbers, angles), face painter, development field, reveal shader
               and its canvas 2D fallback, needle, lights, dyno, pedals, stick, board, scorecard
