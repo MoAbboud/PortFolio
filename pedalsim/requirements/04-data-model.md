@@ -18,53 +18,66 @@ flowchart LR
 
 ## Engine parameters - entered
 
-`engines/params.js`, one entry per engine. The only engine numbers anyone types.
+`engines/params.js`. The only engine numbers anyone types. Built in stage 1.
 
 ```
-{
-  id: "v8",
-  label: "V8",
-  layout: "V", cylinders: 8, bankAngle: 90,
-  bore: 0.092, stroke: 0.094,            m
-  pistonSpeedMax: 21,                    m/s at the redline
-  imepPeak: 13.5e5,                      Pa
-  character: "low-down",                 picks the IMEP shape table
-  friction: { A: 0.97e5, C: 0.15e5, D: 0.005e5 },     Pa, Pa per m/s, Pa per (m/s)^2
-  flywheel: 0.12, perCylinderInertia: 0.008,          kg m^2
-  mass: 210,                             kg, added to the chassis
-  idleRpm: 750, stallRpm: 350
+SHARED = {                               physics and plumbing, the same for every engine
+  frictionA: 0.5e5, frictionC: 0.03e5, frictionD: 0.002e5,     Pa, Pa per m/s, Pa per (m/s)^2
+  pumpingClosed: 0.9e5,                  Pa, throttle shut
+  throttleLeak: 0.004, throttleFlow: 1.5,
+  manifoldRatio: 1.0,                    manifold volume over displacement
+  starterFactor: 3, starterFreeRpm: 400, fireRpm: 200,
+  inertiaPerCylinder: 0.008,             kg m^2
 }
+
+ENGINES = [{                             in the order the page cycles them
+  id: "v8", label: "V8", cylinders: 8, bankAngle: 90,
+  bore: 0.094, stroke: 0.0895,           m
+  pistonSpeedMax: 21.5,                  m/s at the redline
+  imepPeak: 14.6e5,                      Pa
+  shape: { peakAt: 0.85, atIdle: 0.74, atRedline: 0.91 },
+  flywheel: 0.319,                       kg m^2
+  mass: 200,                             kg, added to the chassis in stage 2
+  idleRpm: 650,
+  targets: {                             the reference engine's published figures
+    peakTorque: [500, 535], peakTorqueRpm: [4600, 5800],
+    peakPower: [310, 355], peakPowerRpm: [6400, 7200],
+    redline: [6800, 7300],               left out where no published figure was found
+  },
+}, ...]
 ```
 
 ## Engine tables - generated
 
-`engines/<id>.js`, written by `tools/build-engines.js`, committed, never edited by hand. A
-header comment says so and names the parameters' hash.
+`engines/<id>.js` and `engines/index.js`, written by `tools/build-engines.js`, committed,
+never edited by hand. The header names the SHA-256 of the parameters it was built from, and
+`test/engines.test.js` rebuilds every file in memory and fails if a committed one differs.
 
 ```
-{
-  id: "v8", label: "V8", cylinders: 8,
-  displacement: 0.00500,                 m^3
-  redlineRpm: 6700, limiterRpm: 6850, overRevRpm: 7900,
-  idleRpm: 750, stallRpm: 350,
-  inertia: 0.184, mass: 210,
-  torqueFull:  [[rpm, Nm], ...],         about 40 points
-  friction:    [[rpm, Nm], ...],
-  loadMap:     { pedals: [...], rpms: [...], load: [[...], ...] },
-  ripple:      { firingGapDeg: 90, amplitude: ... },
-  manual: { ratios: [6], finalDrive, efficiency, clutchMax, bite },
-  auto:   { ratios: [6], finalDrive, efficiency, converter: { k: [...], tr: [...] },
-            lockupFromGear, shiftMap: { up: [...], down: [...] }, kickdown },
-  coach:  { upFullThrottleRpm: [per gear], lugFloorRpm, ... },
-  figures: { peakTorque: [Nm, rpm], peakPower: [kW, rpm], topSpeedMph, zeroToSixtyRef }
+export default {
+  id: "v8", label: "V8", cylinders: 8, bankAngle: 90, firingIntervalDeg: 90,
+  displacement: 0.0049689, bore: 0.094, stroke: 0.0895, mass: 200,
+  inertia: 0.383,
+  idleRpm: 650, stallRpm: 350, fireRpm: 200,
+  redlineRpm: 7200, limiterRpm: 7350, limiterHysteresisRpm: 200, overRevRpm: 8300,
+  throttleFlow: 1.5, manifoldRatio: 1, pumpingNm: 35.59,
+  starterNm: 166.07, starterFreeRpm: 400,
+  throttleArea: { start: 0, step: 1/64, values: [...] },     open area over the pedal
+  combustion:   { start: 0, step: 50, values: [...] },       Nm at a full cylinder, over rpm
+  friction:     { start: 0, step: 50, values: [...] },       Nm, over rpm
 }
 ```
 
-- Every curve is a point table, interpolated linearly in `sim/`, never a formula. That is the
-  determinism rule in [03-architecture.md](03-architecture.md).
-- `figures` are for the page's engine card and the tests. The simulation never reads them.
-- **The engine hash**: SHA-256 of the object serialised with sorted keys. A shared run carries
-  it; a receiver with different tables says the run is from another version.
+- Every curve is an evenly spaced table, read by straight-line interpolation in `sim/`
+  (`sim/curves.js`), never a formula. That is the determinism rule in
+  [03-architecture.md](03-architecture.md).
+- The rpm tables run 1500 rpm past the over-rev limit, so a needle dragged past it by a bad
+  downshift still reads a curve.
+- **Not in the file**, on purpose: the full-throttle torque and power curves and their peaks.
+  They are what the tables *produce*, so they are measured by running the engine
+  (`tools/measure.js`) rather than stored where they could disagree with it.
+- **Gearing and coach points** move to stage 2, where the chassis they depend on exists.
+- **The engine hash** for a run log (stage 7) is the parameters hash in the header.
 
 ## Perfect runs - generated
 

@@ -15,12 +15,14 @@ is wrong and it gets fixed rather than worked around.
 [00-plan.md](00-plan.md) is the one to read first: the stage order, the decisions already
 settled with the reason each one was taken, and the open questions still outstanding.
 
-**Stage 0 is done**: the scaffold, a test that holds every file in `sim/` to the determinism
-rules, the replay, the trace tool and a page of two empty circles. Stage 1 is next.
+**Stages 0 and 1 are done**: the scaffold, and five engines built from their measurements,
+each tested against the published figures of a real engine of the same bore and stroke,
+running in neutral. Stage 2, the drivetrain, is next.
 
     cd pedalsim
     npm test
-    node tools/drive.js test/scripts/idle.json --out traces/idle.csv
+    node tools/figures.js                       every engine's numbers against its targets
+    node tools/drive.js test/scripts/workout.json --engine v12 --out traces/v12.csv
     npx --yes serve .
 
 Three things worth stating here so they are not discovered as surprises:

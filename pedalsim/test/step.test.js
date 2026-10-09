@@ -14,7 +14,9 @@ test('the step count is the clock: a thousand steps a second', () => {
 });
 
 test('a car starts still, in neutral, with the engine off', () => {
-  assert.deepEqual(initialState(), { step: 0, running: false, we: 0, v: 0, gear: 0 });
+  assert.deepEqual(initialState(), {
+    step: 0, running: false, we: 0, load: 0, idleI: 0, cut: false, v: 0, gear: 0,
+  });
 });
 
 test('a step never changes the state it was given', () => {

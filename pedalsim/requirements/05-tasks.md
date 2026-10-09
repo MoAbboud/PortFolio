@@ -6,7 +6,7 @@ Every stage is checked from a PowerShell terminal on Windows. If a stage cannot 
 that way, it is not finished. Every stage that changes the page is also checked at phone
 width in landscape in the browser's device view.
 
-Stage 0 is done. Stage 1, engines from their dimensions, is next.
+Stages 0 and 1 are done. Stage 2, the drivetrain, is next.
 
 ## Planning
 
@@ -60,24 +60,49 @@ Check:
 
 ## Stage 1 - Engines from their dimensions
 
-- [ ] `sim/curves.js`: table lookup, linear interpolation, clamped ends; 2D for the load map
-- [ ] `engines/params.js` for V4, V6, V8, V10, V12
-- [ ] `tools/build-engines.js`: displacement, redline from piston speed, IMEP shape to torque,
-      Chen-Flynn friction, inertia, load map, ripple, gearing, coach points; writes
-      `engines/<id>.js` with a hash header
-- [ ] Engine runtime in `sim/`: idle controller, limiter with hysteresis, stall, start key
-- [ ] `tools/figures.js`: peak torque and power with their rpm, redline, free-rev rpm per pedal
-- [ ] Tests: the formulas; free-rev settles at one rpm per pedal position and rises with it;
-      limiter bounce; stall; each engine's figures inside its published range
+Done. 82 tests in about a second. Every figure inside its reference engine's published range;
+checked from PowerShell; the page still loads its modules in headless Chrome (`data-sim="1"`).
+
+- [x] Published figures looked up first, not guessed: K20A and K20C2 for the V4's class,
+      2GR-FKS, 2UR-GSE, the Huracan 5.2 V10, F140GA and L539. Each engine copies its
+      reference's bore and stroke; the references are named in `engines/params.js`
+- [x] `sim/curves.js`: evenly spaced tables, straight-line lookup, clamped ends. No 2D table:
+      the load is a formula of three square roots instead (`airLoad`)
+- [x] `sim/clock.js`: `DT`, `STEPS_PER_SECOND`, `RPM_PER_RAD_S`, so `sim/` has no import cycle
+- [x] `engines/params.js` for V4, V6, V8, V10, V12, and the shared physics
+- [x] `tools/engine-maths.js` + `tools/build-engines.js`: displacement, redline from piston
+      speed, the breathing hump to combustion torque, simplified Chen-Flynn friction,
+      pumping, throttle area, inertia, starter; writes `engines/<id>.js` and
+      `engines/index.js` with a parameters-hash header; `--check`
+- [x] Engine at runtime (`sim/engine.js`): airflow load, manifold filling lag, idle
+      controller, limiter with hysteresis, firing on the key, stall, starter, coast to a stop
+- [x] `tools/measure.js` and `tools/figures.js`: peaks, start-up, held-throttle rpm, rev time
+- [x] `tools/golden.js` + `test/golden.json` + `test/golden.test.js`: a fingerprint of every
+      state of a scripted workout per engine; fails if the numbers move without
+      `SIM_VERSION`. Proven by changing one constant by 0.0001 and watching it fail
+- [x] `tools/drive.js --engine`, and `load` and `cut` columns in the trace
+- [x] Tests: the formulas; generated files current; figures in range; start and settle at
+      idle; one steady rpm per held pedal, rising with it; limiter bounce; rev time; back to
+      idle after a blip without dipping toward a stall; stall; no firing without the key;
+      coasting to a stop, never backwards
+- [x] Moved to stage 2: gearing and the coach's shift points, which need the chassis
+- [x] Moved to stage 3: the ripple table for the idle tremble and the engine lines
+
+Found and fixed on the way: friction too steep (every torque peak too early); the idle
+controller unlearning on the way down from a blip (dip toward a stall) and then, once fixed
+too far, never unlearning a start-up flare (idling 200 rpm high).
 
 Check:
 
-    node tools/build-engines.js
+    cd pedalsim
+    node tools/build-engines.js --check
     node tools/figures.js
     npm test
 
 ## Stage 2 - The drivetrain, headless
 
+- [ ] Gearing per engine from the chassis: first gear from grip, top gear from where power
+      meets drag; the coach's full-throttle shift points
 - [ ] Stick or slip coupling, shared by clutch and tyres, with the lock test
 - [ ] The four cases (both stuck, either slipping, both slipping)
 - [ ] Gearbox, final drive, efficiency, neutral, reverse
@@ -86,7 +111,8 @@ Check:
 - [ ] Tests: gentle pull-away; stall on a dumped clutch at idle; wheelspin on a high-rev
       launch, and slower than a clean one; engine braking only in gear; braked car holds;
       top speed at the power-drag crossing within 1 percent; automatic creep and no hunting
-- [ ] Determinism: golden traces, `SIM_VERSION`, the grep for forbidden calls in `sim/`
+- [ ] `SIM_VERSION` bumped and golden traces rewritten (`node tools/golden.js --write`); the
+      workout script grows a drive through the gears
 
 ## Stage 3 - Gauges that build themselves
 

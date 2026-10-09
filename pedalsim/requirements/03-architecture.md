@@ -57,17 +57,24 @@ parameters, and `tools/build-engines.js` turns that into the tables the simulati
 point: a V4 and a V12 behave differently *because* of their dimensions, and the page can say
 why.
 
-| Parameter | V4 | V6 | V8 | V10 | V12 |
-| --- | --- | --- | --- | --- | --- |
-| Cylinders | 4 | 6 | 8 | 10 | 12 |
-| Bore x stroke, mm (starting guess) | 90 x 78 | 94 x 84 | 92 x 94 | 92 x 79 | 89 x 87 |
-| Displacement, litres (derived) | 2.0 | 3.5 | 5.0 | 5.2 | 6.5 |
-| Peak mean piston speed, m/s | 20 | 20 | 21 | 23 | 23 |
-| Character | Peaky, rough | Broad | Low-down | Peaky, high | Broad, high |
+Built in stage 1. The dimensions are those of real naturally aspirated engines, and each
+engine's torque, power and redline are tested against that engine's published figures
+(`engines/params.js` names the references; the page never names a maker):
 
-The engine picker cycles through them in order of cylinder count. A V4 is rare in cars and
-rough by nature - its banks do not cancel each other's shaking the way an inline-4's pistons
-do - which the ripple table carries.
+| | V4 | V6 | V8 | V10 | V12 |
+| --- | --- | --- | --- | --- | --- |
+| Bore x stroke, mm | 86 x 86 | 94 x 83 | 94 x 89.5 | 84.5 x 92.8 | 94 x 78 |
+| Displacement, litres | 2.00 | 3.46 | 4.97 | 5.20 | 6.50 |
+| Piston speed at redline, m/s | 23.3 | 18.6 | 21.5 | 25.6 | 23.1 |
+| Redline, rpm (derived) | 8100 | 6700 | 7200 | 8250 | 8850 |
+| Peak torque, Nm at rpm | 195 at 6200 | 368 at 4700 | 516 at 5050 | 575 at 6300 | 701 at 6150 |
+| Peak power, kW at rpm | 151 at 7800 | 222 at 6250 | 341 at 6750 | 461 at 7900 | 561 at 8350 |
+| Held to | 2.0 litre fours (K20A, K20C2) | 2GR-FKS | 2UR-GSE | Huracan 5.2 | F140GA, L539 |
+
+The engine picker cycles through them in order of cylinder count. No car uses a V4 of this
+size, so the V4 is held to what a 2.0 litre four of the same build makes. It is rough by
+nature - its banks do not cancel each other's shaking the way an inline-4's pistons do -
+which the ripple carries (stage 3).
 
 Everything below is derived, not entered:
 
@@ -84,20 +91,31 @@ Firing gap     720 / cylinders degrees                    sets how smooth idle i
 ```
 
 - **IMEP shape.** Peak indicated pressure is about the same for any well-made naturally
-  aspirated engine, so torque is mostly displacement. What differs is *where* it peaks, from a
-  shape table per character (peaky, broad, low-down) over the fraction of the redline.
+  aspirated engine (14 to 16 bar here), so torque is mostly displacement. What differs is
+  *where* it peaks: a smooth hump given by three numbers per engine - where it peaks as a
+  fraction of the redline, and how far it has fallen at one tenth of the redline and at the
+  redline. Those numbers were found by a search against the published figures, then fixed.
 - **Redline from piston speed.** A long stroke means the piston travels further every turn, so
-  the same piston speed limit is reached at fewer rpm. That one line is why the V10 and V12
-  rev higher than the V8 here.
+  the same piston speed limit is reached at fewer rpm. The V12's short 78 mm stroke is why it
+  revs to 8850 on an ordinary 23 m/s. The V10 has a *longer* stroke than the V8 and still
+  revs higher, because it is built for 25.6 m/s - a race-derived engine. Both reasons are
+  in the numbers.
 - **Smoothness.** A four-cylinder fires every 180 degrees, so its power strokes do not
   overlap and its torque pulses hard. A V12 fires every 60 and the strokes overlap. The idle
   tremble on the tachometer is calculated from that ripple and the inertia, not drawn in.
-- **Gearing is calculated too.** Six ratios per engine: first gear sized so peak torque just
-  reaches the tyres' grip, top gear so the engine's power peak meets the drag curve, the gears
-  between in a progression that tightens toward the top. Computed once, stored as numbers.
-- **The throttle is not a straight line.** A throttle plate passes most of its air in the
-  first third of its travel at low revs. A table of load against pedal and rpm captures that,
-  which is why a little gas revs a free engine a lot.
+- **Friction**: A = 0.5 bar, C = 0.03 bar per m/s, D = 0.002 bar per (m/s)^2 - about 1.9 bar at
+  20 m/s, as modern petrol engines measure. A first try with larger C and D put every torque
+  peak too early, because friction rising with the square of piston speed eats the top end.
+- **Pumping**: 0.9 bar with the throttle shut, falling to nothing wide open. It cannot
+  exceed the atmosphere the pistons pull against, which is why it was not raised to make the
+  revs fall faster.
+- **Gearing is calculated too** - in stage 2, with the chassis it depends on. Six ratios per
+  engine: first gear sized so peak torque just reaches the tyres' grip, top gear so the
+  engine's power peak meets the drag curve, the gears between in a progression that tightens
+  toward the top. Computed once, stored as numbers.
+- **The throttle is not a straight line.** The plate's open area grows as 1 - cos(angle),
+  stored as a table over the pedal. The air the engine gets is that area against how fast the
+  engine is swallowing - see "How the revs answer the gas".
 
 `build-engines.js` may use any maths it likes, `Math.pow` included, because its output is
 fixed numbers committed to the repo. Only the live step has the determinism rules below.
@@ -116,6 +134,34 @@ In neutral there is no car load, so each pedal position has one rpm where the en
 combustion torque exactly feeds its own friction - that is where the needle settles. How fast
 it gets there is net torque over inertia: the dyno strip shows both curves, and the dot sits
 where they meet.
+
+**The air the engine gets** (`airLoad` in `sim/engine.js`). Air through the plate is roughly
+fixed for an opening; the engine's appetite grows with its speed. Their ratio is how full each
+cylinder gets, but never more than full:
+
+```
+r    = area(pedal) * throttleFlow * redline / rpm
+load = r / (1 + r^8)^(1/8)                    the eighth root as three square roots
+```
+
+No two-dimensional table is needed, and no forbidden function: `r^8` is three
+multiplications.
+
+**What it does, measured** (stage 1, `node tools/figures.js`): in neutral, 10% pedal holds
+about 1400 rpm, 20% about 4000, 30% about 6500-8000, and from about 40% the engine sits on its
+limiter. That is how an unloaded engine behaves: it needs only a fifth of a cylinder of air
+to spin itself to high revs. In gear, under load, the same pedal gives far fewer revs.
+
+**The manifold has to fill.** The load does not jump to what the throttle allows; it moves
+toward it over about `manifoldRatio * 120 / rpm` seconds - the time the engine takes to
+swallow its own manifold. So a blip at idle is slower than one at speed, as in a real engine.
+
+**Measured feel, to revisit when driving it live (stage 4):** idle to redline flat out in
+neutral takes 0.52 to 0.74 s - none quicker than the 0.6 s Lexus quoted for the LFA's V10, the
+famous fast one, with the flywheels sized for that. Part throttle reaches most of its rpm in
+two or three seconds but takes six to ten to settle completely: near the settling point the
+engine's push and its losses are almost balanced. Lighter flywheels would settle faster and
+rev faster too.
 
 ## The drivetrain
 
@@ -156,11 +202,19 @@ Te    = Tcomb - Tf(n) + ripple(n, crank angle)        ripple feeds the display t
 pedal_eff = max(pedal, idle controller)
 ```
 
-- **Idle controller**: a small proportional-integral loop holding idle. Why the revs dip and
-  recover as the clutch bites.
+- **Idle controller**: a proportional-integral loop holding idle. Why the revs dip and
+  recover as the clutch bites. Its integral learns only with the driver off the pedal, below
+  1.5 times idle, and not while the revs are falling faster than about 300 rpm a second.
+  Both halves of that rule fixed a bug found in stage 1: learning during the fall from a blip
+  unlearned the idle throttle and dipped the revs toward a stall; never learning above idle
+  left a start-up flare idling 200 rpm high for good.
+- **Starting**: the starter pushes hardest at a standstill and freewheels past 400 rpm; the
+  engine fires at 200 rpm while the key is held; it flares a few hundred rpm above idle and
+  settles within three or four seconds.
 - **Rev limiter**: combustion cut above the limit until the revs fall a margin below it. The
   bounce is a real consequence, not an animation.
-- **Stall**: below the stall speed the engine stops until the start key.
+- **Stall**: below the stall speed (half of idle) the engine stops until the start key -
+  but not while the key is held, because the starter is still helping.
 - **Over-rev**: combustion cannot pass the limiter, but the wheels can drag the engine past it
   through a locked clutch after a bad downshift. Past the limiter, the check engine light.
   Past the engine's over-rev limit, **the engine is blown**: it stops, will not restart until
@@ -569,13 +623,14 @@ behind the gauges, drawn against crank angle over two turns - one full engine cy
 ```
 pedalsim/
   index.html
-  sim/        step, inputs, replay (stage 0); engine, couplings, converter, gearbox,
-              chassis, coach, score, log
+  sim/        step, inputs, replay (stage 0); clock, curves, engine (stage 1);
+              couplings, converter, gearbox, chassis, coach, score, log
   engines/    params.js (entered), v4.js ... v12.js (generated), perfect/*.js (generated)
   ui/         layout (nice numbers, angles), face painter, development field, reveal shader
               and its canvas 2D fallback, needle, lights, dyno, pedals, stick, board, scorecard
   input/      keyboard, pointer, gamepad
-  tools/      build-engines.js, solve.js, drive.js (scripted run to CSV), figures.js
+  tools/      drive.js (scripted run to CSV); build-engines.js, engine-maths.js, measure.js,
+              figures.js, golden.js (stage 1); solve.js
   test/
   package.json   "test": "node --test"
 ```
