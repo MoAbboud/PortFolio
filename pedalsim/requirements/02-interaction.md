@@ -29,7 +29,7 @@ flowchart TB
         G[Gauges]
         RUN[0 to 60 run<br/>recorder and score]
         PERF[(Perfect runs<br/>worked out in advance)]
-        LS[(Browser storage<br/>bests, settings)]
+        LS[(Memory only<br/>bests for this page load)]
     end
 
     subgraph offline[Author's machine, before publishing]
@@ -67,7 +67,9 @@ The link is the only thing that leaves a browser, and only when a driver chooses
 ## What the system does not care about
 
 - Where the car is. No road, map, track, scenery, steering or camera.
-- A server, accounts, or a global leaderboard. Bests live in the browser; sharing is a link.
+- A server, accounts, or a global leaderboard. Sharing is a link.
+- Remembering anything. It is a sandbox: every refresh starts with empty circles, no bests,
+  default settings. Nothing is written to the browser's storage.
 - Real car brands, model names, trademarks.
 - Exotic engine layouts in the first version: rotary, two-stroke, diesel, turbocharging,
   electric. Later, perhaps.
@@ -82,7 +84,7 @@ The link is the only thing that leaves a browser, and only when a driver chooses
 
 | ID | Actor | Goal | Trigger | Result |
 | --- | --- | --- | --- | --- |
-| UC-1 | Driver | Choose an engine | Cycles V4, V6, V8, V10, V12 with one control | The engine is swapped in the same car. The faces dissolve back to empty circles and are laid out again for this engine: its own range, tick spacing, redline, one shift light per cylinder. An engine visited earlier in the visit comes back as built as it was left |
+| UC-1 | Driver | Choose an engine | Cycles V4, V6, V8, V10, V12 with one control | The engine is swapped in the same car. The faces dissolve back to empty circles and are laid out again for this engine: its own range, tick spacing, redline, one shift light per cylinder. An engine visited earlier since the last refresh comes back as built as it was left |
 | UC-2 | Driver | Start it | Start key or button | The needles appear and sweep, the engine catches and idles. Idle trembles less the more cylinders there are |
 | UC-3 | Driver | Rev it in neutral | Throttle | The revs rise and settle where the throttle holds them, fall when released, bounce off the limiter if floored. **The tachometer's face pixelates in wherever the needle has been**, the dyno strip draws the torque curve from the pulls, the redline appears the first time it is reached |
 | UC-3a | Driver | Skip the build-up | "Build it all" | Every face resolves fully in a second |
@@ -92,7 +94,7 @@ The link is the only thing that leaves a browser, and only when a driver chooses
 | UC-6a | Driver | Blow the engine | A downshift that drags the revs past the over-rev limit | The engine dies, the faces break back into pixels and empty circles, "new engine" to carry on |
 | UC-7 | Challenger | Do the 0 to 60 run | Starts the run | Countdown, the run, the time, the score card, the ghost of the perfect run |
 | UC-8 | Challenger | See where the time went | Reads the score card | Time lost on the launch and on each shift, shift revs against the best revs, wheelspin, limiter time |
-| UC-9 | Challenger | Keep a best | Finishes a run better than before | The run is the new best for that engine, kept in the browser, and can be watched again |
+| UC-9 | Challenger | Keep a best | Finishes a run better than before | The run is the new best for that engine until the page is refreshed, and can be watched again |
 | UC-10 | Challenger | Share a run | Copies its link | A link that holds the inputs, not the score |
 | UC-11 | Receiver | See a shared run | Opens the link | The page re-drives the run, shows the score it earns, and offers "beat it" on the same engine |
 

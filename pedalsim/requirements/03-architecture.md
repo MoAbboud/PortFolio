@@ -30,7 +30,7 @@ flowchart LR
         COACH[Shift coach]
         UI[Gauges that build<br/>themselves, lights,<br/>dyno strip]
         SCORE[Run recorder<br/>and score]
-        LS[(localStorage)]
+        MEM[(Memory only<br/>gone on refresh)]
     end
 
     GEN --> TAB
@@ -42,7 +42,7 @@ flowchart LR
     GHOST --> UI
     SIM --> SCORE
     PERF --> SCORE
-    SCORE --> LS
+    SCORE --> MEM
 ```
 
 **`sim/` imports nothing from the browser.** No `window`, no DOM, no clock, no random. It is
@@ -354,7 +354,9 @@ the run. Every other mistake already costs time, so it is not penalised twice.
 
 ## The board and the share link
 
-**The board** is per browser: best score per engine, the last ten runs, any of them watchable.
+**The board** lives in memory for as long as the page is open: best score per engine, the
+last ten runs, any of them watchable. A refresh clears it - the page is a sandbox and writes
+nothing to the browser's storage. A link is the only way to keep a run.
 
 **The share link** puts the run in the URL fragment, never sent to any server:
 
@@ -364,7 +366,7 @@ the run. Every other mistake already costs time, so it is not penalised twice.
 
 The packed log carries the engine, gearbox, `SIM_VERSION`, the engine table hash and the
 input changes - not the time or the score. The receiver's page re-drives it and computes
-both. Received runs can be kept in a "friends" list on the receiver's board.
+both. An opened run joins the receiver's board for that page load, so they can race it.
 
 **What a link proves.** That the run is possible in this simulation. It cannot prove a person
 drove it: a program could write a perfect input log. The page says so.
@@ -446,7 +448,7 @@ reads as pixelating in.
   face breaks back into blocks.
 - **Cycling engines** dissolves the faces the same way, swaps in the new engine's face
   texture and its own development field. Returning to an engine restores what it had built,
-  for the rest of the visit.
+  until the page is refreshed. A refresh always starts from empty circles.
 - **"Build it all"** sets every `d` to 1 over a second. It is also the default when the
   browser reports a preference for reduced motion.
 - **Fallback**: without WebGL2, the same reveal in canvas 2D, redrawing a face only when its

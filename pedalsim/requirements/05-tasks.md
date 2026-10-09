@@ -18,9 +18,10 @@ Nothing is built. Planning is in progress.
       confirmed. Sound: later
 - [x] New idea from the author: the maths builds the interface - empty circles that
       pixelate in as the engine is revved. Designed in 03-architecture
-- [ ] The author answers what is still open in 00-plan: V10 in or out, whether a built
-      engine stays built between visits
-- [ ] The author picks CodePen inspiration for the look (needed by stage 3, not before)
+- [x] V10 is in. Every refresh is a new run: a sandbox, nothing saved
+- [ ] The author pastes the CodePen code (CodePen refuses automated fetches)
+- [x] The author picked CodePen inspiration: filipz/pen/dPygJGM, with ma77os/pen/xxyywo as a
+      backup
 
 ## Stage 0 - Scaffold
 
@@ -120,7 +121,8 @@ Check:
 - [ ] Countdown; recorder; ghost sim and ghost needle
 - [ ] Phase split and time lost per phase, summing to the gap (tested)
 - [ ] Score and clean mark; score card
-- [ ] Bests, recent runs, friends, watch any run back
+- [ ] Bests, recent runs and opened links in memory only; watch any run back; a test that
+      nothing touches `localStorage`, cookies or IndexedDB
 - [ ] Share link: pack, deflate, base64url in the fragment; open, re-drive, show
 - [ ] Test: a run recorded in headless Chrome scores the same in Node
 
@@ -129,5 +131,5 @@ Check:
 - [ ] `deploy/build-static.mjs` and `.github/workflows/pages.yml` include pedalsim
 - [ ] `.github/workflows/test-pedalsim.yml` running `npm test`, and the badge
 - [ ] README: what it is, a recording, how to run it, what a shared run proves and does not
-- [ ] Credits file for any CodePen inspiration and fonts
+- [ ] Credits file: each CodePen pen's author, link and the MIT notice; fonts and licences
 - [ ] Root README lists pedalsim

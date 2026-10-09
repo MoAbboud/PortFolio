@@ -43,8 +43,9 @@ engine and the faces dissolve and start again. Blow the engine and they break ap
   scored on how you did it: the launch, every shift, the time lost on each, against a
   perfect run the page has worked out for that engine. A ghost needle shows the perfect run
   beside yours.
-- **Keep your best, and share it.** Your best runs are kept in your browser for each engine.
-  Send a run to someone as a link and their page drives it again from your inputs, so the
+- **Beat your best, and share it.** While the page is open, it keeps your best run for each
+  engine. Refresh and everything starts over - it is a sandbox. To keep a run, send it as a
+  link and their page drives it again from your inputs, so the
   score they see is the one the run really earns.
 
 ## What it is not
@@ -56,4 +57,4 @@ engine and the faces dissolve and start again. Blow the engine and they break ap
 ## Where it runs
 
 In a desktop browser, and in a phone browser turned sideways. Nothing to install, no sign-in,
-no server. It works offline once loaded.
+no server, nothing saved. It works offline once loaded, and every refresh is a fresh start.

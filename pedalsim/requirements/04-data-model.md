@@ -1,8 +1,8 @@
 # pedalsim - Data model
 
 No database and no server. Five kinds of data: engine parameters the author enters, engine
-tables and perfect runs generated from them, the one chassis, run logs, and what one browser
-keeps. The shape matters more than the exact fields, and nothing here exists yet.
+tables and perfect runs generated from them, the one chassis, run logs, and what the page holds
+in memory while it is open. Nothing is saved. The shape matters more than the exact fields, and nothing here exists yet.
 
 ```mermaid
 flowchart LR
@@ -12,7 +12,7 @@ flowchart LR
     TAB --> SIM
     PERF --> SIM
     SIM --> LOG[Run log]
-    LOG --> LS[(localStorage)]
+    LOG --> MEM[(Memory only<br/>gone on refresh)]
     LOG --> URL[Share link<br/>URL fragment]
 ```
 
@@ -135,26 +135,27 @@ development[engine] = {
 ```
 
 - Kept per engine, so cycling back restores what that engine had built.
-- Not saved to the browser: every visit starts with empty circles (proposed; an open
-  question in 00-plan).
+- Never saved: every refresh starts with empty circles (the author: "each refresh is a new
+  run ... its a sandbox that resets").
 - Never read by `sim/`.
 
-## What the browser keeps
+## What lives in memory while the page is open
 
-`localStorage`, one key per concern, each with a format number.
+Nothing is written to the browser's storage - no `localStorage`, no cookies, no IndexedDB.
+The page is a sandbox: a refresh starts it over. While it is open it holds:
 
-| Key | Holds |
+| Held | What |
 | --- | --- |
-| `pedalsim.settings` | Units, last engine, last gearbox mode, coach on or off |
-| `pedalsim.bindings` | Keyboard keys per action |
-| `pedalsim.bests` | Best 0 to 60 run per engine: its log, recomputed time and score |
-| `pedalsim.recent` | The last ten runs |
-| `pedalsim.friends` | Runs received by link and kept, with the name the sender typed |
+| Settings | Units, gearbox mode, coach on or off - back to defaults on refresh |
+| Bests | Best 0 to 60 run per engine: its log, recomputed time and score |
+| Recent | The last ten runs |
+| Opened links | A run opened from a link joins the board so it can be raced |
 
-Everything here belongs to one browser. Clearing it loses it and nothing else breaks.
+To keep a run past a refresh, share it as a link.
 
 ## What is deliberately not stored
 
 - Nothing on any server. There is no server.
+- Nothing in the browser's storage. A refresh forgets everything.
 - No accounts, emails or names beyond a name typed into a share link.
 - No telemetry. A run leaves the browser only as a link the driver copied.

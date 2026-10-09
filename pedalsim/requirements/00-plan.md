@@ -61,7 +61,7 @@ flowchart LR
 | 4 | Live driving, automatic | The fixed-step loop, keyboard and pointer controls, engine picker, start key, automatic gearbox with P-R-N-D. You can rev, drive and brake every engine |
 | 5 | Manual and the coach | Clutch, H-pattern stick, grind, over-rev and the check engine light; the coach's up and down arrows, shift marker, rev-match needle, slip energy per shift. Done-when includes someone other than the author shifting through the gears on a keyboard |
 | 6 | The perfect-run solver | `tools/solve.js` finds each engine's best manual 0 to 60 within human shift limits, writes its log and time; a test reruns every stored perfect run |
-| 7 | 0 to 60, score, board, share link | Countdown, run recorder, ghost needle, phase-by-phase time lost, the score and the clean mark, bests and recent runs in the browser, share links that re-drive on open. A test: a run recorded in headless Chrome scores the same in Node |
+| 7 | 0 to 60, score, board, share link | Countdown, run recorder, ghost needle, phase-by-phase time lost, the score and the clean mark, bests and recent runs held in memory until a refresh, share links that re-drive on open. A test: a run recorded in headless Chrome scores the same in Node |
 | 8 | Publish | In `deploy/build-static.mjs` and the Pages workflow; README with what it is, a short recording, how to run it, what a shared run does and does not prove; root README lists it |
 
 **Nothing is built.**
@@ -110,6 +110,10 @@ measure against, and a leaderboard of raw times says nothing about how well some
 | The maths builds the interface: gauges start as empty circles and pixelate in as the engine is revved | The author's idea, exchange 3. Feasible; see "The interface is built by the engine" above |
 | Clean run: no grinding, no blowing the engine, gentle on the clutch | Confirmed by the author: "that sounds good for a clean run, dont blow out the engine etc" |
 | Engine sound later, not in the first version | The author |
+| Five engines, V4, V6, V8, V10, V12, cycled in order | The author: "add v10 please". A true V4 - rare in cars, rough by nature - is just another parameter set |
+| A sandbox: every refresh is a new run, nothing is saved | The author: "each refresh is a new run, no need for sessions and stuff like that, its a sandbox that resets". Empty circles, no bests, default settings on every load. Nothing in the browser's storage |
+| The board lasts while the page is open; a run is kept past a refresh only by sharing it as a link, which the receiver's page re-drives | Follows from no server and the sandbox. The link carries the inputs, never the score, so it cannot be edited into a better time |
+| The look starts from the CodePen pen filipz/pen/dPygJGM, with ma77os/pen/xxyywo as the backup | The author's pick. Public pens are MIT licensed by CodePen; credit the author and keep the notice |
 | The rpm represents the amount of gas given | The author's first requirement for the gauges |
 | Show speed rising, and what happens when you brake | The author's |
 | Automatic, with manual shifting as an option | "with options to use a manual shift" |
@@ -125,10 +129,9 @@ measure against, and a leaderboard of raw times says nothing about how well some
 
 | Decision | Reason |
 | --- | --- |
-| Five engines: V4, V6, V8, V10, V12 | The author names V4, V6, V8 and V12 each time. A true V4 is rare in cars but real, and built from measurements it is just another parameter set - rough, because it lacks the balance of an inline-4. V10 is kept to make the cycle even unless the author drops it |
 | A build tool turns the measurements into tables offline, and its output is committed | The tool may use any maths; the live step keeps the determinism rules. The page can show *why* a V12 differs from a V4 |
 | The reveal is display-side: development grows from the simulation's state, and the simulation never reads it | Keeps `sim/` pure and deterministic; a replay rebuilds the same gauges because it produces the same states |
-| Each engine has its own build-up; cycling to another engine dissolves the faces back to empty circles, and returning restores what that engine had built, for the rest of the visit | Each engine's scale is different, so one face cannot serve two. Starting empty on every visit keeps the build-up the first thing people see |
+| Each engine has its own build-up; cycling to another engine dissolves the faces back to empty circles, and returning restores what that engine had built, until a refresh | Each engine's scale is different, so one face cannot serve two |
 | A "build it all" control, also used when the browser asks for reduced motion | Someone who only wants the gauges should not have to earn them |
 | Blowing the engine un-builds it: the faces break back into pixels and empty circles, and the run is not clean | The author's "dont blow out the engine", shown in the interface's own language |
 | The 0 to 60 run is not locked behind a built tachometer | Building is an invitation, not a gate. The coach's shift marker does wait until its part of the face exists |
@@ -140,7 +143,6 @@ measure against, and a leaderboard of raw times says nothing about how well some
 | The perfect driver gets no faster shift than a person | Otherwise "perfect" wins by a margin no one can close |
 | Score = 1000 times perfect time over your time, plus a clean mark | Every mistake already costs time; smoothness is shown, not double-counted |
 | The score card splits time lost by phase, summing exactly to the gap | Tells the driver where the time went, which is what makes them try again |
-| The board is per browser; runs are shared as links re-driven on open | A shared board needs a server, which the author ruled out. A link carries the inputs, never the score, so it cannot be edited into a better time |
 | A ghost needle shows the perfect run during your run | The clearest picture of "shift here, not there" |
 | Simple ABS: the wheels never lock under braking | Braking stays readable on the gauges; a locked wheel would drop the speedometer to zero while the car still moves |
 | Plain JavaScript modules, no build step | The trail pattern; already deploys on Pages |
@@ -152,11 +154,9 @@ measure against, and a leaderboard of raw times says nothing about how well some
 
 | Question | Blocks | Notes |
 | --- | --- | --- |
-| Is the V10 in the cycle? | Stage 1 | The author lists V4, V6, V8, V12. Proposed: keep V10 so every even count from 4 to 12 is there |
-| Should a built engine stay built on the next visit? | Stage 3 | Proposed: no, every visit starts empty. The alternative keeps it in the browser |
 | How long should a full build take? | Stage 3 | Proposed: three or four full-throttle pulls to the limiter in neutral build the tachometer; the speedometer builds to whatever speed has been reached. Tuned by feel |
 | What does the empty state show? | Stage 3 | Proposed: the circle outlines and the needle hubs only. The needles appear with the start key |
-| The sporty design: which CodePen pens? | Stage 3 | The author is looking. Keep each pen's link and author in a credits file. The layout stays generated; the pen supplies the look that gets revealed |
+| The pen's code | Stage 3 | CodePen refuses automated fetches (403), so the author pastes the HTML, CSS and JS. What gets taken: palette, type, the feel of the dial furniture. What does not: its layout code - the layout is generated from the engine |
 | Sound | Later | Settled as later. When it comes: a note synthesised from rpm, load and cylinder count |
 | Should the automatic have a 0 to 60 run too? | Stage 7 | Proposed: yes, timed, but not scored - there is no shifting skill in it beyond the launch |
 | More engine kinds later | After stage 8 | Turbocharged (boost gauge, lag), diesel (low redline, huge torque), rotary, motorcycle, electric (no gears at all). Each is a parameter set and a few new curves |

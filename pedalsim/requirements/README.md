@@ -26,9 +26,9 @@ Three things worth stating here so they are not discovered as surprises:
   nothing to steer. The page is kept plain on purpose; what is not plain is the calculation
   behind every needle and every pixel.
 - **There is no server.** It is a static page on GitHub Pages and runs offline. The
-  "backend" is the simulation in the browser that drives the dials. The leaderboard is kept
-  in the browser, and a run can be shared as a link that the receiver's page re-drives
-  before believing it.
+  "backend" is the simulation in the browser that drives the dials. It is a sandbox:
+  every refresh starts from nothing, and nothing is saved. A good run can be kept only by
+  sharing it as a link, which the receiver's page re-drives before believing it.
 - **It uses no key and no paid service.** Nothing is fetched at runtime except, optionally,
   a font.
 
