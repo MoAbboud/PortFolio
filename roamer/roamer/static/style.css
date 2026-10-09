@@ -205,6 +205,28 @@ h2 { font-size: 1.15rem; margin: 1.5rem 0 0.5rem; }
 .map-filters label { display: flex; flex-direction: column; font-size: 0.8rem; color: var(--ink-soft); }
 .map-filters select { font: inherit; font-size: 0.95rem; padding: 4px 6px; }
 .map-count { margin: 0; font-size: 0.9rem; color: var(--ink-soft); }
+.map-check, .found-check {
+  display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--ink-soft);
+}
+.map-check { flex-direction: row !important; }
+.found-check { align-self: end; }
+
+/* Check-ins */
+.checkin-choices { display: grid; gap: 14px; }
+.checkin-choice {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 4px 18px 16px;
+}
+.checkin-choice.is-chosen { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.checkin-choice h2 { margin-top: 12px; }
+.checkin-choice select, .checkin-choice input[type="datetime-local"] {
+  width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--bg); color: var(--ink); font: inherit;
+}
+.found-details { margin: 8px 0 14px; }
+.found-details summary { cursor: pointer; font-weight: 600; }
 
 /* Pins: a dot coloured by species. A divIcon, so they cluster and need no image files. */
 

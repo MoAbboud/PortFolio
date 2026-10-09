@@ -140,9 +140,9 @@ for each.
 | `hidden_at`, `hidden_reason` | timestamptz, text | Moderation. Separate from `status` on purpose - see below |
 | `seeded` | boolean | True for the made-up demo listings. The demo's daily reset restores these and deletes everything else. Never part of the model dataset |
 | `outdoor_access` | text | Migration 0005. `indoor_only`, `indoor_outdoor`, `outdoor`, `unknown` (the default). Changes the search circle for cats, and is a model feature |
-| `found_lat`, `found_lng` | float8 | Stage 6. Where the animal was found, if the owner says. Optional. Never shown publicly - it is research data, and can be close to the owner's home |
-| `found_at` | timestamptz | Stage 6. When it was found. Time missing is `found_at - last_seen_at` |
-| `found_how` | text | Stage 6. `came_home`, `neighbour`, `flyer`, `roamer`, `shelter`, `microchip`, `social_media`, `other` - the categories the studies use |
+| `found_lat`, `found_lng` | float8 | Migration 0006, asked from stage 5. Both or neither (CHECK). Where the animal was found, if the owner says. Optional. Never shown publicly - it is research data, and can be close to the owner's home |
+| `found_at` | timestamptz | Migration 0006. Defaults to when the owner answered. When it was found. Time missing is `found_at - last_seen_at` |
+| `found_how` | text | Migration 0006. CHECK on the list. `came_home`, `neighbour`, `flyer`, `roamer`, `shelter`, `microchip`, `social_media`, `other` - the categories the studies use |
 | `created_at`, `updated_at` | timestamptz | |
 
 Index: GiST on `ll_to_earth(last_seen_lat, last_seen_lng)`, partial on `status = 'lost'

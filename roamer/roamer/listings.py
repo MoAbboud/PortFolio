@@ -347,6 +347,19 @@ def is_verified(listing: Listing, now: datetime | None = None) -> bool:
     )
 
 
+def is_stale(listing: Listing, now: datetime | None = None) -> bool:
+    """Silent long enough to leave the default map and search. Computed, never stored."""
+    now = now or datetime.now(timezone.utc)
+    if listing.last_confirmed_at is None:
+        return False
+    return now - listing.last_confirmed_at > timedelta(days=settings.stale_after_days)
+
+
+def _fresh_enough(now: datetime):
+    """The SQL twin of `not is_stale`, for the map and the finder's search."""
+    return Listing.last_confirmed_at >= now - timedelta(days=settings.stale_after_days)
+
+
 def mask_email(email: str) -> str:
     """s***@example.com - enough to recognise your own address, not enough to harvest one."""
     local, _, domain = email.partition("@")
@@ -383,7 +396,9 @@ def nearest(
     radius_m: float,
     *,
     species: str | None = None,
+    include_stale: bool = False,
     limit: int = MAX_NEAR_RESULTS,
+    now: datetime | None = None,
 ) -> list[tuple[Listing, float]]:
     """Active listings within radius_m of a point, nearest first, each with its distance.
 
@@ -393,6 +408,7 @@ def nearest(
     earth_distance() then trims it to the true radius. The indexed expression and the one
     here must stay identical, or the planner cannot use the index.
     """
+    now = now or datetime.now(timezone.utc)
     radius_m = min(radius_m, MAX_NEAR_RADIUS_M)
     here = func.ll_to_earth(lat, lng)
     there = func.ll_to_earth(Listing.last_seen_lat, Listing.last_seen_lng)
@@ -406,6 +422,8 @@ def nearest(
     ]
     if species:
         conditions.append(Listing.species == species)
+    if not include_stale:
+        conditions.append(_fresh_enough(now))
 
     query = (
         select(Listing, distance)
@@ -423,6 +441,7 @@ def active_in_bbox(
     *,
     species: str | None = None,
     since_days: int | None = None,
+    include_stale: bool = False,
     now: datetime | None = None,
 ) -> list[Listing]:
     """Active listings inside the box, most recently seen first."""
@@ -444,6 +463,8 @@ def active_in_bbox(
         conditions.append(Listing.species == species)
     if since_days:
         conditions.append(Listing.last_seen_at >= now - timedelta(days=since_days))
+    if not include_stale:
+        conditions.append(_fresh_enough(now))
 
     query = (
         select(Listing)

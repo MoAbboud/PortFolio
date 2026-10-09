@@ -72,12 +72,14 @@ flowchart LR
 | 11 | Sightings and found reports | Later. Sightings are also data: the path between the lost point and the found point |
 | 12 | A model of where lost pets go | Later, and only once real reunions exist. A harness compares the search circles (the baseline) with a model on reunions it has not seen. Nothing is shown to users as a prediction until it beats the circles |
 
-**Stages 0 to 4 are done.** The scaffold runs from one `docker compose up` and is tested in
+**Stages 0 to 5 are done.** The scaffold runs from one `docker compose up` and is tested in
 CI against a real database. The map shows twelve made-up Kansas City listings. A person can
 post one with photos and a flyer, gets an email, and the listing goes on the map with a
 verified badge only when the link is used. Every listing shows search circles from published
-studies. A finder can say where they are and get the nearest lost animals. 122 tests.
-Stage 5, check-ins and freshness, is next.
+studies. A finder can say where they are and get the nearest lost animals. Silent owners get
+a weekly "still missing?" email; the badge lapses and quiet listings leave the map on their
+own; marking an animal home records, optionally, where and how it was found. 137 tests.
+Stage 6, manage, edit and close, is next.
 
 ### Why the map comes before verification
 
@@ -143,6 +145,8 @@ the core does not get hosted.
 | Pulling in social media posts automatically is a later feature | The brief. And the owner still has to come and claim it to get the badge |
 | Search circles on every listing - a must | The author's favourite of the three options from the dataset research. A published distance base rate around the last-seen point tells a searcher and a flyer-hanger where to concentrate, and it is honest because it says where the number comes from |
 | roamer is a data collector for a future model | No public dataset pairs lost and found locations. The site records both halves of every reunion, so a model becomes possible later; see "Roamer is a data collector" above |
+| Check in every 7 days, badge lapses after 3 more, stale (off the default map, emails stop) after 30 | Built in stage 5 from the plan's starting guess, which the author did not change. Real searches run for weeks, so stale is not quick. All three are configuration |
+| The found where/when/how question is asked from stage 5, not 6 | The check-in's "home" answer is the first way an animal is marked home; a reunion recorded without it is a lost data point |
 | It starts as a demo with made-up listings and a functioning preview | A public demo carries none of a real service's duties - real phone numbers, answering reports, a privacy notice - and still shows every flow working |
 | Python, FastAPI, server-rendered pages, PostgreSQL, Docker Compose | Same stack as mailman and herder. The deploy, CI and test patterns already exist, so the effort goes into the app |
 | Leaflet and OpenStreetMap data, not Google Maps; drawn in OpenFreeMap's muted Positron style | No key and no billing account, matching the rest of the repo. The muted style is the author's request: the standard colours overwhelmed the pins |
@@ -187,7 +191,6 @@ can be overturned - if it is, the row moves to the context log with what replace
 | How do posts from social media get in? | Stage 10 | Facebook does not offer an API for reading group posts - it was withdrawn in 2024 - and scraping is against its terms and is actively blocked. Nextdoor and similar sites are the same. The realistic version is a person pasting a post (text and photo) into roamer, and an extractor filling in the form from it, built the mailman way: a heuristic baseline, then a model trained or run locally, measured by a harness. No hosted model and no key. To be re-checked against the sites' current terms when the stage starts |
 | How does an owner prove an imported listing is theirs? | Stage 10 | An email address does not connect a person to a Facebook post. Options: the owner edits the original post to include a code roamer gives them; the owner calls from the number in the post; or the admin decides. The first is the strongest and the cheapest to build |
 | Which mail relay sends real email? | Going live for real - not the demo | Self-hosted mail from a cloud server lands in spam, and many hosts block the port. Options: a mailbox the author already has, through its SMTP with an app password; or a transactional mail service's free tier. Either is SMTP, so the code does not change. This is not a language model key, so the no-keys rule does not cover it, but it is still an account and a credential |
-| How often to check in, and when to lapse and go stale? | Stage 5 | A starting guess: check in every 7 days, lose the badge after 3 more days without an answer, leave the default map after 30. Real lost-pet searches often run for weeks, so stale must not be too quick |
 | Should finders be able to message an owner through the site? | After stage 9 | Hides the phone number, which some owners will want. Also builds a relay that scammers would use. Not in the first version |
 | Should a found-animal report be part of the first version? | Stage 11 | The brief is about lost animals. A finder who has a dog and finds no matching listing currently has nowhere to post it. Likely the most useful later feature |
 | Should owners be able to mark where they put up flyers? | Later | Useful to the owner for coordinating with helpers. Private to the owner. Not part of the finder's map |
