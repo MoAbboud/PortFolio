@@ -19,7 +19,9 @@ Nothing is built. Planning is in progress.
 - [x] New idea from the author: the maths builds the interface - empty circles that
       pixelate in as the engine is revved. Designed in 03-architecture
 - [x] V10 is in. Every refresh is a new run: a sandbox, nothing saved
-- [ ] The author pastes the CodePen code (CodePen refuses automated fetches)
+- [x] The author pasted the pen's HTML, CSS and JS; read, and written up in 03-architecture,
+      "The look, from the pen"
+- [ ] The author decides: the engine line behind the gauges, and one palette or one per engine
 - [x] The author picked CodePen inspiration: filipz/pen/dPygJGM, with ma77os/pen/xxyywo as a
       backup
 
@@ -73,7 +75,12 @@ Check:
 - [ ] Layout from the engine tables: ranges, nice-number tick steps, angles, redline arc,
       shift marks, one shift light per cylinder. Tests: every engine gets six to ten major
       ticks; a V4 and a V12 differ
-- [ ] Face painter: each gauge drawn once to an offscreen canvas in the author's style
+- [ ] Face painter: each gauge drawn once to an offscreen canvas in the Warm palette, with
+      Boldonse numerals and Bodoni Moda labels served from the repo
+- [ ] Glow-line needles and arcs (core colour to edge colour, added on the dark); film grain
+      in the reveal shader
+- [ ] The engine line, if the author wants it: bank A, bank B and their sum against crank
+      angle, from the ripple table
 - [ ] Development field: bins, growth from revs and load, spread to neighbours, event parts
       (redline, shift marks, numerals), dyno bins from full-throttle torque
 - [ ] Reveal shader (WebGL2): bin from angle, block size from development, ordered-dither
@@ -131,5 +138,6 @@ Check:
 - [ ] `deploy/build-static.mjs` and `.github/workflows/pages.yml` include pedalsim
 - [ ] `.github/workflows/test-pedalsim.yml` running `npm test`, and the badge
 - [ ] README: what it is, a recording, how to run it, what a shared run proves and does not
-- [ ] Credits file: each CodePen pen's author, link and the MIT notice; fonts and licences
+- [ ] Credits file: Filip Zrnzevic's pen as the inspiration (no code taken), and each font with
+      its licence
 - [ ] Root README lists pedalsim

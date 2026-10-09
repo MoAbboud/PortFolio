@@ -146,6 +146,7 @@ measure against, and a leaderboard of raw times says nothing about how well some
 | A ghost needle shows the perfect run during your run | The clearest picture of "shift here, not there" |
 | Simple ABS: the wheels never lock under braking | Braking stays readable on the gauges; a locked wheel would drop the speedometer to zero while the car still moves |
 | Plain JavaScript modules, no build step | The trail pattern; already deploys on Pages |
+| From the pen take the Warm palette, Boldonse and Bodoni Moda (copies served from the repo), glow-line needles and arcs, and film grain; write all code fresh | The author's pick, made into gauges. The pen's shader is based on a Shadertoy shader whose default licence is non-commercial share-alike, so its code is not copied - see 03-architecture, "The look, from the pen" |
 | Gauge faces drawn to an offscreen canvas from a generated description, revealed through a WebGL2 shader, with a canvas 2D fallback; needles drawn crisp on top | Per-pixel decisions every frame are what a shader is for, and trail already uses WebGL2 here. SVG, the first proposal, cannot pixelate |
 | 1000 simulation steps a second; no transcendental functions in the step | Stable couplings; the same run on every browser |
 | mph by default, km/h as a setting | US-facing, like the author's other projects |
@@ -156,7 +157,8 @@ measure against, and a leaderboard of raw times says nothing about how well some
 | --- | --- | --- |
 | How long should a full build take? | Stage 3 | Proposed: three or four full-throttle pulls to the limiter in neutral build the tachometer; the speedometer builds to whatever speed has been reached. Tuned by feel |
 | What does the empty state show? | Stage 3 | Proposed: the circle outlines and the needle hubs only. The needles appear with the start key |
-| The pen's code | Stage 3 | CodePen refuses automated fetches (403), so the author pastes the HTML, CSS and JS. What gets taken: palette, type, the feel of the dial furniture. What does not: its layout code - the layout is generated from the engine |
+| The engine line behind the gauges? | Stage 3 | Proposed: yes - the pen's sound-reactive lines become the two cylinder banks' torque and their sum, so a V4 looks jagged and a V12 flat. One faint background element; see 03-architecture, "The engine line" |
+| One palette, or a colour per engine? | Stage 3 | Proposed: the Warm palette for all. The pen's other presets (Neon, Cool, Cyberpunk) could give each engine its own, which the cycle would show off |
 | Sound | Later | Settled as later. When it comes: a note synthesised from rpm, load and cylinder count |
 | Should the automatic have a 0 to 60 run too? | Stage 7 | Proposed: yes, timed, but not scored - there is no shifting skill in it beyond the launch |
 | More engine kinds later | After stage 8 | Turbocharged (boost gauge, lag), diesel (low redline, huge torque), rotary, motorcycle, electric (no gears at all). Each is a parameter set and a few new curves |
@@ -174,4 +176,4 @@ measure against, and a leaderboard of raw times says nothing about how well some
 | The page grows features | "Basic page" turns into a dashboard | The author's rule is the guard: one page, gauges. Anything else goes behind a single score card or into the later list |
 | The build-up hides what a driver needs | A newcomer cannot read the revs or see the shift marker | Needles are crisp from the start; the coach's arrows do not depend on the face; "build it all" is one click |
 | The reveal costs too much per frame | Stutter on a phone | Faces are drawn once per engine to a texture; each frame is one shader pass over two small quads with a short array of development values |
-| Copied design code carries a licence | A public repo using code it may not | Credit every pen used; take the look, rewrite the code to the gauge generator |
+| Copied design code carries a licence | A public repo using code it may not | Nothing is copied from the pen: its shader derives from a Shadertoy shader under non-commercial share-alike. Take the look, write the code, credit the pen as inspiration |

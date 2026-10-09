@@ -29,8 +29,8 @@ Three things worth stating here so they are not discovered as surprises:
   "backend" is the simulation in the browser that drives the dials. It is a sandbox:
   every refresh starts from nothing, and nothing is saved. A good run can be kept only by
   sharing it as a link, which the receiver's page re-drives before believing it.
-- **It uses no key and no paid service.** Nothing is fetched at runtime except, optionally,
-  a font.
+- **It uses no key and no paid service.** Nothing is fetched at runtime: the fonts are
+  served from the repo.
 
 Like trail, it is plain JavaScript modules with no build step and `node --test`.
 

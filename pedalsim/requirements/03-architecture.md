@@ -480,6 +480,66 @@ acc = wn^2 * (target - angle) - 2 * zeta * wn * vel
   and in a few CSS custom properties for the page around the gauges. Changing the look never
   touches the layout maths.
 
+## The look, from the pen
+
+The author's pick is Filip Zrnzevic's CodePen pen `filipz/pen/dPygJGM`. It is not a gauge: it
+is a music visualizer - three glowing lines on a dark, warm gradient, each line with a ball
+riding it, reacting to the bass, the middle and the treble of a song, with film grain over
+everything and big bold type. What pedalsim takes is its look and one idea. Not its code.
+
+**Why not the code.** The pen's shader says it is based on Shadertoy shader `MtVBzG`. CodePen
+makes public pens MIT, but a pen cannot relicense what it built on, and Shadertoy's default
+licence (unless the shader's author says otherwise) is Creative Commons
+Attribution-NonCommercial-ShareAlike 3.0 - not something to paste into a public portfolio
+under MIT. The pen also loads three.js and dat.gui, an outside noise image over plain `http`,
+and a song. pedalsim needs none of them. So everything is written fresh; the credits file
+names the pen as the inspiration.
+
+**What is taken.**
+
+| From the pen | In pedalsim |
+| --- | --- |
+| The "Warm" colour preset | The palette below |
+| Boldonse, a very wide heavy display face, in capitals | Gauge numerals, the gear number, the engine name. Heavy shapes pixelate in cleanly |
+| Bodoni Moda italic, small, for captions | Labels: rpm x1000, mph, the score card's notes |
+| Lines drawn as a glow: bright core colour fading to an edge colour, added onto the dark | Needles, the redline arc, the shift marks, the ghost needle |
+| Film grain over the whole frame | Grain in the reveal shader, so coarse pixels and grain read as one texture. No outside image |
+| An idle state that eases into a live state when the music starts | Engine off to engine running: the page eases from still to live on the start key |
+| Lines that react to sound, with a bounce and ripple on each kick drum | **The engine line** - see below. Proposed, waiting for the author |
+
+**Not taken**: the song, the beat detector, three.js, dat.gui, the FPS counter, the profile
+card, the noise image, the hidden cursor (a dragged pedal wants a real pointer).
+
+**The palette** (the pen's Warm preset, as RGB):
+
+| Role | Colour |
+| --- | --- |
+| Background, top to bottom | 20 10 5 to 40 20 10 - near black, warm |
+| Needle and tach arc: core, edge | 255 200 0 gold, 255 100 0 orange |
+| Redline and blown engine: core, edge | 255 100 100, 200 50 50 |
+| Speedometer and shift lights: core, edge | 255 150 50, 200 100 0 |
+| Type | 224 224 224 |
+| Ghost needle | Type colour at a third strength |
+
+**The fonts** come from Google Fonts in the pen. pedalsim serves its own copies from the
+repo, so the page works offline and fetches nothing; both are to be checked for an open font
+licence before they are copied in.
+
+### The engine line (proposed)
+
+The pen's three lines dance to a song's bass, middle and treble. pedalsim has its own signal:
+the torque each cylinder bank puts on the crankshaft. One faint glowing line across the page
+behind the gauges, drawn against crank angle over two turns - one full engine cycle:
+
+- **Line A**: bank one's torque pulses. **Line B**: bank two's. **Line C**: the two added -
+  what the crankshaft actually feels.
+- A V4 shows four tall separate humps and a jagged sum. A V12 shows twelve overlapping humps
+  and a sum that is nearly flat. That is *why* a V12 is smooth, drawn.
+- Height follows the load; the shape drifts along as the engine turns, slowed down to be
+  watchable; the pen's "kick" bounce fires on a gear change and on each limiter cut.
+- Engine off: the lines lie flat, as the pen's do before the music starts.
+- It comes from the ripple table the idle tremble already uses, on the display side only.
+
 ## Controls
 
 | Source | How |
