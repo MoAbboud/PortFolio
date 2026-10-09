@@ -4,142 +4,146 @@
 
 | Actor | Type | What they want |
 | --- | --- | --- |
-| Driver | Human, the public | To sit at the pedals and drive by the needles. Plays with it for a few minutes, or comes back to beat a time. Owes the site nothing, signs in to nothing |
-| Challenger | Human, the public | A driver who has finished a challenge and wants the number on the shared board under a name of their choosing |
-| Portfolio visitor | Human, the public | Someone reading the portfolio. Wants to see it work in a minute: turn the key, stall it, pull away, hear it, see the board |
-| Author | Human | Tunes the cars, adds challenges, looks after the server. There is no admin section in the first version - see the open questions |
-| Input devices | External hardware | Keyboard, mouse, touch screen, game controller, USB sim pedals and shifters. Read through the browser, never through a driver install |
-| Leaderboard server | Inside the boundary, optional | Re-drives submitted runs and keeps the board. The page works without it |
+| Driver | Human, the public | To pick an engine, rev it, drive it by the needles, and see what it does. A few minutes, no sign-in |
+| Challenger | Human, the public | A driver doing the 0 to 60 run again and again to shift better and beat their best |
+| Receiver | Human, the public | Someone who opened a shared run link and wants to see the run and its score, and try to beat it |
+| Portfolio visitor | Human, the public | Wants to see it work in a minute: choose the V12, floor it, change gear, see the score card |
+| Author | Human | Adds and tunes engines, regenerates their tables, hosts the page |
+
+There is no server, so no system actor. Everything happens in the visitor's browser.
 
 ## Interaction diagram
 
 ```mermaid
 flowchart TB
-    subgraph people[People and hardware]
+    subgraph people[People]
         DR[Driver]
-        KB[Keyboard and mouse]
-        TS[Touch screen]
-        GP[Controller or<br/>USB pedals]
+        RC[Receiver]
     end
 
-    subgraph page[pedalsim page - in the browser]
-        IN[Input layer<br/>pedal and stick positions]
-        SIM[Simulation<br/>engine, clutch, gearbox, car]
-        CL[Cluster<br/>needles, lights, readouts]
-        PD[Pedals and stick<br/>drawn moving]
-        SND[Engine sound]
-        CH[Challenges and<br/>run recorder]
-        LS[(Browser storage<br/>settings, bests, odometer)]
+    subgraph page[pedalsim - one static page in the browser]
+        CTRL[Controls<br/>keyboard, mouse, touch]
+        SEL[Engine and<br/>gearbox choice]
+        SIM[Simulation<br/>engine, clutch, tyres, car]
+        COACH[Shift coach]
+        G[Gauges]
+        RUN[0 to 60 run<br/>recorder and score]
+        PERF[(Perfect runs<br/>worked out in advance)]
+        LS[(Browser storage<br/>bests, settings)]
     end
 
-    subgraph srv[Small backend - optional]
-        API[Runs API]
-        RE[Replay verifier<br/>the same simulation]
-        DB[(Runs)]
+    subgraph offline[Author's machine, before publishing]
+        GEN[Engine generator<br/>and perfect-run solver]
     end
 
-    DR --> KB & TS & GP
-    KB & TS & GP --> IN
-    IN --> SIM
-    IN --> PD
-    SIM --> CL
-    SIM --> SND
-    SIM --> CH
-    CH --> LS
-    CH -->|input log| API
-    API --> RE --> DB
-    API -->|board| CH
-    CL --> DR
-    SND --> DR
+    DR --> CTRL --> SIM
+    DR --> SEL --> SIM
+    SIM --> G
+    SIM --> COACH --> G
+    SIM --> RUN
+    PERF --> RUN
+    PERF --> G
+    RUN --> LS
+    RUN -->|share link| RC
+    RC -->|opens link| RUN
+    GEN --> PERF
+    GEN -->|engine tables| SIM
 ```
 
-The simulation box appears twice in spirit: once in the page and once inside the replay
-verifier. It is the same code. That is the point of the backend, and the reason it is
-small.
+The link is the only thing that leaves a browser, and only when a driver chooses to send it.
 
 ## What the system is in the business of
 
-- Simulating a car's powertrain closely enough that a person who drives a manual recognises
-  it: the bite point, the stall, engine braking, the shove of a dropped clutch, the
-  automatic creeping in Drive.
-- Showing that simulation through instruments drawn with care: a cluster that is good to
-  look at, with needles that move like needles rather than like numbers.
-- Taking analog input seriously. A pedal is a position, not a button, even when it is
-  driven from a keyboard.
-- Making every run reproducible: the same inputs give the same needles, every time, on any
-  machine.
-- Keeping a leaderboard honest by trusting the inputs, not the result.
+- Making the needles honest. The rev counter answers the throttle by as much as the engine
+  can, the speedometer answers the gearing and the weight, and braking takes speed off at the
+  rate the brakes and the tyres allow.
+- Showing how engines differ, with nothing else changing: same car, same tyres, five engines.
+- Teaching shifting: when to change up, when to change down, what revs to meet.
+- Scoring a 0 to 60 run against the best that engine can do, and saying where the time went.
+- Being plain to look at, and sporty. The page is simple; the calculation is not.
 
 ## What the system does not care about
 
-- Where the car is. There is no road, map, track, scenery, steering or camera. Distance is
-  a number on the odometer.
-- Other traffic, collisions, damage to anything but the engine and the gearbox's pride.
-- Tyre grip as a first-version feature. The tyres roll and never spin. Wheelspin is a
-  later stage and an open question.
-- Real car brands, real model names and their trademarks.
-- Accounts, passwords, profiles, friends, chat. A leaderboard entry is a display name.
-- Money in any form. No purchases, unlocks or adverts.
-- Native apps or app stores.
-- Force feedback to wheels or pedals.
-- Being a training tool anyone relies on. It is a toy built on real maths, and it says so.
-- Scale. One small server, a leaderboard in the thousands of rows.
+- Where the car is. No road, map, track, scenery, steering or camera.
+- A server, accounts, or a global leaderboard. Bests live in the browser; sharing is a link.
+- Real car brands, model names, trademarks.
+- Exotic engine layouts in the first version: rotary, two-stroke, diesel, turbocharging,
+  electric. Later, perhaps.
+- Sound, in the first version. See the open questions.
+- Hardware. No wheels, pedals or shifters are needed or assumed. A game controller works if
+  one happens to be plugged in.
+- Damage to anything but the engine's dignity.
+- Money in any form.
+- Being a training tool anyone relies on.
 
 ## Main use cases
 
 | ID | Actor | Goal | Trigger | Result |
 | --- | --- | --- | --- | --- |
-| UC-1 | Driver | Choose a car and a gearbox | Opens the page, or the garage | A car is loaded and the cluster changes to that car's dials and redline |
-| UC-2 | Driver | Start the engine | Turns the key (button, key, or controller button) | Needles sweep and return, warning lights test and go out, the starter turns, the engine catches and settles at idle. A manual will not start in gear without the clutch down |
-| UC-3 | Driver | Pull away | Brings the clutch up and the throttle in, or selects Drive and lifts off the brake | The car moves, the speedometer rises. Too little throttle and too fast a clutch stalls it |
-| UC-4 | Driver | Change gear in a manual | Clutch down, drags the stick to another gate, clutch up | The gear changes. Without the clutch it grinds and stays in neutral. A downshift at too high a speed over-revs the engine |
-| UC-5 | Driver | Drive an automatic | Moves the lever P-R-N-D, uses throttle and brake | It shifts by itself on a schedule that depends on throttle and speed. A floored throttle kicks down. It will not leave Park without the brake pressed |
-| UC-6 | Driver | Stall and recover | Gets it wrong | Engine off, rev needle drops, oil pressure and battery lights on. Key again |
-| UC-7 | Driver | Set up inputs | Opens input settings | Keys rebound; a controller or USB pedal set is detected, each axis assigned and its travel calibrated by pressing it fully |
-| UC-8 | Driver | Take a challenge | Picks one from the list | A countdown, the run, a single result, and the personal best for that challenge and car |
-| UC-9 | Driver | Watch a run back | Opens a recorded run | The pedals, stick, needles and sound replay exactly |
-| UC-10 | Challenger | Put a result on the board | Sends a finished run with a display name | The server re-drives the run, records the result it computed, and shows the entry. A run whose replay disagrees with its claim is refused |
-| UC-11 | Anyone | Read the board | Opens the leaderboard for a challenge and car | Best results, with a button to watch any of them back |
-| UC-12 | Driver | Keep driving to nowhere | Just drives | The odometer keeps a lifetime total for that browser. That is all it does |
+| UC-1 | Driver | Choose an engine | Clicks I4, V6, V8, V10 or V12 | The engine is swapped in the same car. The tachometer's scale and redline, and the dyno strip, change to that engine |
+| UC-2 | Driver | Start it | Start key or button | Needles sweep and return, the engine catches and idles. Idle is smoother the more cylinders there are |
+| UC-3 | Driver | Rev it in neutral | Throttle | The revs rise and settle where the throttle holds them, fall when released, bounce off the limiter if floored |
+| UC-4 | Driver | Drive in automatic | Selects D, throttle, brake | Creeps, accelerates, shifts up by itself, kicks down when floored, slows when braked |
+| UC-5 | Driver | Drive in manual | Switches to manual, clutch, stick, throttle | Pulls away or stalls; changes gear or grinds; the coach shows up and down arrows and the rev-match target |
+| UC-6 | Driver | Brake | Brake | The speed falls, the revs fall in gear; at a stop in gear without the clutch, it stalls |
+| UC-7 | Challenger | Do the 0 to 60 run | Starts the run | Countdown, the run, the time, the score card, the ghost of the perfect run |
+| UC-8 | Challenger | See where the time went | Reads the score card | Time lost on the launch and on each shift, shift revs against the best revs, wheelspin, limiter time |
+| UC-9 | Challenger | Keep a best | Finishes a run better than before | The run is the new best for that engine, kept in the browser, and can be watched again |
+| UC-10 | Challenger | Share a run | Copies its link | A link that holds the inputs, not the score |
+| UC-11 | Receiver | See a shared run | Opens the link | The page re-drives the run, shows the score it earns, and offers "beat it" on the same engine |
+
+## The page
+
+One screen. Proposed arrangement, to be restyled by the author's sporty design:
+
+```
++--------------------------------------------------------------------+
+|  pedalsim      [ I4 ][ V6 ][ V8 ][ V10 ][ V12 ]     [ AUTO | MAN ] |
+|                                                                    |
+|   [ shift light bar: o o o o o o o o o o ]                         |
+|                                                                    |
+|        .-------------.          .-------------.                    |
+|       /  TACHOMETER   \        /  SPEEDOMETER  \       GEAR        |
+|      |   ghost needle  |      |                 |       [ 3 ]       |
+|      |   shift marker  |      |                 |      up / down    |
+|       \   redline     /        \               /       arrow       |
+|        '-------------'          '-------------'                    |
+|                                                                    |
+|   dyno strip: torque and power curves, a dot at the current revs   |
+|                                                                    |
+|   [clutch] [brake] [throttle]      H-pattern stick     0-60: 5.82s |
+|                                                    [ START RUN ]   |
++--------------------------------------------------------------------+
+```
+
+The pedals and stick are simple on-screen controls that also show what the keyboard is doing.
 
 ## Journeys
 
-### J1 - First visit, manual car
+### J1 - First visit
 
-1. The page opens on the cluster of the default car, engine off, needles at rest. Under it,
-   three pedals; to the right, the stick in neutral. A one-line hint names the keys.
-2. The driver presses the start key. The needles sweep to full scale and back, the lights
-   flash and go out, a starter whirr, the engine catches, the tachometer settles near 800
-   and trembles there.
-3. The driver holds the clutch key: the clutch pedal travels down over a fraction of a
-   second rather than snapping. They press 1, the stick moves into first.
-4. They let the clutch up with no throttle. The revs sag as the bite point is reached, the
-   speedometer twitches, and the engine stalls. Oil and battery lights. A quiet "stalled"
-   on the cluster's display.
-5. Start again. Clutch down, first, a little throttle, clutch up slowly. The car moves.
-   They have driven nowhere at 12 mph and it felt like something.
+1. The page opens on the four-cylinder, automatic, engine off.
+2. Start. The needles sweep and settle; the tach trembles at idle.
+3. Throttle in neutral: the revs climb, settle, drop when released. Floored: the limiter.
+4. D, throttle: the speed builds, the box shifts at the shift marker, the light bar fills.
+5. Brake: speed and revs fall together; the box shifts down.
+6. Swap to the V12 and do it again. The dyno strip changes shape and the needles move
+   differently. That comparison is the point.
 
-### J2 - Automatic
+### J2 - Manual and the coach
 
-1. Garage: picks the family car, automatic. The lever shows P, the cluster shows P lit.
-2. Start. Tries to move the lever to D: it will not leave P. The hint says "brake". Brake
-   held, lever to D, brake released: the car creeps at walking pace with no throttle.
-3. Floors the throttle: the revs jump to the converter's stall speed, then climb with the
-   speed, the box shifts up near the redline. Lifts: it shifts up early and the revs drop.
-   Floors it again at 40: it kicks down two gears.
+1. Switch to manual. Clutch and stick appear active.
+2. Clutch, first, throttle, clutch out: it pulls away - or stalls, and the start key again.
+3. As the revs reach the best shift point for this gear, the light bar completes and an up
+   arrow lights. Shift.
+4. Brake from speed: a down arrow and a second, faint needle on the tach - the revs the engine
+   will need in the lower gear. Blip the throttle to meet it, release the clutch, smooth.
 
-### J3 - A challenge and the board
+### J3 - The 0 to 60 run and a shared link
 
-1. Challenges: "0 to 60". Picks the sports coupe.
-2. Countdown on the cluster's display. The run is recorded from the first input.
-3. Result: 6.42 s, a new personal best. "Send to board" with a name field.
-4. The server replays the run and answers with 6.42 s and a place. If the server is not
-   reachable, the run is kept and the button says so; nothing else on the page changes.
-
-### J4 - Real pedals
-
-1. The driver plugs in a USB pedal set and presses any pedal. The input settings notice a
-   new device.
-2. "Press the clutch fully, then release": the axis is found and its range recorded. The
-   same for brake and throttle.
-3. The on-screen pedals now follow the real ones, including half presses.
+1. Start run, on the V8, manual. Countdown on the gauges.
+2. The ghost needle runs the perfect launch and shifts alongside.
+3. 60 mph: 5.31 s against a perfect 4.92 s. The card says: launch 0.21 s lost to wheelspin;
+   1 to 2 shifted 600 rpm early, 0.09 s; 2 to 3 0.06 s; clutch held in 0.03 s too long.
+4. Copy link. A friend opens it, their page drives the run again, shows the same 5.31 s, and
+   offers to beat it.

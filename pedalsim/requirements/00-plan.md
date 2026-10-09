@@ -2,25 +2,23 @@
 
 ## Objective
 
-**A car you drive by its instruments alone, built on maths that holds up.** Three pedals, a
-stick and a cluster; no road. A person who drives a manual should stall it, find the bite
-point and grin, and a person who reads the code should find a real powertrain model with
-tests that check it against real cars.
+**One plain, sporty page of gauges with real engine maths behind it.** Choose an engine from
+four cylinders to twelve, rev it, drive it, brake, shift by hand with a coach telling you
+when, and run 0 to 60 against the perfect run the page has worked out for that engine.
 
 Finished, for the first version, when six things are true:
 
-1. A person who is not the author can open the page, start the engine, stall it, and pull
-   away in first, using only the keyboard, without being told how.
-2. The same with an automatic: creep in Drive, kickdown, will not leave Park without the
-   brake.
-3. Every car's 0 to 60 time, top speed and cruising revs land inside the targets in its car
-   file, and a test fails if they stop doing so.
-4. A recorded run replays identically in Node and in the browser, and a test fails if it
-   stops doing so.
-5. A challenge result sent to the server is re-driven there, and the board shows the
-   server's number.
-6. It is hosted - the page with the rest of the static site, the backend as a profile on the
-   one server - at a link that can go on an application.
+1. In neutral, every throttle position settles the rev counter at a different, repeatable
+   rpm, and the revs rise and fall at the rate the engine's torque and inertia allow.
+2. The five engines drive visibly differently in the same car, and each engine's numbers
+   (peak torque, peak power, redline, top speed, 0 to 60) come out of its dimensions and
+   land in the range real engines of its kind reach. A test fails if they stop doing so.
+3. A person who is not the author can pull away and shift through the gears in manual using
+   only a keyboard, guided by the coach, without being told how.
+4. A 0 to 60 run produces a score card whose time-lost numbers add up exactly to the gap from
+   the perfect run, and the ghost needle shows that perfect run alongside.
+5. A run shared as a link gives the same time and score in another browser.
+6. It is live on GitHub Pages at `/pedalsim/`, with no server behind it.
 
 There are no dates in this plan. Stages are ordered by what each one needs from the one
 before it.
@@ -29,126 +27,117 @@ before it.
 
 ```mermaid
 flowchart LR
-    subgraph A[The maths]
-        S0[0. Scaffold] --> S1[1. Engine, clutch,<br/>manual box, car<br/>- headless]
+    subgraph A[The maths, headless]
+        S0[0. Scaffold] --> S1[1. Engines from<br/>their dimensions]
+        S1 --> S2[2. Drivetrain:<br/>clutch, tyres, car,<br/>brakes]
     end
-    subgraph B[The look]
-        S2[2. The cluster<br/>from a trace]
+    subgraph B[The page]
+        S3[3. Gauges] --> S4[4. Live driving,<br/>automatic]
+        S4 --> S5[5. Manual and<br/>the coach]
     end
-    subgraph C[Driving it]
-        S3[3. Pedals, input,<br/>the live loop] --> S4[4. The stick]
-        S4 --> S5[5. Automatic]
-        S5 --> S6[6. Sound]
+    subgraph C[The run]
+        S6[6. Perfect-run<br/>solver] --> S7[7. 0 to 60, score,<br/>board, share link]
+        S7 --> S8[8. Publish]
     end
-    subgraph D[A reason to come back]
-        S7[7. Challenges,<br/>recording, replay] --> S8[8. Backend and<br/>the board]
-        S8 --> S9[9. Host it,<br/>write the README]
-    end
-    S1 --> S2 --> S3
-    S6 --> S7
-    S9 --> S10[10. Cluster themes<br/>- later]
-    S9 --> S11[11. Wheelspin<br/>- later]
-    S9 --> S12[12. Car editor and<br/>share link - later]
+    S2 --> S3
+    S5 --> S6
+    S8 --> L1[Sound - later]
+    S8 --> L2[More engine kinds<br/>- later]
+    S8 --> L3[Sister app<br/>- later]
 ```
 
 | Stage | Goal | Done when |
 | --- | --- | --- |
-| 0 | Scaffold | `pedalsim/` with `index.html` opening under `npx serve`, `package.json`, `node --test` running, an empty `sim/` with the step signature, `tools/drive.js` running a scripted input list and writing a CSV trace |
-| 1 | The maths, headless | Engine, idle control, limiter, stall, clutch stick or slip, manual gearbox, car forces, brakes holding on a hill. Tests: idle holds; dumping the clutch at idle stalls; a held car does not creep; top speed is where power meets drag; each car's 0 to 60 and rpm at 70 inside its targets; golden traces with `SIM_VERSION`; no `Math.sin` and friends in `sim/` |
-| 2 | The cluster | SVG dials generated from the car's cluster block, needles with spring dynamics, key-on sweep, warning lights, the small display. Driven from a CSV trace from stage 1, so the look is designed before there is any input. Checked at desktop width and phone landscape |
-| 3 | Pedals and the live loop | Fixed-step loop at 1000 steps a second, the three pedals drawn and moving, keyboard ramps, mouse and touch drag, gamepad and USB pedal axes with calibration, ignition. Gears on number keys. You can stall it and drive it |
-| 4 | The stick | H-pattern drag on segments, synchro and grind, matched clutchless shifts, reverse lockout, over-rev damage and the check engine light |
-| 5 | Automatic | Torque converter, lock-up, shift map with hysteresis, kickdown, P-R-N-D lever with the brake interlock and the parking pawl, creep. The family car's automatic inside its targets |
-| 6 | Sound | Engine voice in an `AudioWorklet` from rpm, load and cylinders; limiter stutter; starter, grind, stall, pawl |
-| 7 | Challenges, recording, replay | The run log, the six challenges, personal bests, the last ten runs, watch any run back. A replay test: record in the browser, replay in Node, same result |
-| 8 | Backend and the board | Node server, PostgreSQL, the four routes, replay verification, rate limit, names, board view in the page. A CI workflow running the tests against a real database |
-| 9 | Host it, write the README | The page in the static build at `/pedalsim/`, the `pedalsim` compose profile, initdb, Caddy block. README with what it is, a recording with sound, how to run it, what it deliberately does not do |
-| 10 | Cluster themes | Later. A second and third cluster style from the same dial maths - see the open questions |
-| 11 | Wheelspin | Later. Wheels as their own body, a tyre curve, traction limits. Changes `SIM_VERSION` |
-| 12 | Car editor and share link | Later. Tune a car in the page; the car travels in the URL. Never on the board |
+| 0 | Scaffold | `pedalsim/` with `index.html` opening under `npx serve`, `package.json`, `node --test` running, `sim/step.js` with its signature, `tools/drive.js` writing a CSV trace from a scripted input list |
+| 1 | Engines from their dimensions | `engines/params.js` for I4, V6, V8, V10, V12; `tools/build-engines.js` writes the tables, gearing and coach points; `tools/figures.js` prints each engine's figures. Tests: displacement and redline from the formulas; free-rev settles at one rpm per pedal; the limiter bounces; stall below stall speed; figures inside their ranges |
+| 2 | The drivetrain, headless | Clutch and tyres as stick or slip couplings with the lock test, the four cases written out; gearbox; chassis forces with weight transfer; ABS-capped brakes with the hold rule; the torque converter and shift map. Tests: pulling away gently works, dumping the clutch at idle stalls, too many launch revs spin the wheels and lose time, engine braking only in gear, top speed equals the power-drag crossing, the automatic creeps and does not hunt; golden traces and `SIM_VERSION`; no `Math.sin` and friends in `sim/` |
+| 3 | Gauges | SVG tachometer and speedometer generated from the engine tables, needles with spring dynamics, key-on sweep, shift light bar, gear indicator, dyno strip. Played from a stage 2 CSV trace, so the look is designed before there is input. Styled through CSS variables, ready for the author's sporty design |
+| 4 | Live driving, automatic | The fixed-step loop, keyboard and pointer controls, engine picker, start key, automatic gearbox with P-R-N-D. You can rev, drive and brake every engine |
+| 5 | Manual and the coach | Clutch, H-pattern stick, grind, over-rev and the check engine light; the coach's up and down arrows, shift marker, rev-match needle, slip energy per shift. Done-when includes someone other than the author shifting through the gears on a keyboard |
+| 6 | The perfect-run solver | `tools/solve.js` finds each engine's best manual 0 to 60 within human shift limits, writes its log and time; a test reruns every stored perfect run |
+| 7 | 0 to 60, score, board, share link | Countdown, run recorder, ghost needle, phase-by-phase time lost, the score and the clean mark, bests and recent runs in the browser, share links that re-drive on open. A test: a run recorded in headless Chrome scores the same in Node |
+| 8 | Publish | In `deploy/build-static.mjs` and the Pages workflow; README with what it is, a short recording, how to run it, what a shared run does and does not prove; root README lists it |
 
 **Nothing is built.**
 
-### Why the maths comes before anything on screen
+### Why the maths comes first and headless
 
-The project is a joke with one load-bearing part: the car has to feel right with nothing to
-look at but needles. If the clutch model is wrong, the prettiest cluster in the world is
-reporting nonsense. Stage 1 is headless so it can be tested properly - scripted runs, traces,
-numbers checked against targets - before a single pixel would hide a bug.
+The author's words: "it should be a basic page, nothing crazy, the crazy is the algorithm."
+So the algorithm is built and tested before any pixel. If the clutch or tyre model is wrong,
+a beautiful gauge is reporting nonsense.
 
-### Why the cluster comes before input
+### Why the gauges come before live input
 
-The cluster is the graphic design half of the project and the thing a visitor sees first.
-Driving it from a recorded trace lets the dials, needles and lights be designed and judged on
-their own, without fighting the input code at the same time.
+The gauges are the whole visible product. Playing them from a recorded trace lets the design
+be judged on its own, and lets the author's sporty styling go in without fighting input code.
 
-### Why the backend comes last
+### Why the solver comes before the score
 
-Everything except the board works without it. A backend built before the simulation settles
-would be verifying a moving target, and every change to the step function invalidates the
-board anyway.
+The score is measured against the perfect run. Without the perfect run there is nothing to
+measure against, and a leaderboard of raw times says nothing about how well someone shifted.
 
 ## Decisions settled by the author
 
 | Decision | Reason |
 | --- | --- |
 | The name pedalsim | The author's |
-| A car simulator that is only the pedals, the gauges and the gear stick | The brief, and the joke. No road, no steering, no view |
-| Manual or automatic | The brief. Both are first-version features, not one now and one later |
-| Built on maths and graphic design | The brief. The powertrain is a real model; the cluster is designed with care |
-| A graphic front end and a small backend | The brief. The backend stays small |
-| Planned first, with the same requirements folder as the other apps, and a private context log updated every prompt | The author's instruction |
+| Only pedals, gauges and the shift stick; no road | The first brief |
+| One page, just gauges, kept basic; the complexity is in the calculation | "it should be a basic page, nothing crazy, the crazy is the algorithm" |
+| No server. Standalone, runs on GitHub Pages | "i want it standalone, can run through github pages". The "backend" is the calculation driving the dials |
+| Choose the engine, from four cylinders up to a V12 | "you select which engine you want to rev up and shift through" |
+| The rpm represents the amount of gas given | The author's first requirement for the gauges |
+| Show speed rising, and what happens when you brake | The author's |
+| Automatic, with manual shifting as an option | "with options to use a manual shift" |
+| The page teaches when to shift up and when to shift down | "know when to shift, when to downshift" |
+| The leaderboard is about shifting well on a 0 to 60 run: the most efficient and correct run, the timing | The author's |
+| Sporty design; the author is looking for inspiration on CodePen | The author's |
+| No hardware is assumed. The author owns no wheel, pedals or shifter | Keyboard, mouse and touch are the controls |
+| Car engines are the focus for now | "so far im concerned with car engines" |
+| A sister app that uses calculations to do something else may live beside it later | Not planned yet. The author will explore it |
+| Planned first, same requirements folder, private context log updated every prompt | The author's instruction |
 
 ## Decisions proposed, waiting for the author's confirmation
 
-These are the design's recommendations. Each is used by the documents as written, and each
-can be overturned - if it is, the row moves to the context log with what replaced it.
-
 | Decision | Reason |
 | --- | --- |
-| The backend's job is a leaderboard whose results the server re-drives itself | A leaderboard that trusts the page is a list of whatever anyone typed. Replaying the inputs makes the backend small and still worth having, and it is the part of the project an engineer will ask about |
-| The page works fully without the backend | The server is optional infrastructure for one feature. A visitor whose network fails still has the whole car |
-| The simulation is plain JavaScript, shared by the page and the server | Determinism across the two is the point. Writing it twice, in two languages, means two models that drift apart |
-| The backend is Node, not Python like mailman, herder and roamer | Follows from the line above: Node imports the page's own `sim/`. A Python backend would need a second implementation kept in step by a parity suite |
-| Plain JavaScript modules, no framework, no build step, like trail | One page with a few panels does not need a framework. The repo already deploys trail this way |
-| SVG for the cluster, pedals and stick | Crisp at any size, easy to generate from maths, styled with CSS. A cluster is a few hundred shapes, well inside what SVG handles at 60 frames a second |
-| 1000 simulation steps a second, fixed | The clutch's stick or slip needs a small step to be stable with a light flywheel. Cheap enough: a few hundred arithmetic operations a step |
-| No transcendental functions in the simulation | They may differ between JavaScript engines, which would break replays between the page and the server |
-| Synthesised engine sound, no recordings | No samples to license, and it follows the simulation exactly, including the limiter |
-| Cars are types, not brands | No trademarks. Targets are taken from published road tests of each class, so the figures still mean something |
-| No tyre slip in the first version | Wheelspin is a third body and a tyre model. The car is convincing without it; it is stage 11 |
-| mph by default, km/h as a setting | The author's other projects are US-facing. The simulation is SI inside either way |
-| Stalling, grinding and over-revving are consequences, not failures | The silliness lives here. A stall needs the key again; an over-rev lights the check engine light until a "new engine" button |
-| Six challenges: pull away, 0 to 60, quarter mile, hold 50, economy, hill start | Each one exercises a different part of the model: the bite point, the shift points, top-end power, throttle control, efficiency, clutch and brake together |
-| No accounts. A display name per board entry | Nothing on the board needs an identity, and accounts are a subsystem to secure |
-| The board shows only the current `SIM_VERSION` | A result from a different simulation is a different contest. Old runs are kept, not shown |
-| Desktop first, phone in landscape supported | Three pedals and a stick need room. Touch input with several fingers at once is part of stage 3 |
-| A `pedalsim` profile on the existing server | One host, no second bill |
+| Five engines: inline-4, V6, V8, V10, V12 | Reads "a V4 to a V12" as four cylinders to twelve. A true V4 is rare in cars; one can be added if wanted |
+| Engines are built from their dimensions by a tool, not hand-drawn curves | The originality the author asked for: redline from piston speed, torque from displacement, smoothness from firing gap. The page can show *why* a V12 differs from an I4 |
+| One car carries every engine | The engine is then the only variable, and comparisons are fair |
+| Gearing is calculated per engine | First gear from grip, top gear from where power meets drag, a progression between |
+| Tyres can spin, from the first version | Without a grip limit the V12 pushes at about 2 g off the line, does 0 to 60 in under two seconds, and the launch is no skill. Kinetic grip below static makes wheelspin cost time |
+| The clutch and tyres share one stick or slip rule | One well-tested piece of maths instead of two |
+| The perfect run is solved on the author's machine and committed | Deterministic, instant on the page, and checked by a test |
+| The perfect driver gets no faster shift than a person | Otherwise "perfect" wins by a margin no one can close |
+| Score = 1000 times perfect time over your time, plus a clean mark | Every mistake already costs time; smoothness is shown, not double-counted |
+| The score card splits time lost by phase, summing exactly to the gap | Tells the driver where the time went, which is what makes them try again |
+| The board is per browser; runs are shared as links re-driven on open | A shared board needs a server, which the author ruled out. A link carries the inputs, never the score, so it cannot be edited into a better time |
+| A ghost needle shows the perfect run during your run | The clearest picture of "shift here, not there" |
+| Simple ABS: the wheels never lock under braking | Braking stays readable on the gauges; a locked wheel would drop the speedometer to zero while the car still moves |
+| Plain JavaScript modules, no build step, SVG gauges | The trail pattern; already deploys on Pages |
+| 1000 simulation steps a second; no transcendental functions in the step | Stable couplings; the same run on every browser |
+| mph by default, km/h as a setting | US-facing, like the author's other projects |
+| No sound in the first version | The author asked for gauges. A synthesised engine note is a strong later addition - see open questions |
 
 ## Open questions
 
 | Question | Blocks | Notes |
 | --- | --- | --- |
-| Is the leaderboard the backend's job, or did the author have something else in mind? | Stage 8, and the shape of the server | The proposal is above. Alternatives: a shared garage of cars people tuned; sharing runs by link with no board; ghost runs to race against on the cluster |
-| Is it a toy, a set of challenges, or both? | Stage 7 | Proposed both: free driving is the front door, challenges are the reason to return |
-| Who designs the look? | Stage 2 | The author may want to design the cluster themselves (as with roamer's UI), or use the design system the resume was rebuilt with, or have one proposed |
-| Which cluster style first? | Stage 2 | Proposed: one analog cluster done properly. Candidates for later: an 80s digital bar-graph cluster, a 70s chrome-ringed one, a modern screen |
-| What is the silly car? | Stage 1 | A car that is absurd on purpose shows the maths is general. Ideas: a ride-on lawnmower with three gears, a delivery van that will not get past 70, a dragster with two gears and a clutch that bites at 6000 |
-| Does the author own sim pedals, a wheel or a shifter? | Stage 3 | USB pedals and an H-pattern shifter both appear as gamepad devices. Worth testing against real hardware if it exists; otherwise a controller's triggers |
-| Is there anything at all to look at besides the cluster? | Stage 2 | Proposed: no. The cluster is the only window. A faint vibration of the whole cluster at high revs is the furthest it goes |
-| Should a stall or over-rev be punished more? | Stage 4 | Proposed gentle: key again, or a "new engine" button. A challenge run ends on a stall |
-| Fixed hill grade, or a road profile? | Stage 1 | Proposed: grade is a setting and a challenge parameter, flat by default. A profile is a road, which the project does not have |
-| How strict are the anti-abuse rules on the board? | Stage 8 | A replay proves the run is possible, not that a person drove it. Proposed: say so on the board and leave it there |
+| "V4" - four cylinders in general, or an actual V4? | Stage 1 | Proposed: inline-4. A V4 can be a sixth engine |
+| Sound? | After stage 8 | Proposed later: a note synthesised from rpm, load and cylinder count, so the I4 and V12 also *sound* different. Optional and muted by default |
+| The sporty design: which CodePen pens? | Stage 3 | The author is looking. Keep each pen's link and author in a credits file. Gauge maths stays generated; the pen supplies the look |
+| What counts as "clean"? | Stage 7 | Proposed: no grind, no over-rev, total clutch slip energy under a per-engine limit |
+| Should the automatic have a 0 to 60 run too? | Stage 7 | Proposed: yes, timed, but not scored - there is no shifting skill in it beyond the launch |
+| More engine kinds later | After stage 8 | Turbocharged (boost gauge, lag), diesel (low redline, huge torque), rotary, motorcycle, electric (no gears at all). Each is a parameter set and a few new curves |
+| The sister app | Not this project | Ideas are kept in the context log. Lives in its own folder beside the engine app, may reuse `sim/` |
 
 ## Risks
 
 | Risk | Effect if it happens | Response |
 | --- | --- | --- |
-| The clutch model chatters or explodes at the lock-up point | The car shudders or the needles go wild, and the core of the project feels broken | The stick or slip state machine with a proper lock test, a small fixed step, and scripted tests of pulling away, stalling and engine braking in stage 1 before anything is drawn |
-| The page and the server disagree on a replay | Honest runs refused by the board | No transcendental functions in `sim/`, quantised inputs, golden traces checked in Node and in a browser, `SIM_VERSION` checked on submit |
-| A keyboard is too blunt to drive a clutch | Visitors without a controller cannot pull away, and the first impression is a stall they cannot fix | Pedal ramps tuned so the clutch rises slowly, a slow-modifier key, a forgiving default car, and the first done-when test is a person doing it with only a keyboard |
-| The cars feel wrong to people who drive | The maths is right and the joke still lands flat | Targets from real road tests, and the author drives each car before its stage is done |
-| Audio is glitchy or late | The engine note lags the needle, which is worse than silence | An `AudioWorklet` fed parameters each frame, not new nodes per frame; sound can be muted and the page is complete without it |
-| Mobile browsers fight multi-touch on the pedals | Phone drivers cannot press clutch and throttle together | Pointer events with touch-action off on the pedal area, tested on a real phone in landscape at stage 3 |
-| The graphic design never ends | Weeks on one dial and no working car | Stage 2 has one cluster style. Themes are stage 10, after hosting |
-| Scope grows into a driving game | A road, steering, traffic, and no finished project | The not-in-scope list in 02-interaction. There is no road |
+| The couplings chatter or explode at the lock point | Needles shake, the core feels broken | Stick or slip with the lock test, a 1 ms step, the four cases written out and each tested, all before stage 3 |
+| Derived engines come out unrealistic | The V12 does not feel like a V12, and the "built from dimensions" claim looks silly | `figures.js` against published ranges for naturally aspirated engines of each size; tune parameters, never patch the tables by hand |
+| The solver finds a silly optimum | The perfect run does something no person could, and the score is meaningless | Human shift limits on the perfect driver; the author drives each engine and checks the perfect run looks right before it is committed |
+| A keyboard is too blunt for a clutch | Visitors stall forever and leave | Pedal ramps, a slow clutch rise, and a done-when test with someone else on a keyboard. The automatic is the default, so nobody starts in manual |
+| Browsers disagree on a shared run | Links show a different score | Determinism rules, quantised inputs, golden traces in Node and Chrome |
+| The page grows features | "Basic page" turns into a dashboard | The author's rule is the guard: one page, gauges. Anything else goes behind a single score card or into the later list |
+| Copied design code carries a licence | A public repo using code it may not | Credit every pen used; take the look, rewrite the code to the gauge generator |

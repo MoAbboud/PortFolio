@@ -5,408 +5,407 @@ lists it as settled by the author.
 
 ## Shape of the thing
 
-One page and one small server. The page holds the whole car. The server holds a copy of the
-same simulation and a table of runs.
+One static page. No server. Two kinds of calculation: the simulation that runs live in the
+browser, and two tools that run on the author's machine before publishing - one that builds
+each engine from its dimensions, and one that works out the perfect 0 to 60 run for it.
 
 ```mermaid
 flowchart LR
-    subgraph page[index.html - plain JavaScript modules, no build step]
-        INP[Input layer<br/>keyboard, pointer, gamepad]
-        LOOP[Fixed-step loop<br/>1000 steps a second]
+    subgraph offline[tools/ - run by the author, output committed]
+        PAR[(Engine parameters<br/>cylinders, bore, stroke ...)]
+        GEN[build-engines.js]
+        SOL[solve.js<br/>perfect-run search]
+        PAR --> GEN
+    end
+
+    subgraph data[engines/ - generated, committed]
+        TAB[(Engine tables<br/>torque, friction, gearing,<br/>shift points)]
+        PERF[(Perfect runs<br/>input logs and times)]
+    end
+
+    subgraph page[index.html - plain modules, no build step]
+        IN[Controls]
         SIM[sim/<br/>pure, deterministic]
-        CL[Cluster<br/>SVG, needle dynamics]
-        PS[Pedals and stick<br/>SVG]
-        AUD[Engine sound<br/>Web Audio worklet]
-        REC[Run recorder<br/>and challenges]
-        STORE[(localStorage)]
+        GHOST[Ghost sim<br/>replays the perfect run]
+        COACH[Shift coach]
+        UI[Gauges, light bar,<br/>dyno strip]
+        SCORE[Run recorder<br/>and score]
+        LS[(localStorage)]
     end
 
-    subgraph cars[cars/ - plain data modules]
-        CARS[(hatch, family,<br/>coupe, pickup ...)]
-    end
-
-    subgraph server[server/ - Node, compose profile]
-        API[HTTP API]
-        VER[Verifier<br/>imports sim/ and cars/]
-        PG[(PostgreSQL<br/>runs)]
-    end
-
-    INP --> LOOP --> SIM
-    CARS --> SIM
-    SIM --> CL & AUD & REC
-    INP --> PS
-    REC --> STORE
-    REC -->|input log| API --> VER --> PG
-    CARS --> VER
+    GEN --> TAB
+    TAB --> SOL --> PERF
+    TAB --> SIM
+    PERF --> GHOST
+    IN --> SIM --> UI
+    SIM --> COACH --> UI
+    GHOST --> UI
+    SIM --> SCORE
+    PERF --> SCORE
+    SCORE --> LS
 ```
 
 **`sim/` imports nothing from the browser.** No `window`, no DOM, no clock, no random. It is
-a function from (car, state, inputs) to the next state, and that is what lets the server run
-it, the tests run it in Node, and a replay reproduce a run exactly.
+a function from (engine, chassis, state, inputs) to the next state. That is what lets the
+tests run it in Node, the solver run it thousands of times, the ghost run beside the driver,
+and a shared link reproduce a run on someone else's machine.
+
+## Engines built from their dimensions
+
+The engines are not five hand-drawn torque curves. Each one is a short list of physical
+parameters, and `tools/build-engines.js` turns that into the tables the simulation uses. The
+point: an I4 and a V12 behave differently *because* of their dimensions, and the page can say
+why.
+
+| Parameter | I4 | V6 | V8 | V10 | V12 |
+| --- | --- | --- | --- | --- | --- |
+| Cylinders | 4 | 6 | 8 | 10 | 12 |
+| Bore x stroke, mm (starting guess) | 86 x 86 | 94 x 84 | 92 x 94 | 92 x 79 | 89 x 87 |
+| Displacement, litres (derived) | 2.0 | 3.5 | 5.0 | 5.2 | 6.5 |
+| Peak mean piston speed, m/s | 20 | 20 | 21 | 23 | 23 |
+| Character | Peaky | Broad | Low-down | Peaky, high | Broad, high |
+
+Everything below is derived, not entered:
+
+```
+Displacement   Vd   = cylinders * (pi / 4) * bore^2 * stroke
+Redline        nmax = Sp_max * 60 / (2 * stroke)          rpm; a short stroke revs higher
+Torque         T(n) = IMEP(n) * Vd / (4 * pi)             four-stroke: one power stroke per two turns
+Friction       Tf(n) = FMEP(Sp) * Vd / (4 * pi)
+               FMEP  = A + C * Sp + D * Sp^2              simplified Chen-Flynn, Sp = 2 * stroke * n / 60
+Power          P(n) = T(n) * n * 2 * pi / 60
+Inertia        Ie   = flywheel + cylinders * per-cylinder equivalent
+Engine mass    from a table by layout, added to the car
+Firing gap     720 / cylinders degrees                    sets how smooth idle is
+```
+
+- **IMEP shape.** Peak indicated pressure is about the same for any well-made naturally
+  aspirated engine, so torque is mostly displacement. What differs is *where* it peaks, from a
+  shape table per character (peaky, broad, low-down) over the fraction of the redline.
+- **Redline from piston speed.** A long stroke means the piston travels further every turn, so
+  the same piston speed limit is reached at fewer rpm. That one line is why the V10 and V12
+  rev higher than the V8 here.
+- **Smoothness.** A four-cylinder fires every 180 degrees, so its power strokes do not
+  overlap and its torque pulses hard. A V12 fires every 60 and the strokes overlap. The idle
+  tremble on the tachometer is calculated from that ripple and the inertia, not drawn in.
+- **Gearing is calculated too.** Six ratios per engine: first gear sized so peak torque just
+  reaches the tyres' grip, top gear so the engine's power peak meets the drag curve, the gears
+  between in a progression that tightens toward the top. Computed once, stored as numbers.
+- **The throttle is not a straight line.** A throttle plate passes most of its air in the
+  first third of its travel at low revs. A table of load against pedal and rpm captures that,
+  which is why a little gas revs a free engine a lot.
+
+`build-engines.js` may use any maths it likes, `Math.pow` included, because its output is
+fixed numbers committed to the repo. Only the live step has the determinism rules below.
+
+## How the revs answer the gas
+
+The author's first requirement: the rpm must represent the amount of gas given. It does,
+in two ways that the page shows:
+
+```
+Steady:  the revs settle where   Tcomb(n, load(pedal, n)) = Tf(n) + load from the car
+Moving:  the revs change at      dn/dt = (Tcomb - Tf - Tclutch) / Ie
+```
+
+In neutral there is no car load, so each pedal position has one rpm where the engine's
+combustion torque exactly feeds its own friction - that is where the needle settles. How fast
+it gets there is net torque over inertia: the dyno strip shows both curves, and the dot sits
+where they meet.
 
 ## The drivetrain
 
 ```mermaid
 flowchart LR
-    TH[Throttle] --> ENG[Engine<br/>torque curve, friction,<br/>inertia, idle control]
+    TH[Throttle] --> ENG[Engine<br/>body 1]
     ENG --> CPL{Coupling}
     CP[Clutch pedal] --> CPL
-    CPL -->|manual| CLU[Dry clutch<br/>stick or slip]
+    CPL -->|manual| CLU[Clutch<br/>stick or slip]
     CPL -->|automatic| TC[Torque converter<br/>plus lock-up]
-    CLU --> GB[Gearbox<br/>ratio, efficiency]
-    TC --> GB
-    ST[Stick or lever] --> GB
-    GB --> FD[Final drive]
-    FD --> WH[Wheels<br/>radius]
-    WH --> CAR[Car<br/>mass, drag, rolling,<br/>brakes, grade]
-    BR[Brake pedal] --> CAR
+    CLU & TC --> GB[Gearbox and<br/>final drive]
+    ST[Stick or selector] --> GB
+    GB --> WH[Rear wheels<br/>body 2]
+    WH --> TY[Tyres<br/>stick or slip]
+    TY --> CAR[Car<br/>body 3]
+    BR[Brake] --> CAR
 ```
 
-All units inside `sim/` are SI: metres, seconds, kilograms, newtons, newton metres, radians a
-second. rpm, mph and km/h exist only at the edges.
+All units inside `sim/` are SI. rpm and mph exist only at the edges.
 
-### State
+### The chassis
 
-| Quantity | Symbol | Notes |
-| --- | --- | --- |
-| Engine speed | `we` | rad/s. rpm = `we * 60 / (2 * pi)` |
-| Car speed | `v` | m/s, signed (reverse is negative) |
-| Clutch locked | `locked` | Manual only. Stick or slip |
-| Gear | `gear` | -1, 0, 1..n. Automatic adds a selector P, R, N, D and the gear it chose |
-| Shift in progress | `shiftT` | Automatic only, seconds left in a shift |
-| Engine running | `running` | False after a stall or before the key |
-| Limiter cut | `cut` | Hysteresis flag for the rev limiter |
-| Fuel, coolant, odometer, damage | | Slow quantities |
-
-### The engine
+One car carries every engine, so the engine is the only variable: a rear-drive two-door,
+about 1250 kg plus the engine, frontal drag area about 0.65 m^2, rolling resistance about
+0.012, tyre radius about 0.33 m. Weight shifts onto the rear wheels under acceleration:
 
 ```
-Tcomb(n, u) = u * Tfull(n)              u = effective throttle 0..1, Tfull from a table
-Tfric(n)    = f0 + f1 * n + f2 * n^2    friction and pumping; this is engine braking
-Te          = Tcomb - Tfric
+Nrear = m * g * (static rear fraction) + m * a * h / L        h = centre of mass height, L = wheelbase
 ```
 
-- **Idle control.** The effective throttle is `max(pedal, uIdle)`, where `uIdle` comes from
-  a small proportional-integral controller holding the idle speed. That is why the revs dip
-  and recover when the clutch bites, as they do in a real car.
-- **Rev limiter.** Above the limit, combustion is cut until the speed falls a set margin
-  below it. The bounce on the tachometer and the stutter in the sound both come from this
-  flag, not from an animation.
-- **Stall.** Below the stall speed with fuel on, the engine stops: `running` goes false and
-  combustion is zero until the key is turned.
-- **Starter.** Turning the key applies a starter torque for a fixed time. A manual will not
-  crank in gear unless the clutch is down; an automatic only in P or N.
-- **Over-rev.** Combustion cannot push past the limiter, but the wheels can drag the engine
-  past it through a locked clutch. A downshift that does that sets the damage flag.
+which is why a hard launch grips a little better than a standing calculation would suggest.
 
-### The clutch: stick or slip
+### The engine at runtime
 
-The one genuinely awkward piece of maths in the project, and the piece that makes it feel
-like a manual.
+```
+Tcomb = load(pedal_eff, n) * Tfull(n)
+Te    = Tcomb - Tf(n) + ripple(n, crank angle)        ripple feeds the display tremble only
+pedal_eff = max(pedal, idle controller)
+```
+
+- **Idle controller**: a small proportional-integral loop holding idle. Why the revs dip and
+  recover as the clutch bites.
+- **Rev limiter**: combustion cut above the limit until the revs fall a margin below it. The
+  bounce is a real consequence, not an animation.
+- **Stall**: below the stall speed the engine stops until the start key.
+- **Over-rev**: combustion cannot pass the limiter, but the wheels can drag the engine past it
+  through a locked clutch after a bad downshift. That lights the check engine light.
+
+### Two friction couplings, one rule
+
+The clutch joins the engine to the gearbox; the tyres join the wheels to the road. Both are
+friction, and both use the same stick or slip rule.
 
 ```mermaid
 stateDiagram-v2
     [*] --> Slipping
-    Slipping --> Locked: relative speed crosses zero<br/>and holding needs less than capacity
-    Locked --> Slipping: holding would need more than capacity
-    Locked --> Slipping: clutch pedal pressed below bite
+    Slipping --> Stuck: relative speed crosses zero<br/>and holding needs less than the limit
+    Stuck --> Slipping: holding would need more than the limit
 ```
 
-- **Capacity.** `Tcap = e(c) * Tmax`, where `c` is the clutch pedal, `e` an engagement curve
-  that is zero above the bite point and rises to one as the pedal comes up, and `Tmax`
-  about 1.4 times the engine's peak torque.
-- **Gearbox input speed.** `wg = v / r * G`, with `G` the gear ratio times the final drive.
-- **Slipping.** The clutch passes `Tcap * sign(we - wg)`. The engine and the car are two
-  separate bodies, each integrated with the torque on it.
-- **Locked.** The engine and the car are one body. Its acceleration is the net torque over
-  the combined inertia, the car's mass reflected through the gearing:
+| | Clutch | Tyres |
+| --- | --- | --- |
+| Joins | Engine speed `we` and gearbox input `ww * G` | Wheel surface `ww * r` and car speed `v` |
+| Limit when stuck | `e(clutch pedal) * Tclutch_max` | `mu_static * Nrear * r` |
+| Passed when slipping | The same limit | `mu_kinetic * Nrear * r`, a little lower |
+| What it feels like | Bite point, stall, the shove of a dropped clutch, engine braking | Grip, and wheelspin on a launch with too many revs |
+
+Because kinetic grip is lower than static, a wheelspin launch is slower than a clean one.
+That is what makes the launch a skill worth scoring, and what the solver has to find.
+
+With two couplings there are four cases (both stuck, either slipping, both slipping). They
+are written out rather than handed to a general constraint solver: each case gives the three
+accelerations, and the case is accepted only if it is consistent with its own assumption.
+**The lock test** - speeds crossing within a step are snapped together, not left to chatter
+across each other - is the classic bug in clutch models and gets the most tests.
+
+### The automatic
+
+- **Torque converter**, from the standard capacity-factor model. Speed ratio
+  `SR = turbine / pump`:
 
 ```
-Ieq   = Ie + m * r^2 / (G^2 * eta)
-alpha = (Te - Tload / G) / Ieq           Tload = resistive force * r
-Thold = Te - Ie * alpha                  torque the clutch must carry to stay locked
+Tpump    = (npump / K(SR))^2        K from a table, rpm per root newton metre
+Tturbine = TR(SR) * Tpump           TR about 2 at a standstill, 1 at the coupling point
 ```
 
-  If `|Thold| > Tcap` the clutch breaks loose and slips.
-- **Locking.** While slipping, if `we - wg` changes sign within a step and the clutch could
-  hold the result, the step ends with the two speeds set equal and `locked` true. Without
-  this the speeds chatter across each other forever, which is the classic bug in clutch
-  models.
-
-The stall, the bite point, the shove of a dropped clutch, engine braking on a lift and the
-money shift all fall out of these few lines. None of them is scripted.
-
-### The torque converter
-
-The automatic's coupling, from the standard capacity-factor model. Speed ratio
-`SR = turbine speed / pump speed`.
-
-```
-Tpump    = (npump / K(SR))^2        K in rpm per root newton metre, from a table
-Tturbine = TR(SR) * Tpump           TR about 2 at SR = 0, falling to 1 at the coupling point
-```
-
-- At a standstill in Drive the converter passes a little torque at idle: **creep**.
-- Held on the brake with the throttle floored, the engine settles at the converter's
-  **stall speed**: the point where `Tpump` meets the engine's full torque.
-- Above `SR = 1` (coasting) the converter drives the engine from the wheels with a reduced
-  capacity, which gives an automatic its weaker engine braking.
-- A **lock-up clutch** closes above a set speed in the top gears, using the same stick or
-  slip code as the manual.
-
-### The automatic's shift logic
-
-```mermaid
-flowchart LR
-    TP[Throttle] --> MAP[Shift map<br/>per gear: up line and<br/>down line in speed vs throttle]
-    SP[Car speed] --> MAP
-    MAP --> DEC{Cross a line?}
-    DEC -->|up| UP[Shift up]
-    DEC -->|down| DN[Shift down]
-    KD[Throttle past kickdown] --> DN2[Down to the lowest<br/>gear under the redline]
-    UP & DN & DN2 --> SH[Shift: torque blended<br/>over shiftT]
-```
-
-The down lines sit below the up lines, so a gear is held across a band of speeds instead of
-hunting. Light throttle shifts up early, full throttle near the redline. The selector has P,
-R, N and D; leaving P needs the brake, and P refuses to engage above walking pace with the
-sound of a parking pawl ratcheting.
+  This gives creep at idle in D, the stall speed with the brake held and the throttle floored,
+  and weak engine braking when coasting.
+- **Lock-up clutch** in the upper gears, through the same stick or slip code.
+- **Shift map**: per gear an up line and a lower down line in speed against throttle, so the
+  box holds a gear across a band instead of hunting. Kickdown past a throttle threshold.
+- **Selector** P-R-N-D. Leaving P needs the brake.
 
 ### The car
 
 ```
-Fdrive = Tcoupling * G * eta / r                           (zero in neutral)
+Fdrive = tyre force from the coupling above
 Faero  = 0.5 * rho * CdA * v * |v|
 Froll  = Crr * m * g * clamp(v / 0.05, -1, 1)
-Fgrade = m * g * s                                         s = grade / sqrt(1 + grade^2)
-Fbrake = b * Fbrake_max, opposing motion
-m * dv/dt = Fdrive - Faero - Froll - Fgrade - Fbrake
+Fbrake = brake * Fbrake_max, capped at mu * m * g     a simple ABS: the wheels never lock
+m * dv/dt = Fdrive - Faero - Froll - Fbrake
 ```
 
-- The brakes hold the car still with the same stick or slip rule as the clutch: if the car
-  is stopped and the brakes can resist everything else, it stays stopped. Without it a
-  braked car creeps backwards and forwards around zero.
-- The tyres do not slip in the first version. Wheelspin needs the wheels as a third body and
-  a tyre curve; it is a later stage.
-- Top speed is not a number in the car file. It is where the engine's power in the best gear
-  meets drag plus rolling, and the test suite checks that it comes out that way.
+A stopped, braked car stays stopped (the same hold rule). Top speed is not in any file; it is
+where power meets drag, and a test checks it.
 
-### Slow quantities
-
-- **Fuel.** Flow is combustion power times a specific fuel consumption, plus an idle
-  minimum. The fuel gauge reads a level with a heavily damped needle, as real ones are.
-- **Coolant.** A first-order lag toward a temperature that depends on load. Starts cold, warms
-  over a few minutes. Holding the limiter long enough raises it.
-- **Odometer and trip.** Distance integrated from `v`. There is nowhere to have gone.
+**The speedometer reads the driven wheels**, as a real one does, so wheelspin flares it. The
+0 to 60 clock uses the car's true speed. The score card says so.
 
 ## Determinism
 
-A run must give the same numbers on every machine, because the server replays it and the
-board trusts only the replay.
+A shared link must give the same run on any machine.
 
-1. **Fixed step.** `dt = 1 / 1000` s. The step count is the clock. Frame rate never enters
-   `sim/`.
-2. **No transcendental functions in the step.** The specification lets `Math.sin`, `exp`,
-   `pow` and `log` differ in the last bit between JavaScript engines. Curves are tables with
-   linear interpolation; `sqrt`, which IEEE 754 requires to be correctly rounded, is allowed.
-   Drawing the cluster uses `Math.sin` freely, because drawing is not simulated.
-3. **Quantised inputs.** Every pedal value is rounded to 1/1023 at the step boundary, the
-   same number the run log stores. The live run and its replay see identical inputs.
-4. **No clock, no random, no `Date` in `sim/`.** A lint rule and a test enforce it.
-5. **A version number.** `SIM_VERSION` changes whenever the step function's output changes.
-   A golden-trace test hashes the state after fixed scripted runs; if the hash moves and the
-   version did not, the test fails.
-6. **Checked across engines.** The golden traces are checked in Node and in headless Chrome,
-   and in Firefox where installed.
+1. **Fixed step**, `dt = 1 / 1000` s. The step count is the clock.
+2. **No transcendental functions in `sim/`.** ECMAScript lets `Math.sin`, `exp`, `pow` and
+   `log` differ in the last bit between engines. Curves are tables with linear
+   interpolation; `sqrt`, correctly rounded under IEEE 754, is allowed.
+3. **Quantised inputs**: every pedal value rounded to 1/1023 at the step boundary - the same
+   number the log stores.
+4. **No clock, no random, no `Date` in `sim/`.** A test greps for them.
+5. **`SIM_VERSION`** changes whenever the step's output changes. Golden traces hash the state
+   after scripted runs; a moved hash with an unmoved version fails the test.
+6. **Checked in Node and headless Chrome**, and Firefox where installed.
 
 ## The loop
 
 ```mermaid
 sequenceDiagram
-    participant RAF as Animation frame
-    participant IN as Input layer
-    participant SIM as sim/
-    participant REC as Recorder
-    participant OUT as Cluster, pedals, sound
+    participant F as Animation frame
+    participant IN as Controls
+    participant S as sim/
+    participant G as Ghost sim
+    participant R as Recorder
+    participant U as Gauges
 
-    RAF->>IN: sample keyboard, pointers, gamepads
-    IN->>REC: changed channels only
+    F->>IN: sample keys, pointers, gamepad
+    IN->>R: changed channels only
     loop while accumulated time >= dt, at most 250 steps
-        RAF->>SIM: step(car, state, inputs)
+        F->>S: step
+        F->>G: step (during a run)
     end
-    RAF->>OUT: latest state
-    OUT->>OUT: needles chase their targets
+    F->>U: latest states
+    U->>U: needles chase their targets
 ```
 
-Inputs are sampled once a frame and held for that frame's steps. The cap on steps a frame
-stops a backgrounded tab from trying to catch up on a minute of simulation at once.
+## The shift coach
 
-## The cluster
+All of it is computed from the engine tables, mostly in advance.
 
-Drawn in SVG, generated from the car's cluster block by arithmetic rather than drawn by
-hand, so a new car gets correct dials for free.
+**When to change up - for speed.** In gear `i` at speed `v`, the force at the tyres is
+`min(T(n_i(v)) * G_i * eta / r, grip)`. Change up when the next gear would push harder:
 
-- **Dials.** Each dial has a range, a start angle and a sweep. A tick for value `x` sits at
-  `a0 + (x / max) * sweep`. Major and minor ticks, numerals, and the redline arc come from
-  the same formula.
-- **Needles have mass.** A needle does not jump to the value; it is a damped spring chasing
-  it:
+```
+shift up at the speed where   F_i(v) = F_i+1(v),   or at the redline if they never cross
+```
+
+Precomputed per engine and gear by scanning speed, and drawn as the **shift marker** on the
+tachometer. The light bar fills over the last 1500 rpm before it and flashes at it.
+
+**When to change up - for economy.** With light throttle, change up once the next gear keeps
+the revs above a lugging floor (about twice idle).
+
+**When to change down.**
+
+- *Lugging*: revs below the floor with real throttle - down arrow.
+- *For speed*: full throttle, and the lower gear both pushes harder and stays under its shift
+  point - down arrow.
+- *Braking*: the gear you would want if you had to accelerate now - the one that puts the
+  revs between peak torque and the shift point.
+
+**What revs to match.** With the clutch down and a lower gear chosen, a second faint needle
+shows `n_target = v / r * G_target * 60 / (2 * pi)`, the revs the engine must reach for a
+smooth release. Blip the throttle to meet it.
+
+**How smooth a shift was.** On each release the clutch's slip energy is integrated:
+
+```
+E = sum over the slip of  Tclutch * |we - ww * G| * dt          joules turned into heat
+```
+
+A perfect rev-match is near zero. A dumped downshift is hundreds of joules and a lurch.
+
+## The perfect run
+
+`tools/solve.js` finds, for each engine, the fastest 0 to 60 the simulation allows with a
+manual gearbox - the reference every driver is scored against.
+
+```mermaid
+flowchart LR
+    P[Parameters<br/>launch revs, clutch release time,<br/>shift revs per gear, lift or flat shift] --> RUN[Run sim/<br/>headless]
+    RUN --> T[Time to 60 mph<br/>interpolated between steps]
+    T --> SRCH[Search<br/>golden section per parameter,<br/>then coordinate descent]
+    SRCH --> P
+    SRCH --> OUT[Best parameters,<br/>input log, time]
+```
+
+- **Starting point**: shift points from the crossover rule above, launch at peak torque.
+- **The perfect driver is held to human limits**: the stick has a minimum travel time, and the
+  solver gets no faster shift than a person can make. Otherwise "perfect" is unbeatable for a
+  silly reason.
+- **The crossing of 60 mph is interpolated** between the two steps either side, so the
+  objective is smooth enough for the search instead of jumping in millisecond stairs.
+- **Output**: the best input log and its time, committed as data. The page replays it as the
+  ghost; a test reruns it and fails if the time moved without `SIM_VERSION` moving.
+- **What it reveals**: the best shift is often not at the redline. Where the torque curve
+  falls off early, the solver shifts well before it, and the page can say so.
+
+## The score
+
+**Time lost, phase by phase.** Your run is split into phases: launch, each gear, each shift.
+For each phase take the range of speed it covered (using the highest speed reached so far, so
+a speed dip during a shift does not count twice), and compare the time you spent with the
+time the perfect run spent covering the same range:
+
+```
+lost(phase) = your time in phase - perfect time over the same speed range
+sum of lost(phase) over all phases = your 0-60 time - perfect 0-60 time, exactly
+```
+
+So the card can say "the launch cost 0.21 s, the 1-2 shift 0.09 s" and the numbers add up to
+the gap. Each phase also shows why: launch wheelspin time; shift revs against the perfect
+run's; time with the clutch in; slip energy; time on the limiter.
+
+**One number for the board.** Proposed:
+
+```
+score = round(1000 * perfect time / your time)        1000 is perfect
+```
+
+with a "clean" mark for a run with no grind, no over-rev and low clutch heat. A stall ends the
+run. Every other mistake already costs time, so it is not penalised twice.
+
+## The board and the share link
+
+**The board** is per browser: best score per engine, the last ten runs, any of them watchable.
+
+**The share link** puts the run in the URL fragment, never sent to any server:
+
+```
+#run=<base64url( deflate( packed run log ) )>
+```
+
+The packed log carries the engine, gearbox, `SIM_VERSION`, the engine table hash and the
+input changes - not the time or the score. The receiver's page re-drives it and computes
+both. Received runs can be kept in a "friends" list on the receiver's board.
+
+**What a link proves.** That the run is possible in this simulation. It cannot prove a person
+drove it: a program could write a perfect input log. The page says so.
+
+## The page
+
+- **SVG gauges** generated from each engine's tables: tick at `a0 + (x / max) * sweep`, the
+  redline arc, the shift marker. A new engine gets a correct tachometer for free.
+- **Needles have mass**: a damped spring chasing the value, quicker on the tachometer than the
+  speedometer:
 
 ```
 acc = wn^2 * (target - angle) - 2 * zeta * wn * vel
 ```
 
-  The tachometer is quick and slightly underdamped, so a blip overshoots a hair. The
-  speedometer is slower and heavier. The fuel needle takes seconds. This runs per frame on
-  the display side and is not part of the simulation.
-- **Key-on sweep.** Needles to full scale and back, every warning light for a moment.
-- **Lights.** Oil pressure and battery when the engine is not running, check engine after an
-  over-rev, shift light near the redline, P-R-N-D or the gear number.
-- **A small display** for the odometer, trip, instantaneous economy, the challenge countdown,
-  and one-word messages: stalled, grind, limiter.
-- **Idle tremble.** A fraction of a degree of shake on the tachometer at idle, scaled down
-  as the revs rise.
+- **Shift light bar**, **gear and arrow**, **ghost needle**, **rev-match needle**.
+- **Dyno strip**: the engine's torque and power curves with a dot at the current revs and
+  load. The calculation, on screen.
+- **Pedals and stick**: simple controls that also show what the keyboard is doing. The H-pattern
+  knob is projected onto its gate segments, so it moves only where a real one can.
+- **Styling** through CSS custom properties, so the sporty look the author picks can be applied
+  without touching the gauge maths.
 
-## Pedals and the stick
+## Controls
 
-### Pedals
-
-A pedal is a value from 0 to 1, drawn as a pedal pivoting on its hinge by that fraction of
-its travel.
-
-| Source | How it becomes a position |
+| Source | How |
 | --- | --- |
-| Keyboard | Held, the value ramps toward 1; released, toward 0, at rates set per pedal. The clutch rises slower than it falls, so a keyboard driver can find the bite point. A modifier halves the rates |
-| Mouse | Press on a pedal and drag down; the drag distance is the travel |
-| Touch | Pointer events, one finger per pedal, several at once, so clutch and throttle can move together |
-| Controller | Triggers are analog: throttle and brake. The clutch on a stick axis, or a button with the keyboard's ramp |
-| USB pedals | Read as gamepad axes. Calibrated once by pressing each fully; stored per device name |
-
-### The H-pattern stick
-
-The knob lives on a set of line segments: one horizontal neutral rail and one vertical slot
-per gate. A dragged pointer is projected onto the nearest point of that set, so the knob can
-only move where a real knob can.
-
-- Past most of a slot's travel the knob reaches the synchro. If the clutch is down, or the
-  engine and gearbox speeds already match closely, the gear engages and the knob drops into
-  its detent.
-- Otherwise the knob stops at the synchro, the gearbox grinds, and the gear does not engage
-  until the clutch goes down or the revs are matched. A matched clutchless change works, as
-  it does in a real car.
-- Keyboard: number keys select a gear directly, with the same clutch and grind rules.
-  Controller: buttons step up and down.
-- Reverse is behind a lockout: it needs the car stopped or nearly so, or it grinds.
-
-### The automatic lever
-
-A straight gate, P-R-N-D. Drag or keys. Leaving P needs the brake. P will not engage while
-moving.
-
-## Sound
-
-Web Audio, through an `AudioWorklet` so the note is generated sample by sample from
-parameters the page sets each frame.
-
-- **The note.** A four-stroke engine fires `cylinders / 2` times a revolution, so the basic
-  frequency is `rpm / 60 * cylinders / 2`. The voice is a sum of harmonics of half that
-  frequency, with amplitudes that grow with load, through a filter whose cutoff rises with
-  throttle, over band-limited noise for intake.
-- **The limiter** is audible because combustion is actually cut: load drops to zero for those
-  steps and the voice follows.
-- **Effects.** Starter motor, grind, parking pawl, stall cough. All synthesised. No samples,
-  so nothing to license.
-- Sound starts on the first key press or click, because browsers forbid autoplay.
-
-## Challenges and the run log
-
-A challenge is a start state, a finish condition and a result, all in `sim/` so the server
-evaluates it with the same code.
-
-| Challenge | Start | Finish | Result |
-| --- | --- | --- | --- |
-| Pull away | Engine running, stopped, in neutral | 20 mph | Time; a stall ends the run |
-| 0 to 60 | Engine running, stopped | 60 mph | Time |
-| Quarter mile | Engine running, stopped | 402.3 m | Time and trap speed |
-| Hold 50 | Rolling at 50 | 60 s | Mean absolute error from 50 mph |
-| Economy | Engine running, stopped | 5 km | Fuel used, with a time limit |
-| Hill start | Stopped on a 15 percent grade, brake on | 10 m up the hill | Time; rolling back more than 0.5 m ends the run |
-
-The run log is the car, the gearbox, the challenge, `SIM_VERSION`, and a list of input
-changes, each a step number, a channel and a value. Recording only changes keeps a minute's
-run to a few kilobytes. See [04-data-model.md](04-data-model.md).
-
-## The small backend
-
-Node, so the server imports the very `sim/` and `cars/` modules the page loads. Not the
-Python stack the other server projects use - see the plan for why.
-
-| Route | Does |
-| --- | --- |
-| `GET /health` | Database reachable, `SIM_VERSION` |
-| `POST /api/runs` | Accepts a run log and a display name. Replays it. Stores the server's result |
-| `GET /api/boards/{challenge}/{car}/{gearbox}` | Best results for the current `SIM_VERSION` |
-| `GET /api/runs/{id}` | A stored run's log, for watching it back |
-
-```mermaid
-sequenceDiagram
-    participant P as Page
-    participant A as API
-    participant V as Verifier
-    participant D as Database
-
-    P->>A: POST run log, name
-    A->>A: size, rate limit, name rules
-    A->>V: replay
-    V->>V: SIM_VERSION and car hash match?
-    V->>V: step through the log, at most the challenge's step budget
-    V-->>A: finished? result
-    alt replay finishes
-        A->>D: insert run with the server's result
-        A-->>P: result and place
-    else replay does not finish, or versions differ
-        A-->>P: 422 with the reason
-    end
-```
-
-- **The server's number is the number.** The page's claimed result is compared and logged,
-  never stored as the result.
-- **Only stock cars.** The car hash must match the server's copy, so a tuned car never
-  reaches the board.
-- **What this does not prove.** A replay proves the run is possible in the simulation. It
-  does not prove a person drove it: an input log written by a program would pass. The board
-  says so. For a toy's leaderboard that is the honest line to draw.
-- **Abuse.** Request size capped, a rate limit per address (stored hashed, not raw), display
-  names limited in length and characters, a short word list.
-- **CORS** allows the site's own origin only.
+| Keyboard | Held, a pedal ramps toward 1; released, toward 0. The clutch rises slower than it falls, so the bite point is findable. Number keys for gears, a key each for start, shift up and down |
+| Mouse and touch | Drag a pedal down; drag the knob; several fingers at once on a phone |
+| Game controller, if present | Triggers for throttle and brake. Optional, never required |
 
 ## Files, proposed
 
 ```
 pedalsim/
   index.html
-  sim/          step, engine, clutch, converter, gearbox, car, curves, challenges, log
-  cars/         one module per car, plain data
-  ui/           cluster, needle, pedals, shifter, lever, garage, settings, board
-  input/        keyboard, pointer, gamepad, calibration
-  audio/        engine voice worklet, effects
-  server/       http, verifier, db, migrations
-  tools/        drive.js (scripted run to a CSV trace), figures.js (each car's numbers)
+  sim/        step, engine, couplings, converter, gearbox, chassis, coach, score, log
+  engines/    params.js (entered), i4.js ... v12.js (generated), perfect/*.js (generated)
+  ui/         gauge, needle, lightbar, dyno, pedals, stick, board, scorecard
+  input/      keyboard, pointer, gamepad
+  tools/      build-engines.js, solve.js, drive.js (scripted run to CSV), figures.js
   test/
-  package.json  "test": "node --test"
+  package.json   "test": "node --test"
 ```
 
-Cars are JavaScript modules exporting plain objects rather than JSON, so the page imports
-them under any server, and the server and tests import them in Node.
-
-Like trail, the page needs a server that sends `.js` as JavaScript to run locally:
-`npx serve`, not plain `python -m http.server` on this machine.
+Run locally with `npx serve`, not plain `python -m http.server`, which sends `.js` as
+text/plain on this machine and modules refuse to load.
 
 ## Deployment
 
-- **The page**: on GitHub Pages with the rest of the static site, at `/pedalsim/`, added to
-  `deploy/build-static.mjs` and the workflow's paths.
-- **The backend**: a `pedalsim` profile in `deploy/docker-compose.prod.yml`, a database and
-  login in `deploy/initdb/`, a block in the Caddyfile for `pedalsim.<domain>`. It is small:
-  a memory ceiling of 128 MB is the starting guess.
-- If the server is down, the page says the board is unreachable and everything else works.
+GitHub Pages, with the rest of the static site, at `/pedalsim/`: added to
+`deploy/build-static.mjs` and the Pages workflow's paths. Nothing else.

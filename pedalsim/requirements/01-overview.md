@@ -4,63 +4,46 @@ Public document. Behaviour only.
 
 ## What this is
 
-A driving simulator with the car taken away.
+A page of gauges with an engine behind them.
 
-What is left is what your feet, your left hand and your eyes deal with when you are not
-looking out of the windscreen: three pedals (two in an automatic), a gear stick, and the
-instrument cluster. There is no road, no steering wheel and no view. You drive by the
-needles.
+Pick an engine - a four-cylinder, a V6, a V8, a V10 or a V12 - and drive it by the needles.
+Press the throttle and the rev counter climbs by exactly as much as that much fuel can push
+that engine. Let it out in gear and the speedometer starts to move. Brake and watch both fall.
+There is no road, no steering and no view. The gauges are the whole car.
 
-Underneath, the car is real. The engine has a torque curve and a flywheel, the clutch slips
-and grabs, the gearbox has ratios, the car has weight, air pushes back harder the faster it
-goes, and the tyres roll against the ground. Every needle on the cluster is reporting a
-number the simulation actually computed. Let the clutch out too fast at idle and the engine
-stalls, the oil and battery lights come on, and you turn the key again. Change gear without
-the clutch and it grinds. Drop into second at seventy and the rev counter goes somewhere it
-should not.
-
-## Who it is for
-
-- **Anyone who has driven a manual car**, or tried to, and wants to feel the bite point
-  again with nothing else to think about.
-- **Anyone learning to drive a manual**, who wants to stall a hundred times somewhere that
-  costs nothing.
-- **Anyone who likes instruments**: needles, tick marks, warning lights, the sweep of a
-  cluster waking up when the key turns.
+What is real is underneath. Each engine is built from its dimensions - how many cylinders,
+how wide, how long a stroke - and its torque, its redline and how quickly it revs all come
+out of those numbers. The clutch slips and grabs, the tyres grip and spin, the car has weight
+and air resistance. Every needle reports something the simulation actually calculated.
 
 ## What you can do
 
-- **Pick a car.** A handful of cars, each one a type rather than a brand - a small
-  hatchback, a family car with an automatic, a sports coupe, a big pickup - each with its
-  own engine, gearbox and cluster.
-- **Choose manual or automatic.** A manual has a clutch and an H-pattern stick. An
-  automatic has two pedals and a P-R-N-D lever, creeps forward at idle in Drive, and shifts
-  on its own.
-- **Turn the key.** The needles sweep, the warning lights check themselves, the engine
-  catches and settles to idle.
-- **Drive.** Press the pedals with the keyboard, the mouse, a touch screen, a game
-  controller's triggers, or a real set of sim racing pedals plugged in over USB. Move the
-  stick by dragging it through its gates, or with the keyboard.
-- **Listen.** The engine note is made from the engine speed and load as it runs, so it
-  rises and falls with the tachometer and bounces off the rev limiter.
-- **Take a challenge.** Short tests with a single number at the end: pull away without
-  stalling, reach 60 from a standstill, cover a quarter mile, hold a speed without a cruise
-  control, cover a distance on as little fuel as possible.
-- **Watch it back.** Any run can be replayed: the pedals, the stick and every needle move
-  exactly as they did.
-- **Put a time on the board.** A challenge result can be sent to a shared leaderboard. The
-  server does not take your word for it - it drives your run again itself, input for input,
-  and records the number it gets.
+- **Choose an engine.** Four cylinders to twelve. They sound different on paper and they
+  drive differently on the dials: the small one revs quickly and runs out of breath, the V12
+  pulls from nothing and keeps going. The same car carries each one, so the engine is the only
+  thing that changes.
+- **Rev it.** In neutral, the rev counter follows the throttle. A little throttle, a little
+  rise; floor it and it climbs to the limiter and bounces there.
+- **Drive it, automatic or manual.** The automatic changes gear itself. Switch to manual and
+  you get a clutch and a gear stick, and the page shows you when to change up, when to change
+  down, and what revs to match when you do.
+- **Brake.** The speed falls, and in gear the revs fall with it until you change down or the
+  engine stalls.
+- **Do the 0 to 60 run.** From a standstill, manual, as well as you can. You are timed and
+  scored on how you did it: the launch, every shift, the time lost on each, against a
+  perfect run the page has worked out for that engine. A ghost needle shows the perfect run
+  beside yours.
+- **Keep your best, and share it.** Your best runs are kept in your browser for each engine.
+  Send a run to someone as a link and their page drives it again from your inputs, so the
+  score they see is the one the run really earns.
 
 ## What it is not
 
 - Not a racing game. There is nowhere to go and nothing to steer.
-- Not a model of any particular car. The cars are believable types, tuned so their
-  figures sit where real cars of that kind sit, but none of them is a brand.
-- Not a driving lesson. It will teach your feet the clutch. It will not teach you the road.
+- Not a model of any particular car or brand. The engines are typical of their kind.
+- Not a driving lesson. It will teach you shift points. It will not teach you the road.
 
 ## Where it runs
 
-In a desktop browser first, and in a phone browser turned sideways, with the pedals under
-your thumbs. Nothing to install and no sign-in. Everything except the leaderboard works
-without a connection to anything.
+In a desktop browser, and in a phone browser turned sideways. Nothing to install, no sign-in,
+no server. It works offline once loaded.

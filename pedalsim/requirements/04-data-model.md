@@ -1,158 +1,135 @@
 # pedalsim - Data model
 
-Four kinds of data: car files that ship with the code, run logs, what one browser remembers,
-and one table on the server. The shape matters more than the exact fields, and nothing here
-exists yet.
+No database and no server. Five kinds of data: engine parameters the author enters, engine
+tables and perfect runs generated from them, the one chassis, run logs, and what one browser
+keeps. The shape matters more than the exact fields, and nothing here exists yet.
 
 ```mermaid
 flowchart LR
-    CAR[(Car file<br/>shipped with the code)] --> SIM[Simulation]
-    SIM --> LOG[Run log<br/>input changes]
-    LOG --> LS[(Browser storage<br/>bests, recent runs)]
-    LOG --> RUNS[(Server: runs table)]
-    SET[(Browser storage<br/>settings, bindings,<br/>calibration, odometer)] --> SIM
+    PAR[(engines/params.js<br/>entered by hand)] -->|build-engines.js| TAB[(engines/v8.js ...<br/>generated tables)]
+    TAB -->|solve.js| PERF[(engines/perfect/v8.js<br/>perfect run)]
+    CH[(sim/chassis.js)] --> SIM[Simulation]
+    TAB --> SIM
+    PERF --> SIM
+    SIM --> LOG[Run log]
+    LOG --> LS[(localStorage)]
+    LOG --> URL[Share link<br/>URL fragment]
 ```
 
-## The car file
+## Engine parameters - entered
 
-One module per car in `cars/`, exporting a plain object. Shipped with the code, read by the
-page, the server and the tests. Never edited by a driver in the first version.
+`engines/params.js`, one entry per engine. The only engine numbers anyone types.
 
 ```
 {
-  id:          "coupe",
-  name:        "Sports coupe",
-  description: "Light, rear-drive, revs high",
-  mass:        1350,              kg, with a driver
-  wheelRadius: 0.32,              m
-  cdA:         0.62,              m^2, drag coefficient times frontal area
-  crr:         0.011,             rolling resistance coefficient
-  brakeForce:  12000,             N at full pedal
-  engine: {
-    cylinders:  6,
-    inertia:    0.18,             kg m^2, crank and flywheel
-    idleRpm:    800,
-    stallRpm:   350,
-    redlineRpm: 7200,
-    limiterRpm: 7400,
-    overRevRpm: 8400,             past this through a locked clutch: damage
-    torque:     [[1000,180],[2000,230],[3500,275],[5000,290],[6500,265],[7400,235]],
-    friction:   [f0, f1, f2],
-    fuel:       { bsfc: 260, idleFlow: 0.25, tankLitres: 60 }
-  },
-  gearboxes: {
-    manual: { ratios: [3.36, 2.07, 1.43, 1.10, 0.87, 0.73], reverse: 3.18, finalDrive: 3.62,
-              efficiency: 0.93, clutchCapacity: 1.4, bite: 0.55 },
-    auto:   { ratios: [...], reverse: ..., finalDrive: ..., efficiency: 0.90,
-              converter: { k: [[sr, K], ...], tr: [[sr, TR], ...], lockupFromGear: 3 },
-              shiftMap: { up: [...], down: [...] }, kickdown: 0.92, shiftTime: 0.35 }
-  },
-  cluster: { speedMaxMph: 180, rpmMax: 8000, style: "analog-1" },
-  targets: { zeroToSixty: [5.6, 6.2], topSpeedMph: [150, 160], rpmAt70: [2300, 2700] }
+  id: "v8",
+  label: "V8",
+  layout: "V", cylinders: 8, bankAngle: 90,
+  bore: 0.092, stroke: 0.094,            m
+  pistonSpeedMax: 21,                    m/s at the redline
+  imepPeak: 13.5e5,                      Pa
+  character: "low-down",                 picks the IMEP shape table
+  friction: { A: 0.97e5, C: 0.15e5, D: 0.005e5 },     Pa, Pa per m/s, Pa per (m/s)^2
+  flywheel: 0.12, perCylinderInertia: 0.008,          kg m^2
+  mass: 210,                             kg, added to the chassis
+  idleRpm: 750, stallRpm: 350
 }
 ```
 
-- **Curves are point tables**, interpolated linearly, never formulas: the determinism rule in
-  [03-architecture.md](03-architecture.md).
-- **A car may offer one gearbox or both.** The driver picks where both exist.
-- **`targets` are not used by the simulation.** They are the figures a real car of this type
-  would reach, from published road tests of the class, and the figures tool and the tests
-  check the simulation against them. A car whose numbers fall outside its targets is a car
-  that needs tuning, not a target that needs moving.
-- **The car hash** is a SHA-256 of the object serialised with sorted keys. The server
-  refuses runs whose hash does not match its copy.
+## Engine tables - generated
 
-### The starting garage, proposed
+`engines/<id>.js`, written by `tools/build-engines.js`, committed, never edited by hand. A
+header comment says so and names the parameters' hash.
 
-| id | Type | Gearboxes | Why it is here |
-| --- | --- | --- | --- |
-| `hatch` | Small hatchback, four cylinders | Manual 5 | The default. Forgiving clutch, low power, easy to learn on |
-| `family` | Family saloon | Auto 6, manual 6 | The automatic most people know: creep, kickdown |
-| `coupe` | Sports coupe, six cylinders | Manual 6 | High redline, sharp clutch, the challenge car |
-| `pickup` | Pickup, eight cylinders | Auto 4 | Torque everywhere, low redline, a different note |
-| `silly` | To be decided by the author | - | One car that is absurd on purpose. See the open questions |
+```
+{
+  id: "v8", label: "V8", cylinders: 8,
+  displacement: 0.00500,                 m^3
+  redlineRpm: 6700, limiterRpm: 6850, overRevRpm: 7900,
+  idleRpm: 750, stallRpm: 350,
+  inertia: 0.184, mass: 210,
+  torqueFull:  [[rpm, Nm], ...],         about 40 points
+  friction:    [[rpm, Nm], ...],
+  loadMap:     { pedals: [...], rpms: [...], load: [[...], ...] },
+  ripple:      { firingGapDeg: 90, amplitude: ... },
+  manual: { ratios: [6], finalDrive, efficiency, clutchMax, bite },
+  auto:   { ratios: [6], finalDrive, efficiency, converter: { k: [...], tr: [...] },
+            lockupFromGear, shiftMap: { up: [...], down: [...] }, kickdown },
+  coach:  { upFullThrottleRpm: [per gear], lugFloorRpm, ... },
+  figures: { peakTorque: [Nm, rpm], peakPower: [kW, rpm], topSpeedMph, zeroToSixtyRef }
+}
+```
+
+- Every curve is a point table, interpolated linearly in `sim/`, never a formula. That is the
+  determinism rule in [03-architecture.md](03-architecture.md).
+- `figures` are for the page's engine card and the tests. The simulation never reads them.
+- **The engine hash**: SHA-256 of the object serialised with sorted keys. A shared run carries
+  it; a receiver with different tables says the run is from another version.
+
+## Perfect runs - generated
+
+`engines/perfect/<id>.js`, written by `tools/solve.js`.
+
+```
+{
+  engine: "v8", engineHash: "...", simVersion: 1, gearbox: "manual",
+  time: 4.917,                           seconds to 60 mph
+  params: { launchRpm, clutchRelease, shiftRpm: [5], liftOnShift },
+  log: <packed run log>                  the ghost replays this
+}
+```
+
+## The chassis
+
+`sim/chassis.js`, plain constants. One car for every engine.
+
+```
+{ massWithoutEngine: 1250, cdA: 0.65, crr: 0.012, wheelRadius: 0.33,
+  wheelbase: 2.6, cgHeight: 0.5, staticRearFraction: 0.5,
+  muStatic: 1.05, muKinetic: 0.85, wheelInertia: 2.4, brakeMax: 14000 }
+```
 
 ## The run log
 
 ```
 {
-  format:     1,
-  simVersion: 3,
-  car:        "coupe",
-  carHash:    "9f2c...",
-  gearbox:    "manual",
-  challenge:  "zero-to-sixty",          or null for free driving
-  steps:      6421,                     length of the run
-  events: [
-    [0,    "key",    1],
-    [212,  "clutch", 1023],
-    [460,  "gear",   1],
-    [903,  "thr",    388],
-    [910,  "clutch", 1001],
-    ...
-  ],
-  claimed:    { time: 6.421 }           the page's own result; the server never trusts it
+  format: 1, simVersion: 1,
+  engine: "v8", engineHash: "...", gearbox: "manual",
+  mode: "zero-to-sixty",                 or "free"
+  steps: 5310,
+  events: [[0, "key", 1], [212, "clutch", 1023], [460, "gear", 1], [903, "thr", 1023], ...]
 }
 ```
 
-- Channels: `thr`, `brake`, `clutch` (0 to 1023), `gear` (-1 to 6, or P/R/N/D for an
-  automatic), `key` (0 or 1).
-- Only changes are recorded. A pedal held still costs nothing.
-- In storage and on the wire the events are packed as one flat integer array to keep the
-  size down. A minute of hard driving is a few kilobytes.
-- A replay feeds the events back in at their step numbers. Because the simulation is
-  deterministic, that is the whole replay.
+- Channels: `thr`, `brake`, `clutch` (0 to 1023), `gear` (-1 to 6, or P/R/N/D), `key`.
+- Only changes are recorded. Packed as one flat integer array; a 0 to 60 run is a few hundred
+  bytes, small enough for a URL.
+- No time and no score in the log. Both are recomputed from it.
+
+## The share link
+
+```
+https://<site>/pedalsim/#run=<base64url( deflate-raw( packed log ) )>
+```
+
+The fragment never reaches any server. `CompressionStream` in the browser does the deflate.
 
 ## What the browser keeps
 
-`localStorage`, one key per concern, each a JSON object with a version number so a later
-format can migrate it.
+`localStorage`, one key per concern, each with a format number.
 
 | Key | Holds |
 | --- | --- |
-| `pedalsim.settings` | Units (mph or km/h), sound volume, last car and gearbox, hints on or off |
+| `pedalsim.settings` | Units, last engine, last gearbox mode, coach on or off |
 | `pedalsim.bindings` | Keyboard keys per action |
-| `pedalsim.devices` | Per gamepad or pedal device name: which axis is which pedal, its calibrated range, dead zone, inversion |
-| `pedalsim.bests` | Best result per challenge, car and gearbox, with its run log |
-| `pedalsim.recent` | The last ten run logs, for watching back |
-| `pedalsim.odometer` | Lifetime distance driven to nowhere, per car |
+| `pedalsim.bests` | Best 0 to 60 run per engine: its log, recomputed time and score |
+| `pedalsim.recent` | The last ten runs |
+| `pedalsim.friends` | Runs received by link and kept, with the name the sender typed |
 
-Everything here belongs to one browser. Clearing it loses it, and nothing else breaks.
-
-## The server: one table
-
-PostgreSQL, in its own database on the shared server.
-
-```mermaid
-erDiagram
-    RUNS {
-        bigint id PK
-        text challenge
-        text car
-        text gearbox
-        int sim_version
-        text car_hash
-        text display_name
-        float8 result
-        jsonb result_detail
-        float8 claimed_result
-        bytea log
-        int log_steps
-        bytea submitter_hash
-        timestamptz created_at
-    }
-```
-
-- **`result` is the server's replay**, never the page's claim. `claimed_result` is kept only
-  to notice a page whose simulation has drifted from the server's.
-- **`submitter_hash`** is a keyed hash of the address, for the rate limit. The raw address is
-  never stored.
-- **Index** on `(challenge, car, gearbox, sim_version, result)` for the board query.
-- Challenges and cars are not tables. They are code, versioned with `SIM_VERSION`.
+Everything here belongs to one browser. Clearing it loses it and nothing else breaks.
 
 ## What is deliberately not stored
 
-- No accounts, emails or passwords. A display name is all there is.
-- No raw IP addresses.
-- No telemetry of free driving. Only runs a driver chose to send ever leave the browser.
-- No custom or tuned cars on the server.
+- Nothing on any server. There is no server.
+- No accounts, emails or names beyond a name typed into a share link.
+- No telemetry. A run leaves the browser only as a link the driver copied.
