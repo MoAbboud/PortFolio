@@ -39,12 +39,18 @@
       (SPECIES[pin.species] || "animal").toLowerCase();
     box.appendChild(title);
 
+    var badge = document.createElement("p");
     if (pin.verified) {
-      var badge = document.createElement("p");
       badge.className = "badge badge-verified badge-small";
       badge.textContent = "Verified";
-      box.appendChild(badge);
+    } else {
+      // Not confirmed lately. Say for how long rather than just withholding the badge.
+      badge.className = "badge badge-quiet badge-small";
+      badge.textContent = pin.last_confirmed_at
+        ? "Not confirmed for " + roamer.timeAgo(pin.last_confirmed_at).replace(" ago", "")
+        : "Not confirmed";
     }
+    box.appendChild(badge);
 
     var seen = document.createElement("p");
     seen.textContent = "Last seen " + roamer.timeAgo(pin.last_seen_at) +
@@ -72,6 +78,7 @@
     var data = new FormData(filters);
     if (data.get("species")) params.set("species", data.get("species"));
     if (data.get("since_days")) params.set("since_days", data.get("since_days"));
+    if (data.get("include_stale")) params.set("include_stale", "true");
 
     // A drag fires many moveend events. Only the last answer is drawn.
     var mine = (pending = {});

@@ -38,6 +38,10 @@
       <option value="">Any time</option>
     </select>
   </label>
+  <label class="map-check">
+    <input type="checkbox" name="include_stale" value="true">
+    <span>Include listings nobody has confirmed for {{ STALE_AFTER_DAYS }}+ days</span>
+  </label>
   <p class="map-count" id="map-count" aria-live="polite"></p>
 </form>
 <div id="map" class="map-full"

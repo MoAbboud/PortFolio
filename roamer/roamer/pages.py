@@ -17,10 +17,11 @@ from pydantic import ValidationError
 from sqlalchemy.orm import Session
 from starlette.datastructures import UploadFile
 
-from roamer import circles, images
+from roamer import checkins, circles, images
 from roamer import listings as service
 from roamer.config import settings
 from roamer.db import get_session
+from roamer.models import FOUND_HOW, FOUND_HOW_LABELS
 from roamer.schemas import ListingCreate
 
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
@@ -49,6 +50,9 @@ templates.env.globals.update(
     SEX_LABELS=SEX_LABELS,
     SIZE_LABELS=SIZE_LABELS,
     OUTDOOR_ACCESS_LABELS=circles.OUTDOOR_ACCESS_LABELS,
+    FOUND_HOW_LABELS=FOUND_HOW_LABELS,
+    is_stale=service.is_stale,
+    STALE_AFTER_DAYS=settings.stale_after_days,
     circle_for=circles.circle_for,
     describe_distance=circles.describe_distance,
     time_ago=time_ago,
@@ -239,5 +243,97 @@ def listing_page(request: Request, code: str, session: Session = Depends(get_ses
     return templates.TemplateResponse(
         request,
         "listing.html",
-        {"listing": listing, "posted": request.query_params.get("posted") == "1"},
+        {
+            "listing": listing,
+            "posted": request.query_params.get("posted") == "1",
+            "confirmed": request.query_params.get("confirmed") == "1",
+        },
     )
+
+
+def _checkin_page(request: Request, token: str, result, choice="", errors=None, status=None):
+    if status is None:
+        status = 404 if result.outcome is checkins.Outcome.INVALID else 200
+    return templates.TemplateResponse(
+        request,
+        "checkin.html",
+        {
+            "result": result,
+            "token": token,
+            "choice": choice,
+            "errors": errors or {},
+            "token_days": settings.checkin_token_days,
+        },
+        status_code=status,
+    )
+
+
+@router.get("/checkin/{token}", response_class=HTMLResponse)
+def checkin_page(
+    request: Request, token: str, answer: str = "", session: Session = Depends(get_session)
+):
+    """The check-in email's links land here. Shows the question; changes nothing.
+
+    `answer` only highlights the choice clicked in the email - the owner still presses its
+    button, because a mail scanner opening the "home" link must not end a search.
+    """
+    result = checkins.check(session, token)
+    return _checkin_page(request, token, result, answer if answer in checkins.ANSWERS else "")
+
+
+def _parse_found(form) -> tuple[checkins.Found, dict[str, str]]:
+    errors: dict[str, str] = {}
+    found = checkins.Found()
+
+    how = (form.get("found_how") or "").strip()
+    if how:
+        if how in FOUND_HOW:
+            found.how = how
+        else:
+            errors["found_how"] = "Choose one of the options."
+
+    lat, lng = (form.get("found_lat") or "").strip(), (form.get("found_lng") or "").strip()
+    if lat or lng:
+        try:
+            found.lat, found.lng = float(lat), float(lng)
+            if not (-90 <= found.lat <= 90 and -180 <= found.lng <= 180):
+                raise ValueError
+        except ValueError:
+            found.lat = found.lng = None
+            errors["found_point"] = "That point is not on the map. Click the map again."
+
+    when = (form.get("found_at") or "").strip()
+    if when:
+        try:
+            moment = datetime.fromisoformat(when.replace("Z", "+00:00"))
+            if moment.tzinfo is None or moment > datetime.now(timezone.utc):
+                raise ValueError
+            found.at = moment
+        except ValueError:
+            errors["found_at"] = "That time is not right."
+    return found, errors
+
+
+@router.post("/checkin/{token}", response_class=HTMLResponse)
+async def checkin_answer(
+    request: Request,
+    token: str,
+    session: Session = Depends(get_session),
+    store: images.ImageStore = Depends(get_image_store),
+):
+    form = await request.form()
+    choice = form.get("answer", "")
+    if choice not in checkins.ANSWERS:
+        return _checkin_page(request, token, checkins.check(session, token), status=400)
+
+    found, errors = _parse_found(form) if choice == "home" else (None, {})
+    if errors:
+        result = checkins.check(session, token)
+        return _checkin_page(request, token, result, choice, errors, status=400)
+
+    result = checkins.answer(session, token, choice, found, store=store)
+    if result.outcome is checkins.Outcome.CONFIRMED:
+        return RedirectResponse(f"/l/{result.listing.code}?confirmed=1", status_code=303)
+    if result.outcome is checkins.Outcome.HOME:
+        return RedirectResponse(f"/l/{result.listing.code}", status_code=303)
+    return _checkin_page(request, token, result)

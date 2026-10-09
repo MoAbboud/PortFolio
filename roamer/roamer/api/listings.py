@@ -26,6 +26,8 @@ def to_pin(listing) -> ListingPin:
         last_seen_at=listing.last_seen_at,
         area_label=listing.area_label,
         verified=service.is_verified(listing),
+        stale=service.is_stale(listing),
+        last_confirmed_at=listing.last_confirmed_at,
         thumb_url=listing.animal_photos[0].thumb_url if listing.animal_photos else None,
         url=f"/l/{listing.code}",
     )
@@ -36,6 +38,7 @@ def listings_in_view(
     bbox: str = Query(description="west,south,east,north - Leaflet's toBBoxString()"),
     species: Literal["dog", "cat", "other"] | None = None,
     since_days: int | None = Query(default=None, ge=1, le=3650),
+    include_stale: bool = False,
     session: Session = Depends(get_session),
 ) -> list[ListingPin]:
     """Active listings inside the map's view. Only what a pin and its popup need."""
@@ -43,7 +46,9 @@ def listings_in_view(
         box = service.BBox.parse(bbox)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    found = service.active_in_bbox(session, box, species=species, since_days=since_days)
+    found = service.active_in_bbox(
+        session, box, species=species, since_days=since_days, include_stale=include_stale
+    )
     return [to_pin(listing) for listing in found]
 
 
@@ -53,10 +58,13 @@ def listings_near(
     lng: float = Query(ge=-180, le=180),
     radius_km: float = Query(default=5, gt=0, le=service.MAX_NEAR_RADIUS_M / 1000),
     species: Literal["dog", "cat", "other"] | None = None,
+    include_stale: bool = False,
     session: Session = Depends(get_session),
 ) -> list[NearPin]:
     """The finder's question: who near this point is missing an animal? Nearest first."""
-    found = service.nearest(session, lat, lng, radius_km * 1000, species=species)
+    found = service.nearest(
+        session, lat, lng, radius_km * 1000, species=species, include_stale=include_stale
+    )
     return [
         NearPin(**to_pin(listing).model_dump(), distance_m=round(metres, 1))
         for listing, metres in found
@@ -76,7 +84,9 @@ def geocode_search(
     try:
         places = geocoder.search(q.strip())
     except geocode.GeocodeUnavailable as exc:
-        raise HTTPException(status_code=503, detail="Address search is not available right now") from exc
+        raise HTTPException(
+            status_code=503, detail="Address search is not available right now"
+        ) from exc
     return [PlaceOut(label=p.label, lat=p.lat, lng=p.lng) for p in places]
 
 

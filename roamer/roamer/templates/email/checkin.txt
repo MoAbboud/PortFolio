@@ -1,0 +1,20 @@
+Subject: Is {{ name or "your " ~ species }} still missing?
+
+It has been {{ days }} days since anyone confirmed the listing for {{ name or "your " ~ species }}
+on roamer. Listings are kept current so that a finder can trust them - so, a quick question.
+
+Still missing - keep the listing up:
+{{ base_url }}/checkin/{{ token }}?answer=still_lost
+
+Home - {{ name or "it" }} has been found:
+{{ base_url }}/checkin/{{ token }}?answer=home
+
+Take the listing down:
+{{ base_url }}/checkin/{{ token }}?answer=remove
+
+Each link opens a page with a button; nothing changes until you press it.
+
+If nobody answers, the verified badge comes off in a few days, and after a month the listing
+leaves the main map. It stays reachable by its own link.
+
+- roamer

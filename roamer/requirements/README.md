@@ -15,9 +15,10 @@ is wrong and it gets fixed rather than worked around.
 [00-plan.md](00-plan.md) is the one to read first: the stage order, the decisions already
 settled with the reason each one was taken, and the open questions still outstanding.
 
-**Stages 0 to 4 are done**: the map, the form, the listing page, email verification with
+**Stages 0 to 5 are done**: the map, the form, the listing page, email verification with
 the badge, photos with their location data removed, search circles from published studies,
-and the finder's "nearest to me" search. Stage 5, check-ins and freshness, is next. It starts as a demo: made-up listings, every flow
+the finder's "nearest to me" search, and weekly check-ins that keep the badge honest and
+record where reunited animals were found. Stage 6, manage, edit and close, is next. It starts as a demo: made-up listings, every flow
 working, nothing reaching a real person.
 
 Two things about this project worth stating here so they are not discovered as surprises:

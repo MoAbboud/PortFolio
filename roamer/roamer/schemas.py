@@ -105,6 +105,8 @@ class ListingPin(BaseModel):
     last_seen_at: datetime
     area_label: str | None
     verified: bool
+    stale: bool
+    last_confirmed_at: datetime | None
     thumb_url: str | None
     url: str
 

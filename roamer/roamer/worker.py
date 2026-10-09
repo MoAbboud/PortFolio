@@ -2,9 +2,9 @@
 
     python -m roamer.worker
 
-Every few seconds it sends the email that is due and deletes listings nobody verified. Stage 5
-adds the check-ins. A broker earns its place when there are many jobs, or when retries must
-survive restarts in ways a database row cannot record; neither is true here, and the outbox
+Every few seconds it queues the check-ins that are due, sends the email that is due, and
+deletes listings nobody verified. A broker earns its place when there are many jobs, or
+when retries must survive restarts in ways a database row cannot record; neither is true here, and the outbox
 row already remembers how many times a message was tried.
 
 A job that fails is logged and the loop goes on. One bad cycle must not stop the next.
@@ -16,7 +16,7 @@ import logging
 import signal
 import time
 
-from roamer import listings, mail
+from roamer import checkins, listings, mail
 from roamer.config import settings
 from roamer.db import SessionLocal
 
@@ -25,6 +25,9 @@ log = logging.getLogger("roamer.worker")
 
 def run_once(mailer: mail.Mailer) -> None:
     for name, job in (
+        # Check-ins queue email, so they run before the send: a check-in goes out in the
+        # cycle it falls due rather than the one after.
+        ("queue check-ins", checkins.send_checkins),
         ("send email", lambda session: mail.send_due(session, mailer)),
         ("delete unverified", listings.delete_unverified),
     ):

@@ -42,6 +42,9 @@ def issue(
             owner_id=owner_id,
             listing_id=listing_id,
             expires_at=now + lifetime,
+            # On the caller's clock, not the database's: "when was this owner last asked" is
+            # compared with the same now() that decides whether to ask again.
+            created_at=now,
         )
     )
     return token

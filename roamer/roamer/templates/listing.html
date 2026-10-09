@@ -12,6 +12,16 @@
 </div>
 {% endif %}
 
+{% if confirmed %}
+<div class="notice notice-ok" role="status">Thank you - the listing stays up, confirmed still
+  missing as of now.</div>
+{% endif %}
+
+{% if not home and is_stale(listing) %}
+<div class="notice">Nobody has confirmed this listing for over {{ STALE_AFTER_DAYS }} days,
+  so it is off the main map. The animal may have been found since.</div>
+{% endif %}
+
 {% if home %}
 <div class="notice notice-ok">{{ listing.name or 'This animal' }} is home. Thank you to
   everyone who looked.</div>
