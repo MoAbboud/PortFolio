@@ -64,15 +64,17 @@ flowchart LR
 | 7 | 0 to 60, score, board, share link | Countdown, run recorder, ghost needle, phase-by-phase time lost, the score and the clean mark, bests and recent runs held in memory until a refresh, share links that re-drive on open. A test: a run recorded in headless Chrome scores the same in Node |
 | 8 | Publish | In `deploy/build-static.mjs` and the Pages workflow; README with what it is, a short recording, how to run it, what a shared run does and does not prove; root README lists it |
 
-**Stages 0, 1 and 2 are done.** The scaffold, the determinism rules enforced by a test, the
+**Stages 0 to 3 are done.** The scaffold, the determinism rules enforced by a test, the
 replay, the trace tool, the empty-circle page and CI; then the five engines built from their
 measurements - each one's torque, power and redline inside the published figures of a real
 engine of the same bore and stroke - running in neutral with a starter, an idle controller, a
 limiter and stalling, and golden traces that fail if the numbers move without `SIM_VERSION`.
 Then the drivetrain: one car for every engine, gearing worked out per engine, a clutch,
 tyres and brakes that each grip or slip through one small solver, the automatic with its
-converter and shift map, and traction control. 119 tests. Stage 3, gauges that build
-themselves, is next.
+converter and shift map, and traction control. 119 tests. Then the gauges that build themselves: empty circles that pixelate in where the
+engine has been, laid out from each engine's figures, in its own colours, with the engine
+lines and a measured dyno strip, playing scripted drives. 131 tests. Stage 4, live driving,
+is next.
 
 ### Why the maths comes first and headless
 

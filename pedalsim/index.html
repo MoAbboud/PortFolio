@@ -7,41 +7,105 @@
 <!-- Inline, so the browser never requests a favicon and never logs a 404 for it. -->
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='8' cy='8' r='6.5' fill='none' stroke='%2364c8ff' stroke-width='1.5'/></svg>">
 <style>
-  /* Stage 0: the page is its own starting state - two empty circles, nothing in them. The
-     gauges are built by the engine from stage 3. The colours are the V4's (the pen's Cool
-     preset), the engine the page opens on. */
-  :root {
-    --bg-top: rgb(5 10 20);
-    --bg-bottom: rgb(10 20 30);
-    --ring: rgb(100 200 255 / 0.35);
-    --type: rgb(224 224 224);
+  /* Fonts served from this folder, so the page fetches nothing at runtime. Both are under the
+     SIL Open Font License; the licences are in fonts/. */
+  @font-face {
+    font-family: "Boldonse";
+    src: url("fonts/boldonse-latin.woff2") format("woff2");
+    font-display: block;
   }
+  @font-face {
+    font-family: "Bodoni Moda";
+    font-style: italic;
+    src: url("fonts/bodoni-moda-italic-latin.woff2") format("woff2");
+    font-display: block;
+  }
+
+  /* The engine's palette sets these; the V4's (the pen's Cool preset) until the script runs. */
+  :root {
+    --top: rgb(5 10 20);
+    --bottom: rgb(10 20 30);
+    --accent: rgb(100 200 255);
+    --accent-edge: rgb(0 100 200);
+    --type: rgb(224 224 224);
+    --gauge: min(40vw, 52vh, 420px);
+  }
+  * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
   body {
-    background: linear-gradient(var(--bg-top), var(--bg-bottom));
+    background: linear-gradient(var(--top), var(--bottom));
+    transition: background 1s;
     color: var(--type);
     font: 13px/1.5 system-ui, sans-serif;
-    display: grid;
-    grid-template-rows: auto 1fr;
+    min-height: 100%;
+    overflow-x: hidden;
   }
-  header { padding: 16px 20px; letter-spacing: 0.04em; }
-  main {
-    display: flex; align-items: center; justify-content: center;
-    gap: min(6vw, 64px); padding: 16px; flex-wrap: wrap;
+  #lines { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  header, main, footer { position: relative; }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; gap: 12px; flex-wrap: wrap;
   }
-  .gauge {
-    width: min(40vw, 42vh, 380px); aspect-ratio: 1; border-radius: 50%;
-    border: 2px solid var(--ring);
+  .brand { font-family: "Boldonse", sans-serif; font-size: 15px; letter-spacing: 0.02em; }
+  .picker { display: flex; align-items: center; gap: 10px; }
+  .picker b { font-family: "Boldonse", sans-serif; font-weight: 400; font-size: 20px; min-width: 3.4em; text-align: center; }
+  .picker small { font-family: "Bodoni Moda", serif; font-style: italic; opacity: 0.7; }
+  button {
+    font: inherit; color: var(--type); background: rgb(255 255 255 / 0.06);
+    border: 1px solid rgb(255 255 255 / 0.18); border-radius: 4px; padding: 6px 12px; cursor: pointer;
   }
-  .gauge.speed { width: min(32vw, 34vh, 300px); }
+  button:hover { background: rgb(255 255 255 / 0.12); }
+  #lights { display: flex; justify-content: center; gap: 8px; min-height: 14px; margin: 4px 0 10px; }
+  #lights i { width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--accent-edge); }
+  #lights i.on { background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+  #lights i.flash { background: rgb(255 100 100); box-shadow: 0 0 14px rgb(255 100 100); }
+  .cluster { display: flex; align-items: center; justify-content: center; gap: min(4vw, 40px); flex-wrap: wrap; padding: 0 16px; }
+  .gauge { position: relative; width: var(--gauge); aspect-ratio: 1; }
+  .gauge.small { width: calc(var(--gauge) * 0.78); }
+  .gauge canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .middle { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 90px; }
+  #gear { font-family: "Boldonse", sans-serif; font-size: 44px; line-height: 1.4; }
+  #readout { font-family: "Bodoni Moda", serif; font-style: italic; opacity: 0.75; white-space: nowrap; }
+  #dyno { display: block; width: min(860px, 92vw); height: 90px; margin: 14px auto 0; }
+  footer { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 12px 16px 24px; }
+  #playing { width: 100%; text-align: center; font-family: "Bodoni Moda", serif; font-style: italic; opacity: 0.7; min-height: 1.5em; }
+  @media (max-width: 700px) {
+    :root { --gauge: min(46vw, 70vh); }
+    #gear { font-size: 30px; }
+  }
 </style>
 </head>
 <body>
-<header>pedalsim <span id="engine">V4</span></header>
+<canvas id="lines" aria-hidden="true"></canvas>
+<header>
+  <span class="brand">pedalsim</span>
+  <div class="picker">
+    <button id="prev" aria-label="Previous engine">&lt;</button>
+    <b id="engine">V4</b>
+    <button id="next" aria-label="Next engine">&gt;</button>
+    <small id="palette">Cool</small>
+  </div>
+</header>
 <main>
-  <div class="gauge tach" aria-label="Tachometer, not built yet"></div>
-  <div class="gauge speed" aria-label="Speedometer, not built yet"></div>
+  <div id="lights" aria-hidden="true"></div>
+  <div class="cluster">
+    <div class="gauge" id="tach" role="img" aria-label="Tachometer"></div>
+    <div class="middle">
+      <div id="gear" aria-label="Gear">N</div>
+      <div id="readout"></div>
+    </div>
+    <div class="gauge small" id="speed" role="img" aria-label="Speedometer"></div>
+  </div>
+  <canvas id="dyno" aria-label="Torque and power, as measured"></canvas>
 </main>
+<footer>
+  <div id="playing"></div>
+  <button id="demo0">Rev it</button>
+  <button id="demo1">Drive the manual</button>
+  <button id="demo2">Drive the automatic</button>
+  <button id="build">Build it all</button>
+  <button id="stop">Stop</button>
+</footer>
 <script type="module" src="ui/main.js"></script>
 </body>
 </html>

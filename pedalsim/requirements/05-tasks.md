@@ -6,7 +6,7 @@ Every stage is checked from a PowerShell terminal on Windows. If a stage cannot 
 that way, it is not finished. Every stage that changes the page is also checked at phone
 width in landscape in the browser's device view.
 
-Stages 0, 1 and 2 are done. Stage 3, gauges that build themselves, is next.
+Stages 0 to 3 are done. Stage 4, live driving, is next.
 
 ## Planning
 
@@ -145,27 +145,47 @@ Check:
 
 ## Stage 3 - Gauges that build themselves
 
-- [ ] Layout from the engine tables: ranges, nice-number tick steps, angles, redline arc,
-      shift marks, one shift light per cylinder. Tests: every engine gets six to ten major
-      ticks; a V4 and a V12 differ
-- [ ] Face painter: each gauge drawn once to an offscreen canvas in that engine's palette, with
-      Boldonse numerals and Bodoni Moda labels served from the repo
-- [ ] Glow-line needles and arcs (core colour to edge colour, added on the dark); film grain
-      in the reveal shader
-- [ ] Palette cross-fade on engine cycle; redline and type fixed across palettes
-- [ ] The engine lines: bank A, bank B and their sum against crank
-      angle, from the ripple table
-- [ ] Development field: bins, growth from revs and load, spread to neighbours, event parts
-      (redline, shift marks, numerals), dyno bins from full-throttle torque
-- [ ] Reveal shader (WebGL2): bin from angle, block size from development, ordered-dither
-      threshold; canvas 2D fallback
-- [ ] Dissolve on engine change and on a blown engine; restore on return; "build it all";
-      reduced-motion preference builds at once
-- [ ] Needles, gear indicator and arrows crisp on top; needle springs; key-on sweep; idle
-      tremble from the ripple
-- [ ] Trace player from a CSV, so the build-up is tuned before there is input: three or four
-      pulls to the limiter complete the tachometer
-- [ ] Looked at at 1280 wide and phone landscape; frame time checked on a phone
+Done. 131 tests (12 new for the display maths); checked from PowerShell; looked at in headless
+Chrome at 1280 x 800 and 844 x 390, with WebGL2 and with it switched off. Not done: frame time
+on a real phone.
+
+- [x] Fonts: Boldonse and Bodoni Moda italic, Latin subsets, copied into `fonts/` with their
+      SIL Open Font License files (both checked in google/fonts). Nothing fetched at runtime
+- [x] `ui/layout.js`: tidy scales (steps of 1, 2, 2.5, 5 x 10^n, six to ten majors - 2.5 was
+      needed for the V8's 216 mph), angles, one shift light per cylinder, shift marks from
+      the coach. Every engine gets different dials
+- [x] `ui/palette.js`: the pen's presets per engine; redline and type fixed
+- [x] `ui/face.js`: each face painted once per engine - glowing ticks, Boldonse numerals,
+      Bodoni unit - and the redline arc on its own layer
+- [x] `ui/development.js`: bins (100 rpm, 1 mph), growth by dwell and load with a Gaussian
+      spill, redline on first reaching it, dyno bins from full-throttle torque, shift marks
+      when passed, settle to 0 (dissolve) or 1 (build it all)
+- [x] `ui/reveal.js`: WebGL2 shader - bin from angle, block size 2^round(5(1-d)), 4x4 Bayer,
+      grain; canvas 2D fallback fades each bin's wedge in
+- [x] `ui/gauge.js`: crisp layer - empty circle from the start, glowing needle once the key
+      turns, hub, shift marks; `ui/needle.js` springs; key-on sweep; idle tremble from
+      `ui/ripple.js` (early-peaking pulses: 62 rpm on the V4 at idle, 1 on the V12)
+- [x] `ui/lines.js`: the engine lines; `ui/dyno.js`: the measured dyno strip
+- [x] `ui/demos.js` + `ui/main.js`: the simulation run in real time at 1000 steps a second,
+      three scripted drives (rev it, manual, automatic) instead of a CSV trace player - the
+      simulation is in the page, so a script is simpler and exact. Engine cycle with dissolve,
+      build it all, reduced motion builds at once
+- [x] Address options: `?engine=v12`, `?demo=0..2`, `?build=1`, `?at=12` (run the first 12
+      seconds at once) - for sharing a drive and for screenshots
+- [ ] Frame time on a real phone
+- [ ] Phone landscape: the dyno strip and buttons sit below the fold - revisit with the
+      on-screen pedals in stage 4
+
+Found and fixed on the way: a negative first frame step (a frame stamped before the last clock
+read) un-built the faces; a symmetric pulse shape made the V8 rougher than the V6; red added to
+its own glow washed the redline out to pink; the V12's manual demo was still braking at the end.
+
+Check:
+
+    cd pedalsim
+    npm test
+    npx --yes serve .
+    # open the address it prints, then try ?engine=v8&demo=0 and ?engine=v12&demo=2&build=1
 
 ## Stage 4 - Live driving, automatic
 

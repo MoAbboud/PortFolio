@@ -561,6 +561,23 @@ reads as pixelating in.
 - **Fallback**: without WebGL2, the same reveal in canvas 2D, redrawing a face only when its
   development changes.
 
+### As built (stage 3)
+
+- **Faces** are painted with canvas 2D (`ui/face.js`), once per engine and on resize; glow is
+  canvas shadow with additive blending, except the redline, drawn plainly so red stays red.
+- **The reveal** (`ui/reveal.js`) is the shader above, with the development uploaded each frame
+  as a one-pixel-high R8 texture. Near the centre (inside 40% of the radius), where the unit
+  label sits, it uses the gauge's average development instead of an angle. The fallback
+  without WebGL2 fades each bin's wedge in at an opacity of d: no pixels, same build-up.
+- **Build-up rates** (`ui/development.js`): 6 per second of dwell on the tachometer, scaled by
+  0.3 + load, spilling over 4 bins either side; 2.5 on the speedometer, spilling over 3. Three
+  or four pulls to the limiter in neutral complete a tachometer, as intended.
+- **The demos** (`ui/demos.js`) replaced the planned CSV trace player: the simulation runs in
+  the page, so playing a script through it is simpler than parsing a trace, and exact.
+- **The empty state**: circle outlines and hubs; the needles appear with the start key.
+- **Pulse shape** (`ui/ripple.js`): each power stroke peaks 35 degrees after top dead centre
+  and fades; a symmetric hump was tried first and made the V8 rougher than the V6.
+
 ### What stays crisp
 
 The needles, the gear indicator and the coach's arrows are drawn sharp from the start,
