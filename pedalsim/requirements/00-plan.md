@@ -124,7 +124,9 @@ measure against, and a leaderboard of raw times says nothing about how well some
 | A sandbox: every refresh is a new run, nothing is saved | The author: "each refresh is a new run, no need for sessions and stuff like that, its a sandbox that resets". Empty circles, no bests, default settings on every load. Nothing in the browser's storage |
 | The board lasts while the page is open; a run is kept past a refresh only by sharing it as a link, which the receiver's page re-drives | Follows from no server and the sandbox. The link carries the inputs, never the score, so it cannot be edited into a better time |
 | The look starts from the CodePen pen filipz/pen/dPygJGM, with ma77os/pen/xxyywo as the backup | The author's pick. Public pens are MIT licensed by CodePen; credit the author and keep the notice |
-| The engine lines: bank A, bank B and their sum against crank angle, faint behind the gauges | The author: "engine lines are cool". The pen's sound-reactive lines turned into the engine's own signal |
+| The engine lines: bank A, bank B and their sum against crank angle, faint behind the gauges, kept out of the dial faces | The author: "engine lines are cool", and later "lets keep the dials clean". The pen's sound-reactive lines turned into the engine's own signal |
+| Traction control on for the automatic, off for the manual by default, and a toggle to change it | The author: "makes sense. maybe make it toggleable". A modern automatic has it; in the manual the launch is the driver's skill. The toggle applies from the next start, and every run records whether it was on |
+| The shift marker sits where the coach's crossover puts it - at or near the redline on these engines | The author: "shift marker sounds good". These engines make power right up to the redline; the solver (stage 6) may refine it once shift time counts |
 | The colours cycle: each engine has its own palette, changing as the engine cycles | The author: "cycle between colors" |
 | The rpm represents the amount of gas given | The author's first requirement for the gauges |
 | Show speed rising, and what happens when you brake | The author's |
@@ -151,7 +153,6 @@ measure against, and a leaderboard of raw times says nothing about how well some
 | Gearing is calculated per engine | Top gear from where power meets drag, first gear to a quarter of top speed, a progression between. Built in stage 2; first gear from grip was tried on paper and dropped - it gave the V12 a 150 mph first gear |
 | Tyres can spin, from the first version | Without a grip limit the V12 pushes at about 2 g off the line, does 0 to 60 in under two seconds, and the launch is no skill. Kinetic grip below static makes wheelspin cost time |
 | The clutch, tyres and brakes share one stick or slip rule, through one chain solver | One well-tested piece of maths instead of eight hand-written cases. Built in stage 2 |
-| Traction control on for the automatic, off for the manual | A modern automatic has it, and without it every engine above the V4 spun its way to the same 0-60. In the manual the launch is the driver's skill. Built in stage 2 |
 | No gearbox efficiency in the first version | Losses that depend on which way power flows complicate the solver for a few percent; top speeds and times are a few percent generous |
 | The perfect run is solved on the author's machine and committed | Deterministic, instant on the page, and checked by a test |
 | The perfect driver gets no faster shift than a person | Otherwise "perfect" wins by a margin no one can close |

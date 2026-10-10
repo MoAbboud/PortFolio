@@ -175,6 +175,8 @@ on a real phone.
 - [ ] Frame time on a real phone
 - [ ] Phone landscape: the dyno strip and buttons sit below the fold - revisit with the
       on-screen pedals in stage 4
+- [x] Engine lines kept out of the dial faces (the author: "lets keep the dials clean"):
+      each gauge's circle is cut out of the lines, with a soft edge
 
 Found and fixed on the way: a negative first frame step (a frame stamped before the last clock
 read) un-built the faces; a symmetric pulse shape made the V8 rougher than the V6; red added to
@@ -188,6 +190,8 @@ Check:
     # open the address it prints, then try ?engine=v8&demo=0 and ?engine=v12&demo=2&build=1
 
 ## Stage 4 - Live driving, automatic
+
+- [ ] Traction control toggle, applied from the next start; the run log records it
 
 - [ ] Fixed-step loop with the 250-step cap; inputs quantised at the step boundary
 - [ ] Keyboard ramps; pointer drag on pedals; gamepad if present

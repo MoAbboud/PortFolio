@@ -119,6 +119,7 @@ is in the parameters hash: change the car and every engine file is stale until r
 {
   format: 1, simVersion: 1,
   engine: "v8", engineHash: "...", gearbox: "manual",
+  tractionControl: false,                 off by default in a manual, on in an automatic
   mode: "zero-to-sixty",                 or "free"
   steps: 5310,
   events: [[0, "key", 1], [212, "clutch", 1023], [460, "gear", 1], [903, "thr", 1023], ...]
