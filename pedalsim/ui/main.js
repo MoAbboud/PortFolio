@@ -179,7 +179,7 @@ function frame(now) {
   if (state.gear !== lastGear || (state.cut && !lastCut)) lines.bump();
   lastGear = state.gear;
   lastCut = state.cut;
-  lines.draw({ rpm, load: state.load, running: state.running, dt });
+  lines.draw({ rpm, load: state.load, running: state.running, dt, holes: gaugeHoles() });
   dyno.draw({ dyno: dev.dyno, rpm, torque });
 
   const shiftAt = state.gear >= 1 && state.gear <= 5 ? layout.tach.shiftMarks[state.gear - 1] : engine.redlineRpm;
@@ -191,6 +191,21 @@ function frame(now) {
   $('gear').textContent = gearLabel();
   $('readout').textContent = `${Math.round(rpm)} rpm  ${Math.abs(mph).toFixed(0)} mph`;
   requestAnimationFrame(frame);
+}
+
+// Where the gauges sit on the lines' canvas, so the lines can keep out of them.
+function gaugeHoles() {
+  const canvas = $('lines');
+  const box = canvas.getBoundingClientRect();
+  const scale = canvas.width / (box.width || 1);
+  return [$('tach'), $('speed')].map((el) => {
+    const r = el.getBoundingClientRect();
+    return {
+      x: (r.left - box.left + r.width / 2) * scale,
+      y: (r.top - box.top + r.height / 2) * scale,
+      r: (r.width / 2) * scale,
+    };
+  });
 }
 
 function gearLabel() {

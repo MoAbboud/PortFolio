@@ -30,7 +30,8 @@ export class EngineLines {
     this.kick = 1;
   }
 
-  draw({ rpm, load, running, dt }) {
+  // holes: [{ x, y, r }] in canvas pixels - the gauges, which the lines stay out of.
+  draw({ rpm, load, running, dt, holes = [] }) {
     const { canvas, ctx, waves, colours } = this;
     if (!waves) return;
     const w = canvas.width;
@@ -69,6 +70,19 @@ export class EngineLines {
       ctx.stroke();
     }
     ctx.shadowBlur = 0;
+
+    // Keep the dials clean: cut each gauge's circle out of the lines, with a soft edge so the
+    // lines fade as they reach a dial rather than stopping at a hard rim.
+    ctx.globalCompositeOperation = 'destination-out';
+    for (const { x, y, r } of holes) {
+      const fade = ctx.createRadialGradient(x, y, r * 0.96, x, y, r * 1.12);
+      fade.addColorStop(0, 'rgba(0, 0, 0, 1)');
+      fade.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = fade;
+      ctx.beginPath();
+      ctx.arc(x, y, r * 1.12, 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.globalCompositeOperation = 'source-over';
   }
 }

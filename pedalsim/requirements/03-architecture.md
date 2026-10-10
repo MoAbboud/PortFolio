@@ -677,6 +677,9 @@ behind the gauges, drawn against crank angle over two turns - one full engine cy
   watchable; the pen's "kick" bounce fires on a gear change and on each limiter cut.
 - Engine off: the lines lie flat, as the pen's do before the music starts.
 - It comes from the ripple table the idle tremble already uses, on the display side only.
+- **Kept out of the dials** (the author: "lets keep the dials clean"): each gauge's circle is
+  cut out of the lines with a soft edge, so they run between and around the gauges, never
+  across a face.
 - The lines are in the engine's colours: bank A the needle colour, bank B the second colour,
   the sum the speedometer colour.
 
