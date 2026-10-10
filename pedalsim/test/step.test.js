@@ -14,9 +14,16 @@ test('the step count is the clock: a thousand steps a second', () => {
 });
 
 test('a car starts still, in neutral, with the engine off', () => {
-  assert.deepEqual(initialState(), {
-    step: 0, running: false, we: 0, load: 0, idleI: 0, cut: false, v: 0, gear: 0,
-  });
+  const s = initialState();
+  for (const k of ['step', 'we', 'ww', 'v', 'a', 'gear', 'G', 'load']) assert.equal(s[k], 0, k);
+  assert.equal(s.running, false);
+  assert.equal(s.box, 'manual');
+});
+
+test('traction control is on for the automatic and off for the manual unless asked', () => {
+  assert.equal(initialState(null, null, { gearbox: 'auto' }).tractionControl, true);
+  assert.equal(initialState(null, null, { gearbox: 'manual' }).tractionControl, false);
+  assert.equal(initialState(null, null, { gearbox: 'manual', tractionControl: true }).tractionControl, true);
 });
 
 test('a step never changes the state it was given', () => {

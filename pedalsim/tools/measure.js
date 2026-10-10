@@ -7,7 +7,8 @@
 import { airLoad, crankTorque } from '../sim/engine.js';
 import { replay } from '../sim/replay.js';
 import { RPM_PER_RAD_S, STEPS_PER_SECOND } from '../sim/clock.js';
-import { PEDAL_MAX } from '../sim/inputs.js';
+import { PEDAL_MAX, emptyInputs } from '../sim/inputs.js';
+import { initialState, step } from '../sim/step.js';
 
 const KEY_HELD_STEPS = 800;
 
@@ -93,3 +94,33 @@ export function fallTime(engine) {
   const at = rpms.findIndex((rpm, i) => i >= off && rpm <= engine.idleRpm * 1.5);
   return at < 0 ? Infinity : (at - off) / STEPS_PER_SECOND;
 }
+
+// Drive closed-loop: policy(state, seconds) returns the inputs for each step, so a test can
+// drive like a person - feathering the throttle, timing a shift - rather than replaying a
+// fixed list. Starts with the key held for 0.8 s unless `from` gives a state to start from.
+export function drive(engine, { gearbox = 'manual', seconds, policy, from = null }) {
+  let state = from ?? initialState(engine, null, { gearbox });
+  const states = [];
+  for (let i = 0; i < Math.round(seconds * STEPS_PER_SECOND); i++) {
+    const t = i / STEPS_PER_SECOND;
+    const asked = policy(state, t);
+    const inputs = { ...emptyInputs(), ...(from === null && t < 0.8 ? { key: 1 } : {}), ...asked };
+    state = step(engine, null, state, inputs);
+    states.push(state);
+  }
+  return states;
+}
+
+// The automatic flat out from rest: seconds to 60 mph.
+export function autoZeroToSixty(engine) {
+  const settle = 3;
+  const states = drive(engine, {
+    gearbox: 'auto',
+    seconds: settle + 20,
+    policy: (s, t) => (t < settle ? { gear: 'P' } : { gear: 'D', thr: PEDAL_MAX }),
+  });
+  const at = states.findIndex((s) => s.v >= MPH_60);
+  return at < 0 ? Infinity : at / STEPS_PER_SECOND - settle;
+}
+
+export const MPH_60 = 26.8224;

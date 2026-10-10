@@ -1,0 +1,20 @@
+{"about":"Automatic: start in Park, Drive on the brake, creep, flat out through the gears, cruise, kick down, lift, brake to a stop, Park, then reverse a little.","gearbox":"auto","steps":51000,"events": [
+    [0,"key",1],
+    [0,"gear","P"],
+    [800,"key",0],
+    [3000,"brake",800],
+    [3200,"gear","D"],
+    [4000,"brake",0],
+    [9000,"thr",1023],
+    [19000,"thr",250],
+    [29000,"thr",1023],
+    [31000,"thr",0],
+    [34000,"brake",600],
+    [44000,"gear","P"],
+    [44000,"brake",0],
+    [45000,"gear","R"],
+    [45500,"thr",150],
+    [48000,"thr",0],
+    [48000,"brake",600]
+  ]
+}

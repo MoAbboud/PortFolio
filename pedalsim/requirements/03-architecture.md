@@ -184,15 +184,25 @@ All units inside `sim/` are SI. rpm and mph exist only at the edges.
 
 ### The chassis
 
-One car carries every engine, so the engine is the only variable: a rear-drive two-door,
-about 1250 kg plus the engine, frontal drag area about 0.65 m^2, rolling resistance about
-0.012, tyre radius about 0.33 m. Weight shifts onto the rear wheels under acceleration:
+Built in stage 2 (`sim/chassis.js`). One car carries every engine, so the engine is the only
+variable: a rear-drive two-door, 1250 kg with a driver plus the engine (1390 to 1520 kg in
+all), drag area 0.70 m^2 (drag coefficient 0.34 on 2.06 m^2), rolling resistance 0.012,
+tyre radius 0.33 m, 52% of the weight on the rear at rest. Performance tyres: grip 1.15
+gripping, 0.90 sliding. Weight shifts onto the rear wheels under acceleration:
 
 ```
-Nrear = m * g * (static rear fraction) + m * a * h / L        h = centre of mass height, L = wheelbase
+Nrear = m * g * (static rear fraction) + m * a * h / L        h = 0.5 m, L = 2.6 m
 ```
 
-which is why a hard launch grips a little better than a standing calculation would suggest.
+using last step's acceleration. That is why a hard launch grips better than a standing
+calculation would suggest: about two thirds of the weight is on the rear at full stretch.
+
+**Gearing, per engine, calculated by the build tool.** Top gear puts the engine at its power
+peak at top speed. First gear runs out at a quarter of top speed, as performance cars' do -
+the plan's "first gear sized to the tyres' grip" was dropped: on the V12 it gave a first
+gear good for about 150 mph. The four between close up toward the top. Final drive 3.4.
+Resulting top speeds: 155, 177, 205, 228 and 243 mph, V4 to V12. No gearbox efficiency is
+modelled, so these and the acceleration are a few percent generous.
 
 ### The engine at runtime
 
@@ -221,33 +231,62 @@ pedal_eff = max(pedal, idle controller)
   "new engine", and its gauges break back into pixels and empty circles. Either one makes a
   run not clean.
 
-### Two friction couplings, one rule
+### Three friction joints, one rule
 
-The clutch joins the engine to the gearbox; the tyres join the wheels to the road. Both are
-friction, and both use the same stick or slip rule.
+Built in stage 2 (`sim/couplings.js`, `sim/drivetrain.js`). The car is a chain of bodies,
+each joined to the next by friction that either sticks or slips:
+
+```
+engine --clutch--> rear wheels --tyres--> car body --brakes--> road
+```
 
 ```mermaid
 stateDiagram-v2
     [*] --> Slipping
-    Slipping --> Stuck: relative speed crosses zero<br/>and holding needs less than the limit
-    Stuck --> Slipping: holding would need more than the limit
+    Slipping --> Stuck: the two sides' speeds cross<br/>within a step
+    Stuck --> Slipping: holding would need more<br/>than the joint can carry
 ```
 
-| | Clutch | Tyres |
-| --- | --- | --- |
-| Joins | Engine speed `we` and gearbox input `ww * G` | Wheel surface `ww * r` and car speed `v` |
-| Limit when stuck | `e(clutch pedal) * Tclutch_max` | `mu_static * Nrear * r` |
-| Passed when slipping | The same limit | `mu_kinetic * Nrear * r`, a little lower |
-| What it feels like | Bite point, stall, the shove of a dropped clutch, engine braking | Grip, and wheelspin on a launch with too many revs |
+| | Clutch | Tyres | Brakes |
+| --- | --- | --- | --- |
+| Joins | Engine `we` and gearbox `ww * G` | Wheel surface `ww * r` and car `v` | Car `v` and the road |
+| Holds, stuck | `e(pedal)^2 * 1.4 * peak torque` | `1.15 * Nrear * r` | `pedal * 1 g * m`, plus the pawl in Park |
+| Passes, slipping | The same | `0.90` to `1.15 * Nrear * r`, by how fast it spins | The same |
+| Feels like | Bite point, stall, the shove of a dropped clutch, engine braking | Grip, and wheelspin | Stopping, and staying stopped |
 
-Because kinetic grip is lower than static, a wheelspin launch is slower than a clean one.
-That is what makes the launch a skill worth scoring, and what the solver has to find.
+**One small solver, not cases written out.** The plan said to write out each combination of
+stuck and slipping. With three joints there are eight, so instead `sim/couplings.js` solves
+any chain: runs of bodies joined by sticking joints move as one, with their inertias
+reflected through the ratios; each sticking joint's force is worked out by walking the run;
+the most overloaded one lets go and the step is solved again. Seven unit tests check it on
+numbers small enough to do by hand.
 
-With two couplings there are four cases (both stuck, either slipping, both slipping). They
-are written out rather than handed to a general constraint solver: each case gives the three
-accelerations, and the case is accepted only if it is consistent with its own assumption.
-**The lock test** - speeds crossing within a step are snapped together, not left to chatter
-across each other - is the classic bug in clutch models and gets the most tests.
+**The lock test.** A slipping joint whose two sides pass each other within a step locks, at
+the speed that keeps their momentum - rather than letting the speeds chatter across each other
+for ever, the classic bug in clutch models.
+
+**Spinning grip fades, it does not drop.** Just past the limit a spinning tyre pulls nearly
+as hard as a gripping one, falling to sliding grip as the spin reaches 4 m/s. With a straight
+drop to sliding grip, a tyre that broke loose in first could only grip again by stopping its
+spin entirely, and the car spun its wheels through every gear.
+
+**The brakes hold the car body**, as the front brakes hold a real car. So enough torque
+spins the rear wheels against a braked car - a brake stand, which powerful rear-drive cars
+really do - and a test checks the car stays put while it happens.
+
+**In neutral nothing joins the engine to the wheels**, whatever the clutch pedal says. A bug
+found in stage 2: a released clutch "gripped" a ratio of zero and held the engine still.
+
+**Traction control** (`sim/engine.js`): while the rear tyres spin faster than the car by more
+than 1 m/s - where they start losing grip - it trims the throttle, proportionally at once
+and integrally over time, and gives it back as they recover. On for the automatic, off for
+the manual, where the launch is the driver's own (proposed; the author has not decided). The
+first, integral-only version oscillated - cut, grip, give back, spin - and launched no faster
+than none at all.
+
+**The idle controller's authority is capped at 10% pedal.** Idle needs about 6% on every
+engine. At 25%, its first limit, the V12's "idle" in second gear spun the rear tyres against
+a braked car instead of stalling.
 
 ### The automatic
 
@@ -259,12 +298,20 @@ Tpump    = (npump / K(SR))^2        K from a table, rpm per root newton metre
 Tturbine = TR(SR) * Tpump           TR about 2 at a standstill, 1 at the coupling point
 ```
 
-  This gives creep at idle in D, the stall speed with the brake held and the throttle floored,
-  and weak engine braking when coasting.
-- **Lock-up clutch** in the upper gears, through the same stick or slip code.
-- **Shift map**: per gear an up line and a lower down line in speed against throttle, so the
-  box holds a gear across a band instead of hunting. Kickdown past a throttle threshold.
-- **Selector** P-R-N-D. Leaving P needs the brake.
+  This gives creep at idle in D (2 to 8 mph, tested), the stall speed with the turbine held
+  (a third of the redline, between 2000 and 3000 rpm), and weak engine braking when coasting.
+  K at a standstill is set per engine from that stall speed; it rises toward the coupling
+  point, and TR falls from 2 to 1 at a speed ratio of 0.85.
+- **Lock-up clutch** from third gear up, when not shifting or kicking down, through the same
+  stick or slip joint as the manual clutch.
+- **Shift map**: per gear an up line and a lower down line in speed against throttle - light
+  throttle at 1.8 times idle or 30% of the redline, whichever is higher; full throttle 4%
+  short of the coach's point, because the converter slips and a line at the redline itself
+  left the box on the limiter in first (a bug found in stage 2). Down lines sit at 70 to 75%
+  of the up lines, so the box holds a gear across a band instead of hunting (tested). Kickdown
+  past 92% throttle to the lowest gear under the shift point. Half a second between shifts.
+- **Selector** P-R-N-D. Park's pawl engages only below 1 m/s. The brake interlock on leaving P
+  is the lever's job (stage 5).
 
 ### The car
 
@@ -272,12 +319,18 @@ Tturbine = TR(SR) * Tpump           TR about 2 at a standstill, 1 at the couplin
 Fdrive = tyre force from the coupling above
 Faero  = 0.5 * rho * CdA * v * |v|
 Froll  = Crr * m * g * clamp(v / 0.05, -1, 1)
-Fbrake = brake * Fbrake_max, capped at mu * m * g     a simple ABS: the wheels never lock
+Fbrake = brake * 1 g * m, through the brake joint       a simple ABS: never more than the tyres hold
 m * dv/dt = Fdrive - Faero - Froll - Fbrake
 ```
 
-A stopped, braked car stays stopped (the same hold rule). Top speed is not in any file; it is
-where power meets drag, and a test checks it.
+A stopped, braked car stays exactly stopped (the brake joint sticks). Top speed is worked out
+by the build tool from where peak power meets drag, and a test drives each car flat out in
+sixth and checks it gets there within 1%.
+
+**Measured, stage 2** (`node tools/figures.js`): the automatic, flat out with traction
+control, does 0 to 60 mph in 5.95 s (V4), 4.51 (V6), 4.33 (V8), 4.25 (V10), 4.09 (V12). The
+V4 is power-limited; the rest are mostly grip-limited and bunch together, as rear-drive cars
+on road tyres do (the V8's reference car is quoted at 4.2 to 4.4 s).
 
 **The speedometer reads the driven wheels**, as a real one does, so wheelspin flares it. The
 0 to 60 clock uses the car's true speed. The score card says so.
@@ -508,6 +561,23 @@ reads as pixelating in.
 - **Fallback**: without WebGL2, the same reveal in canvas 2D, redrawing a face only when its
   development changes.
 
+### As built (stage 3)
+
+- **Faces** are painted with canvas 2D (`ui/face.js`), once per engine and on resize; glow is
+  canvas shadow with additive blending, except the redline, drawn plainly so red stays red.
+- **The reveal** (`ui/reveal.js`) is the shader above, with the development uploaded each frame
+  as a one-pixel-high R8 texture. Near the centre (inside 40% of the radius), where the unit
+  label sits, it uses the gauge's average development instead of an angle. The fallback
+  without WebGL2 fades each bin's wedge in at an opacity of d: no pixels, same build-up.
+- **Build-up rates** (`ui/development.js`): 6 per second of dwell on the tachometer, scaled by
+  0.3 + load, spilling over 4 bins either side; 2.5 on the speedometer, spilling over 3. Three
+  or four pulls to the limiter in neutral complete a tachometer, as intended.
+- **The demos** (`ui/demos.js`) replaced the planned CSV trace player: the simulation runs in
+  the page, so playing a script through it is simpler than parsing a trace, and exact.
+- **The empty state**: circle outlines and hubs; the needles appear with the start key.
+- **Pulse shape** (`ui/ripple.js`): each power stroke peaks 35 degrees after top dead centre
+  and fades; a symmetric hump was tried first and made the V8 rougher than the V6.
+
 ### What stays crisp
 
 The needles, the gear indicator and the coach's arrows are drawn sharp from the start,
@@ -623,8 +693,8 @@ behind the gauges, drawn against crank angle over two turns - one full engine cy
 ```
 pedalsim/
   index.html
-  sim/        step, inputs, replay (stage 0); clock, curves, engine (stage 1);
-              couplings, converter, gearbox, chassis, coach, score, log
+  sim/        step, inputs, replay (stage 0); clock, curves, engine (stage 1); chassis,
+              couplings, converter, gearbox, drivetrain (stage 2); coach, score, log
   engines/    params.js (entered), v4.js ... v12.js (generated), perfect/*.js (generated)
   ui/         layout (nice numbers, angles), face painter, development field, reveal shader
               and its canvas 2D fallback, needle, lights, dyno, pedals, stick, board, scorecard
