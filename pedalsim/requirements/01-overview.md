@@ -37,6 +37,9 @@ to nearly flat. That is why a V12 feels smooth, drawn.
   drive differently on the dials: the small one revs quickly and runs out of breath, the V12
   pulls from nothing and keeps going. The same car carries each one, so the engine is the only
   thing that changes.
+- **Hear it.** Each engine's note is made from its own firing pulses as it runs, so the pitch
+  follows the rev counter, a V4 buzzes and a V12 howls, and the rev limiter stutters. Gears
+  grind when they refuse to go in. V turns it off.
 - **Rev it.** In neutral, the rev counter follows the throttle. A little throttle, a little
   rise; floor it and it climbs to the limiter and bounces there.
 - **Drive it, automatic or manual.** The automatic changes gear itself. Switch to manual and

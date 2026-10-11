@@ -12,7 +12,9 @@
 //
 // test/rules.test.js reads every file in sim/ and fails on any of them.
 //
-// Stage 2: engine, gearbox, clutch or converter, tyres, car and brakes. Every change to what
+// Stage 5 adds the manual's synchromesh and grinding, the starter interlock, over-revving and
+// the blown engine, and the clutch's slip energy. Stage 2: engine, gearbox, clutch or
+// converter, tyres, car and brakes. Every change to what
 // this returns moves SIM_VERSION, and test/golden.test.js fails if the numbers move without it.
 
 import { engineControl } from './engine.js';
@@ -22,7 +24,7 @@ import { CHASSIS } from './chassis.js';
 
 export { STEPS_PER_SECOND, DT } from './clock.js';
 
-export const SIM_VERSION = 2;
+export const SIM_VERSION = 3;
 
 // options.gearbox: 'manual' (the default) or 'auto'. options.tractionControl: on by default
 // for the automatic, off for the manual, where the launch is the driver's own.
@@ -49,6 +51,10 @@ export function initialState(engine, chassis, options = {}) {
     tyreStuck: false,
     brakeStuck: false,
     clutchNm: 0, // torque through the clutch this step
+    slipJ: 0, // energy the clutch has turned into heat by slipping, joules, since the start
+    grinding: false, // the stick is in a gate the box will not engage
+    checkEngine: false, // the engine has been dragged past its limiter
+    blown: false, // dragged past its over-rev limit: stopped for good
   };
 }
 
@@ -68,6 +74,9 @@ export function step(engine, chassis, state, inputs) {
   next.idleI = control.idleI;
   next.cut = control.cut;
   next.tc = control.tc;
+  next.blown = control.blown;
+  next.checkEngine = control.checkEngine;
+  next.grinding = box.grinding ?? false;
   next.gear = box.gear;
   next.autoGear = box.autoGear;
   next.shiftHold = box.shiftHold;
