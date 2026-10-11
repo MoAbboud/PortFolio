@@ -3,27 +3,35 @@
 //
 //   Up arrow or W        throttle            Down arrow or S    brake
 //   Shift (held)         gentler pedals      K or Space (held)  start key
-//   P R N D              the lever           Q / E              lever up / down a notch
 //   T                    traction control    [ and ]            previous / next engine
+//   M                    automatic / manual
+//
+//   automatic:  P R N D the lever, Q / E a notch up or down
+//   manual:     C or A (held) the clutch, 1 to 6 the gears, R reverse, N neutral,
+//               Q / E down or up a gear
 //
 // A controller with the standard layout: right trigger throttle, left trigger brake, A the
-// start key, the bumpers move the lever, Y toggles traction control.
+// start key, X the clutch, the bumpers move the lever or the gears, Y toggles traction control.
 
 import { createPedal, rampPedal, pedalPosition, dragPosition } from './pedals.js';
 import { notch } from './lever.js';
+import { sequential } from './stick.js';
 
 const KEYS = {
   thr: ['ArrowUp', 'KeyW'],
   brake: ['ArrowDown', 'KeyS'],
   start: ['KeyK', 'Space'],
+  clutch: ['KeyC', 'KeyA'],
 };
 
 export class Controls {
-  // elements: { pedals: { thr, brake }, start, lever: { P, R, N, D }, tc }
-  // on: { lever(wanted), tc(), cycle(by) } - what the page does when asked
+  // elements: { pedals: { thr, brake, clutch }, start, lever: { P, R, N, D }, tc }
+  // on: { lever(wanted), gear(n), tc(), cycle(by), box() } - what the page does when asked
   constructor(elements, on) {
     this.on = on;
-    this.pedals = { thr: createPedal('thr'), brake: createPedal('brake') };
+    this.box = 'auto';
+    this.gear = 0; // the manual gear the driver is asking for
+    this.pedals = { thr: createPedal('thr'), brake: createPedal('brake'), clutch: createPedal('clutch') };
     this.gentle = false;
     this.startKey = false;
     this.startPointer = false;
@@ -40,7 +48,7 @@ export class Controls {
       this.gentle = false;
     });
 
-    for (const [name, el] of Object.entries(elements.pedals)) this.attachPedal(el, this.pedals[name]);
+    for (const [name, el] of Object.entries(elements.pedals)) if (el) this.attachPedal(el, this.pedals[name]);
     this.attachHold(elements.start, (down) => { this.startPointer = down; });
     for (const [pos, el] of Object.entries(elements.lever)) {
       el.addEventListener('click', () => this.on.lever(pos));
@@ -53,7 +61,7 @@ export class Controls {
     const code = e.code;
     if (code === 'ShiftLeft' || code === 'ShiftRight') this.gentle = down;
     let handled = false;
-    for (const name of ['thr', 'brake']) {
+    for (const name of ['thr', 'brake', 'clutch']) {
       if (KEYS[name].includes(code)) {
         this.pedals[name].held = down;
         handled = true;
@@ -64,14 +72,24 @@ export class Controls {
       handled = true;
     }
     if (down && !e.repeat) {
-      const letter = { KeyP: 'P', KeyR: 'R', KeyN: 'N', KeyD: 'D' }[code];
-      if (letter) this.on.lever(letter);
-      if (code === 'KeyQ') this.on.lever(notch(this.lever, -1));
-      if (code === 'KeyE') this.on.lever(notch(this.lever, 1));
+      if (this.box === 'auto') {
+        const letter = { KeyP: 'P', KeyR: 'R', KeyN: 'N', KeyD: 'D' }[code];
+        if (letter) this.on.lever(letter);
+        if (code === 'KeyQ') this.on.lever(notch(this.lever, -1));
+        if (code === 'KeyE') this.on.lever(notch(this.lever, 1));
+        handled = handled || Boolean(letter);
+      } else {
+        const gear = { KeyR: -1, KeyN: 0 }[code] ?? (/^Digit[1-6]$/.test(code) ? Number(code[5]) : undefined);
+        if (gear !== undefined) this.on.gear(gear);
+        if (code === 'KeyQ') this.on.gear(sequential(this.gear, -1));
+        if (code === 'KeyE') this.on.gear(sequential(this.gear, 1));
+        handled = handled || gear !== undefined;
+      }
       if (code === 'KeyT') this.on.tc();
+      if (code === 'KeyM') this.on.box();
       if (code === 'BracketLeft') this.on.cycle(-1);
       if (code === 'BracketRight') this.on.cycle(1);
-      handled = handled || Boolean(letter) || ['KeyQ', 'KeyE', 'KeyT'].includes(code);
+      handled = handled || ['KeyQ', 'KeyE', 'KeyT', 'KeyM'].includes(code);
     }
     // Arrows and Space would otherwise scroll the page while driving.
     if (handled) e.preventDefault();
@@ -115,29 +133,36 @@ export class Controls {
     const pads = navigator.getGamepads ? navigator.getGamepads() : [];
     const pad = [...pads].find((p) => p && p.mapping === 'standard');
     if (!pad) {
-      this.pedals.thr.pad = 0;
-      this.pedals.brake.pad = 0;
+      for (const p of Object.values(this.pedals)) p.pad = 0;
       this.startPad = false;
       return;
     }
     const b = pad.buttons;
     this.pedals.thr.pad = b[7]?.value ?? 0;
     this.pedals.brake.pad = b[6]?.value ?? 0;
+    this.pedals.clutch.pad = b[2]?.pressed ? 1 : 0;
     this.startPad = Boolean(b[0]?.pressed);
     const edge = (i) => b[i]?.pressed && !this.padButtons[i];
-    if (edge(5)) this.on.lever(notch(this.lever, 1));
-    if (edge(4)) this.on.lever(notch(this.lever, -1));
+    if (this.box === 'auto') {
+      if (edge(5)) this.on.lever(notch(this.lever, 1));
+      if (edge(4)) this.on.lever(notch(this.lever, -1));
+    } else {
+      if (edge(5)) this.on.gear(sequential(this.gear, 1));
+      if (edge(4)) this.on.gear(sequential(this.gear, -1));
+    }
     if (edge(3)) this.on.tc();
     this.padButtons = b.map((x) => x.pressed);
   }
 
-  // Once a frame: the pedal positions, 0 to 1, and whether the start key is held.
-  read(dt) {
+  // Once a frame: the pedal positions, 0 to 1, and whether the start key is held. `moving`:
+  // the car is rolling, so the clutch key comes up at shift speed rather than launch speed.
+  read(dt, moving = false) {
     this.pollPad();
-    for (const p of Object.values(this.pedals)) rampPedal(p, dt, this.gentle);
+    for (const p of Object.values(this.pedals)) rampPedal(p, dt, this.gentle, moving);
     return {
       thr: pedalPosition(this.pedals.thr),
       brake: pedalPosition(this.pedals.brake),
+      clutch: pedalPosition(this.pedals.clutch),
       key: this.startKey || this.startPointer || this.startPad,
     };
   }

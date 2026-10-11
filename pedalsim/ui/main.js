@@ -1,7 +1,7 @@
 // The page: one engine at a time, its gauges built by running it.
 //
-// Stage 4: driven live - keyboard, mouse, touch or a controller - in the automatic, or played
-// from a scripted drive. The manual's clutch and stick are stage 5.
+// Driven live - keyboard, mouse, touch or a controller - as an automatic or a manual with a
+// clutch and an H-pattern stick, with the shift coach; or played from a scripted drive.
 
 import { ENGINES } from '../engines/index.js';
 import { initialState, step, DT, SIM_VERSION } from '../sim/step.js';
@@ -19,6 +19,8 @@ import { TACH, SPEEDO } from './needle.js';
 import { DEMOS } from './demos.js';
 import { Controls } from '../input/controls.js';
 import { moveLever, POSITIONS } from '../input/lever.js';
+import { Stick } from './stick.js';
+import { coach } from './coach.js';
 
 document.documentElement.dataset.sim = String(SIM_VERSION);
 
@@ -54,35 +56,71 @@ let lastCut = false;
 let awake = false; // the needles appear with the start key, not before
 
 // Driving live.
-let selector = 'P';
-let tractionControl = true; // the automatic's default; applies from the next start
-let live = { thr: 0, brake: 0, key: false };
+let box = 'auto'; // 'auto' or 'manual'
+let selector = 'P'; // the automatic's lever
+let asked = 0; // the gear the manual's stick is in
+let tractionControl = true; // on for the automatic, off for the manual; applies from the next start
+let live = { thr: 0, brake: 0, clutch: 0, key: false };
 let keyWas = false;
 let hintUntil = 0;
+let wasRunning = false;
+let blownSeen = false;
+let shift = null; // { from: slipJ when the clutch went down }
+let lastShiftJ = null;
 
 const controls = new Controls({
-  pedals: { thr: $('pedal-thr'), brake: $('pedal-brake') },
+  pedals: { thr: $('pedal-thr'), brake: $('pedal-brake'), clutch: $('pedal-clutch') },
   start: $('start'),
   lever: Object.fromEntries(POSITIONS.map((p) => [p, $(`lever-${p}`)])),
   tc: $('tc'),
 }, {
   lever: (wanted) => moveTo(wanted),
+  gear: (n) => askGear(n, true),
   tc: () => toggleTraction(),
   cycle: (by) => cycle(by),
+  box: () => switchBox(),
 });
+const stick = new Stick($('stick'), (n) => askGear(n, false));
 
 function hint(text) {
   $('hint').textContent = text;
   hintUntil = performance.now() + HINT_SECONDS * 1000;
 }
 
-// A fresh automatic, engine off, in Park, ready for the driver.
+// A fresh car, engine off - in Park, or in neutral with the stick on the rail - ready for the
+// driver.
 function freshCar() {
   selector = 'P';
   controls.lever = selector;
+  asked = 0;
+  controls.gear = 0;
+  stick.moveTo(0);
   awake = false;
-  state = initialState(engine, null, { gearbox: 'auto', tractionControl });
-  inputs = { ...emptyInputs(), gear: selector };
+  blownSeen = false;
+  shift = null;
+  lastShiftJ = null;
+  state = initialState(engine, null, { gearbox: box, tractionControl });
+  inputs = { ...emptyInputs(), gear: box === 'auto' ? selector : asked };
+  document.body.classList.toggle('manual', box === 'manual');
+  $('box').textContent = box === 'auto' ? 'AUTO' : 'MANUAL';
+  $('newengine').hidden = true;
+}
+
+function switchBox() {
+  if (player) return;
+  box = box === 'auto' ? 'manual' : 'auto';
+  controls.box = box;
+  tractionControl = box === 'auto';
+  freshCar();
+  hint(box === 'auto' ? 'automatic' : 'manual: C or A is the clutch, 1 to 6 the gears');
+}
+
+// The manual's stick asks for a gear; the gearbox decides whether it goes in.
+function askGear(n, fromKeys) {
+  if (player || box !== 'manual') return;
+  asked = n;
+  controls.gear = n;
+  if (fromKeys) stick.moveTo(n);
 }
 
 function loadEngine(i) {
@@ -165,7 +203,7 @@ function endDemo() {
 
 // This frame's inputs from the controls, rounded once to what the simulation takes.
 function liveInputs(dt, now) {
-  live = controls.read(dt);
+  live = controls.read(dt, Math.abs(state.v) > 2);
   if (live.key && !keyWas && !state.running) {
     // Turning the key: traction control as set, and the needles wake with their sweep.
     state = { ...state, tractionControl };
@@ -176,8 +214,8 @@ function liveInputs(dt, now) {
   inputs = {
     thr: quantise(live.thr),
     brake: quantise(live.brake),
-    clutch: 0,
-    gear: selector,
+    clutch: box === 'manual' ? quantise(live.clutch) : 0,
+    gear: box === 'auto' ? selector : asked,
     key: live.key ? 1 : 0,
   };
 }
@@ -211,12 +249,21 @@ function advance(dt, now) {
   const rpm = Math.max(0, state.we * RPM_PER_RAD_S);
   const mph = state.v * MPH;
   const torque = crankTorque(engine, state.load, rpm, state.running && !state.cut);
+  if (state.blown && !blownSeen) {
+    // Blown: the faces break back into pixels and empty circles.
+    blownSeen = true;
+    mode = 'breaking';
+    $('newengine').hidden = false;
+    hint('engine blown');
+  }
   if (mode === 'dissolving') {
     if (settle(dev, 0, dt)) {
       loadEngine(pendingIndex);
       pendingIndex = null;
       mode = 'normal';
     }
+  } else if (mode === 'breaking') {
+    if (settle(dev, 0, dt)) mode = 'normal';
   } else if (mode === 'building') {
     if (settle(dev, 1, dt)) mode = 'normal';
   } else {
@@ -247,8 +294,11 @@ function frame(now) {
   const time = now / 1000;
   const marks = layout.tach.shiftMarks.filter((_, g) => dev.shiftSeen[g])
     .filter((r, i, all) => all.indexOf(r) === i);
+  const advice = box === 'manual' && state.running
+    ? coach(engine, { gear: state.gear, rpm, v: state.v, thr: live.thr, brake: live.brake, clutch: live.clutch, want: asked })
+    : { arrow: null, matchRpm: null };
   tach.draw({ value: rpmShown, dt, bins: dev.tach, mean: builtShare(dev.tach), eventLevel: dev.redline,
-    time, marks, needle: awake });
+    time, marks, needle: awake, ghost: advice.matchRpm });
   speed.draw({ value: mphShown, dt, bins: dev.speed, mean: builtShare(dev.speed), time, needle: awake });
 
   if (state.gear !== lastGear || (state.cut && !lastCut)) lines.bump();
@@ -256,12 +306,29 @@ function frame(now) {
   lastCut = state.cut;
   lines.draw({ rpm, load: state.load, running: state.running, dt, holes: gaugeHoles() });
   dyno.draw({ dyno: dev.dyno, rpm, torque });
-  drawControls(now, rpm);
+  drawControls(now, rpm, advice);
   requestAnimationFrame(frame);
 }
 
-// The shift lights, the gear, the pedals pressed by whatever is pressing them, the lever.
-function drawControls(now, rpm) {
+// Clutch down to clutch gripping again: the heat that shift made, in joules.
+function watchShift() {
+  if (box !== 'manual') return;
+  if (!shift && live.clutch > 0.6) shift = { from: state.slipJ };
+  else if (shift && live.clutch < 0.1 && state.clutchStuck) {
+    lastShiftJ = state.slipJ - shift.from;
+    shift = null;
+  }
+}
+
+// The shift lights, the gear, the pedals pressed by whatever is pressing them, the lever, the
+// stick, the coach's arrow, the warning lights.
+function drawControls(now, rpm, advice) {
+  watchShift();
+  if (wasRunning && !state.running && !state.blown && !player) {
+    hint(box === 'manual' ? 'stalled - clutch down, then K' : 'stalled');
+  }
+  wasRunning = state.running;
+  if (state.grinding && now > hintUntil - 2000) hint('grind - clutch down, or match the revs');
   const shiftAt = state.gear >= 1 && state.gear <= 5 ? layout.tach.shiftMarks[state.gear - 1] : engine.redlineRpm;
   const lit = lightsLit(layout, rpm, shiftAt);
   const flash = rpm >= shiftAt && Math.floor(now / 80) % 2 === 0;
@@ -272,12 +339,21 @@ function drawControls(now, rpm) {
   $('readout').textContent = `${Math.round(rpm)} rpm  ${Math.abs(state.v * MPH).toFixed(0)} mph`;
   $('pedal-thr').style.setProperty('--press', String(inputs.thr / 1023));
   $('pedal-brake').style.setProperty('--press', String(inputs.brake / 1023));
+  $('pedal-clutch').style.setProperty('--press', String(inputs.clutch / 1023));
+  stick.update(state.box === 'manual' ? state.gear : 0, state.grinding, now);
+  $('coach').className = advice.arrow ? `coach ${advice.arrow}` : 'coach';
+  $('coach-why').textContent = advice.reason ?? '';
+  $('check').hidden = !state.checkEngine;
+  $('heat').textContent = lastShiftJ === null ? '' : `last shift ${Math.round(lastShiftJ)} J`;
   const at = typeof inputs.gear === 'string' ? inputs.gear : null;
   for (const p of POSITIONS) $(`lever-${p}`).classList.toggle('on', p === at);
   $('start').classList.toggle('running', state.running);
   $('tc').textContent = `TC ${tractionControl ? 'on' : 'off'}`;
   $('tc').classList.toggle('on', tractionControl);
-  if (now > hintUntil) $('hint').textContent = state.running ? '' : 'hold K or START to start';
+  if (now > hintUntil) {
+    const start = box === 'manual' ? 'clutch down, then hold K or START' : 'hold K or START to start';
+    $('hint').textContent = state.running || state.blown ? '' : start;
+  }
 }
 
 // Where the gauges sit on the lines' canvas, so the lines can keep out of them.
@@ -318,6 +394,11 @@ $('prev').addEventListener('click', () => cycle(-1));
 $('next').addEventListener('click', () => cycle(1));
 $('build').addEventListener('click', () => { if (mode === 'normal') mode = 'building'; });
 $('stop').addEventListener('click', () => endDemo());
+$('box').addEventListener('click', () => switchBox());
+$('newengine').addEventListener('click', () => {
+  freshCar();
+  hint('a new engine');
+});
 DEMOS.forEach((make, i) => $(`demo${i}`).addEventListener('click', () => startDemo(make)));
 window.addEventListener('resize', resize);
 
@@ -330,12 +411,16 @@ try {
 }
 document.documentElement.dataset.fonts = document.fonts?.check('40px "Boldonse"') ? 'loaded' : 'fallback';
 
-// The address can choose the engine and start a drive: ?engine=v12&demo=1. Handy for sharing
-// a drive, and for screenshots of the page part-way through one.
+// The address can choose the engine and the gearbox and start a drive: ?engine=v12&box=manual,
+// ?engine=v8&demo=1. Handy for sharing a drive, and for screenshots of the page part-way
+// through one.
 const params = new URLSearchParams(location.search);
+// ?debug exposes the state and inputs, read-only, for checking the page from outside.
+if (params.has('debug')) window.pedalsim = { state: () => state, inputs: () => inputs, live: () => live };
 const wanted = ENGINES.findIndex((e) => e.id === params.get('engine'));
 loadEngine(wanted >= 0 ? wanted : 0);
 resize();
+if (params.get('box') === 'manual') switchBox();
 const demo = Number(params.get('demo'));
 if (params.has('demo') && DEMOS[demo]) startDemo(DEMOS[demo]);
 if (params.get('build') === '1') mode = 'building';

@@ -6,7 +6,7 @@ Every stage is checked from a PowerShell terminal on Windows. If a stage cannot 
 that way, it is not finished. Every stage that changes the page is also checked at phone
 width in landscape in the browser's device view.
 
-Stages 0 to 4 are done. Stage 5, the manual and the coach, is next.
+Stages 0 to 5 are done. Stage 6, the perfect-run solver, is next.
 
 ## Planning
 
@@ -225,13 +225,54 @@ Check:
 
 ## Stage 5 - Manual and the coach
 
-- [ ] Manual toggle; clutch; H-pattern knob on its gate segments; number keys
-- [ ] Grind at the synchro without the clutch; matched clutchless shifts allowed
-- [ ] Over-rev and the check engine light; past the over-rev limit the engine is blown and
-      the faces break apart; "new engine"; stall and restart
-- [ ] Coach: up arrow at the shift marker, economy upshift, down arrows (lugging, for speed,
-      braking), rev-match needle, slip energy per shift
-- [ ] Done-when: someone else shifts through the gears on a keyboard
+Done. 154 tests (14 new); `SIM_VERSION` 3. Driven in a real Chrome with real key and mouse
+events: start refused in gear without the clutch, started with it, pulled away, first to the
+shift point (the coach's arrow lit), second, third without the clutch (ground, stayed in
+neutral), third with it; the knob dragged through second, third, a rough diagonal to sixth and
+back to neutral. Layouts with the third pedal at 1280 x 800, 844 x 390 and 390 x 844.
+
+- [x] `sim/gearbox.js` `manualEngage`: the stick asks, the synchro decides - neutral always;
+      into a gear with the clutch down, or clutchless with the revs within 3%; otherwise it
+      grinds and stays in neutral; reverse only below 1 m/s; gear to gear passes neutral
+- [x] `sim/engine.js`: the starter cranks a manual only in neutral or with the clutch 80% down,
+      an automatic only with the lever in P or N; check engine past the limiter + 150 rpm;
+      blown past the over-rev limit - stopped, and the key does nothing
+- [x] `sim/drivetrain.js`: `slipJ`, the heat the clutch has made (torque x slip speed x time)
+- [x] `input/stick.js`: the H-pattern on line segments, nearest-point projection, gear at a
+      position, sequential shifting through neutral; `ui/stick.js`: the knob dragged through
+      the gates, resting where the box put it, stopped at the synchro and shaking while it
+      grinds
+- [x] `ui/coach.js`: up at the shift point and for economy; down when lugging, for speed and
+      when braking in too tall a gear; the revs to match with the clutch down, drawn as a
+      faint dashed needle; "last shift N J" after each shift
+- [x] Manual controls: M or the AUTO/MANUAL button; C or A the clutch; 1-6, R, N; Q / E
+      sequential; controller X the clutch and the bumpers sequential; an on-screen clutch pedal
+- [x] Blown: the faces break back to empty circles, NEW ENGINE starts again; CHECK ENGINE light;
+      "stalled" and "grind" hints; `?box=manual` and `?debug` in the address
+- [ ] Done-when: someone other than the author shifts through the gears on a keyboard - the
+      author's to arrange
+
+After the author drove it: an upshift flared the revs far above the new gear and took a second
+and a half to settle. Two keyboard rates, not the engine: the gas key lifted in a quarter of a
+second (revving the free engine with the clutch down), and the clutch key came up at launch
+speed (still slipping when the gas went back on). Now the gas lifts at 8 a second and the
+clutch comes up at 5 a second once the car is rolling, 1.2 from a standstill - reproduced
+before and after with the page's own ramps: from an 8200 rpm flare to gripping at third's revs
+in a third of a second.
+
+Found on the way: the blown-engine test expected an instant over-rev; at 45 m/s a dumped
+clutch into first locks the rear wheels into a skid first (the light wheels slow far more
+easily than the heavy engine spins up) and the road drags the engine past its limit over a
+second or two - kept as true, test lengthened. Headless Chrome with software graphics runs the
+building faces at about 3 to 10 frames a second and the page's per-frame cap then slows the
+simulation; with normal graphics it is 75 frames a second and real time.
+
+Check:
+
+    cd pedalsim
+    npm test
+    npx --yes serve .
+    # open the address it prints with ?box=manual: C down, hold K, 1, ease C up with a little gas
 
 ## Stage 6 - The perfect-run solver
 

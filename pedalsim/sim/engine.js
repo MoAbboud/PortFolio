@@ -15,6 +15,11 @@ import { PEDAL_MAX } from './inputs.js';
 const IDLE_KP = 0.3;
 const IDLE_KI = 1.2; // per second
 const IDLE_MAX_PEDAL = 0.1; // idle needs about 0.06 on every engine; more would be an engine, not an idle valve
+// Past the limiter by this much, through the clutch rather than the fuel: check engine.
+const CHECK_ENGINE_MARGIN = 150;
+// A manual cranks in gear only with the clutch pedal this far down.
+const CLUTCH_DOWN_TO_CRANK = 0.8;
+
 // Falling faster than this (rad/s per second, about 300 rpm a second) counts as coming down
 // from a blip rather than sitting near idle.
 const IDLE_SETTLED_DECEL = 30;
@@ -66,12 +71,26 @@ export function crankTorque(engine, load, rpm, firing) {
 // drivetrain (sim/drivetrain.js) does that for everything at once.
 export function engineControl(engine, state, inputs) {
   const { we } = state;
-  let { running, load, idleI, cut } = state;
+  let { running, load, idleI, cut, blown, checkEngine } = state;
   const rpm = we * RPM_PER_RAD_S;
-  const cranking = inputs.key === 1;
+
+  // Damage. Fuel cannot push the engine past its limiter, but the wheels can drag it past
+  // through a gripping clutch after a bad downshift. Past the limiter, the check engine light
+  // comes on and stays on. Past the over-rev limit, the engine is blown: it stops, and the key
+  // does nothing until a new engine.
+  if (rpm > engine.limiterRpm + CHECK_ENGINE_MARGIN) checkEngine = true;
+  if (rpm > engine.overRevRpm) blown = true;
+
+  // The starter only turns an engine that is out of gear: a manual in neutral or with the
+  // clutch down, an automatic with the lever in Park or Neutral.
+  const outOfGear = state.box === 'auto'
+    ? inputs.gear === 'P' || inputs.gear === 'N'
+    : state.gear === 0 || inputs.clutch >= CLUTCH_DOWN_TO_CRANK * PEDAL_MAX;
+  const cranking = inputs.key === 1 && !blown && outOfGear;
 
   // Firing and stalling. While the key is held the starter is still helping, so a stall is
   // only declared once it is let go.
+  if (blown) running = false;
   if (!running && cranking && rpm >= engine.fireRpm) running = true;
   if (running && !cranking && rpm < engine.stallRpm) running = false;
 
@@ -128,5 +147,5 @@ export function engineControl(engine, state, inputs) {
   const losses = lookup(engine.friction, rpm < 0 ? -rpm : rpm) + engine.pumpingNm * (1 - load);
   const torque = combustion + starter - losses * clamp(rpm / FRICTION_FADE_RPM, -1, 1);
 
-  return { running, load, idleI, cut, tc, torque };
+  return { running, load, idleI, cut, tc, blown, checkEngine, torque };
 }

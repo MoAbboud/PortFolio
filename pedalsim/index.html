@@ -91,7 +91,24 @@
     touch-action: none; user-select: none;
   }
   #start.running { border-color: var(--accent); box-shadow: 0 0 16px var(--accent-edge) inset; }
-  #tc { font-size: 11px; padding: 4px 8px; }
+  #tc, #box { font-size: 11px; padding: 4px 8px; }
+
+  /* The manual: the stick in place of the lever, and a clutch pedal. */
+  #stick { width: 116px; height: 87px; touch-action: none; cursor: grab; }
+  #stick .gates { fill: none; stroke: var(--line); stroke-width: 0.12; stroke-linecap: round; }
+  #stick text { fill: var(--type); font: 0.34px "Boldonse", sans-serif; text-anchor: middle; dominant-baseline: middle; opacity: 0.75; }
+  #stick .knob { fill: var(--accent); filter: drop-shadow(0 0 0.08px var(--accent)); }
+  #stick.grinding .knob { fill: rgb(255 100 100); }
+  body:not(.manual) #stick, body:not(.manual) #pedal-clutch { display: none; }
+  body.manual .lever { display: none; }
+
+  /* The coach and the warnings, under the gear. */
+  .coach { width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; opacity: 0; }
+  .coach.up { border-bottom: 16px solid var(--accent); opacity: 1; filter: drop-shadow(0 0 6px var(--accent)); }
+  .coach.down { border-top: 16px solid rgb(255 150 50); opacity: 1; filter: drop-shadow(0 0 6px rgb(255 150 50)); }
+  #coach-why, #heat { font-family: "Bodoni Moda", serif; font-style: italic; opacity: 0.7; font-size: 12px; min-height: 1.4em; }
+  #check { font-family: "Boldonse", sans-serif; font-size: 10px; color: rgb(255 170 0); border: 1px solid rgb(255 170 0); border-radius: 3px; padding: 1px 5px; }
+  #newengine { border-color: rgb(255 100 100); }
 
   /* The pedals: the feet. Pressed anywhere along them - higher is less, lower is more. */
   .right { grid-area: right; display: flex; gap: 12px; align-items: flex-end; }
@@ -107,6 +124,7 @@
     background: linear-gradient(to top, var(--accent), transparent); opacity: 0.85;
   }
   .pedal.brake::before { background: linear-gradient(to top, rgb(255 100 100), transparent); }
+  .pedal.clutch::before { background: linear-gradient(to top, rgb(224 224 224), transparent); }
   .pedal span {
     position: absolute; left: 0; right: 0; bottom: 8px; text-align: center;
     font-family: "Boldonse", sans-serif; font-size: 10px; letter-spacing: 0.06em;
@@ -121,7 +139,12 @@
   /* A phone on its side: lever on the left thumb, pedals on the right, the gauges between, and
      the dyno strip shrunk to fit. */
   @media (max-height: 520px) and (orientation: landscape) {
-    :root { --gauge: min(27vw, 58vh); --pedal-h: 46vh; }
+    :root { --gauge: min(24vw, 56vh); --pedal-h: 46vh; }
+    .right { gap: 6px; }
+    .pedal { width: 40px; }
+    .pedal.thr { width: 36px; }
+    .pedal span { font-size: 7px; letter-spacing: 0; }
+    #stick { width: 96px; height: 72px; }
     header { padding: 6px 14px; }
     main { gap: 4px 12px; padding: 0 10px; }
     #gear { font-size: 26px; }
@@ -166,19 +189,27 @@
       <button id="lever-N">N</button>
       <button id="lever-D">D</button>
     </div>
+    <svg id="stick" role="group" aria-label="Gear stick: drag the knob through the gates"></svg>
     <button id="start" aria-label="Start key: hold to crank">START</button>
     <button id="tc" aria-label="Traction control">TC on</button>
+    <button id="box" aria-label="Automatic or manual">AUTO</button>
   </div>
   <div class="cluster">
     <div class="gauge" id="tach" role="img" aria-label="Tachometer"></div>
     <div class="middle">
       <div id="gear" aria-label="Gear">P</div>
       <div id="readout"></div>
+      <div id="coach" class="coach" aria-hidden="true"></div>
+      <div id="coach-why"></div>
+      <div id="heat"></div>
+      <div id="check" hidden>CHECK ENGINE</div>
+      <button id="newengine" hidden>NEW ENGINE</button>
       <div id="hint" aria-live="polite"></div>
     </div>
     <div class="gauge small" id="speed" role="img" aria-label="Speedometer"></div>
   </div>
   <div class="right">
+    <div class="pedal clutch" id="pedal-clutch" role="slider" aria-label="Clutch"><span>CLUTCH</span></div>
     <div class="pedal brake" id="pedal-brake" role="slider" aria-label="Brake"><span>BRAKE</span></div>
     <div class="pedal thr" id="pedal-thr" role="slider" aria-label="Throttle"><span>GAS</span></div>
   </div>
@@ -191,7 +222,8 @@
   <button id="demo2">Drive the automatic</button>
   <button id="build">Build it all</button>
   <button id="stop">Stop</button>
-  <div class="keys">K or Space hold to start - Up / W gas - Down / S brake - Shift gentler - P R N D or Q / E lever - T traction control - [ ] engine</div>
+  <div class="keys">K or Space hold to start - Up / W gas - Down / S brake - Shift gentler - M automatic or manual - T traction control - [ ] engine<br>
+    automatic: P R N D or Q / E the lever - manual: C or A clutch, 1 to 6 gears, R reverse, N neutral, Q / E down / up</div>
 </footer>
 <script type="module" src="ui/main.js"></script>
 </body>
