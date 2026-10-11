@@ -15,7 +15,7 @@ Stages 0 to 5 are done. Stage 6, the perfect-run solver, is next.
       manual as an option with a coach, the board scores shifting on 0 to 60, sporty, no
       hardware, car engines first, a sister app later
 - [x] Engines built from measurements: confirmed. Cycle between them: confirmed. Clean run:
-      confirmed. Sound: later
+      confirmed. Sound: later - then pulled forward after stage 5
 - [x] New idea from the author: the maths builds the interface - empty circles that
       pixelate in as the engine is revved. Designed in 03-architecture
 - [x] V10 is in. Every refresh is a new run: a sandbox, nothing saved
@@ -273,6 +273,27 @@ Check:
     npm test
     npx --yes serve .
     # open the address it prints with ?box=manual: C down, hold K, 1, ease C up with a little gas
+
+## Sound (pulled forward after stage 5)
+
+Done. 159 tests (4 new). Each engine rendered in Chrome through the real worklet: loudest
+frequency at 3000 rpm equals the firing frequency for all five; the fuel cut drops the level
+about tenfold; a stopped engine is silent. The page starts the audio on the first key press,
+V toggles it, no page errors.
+
+- [x] `ui/sound-table.js`: one engine cycle of exhaust pulses per engine
+- [x] `ui/engine-worklet.js`: the note at the crank's speed, load, filter, intake noise,
+      limiter cut, starter whine and thumps, grind
+- [x] `ui/sound.js`: start on the first gesture, the engine's table, per-frame parameters with
+      a glide, pause when hidden, mute
+- [x] V key and the SOUND button; `?debug` reports the sound's state
+- [ ] Heard by the author on real speakers - the one check only a person can make
+
+Check:
+
+    cd pedalsim
+    npx --yes serve .
+    # open it, press any key: hold K - the starter, then the idle; rev it; V mutes
 
 ## Stage 6 - The perfect-run solver
 

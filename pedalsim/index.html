@@ -91,7 +91,7 @@
     touch-action: none; user-select: none;
   }
   #start.running { border-color: var(--accent); box-shadow: 0 0 16px var(--accent-edge) inset; }
-  #tc, #box { font-size: 11px; padding: 4px 8px; }
+  #tc, #box, #sound { font-size: 11px; padding: 4px 8px; }
 
   /* The manual: the stick in place of the lever, and a clutch pedal. */
   #stick { width: 116px; height: 87px; touch-action: none; cursor: grab; }
@@ -193,6 +193,7 @@
     <button id="start" aria-label="Start key: hold to crank">START</button>
     <button id="tc" aria-label="Traction control">TC on</button>
     <button id="box" aria-label="Automatic or manual">AUTO</button>
+    <button id="sound" aria-label="Sound on or off">SOUND on</button>
   </div>
   <div class="cluster">
     <div class="gauge" id="tach" role="img" aria-label="Tachometer"></div>
@@ -222,7 +223,7 @@
   <button id="demo2">Drive the automatic</button>
   <button id="build">Build it all</button>
   <button id="stop">Stop</button>
-  <div class="keys">K or Space hold to start - Up / W gas - Down / S brake - Shift gentler - M automatic or manual - T traction control - [ ] engine<br>
+  <div class="keys">K or Space hold to start - Up / W gas - Down / S brake - Shift gentler - M automatic or manual - T traction control - V sound - [ ] engine<br>
     automatic: P R N D or Q / E the lever - manual: C or A clutch, 1 to 6 gears, R reverse, N neutral, Q / E down / up</div>
 </footer>
 <script type="module" src="ui/main.js"></script>

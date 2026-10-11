@@ -73,7 +73,8 @@ The link is the only thing that leaves a browser, and only when a driver chooses
 - Real car brands, model names, trademarks.
 - Exotic engine layouts in the first version: rotary, two-stroke, diesel, turbocharging,
   electric. Later, perhaps.
-- Sound, in the first version. See the open questions.
+- Recorded engine sounds. The note is synthesised from the simulation, so it needs no samples
+  and follows the engine exactly.
 - Hardware. No wheels, pedals or shifters are needed or assumed. A game controller works if
   one happens to be plugged in.
 - Damage to anything but the engine's dignity.

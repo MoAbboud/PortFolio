@@ -717,6 +717,31 @@ behind the gauges, drawn against crank angle over two turns - one full engine cy
 - The lines are in the engine's colours: bank A the needle colour, bank B the second colour,
   the sum the speedometer colour.
 
+## Sound (built after stage 5, at the author's request)
+
+Web Audio, through an `AudioWorklet` (`ui/engine-worklet.js`) that makes the note sample by
+sample on the audio thread; the page (`ui/sound.js`) sets its parameters once a frame and they
+glide over 12 ms, so the note follows the tachometer without stepping.
+
+- **The table** (`ui/sound-table.js`): one engine cycle - two crank turns - of exhaust pulses,
+  one per cylinder, 720 / cylinders degrees apart, each a narrow Gaussian (narrower for fewer
+  cylinders, so a V4 cracks) at a slightly different strength per cylinder, the same for an
+  engine every time. Centred and scaled so every engine is equally loud and only the shape
+  differs.
+- **The pitch** is the table played at the crank's speed: the cycle repeats rpm / 120 times a
+  second, its pulses arrive at the firing frequency, rpm / 60 x cylinders / 2. Checked by
+  rendering each engine at 3000 rpm in Chrome and finding the loudest frequency: 100, 150,
+  200, 250 and 300 Hz, V4 to V12, exactly the firing frequency.
+- **Load** makes it louder (0.25 + 0.75 x load) and brighter (a low-pass filter that opens with
+  load and revs). **The limiter and a stall** are real: with no fuel burning the pulses drop to
+  a soft pumping whoosh, about a tenth of the level, so the limiter stutters.
+- **Intake roar**: filtered noise rising with load and revs. **The starter**: a whine plus the
+  slow compression thumps while the key is held and the engine is not running. **A grind**:
+  harsh noise beating about 40 times a second while a gear refuses to go in.
+- A soft clip rounds the peaks. Sound starts on the first key press or click (browsers allow
+  none before), pauses when the page is hidden, and V or the SOUND button mutes it. Without Web
+  Audio the page carries on silent.
+
 ## Controls
 
 Built in stage 4 (`input/`), the automatic's half; the manual's clutch and stick are stage 5.

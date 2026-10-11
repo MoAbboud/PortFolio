@@ -21,6 +21,7 @@ import { Controls } from '../input/controls.js';
 import { moveLever, POSITIONS } from '../input/lever.js';
 import { Stick } from './stick.js';
 import { coach } from './coach.js';
+import { EngineSound } from './sound.js';
 
 document.documentElement.dataset.sim = String(SIM_VERSION);
 
@@ -79,7 +80,9 @@ const controls = new Controls({
   tc: () => toggleTraction(),
   cycle: (by) => cycle(by),
   box: () => switchBox(),
+  sound: () => toggleSound(),
 });
+const sound = new EngineSound();
 const stick = new Stick($('stick'), (n) => askGear(n, false));
 
 function hint(text) {
@@ -133,6 +136,7 @@ function loadEngine(i) {
   tach.setEngine(layout.tach, colours, colours.needle);
   speed.setEngine(layout.speed, colours, colours.speed);
   lines.setEngine(engine, colours);
+  sound.setEngine(engine);
   // The dyno's scale: the engine's real full-throttle peaks, from the same sums a bench uses.
   let peakTorque = 0;
   let peakKw = 0;
@@ -175,6 +179,11 @@ function moveTo(wanted) {
   selector = r.gear;
   controls.lever = selector;
   if (r.refused) hint(r.refused);
+}
+
+function toggleSound() {
+  const on = sound.toggle();
+  hint(`sound ${on ? 'on' : 'off'}`);
 }
 
 function toggleTraction() {
@@ -306,6 +315,13 @@ function frame(now) {
   lastCut = state.cut;
   lines.draw({ rpm, load: state.load, running: state.running, dt, holes: gaugeHoles() });
   dyno.draw({ dyno: dev.dyno, rpm, torque });
+  sound.update({
+    rpm,
+    load: state.load,
+    firing: state.running && !state.cut,
+    starter: inputs.key === 1 && !state.running && !state.blown,
+    grind: state.grinding,
+  });
   drawControls(now, rpm, advice);
   requestAnimationFrame(frame);
 }
@@ -349,6 +365,8 @@ function drawControls(now, rpm, advice) {
   for (const p of POSITIONS) $(`lever-${p}`).classList.toggle('on', p === at);
   $('start').classList.toggle('running', state.running);
   $('tc').textContent = `TC ${tractionControl ? 'on' : 'off'}`;
+  $('sound').textContent = `SOUND ${sound.on ? 'on' : 'off'}`;
+  $('sound').classList.toggle('on', sound.on);
   $('tc').classList.toggle('on', tractionControl);
   if (now > hintUntil) {
     const start = box === 'manual' ? 'clutch down, then hold K or START' : 'hold K or START to start';
@@ -395,6 +413,10 @@ $('next').addEventListener('click', () => cycle(1));
 $('build').addEventListener('click', () => { if (mode === 'normal') mode = 'building'; });
 $('stop').addEventListener('click', () => endDemo());
 $('box').addEventListener('click', () => switchBox());
+$('sound').addEventListener('click', () => toggleSound());
+// Browsers allow no sound until the visitor presses something; the first press starts it.
+for (const type of ['pointerdown', 'keydown']) window.addEventListener(type, () => sound.start());
+document.addEventListener('visibilitychange', () => sound.visible(!document.hidden));
 $('newengine').addEventListener('click', () => {
   freshCar();
   hint('a new engine');
@@ -416,7 +438,12 @@ document.documentElement.dataset.fonts = document.fonts?.check('40px "Boldonse"'
 // through one.
 const params = new URLSearchParams(location.search);
 // ?debug exposes the state and inputs, read-only, for checking the page from outside.
-if (params.has('debug')) window.pedalsim = { state: () => state, inputs: () => inputs, live: () => live };
+if (params.has('debug')) {
+  window.pedalsim = {
+    state: () => state, inputs: () => inputs, live: () => live,
+    sound: () => ({ context: sound.ctx?.state ?? null, node: Boolean(sound.node), failed: sound.failed, on: sound.on }),
+  };
+}
 const wanted = ENGINES.findIndex((e) => e.id === params.get('engine'));
 loadEngine(wanted >= 0 ? wanted : 0);
 resize();

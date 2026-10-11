@@ -47,7 +47,7 @@ flowchart LR
     end
     S2 --> S3
     S5 --> S6
-    S8 --> L1[Sound - later]
+    S5 --> SND[Sound - pulled forward<br/>by the author]
     S8 --> L2[More engine kinds<br/>- later]
     S8 --> L3[Sister app<br/>- later]
 ```
@@ -124,7 +124,7 @@ measure against, and a leaderboard of raw times says nothing about how well some
 | The engines are built from their measurements | Confirmed by the author: "yes the engines are built from measurements and such" |
 | The maths builds the interface: gauges start as empty circles and pixelate in as the engine is revved | The author's idea, exchange 3. Feasible; see "The interface is built by the engine" above |
 | Clean run: no grinding, no blowing the engine, gentle on the clutch | Confirmed by the author: "that sounds good for a clean run, dont blow out the engine etc" |
-| Engine sound later, not in the first version | The author |
+| Engine sound: first "later", then pulled forward ahead of the solver once the author could drive it | The author: "engine sound later" (planning), then "i dont hear anything" ... "sound next" after stage 5 |
 | Five engines, V4, V6, V8, V10, V12, cycled in order | The author: "add v10 please". A true V4 - rare in cars, rough by nature - is just another parameter set |
 | A sandbox: every refresh is a new run, nothing is saved | The author: "each refresh is a new run, no need for sessions and stuff like that, its a sandbox that resets". Empty circles, no bests, default settings on every load. Nothing in the browser's storage |
 | The board lasts while the page is open; a run is kept past a refresh only by sharing it as a link, which the receiver's page re-drives | Follows from no server and the sandbox. The link carries the inputs, never the score, so it cannot be edited into a better time |
@@ -178,7 +178,6 @@ measure against, and a leaderboard of raw times says nothing about how well some
 | --- | --- | --- |
 | How long should a full build take? | Stage 3 | Proposed: three or four full-throttle pulls to the limiter in neutral build the tachometer; the speedometer builds to whatever speed has been reached. Tuned by feel |
 | What does the empty state show? | Stage 3 | Proposed: the circle outlines and the needle hubs only. The needles appear with the start key |
-| Sound | Later | Settled as later. When it comes: a note synthesised from rpm, load and cylinder count |
 | Should the automatic have a 0 to 60 run too? | Stage 7 | Proposed: yes, timed, but not scored - there is no shifting skill in it beyond the launch |
 | More engine kinds later | After stage 8 | Turbocharged (boost gauge, lag), diesel (low redline, huge torque), rotary, motorcycle, electric (no gears at all). Each is a parameter set and a few new curves |
 | The sister app | Not this project | Ideas are kept in the context log. Lives in its own folder beside the engine app, may reuse `sim/` |

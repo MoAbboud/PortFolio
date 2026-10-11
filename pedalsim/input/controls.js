@@ -4,7 +4,7 @@
 //   Up arrow or W        throttle            Down arrow or S    brake
 //   Shift (held)         gentler pedals      K or Space (held)  start key
 //   T                    traction control    [ and ]            previous / next engine
-//   M                    automatic / manual
+//   M                    automatic / manual    V                  sound on / off
 //
 //   automatic:  P R N D the lever, Q / E a notch up or down
 //   manual:     C or A (held) the clutch, 1 to 6 the gears, R reverse, N neutral,
@@ -87,9 +87,10 @@ export class Controls {
       }
       if (code === 'KeyT') this.on.tc();
       if (code === 'KeyM') this.on.box();
+      if (code === 'KeyV') this.on.sound?.();
       if (code === 'BracketLeft') this.on.cycle(-1);
       if (code === 'BracketRight') this.on.cycle(1);
-      handled = handled || ['KeyQ', 'KeyE', 'KeyT', 'KeyM'].includes(code);
+      handled = handled || ['KeyQ', 'KeyE', 'KeyT', 'KeyM', 'KeyV'].includes(code);
     }
     // Arrows and Space would otherwise scroll the page while driving.
     if (handled) e.preventDefault();
