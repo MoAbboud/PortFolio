@@ -127,6 +127,9 @@ is in the parameters hash: change the car and every engine file is stale until r
 ```
 
 - Channels: `thr`, `brake`, `clutch` (0 to 1023), `gear` (-1 to 6, or P/R/N/D), `key`.
+- In a manual, `gear` is the gate the stick is pushed into, not the gear engaged: the
+  simulation decides whether it goes in (stage 5), so a replay grinds exactly where the run
+  did.
 - Only changes are recorded. Packed as one flat integer array; a 0 to 60 run is a few hundred
   bytes, small enough for a URL.
 - No time and no score in the log. Both are recomputed from it.

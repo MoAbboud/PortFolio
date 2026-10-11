@@ -47,7 +47,7 @@ flowchart LR
     end
     S2 --> S3
     S5 --> S6
-    S8 --> L1[Sound - later]
+    S5 --> SND[Sound - pulled forward<br/>by the author]
     S8 --> L2[More engine kinds<br/>- later]
     S8 --> L3[Sister app<br/>- later]
 ```
@@ -64,7 +64,7 @@ flowchart LR
 | 7 | 0 to 60, score, board, share link | Countdown, run recorder, ghost needle, phase-by-phase time lost, the score and the clean mark, bests and recent runs held in memory until a refresh, share links that re-drive on open. A test: a run recorded in headless Chrome scores the same in Node |
 | 8 | Publish | In `deploy/build-static.mjs` and the Pages workflow; README with what it is, a short recording, how to run it, what a shared run does and does not prove; root README lists it |
 
-**Stages 0 to 4 are done.** The scaffold, the determinism rules enforced by a test, the
+**Stages 0 to 5 are done.** The scaffold, the determinism rules enforced by a test, the
 replay, the trace tool, the empty-circle page and CI; then the five engines built from their
 measurements - each one's torque, power and redline inside the published figures of a real
 engine of the same bore and stroke - running in neutral with a starter, an idle controller, a
@@ -75,8 +75,11 @@ converter and shift map, and traction control. 119 tests. Then the gauges that b
 engine has been, laid out from each engine's figures, in its own colours, with the engine
 lines and a measured dyno strip, playing scripted drives. 131 tests. Then live driving in the
 automatic: keyboard, mouse, touch or a controller, on-screen pedals, a hold-to-crank start
-key, the lever with its interlocks, and the traction control toggle. 140 tests. Stage 5, the
-manual and the coach, is next.
+key, the lever with its interlocks, and the traction control toggle. 140 tests. Then the
+manual: a clutch, an H-pattern stick dragged through its gates, a synchromesh that grinds
+without the clutch, a starter that will not crank in gear, the check engine light and the
+blown engine, and the shift coach with its rev-match needle. 154 tests. Stage 6, the
+perfect-run solver, is next.
 
 ### Why the maths comes first and headless
 
@@ -121,7 +124,7 @@ measure against, and a leaderboard of raw times says nothing about how well some
 | The engines are built from their measurements | Confirmed by the author: "yes the engines are built from measurements and such" |
 | The maths builds the interface: gauges start as empty circles and pixelate in as the engine is revved | The author's idea, exchange 3. Feasible; see "The interface is built by the engine" above |
 | Clean run: no grinding, no blowing the engine, gentle on the clutch | Confirmed by the author: "that sounds good for a clean run, dont blow out the engine etc" |
-| Engine sound later, not in the first version | The author |
+| Engine sound: first "later", then pulled forward ahead of the solver once the author could drive it | The author: "engine sound later" (planning), then "i dont hear anything" ... "sound next" after stage 5 |
 | Five engines, V4, V6, V8, V10, V12, cycled in order | The author: "add v10 please". A true V4 - rare in cars, rough by nature - is just another parameter set |
 | A sandbox: every refresh is a new run, nothing is saved | The author: "each refresh is a new run, no need for sessions and stuff like that, its a sandbox that resets". Empty circles, no bests, default settings on every load. Nothing in the browser's storage |
 | The board lasts while the page is open; a run is kept past a refresh only by sharing it as a link, which the receiver's page re-drives | Follows from no server and the sandbox. The link carries the inputs, never the score, so it cannot be edited into a better time |
@@ -175,7 +178,6 @@ measure against, and a leaderboard of raw times says nothing about how well some
 | --- | --- | --- |
 | How long should a full build take? | Stage 3 | Proposed: three or four full-throttle pulls to the limiter in neutral build the tachometer; the speedometer builds to whatever speed has been reached. Tuned by feel |
 | What does the empty state show? | Stage 3 | Proposed: the circle outlines and the needle hubs only. The needles appear with the start key |
-| Sound | Later | Settled as later. When it comes: a note synthesised from rpm, load and cylinder count |
 | Should the automatic have a 0 to 60 run too? | Stage 7 | Proposed: yes, timed, but not scored - there is no shifting skill in it beyond the launch |
 | More engine kinds later | After stage 8 | Turbocharged (boost gauge, lag), diesel (low redline, huge torque), rotary, motorcycle, electric (no gears at all). Each is a parameter set and a few new curves |
 | The sister app | Not this project | Ideas are kept in the context log. Lives in its own folder beside the engine app, may reuse `sim/` |

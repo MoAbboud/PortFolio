@@ -46,7 +46,8 @@ export class Gauge {
   }
 
   // value: what the needle should show. bins, mean, eventLevel: the development.
-  draw({ value, dt, bins, mean, eventLevel = 0, time, marks = [], needle = true }) {
+  // ghost: a value to mark with a faint second needle (the revs to match), or null.
+  draw({ value, dt, bins, mean, eventLevel = 0, time, marks = [], needle = true, ghost = null }) {
     if (!this.scale) return;
     this.reveal.draw(bins, mean, eventLevel, time);
     const angle = chase(this.needle, angleOf(this.scale, value), dt);
@@ -74,6 +75,20 @@ export class Gauge {
       ctx.moveTo(Math.cos(a) * s * 0.462, Math.sin(a) * s * 0.462);
       ctx.lineTo(Math.cos(a) * s * 0.495, Math.sin(a) * s * 0.495);
       ctx.stroke();
+    }
+
+    // The rev-match needle: faint, no spring - it shows where the revs need to be, not where
+    // they are.
+    if (ghost !== null && needle) {
+      const g = angleOf(this.scale, ghost);
+      ctx.strokeStyle = rgb(this.colours.type, 0.35);
+      ctx.setLineDash([s * 0.012, s * 0.012]);
+      ctx.lineWidth = s * 0.008;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(g) * s * 0.08, Math.sin(g) * s * 0.08);
+      ctx.lineTo(Math.cos(g) * s * 0.43, Math.sin(g) * s * 0.43);
+      ctx.stroke();
+      ctx.setLineDash([]);
     }
 
     // The needle: a glowing line from just behind the hub to the ticks.

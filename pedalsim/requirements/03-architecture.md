@@ -371,6 +371,32 @@ sequenceDiagram
     U->>U: needles chase their targets
 ```
 
+## The manual, as built (stage 5)
+
+**The stick asks, the synchromesh decides** (`sim/gearbox.js`, `manualEngage`). The run log
+records the gate the stick is in; the box engages it only if the clutch is down (no grip at
+all) or the engine already turns within 3% of the speed that gear needs - a clutchless shift
+done right. Anything else grinds and stays in neutral. Gear to gear passes through neutral.
+Reverse goes in only below 1 m/s, clutch or not.
+
+**The starter** turns a manual only in neutral or with the clutch at least 80% down, and an
+automatic only with the lever in P or N.
+
+**Damage.** Fuel cannot pass the limiter; the wheels can, through the clutch. Past the limiter
+by 150 rpm the check engine light comes on and stays. Past the over-rev limit the engine is
+blown: stopped, the key does nothing, and on the page the faces break back to empty circles
+until NEW ENGINE. Dumping the clutch into first at 100 mph does not over-rev at once: the
+light rear wheels lock into a skid first, and the road drags them - and the engine - back up
+past the limit over a second or two.
+
+**Heat.** `slipJ` adds up torque x slip speed x time while the clutch slips. The page shows
+each shift's share: a rev-matched downshift is tens of joules, a dumped one thousands.
+
+**The stick** (`input/stick.js`, `ui/stick.js`): the knob lives on the rail and four slots;
+a dragged pointer is moved to the nearest point on them, so a rough diagonal still lands in
+a gate. Past 75% into a slot it asks for that gear. While the box grinds, the knob stops at
+55% and shakes.
+
 ## The shift coach
 
 All of it is computed from the engine tables, mostly in advance.
@@ -399,6 +425,14 @@ the revs above a lugging floor (about twice idle).
 **What revs to match.** With the clutch down and a lower gear chosen, a second faint needle
 shows `n_target = v / r * G_target * 60 / (2 * pi)`, the revs the engine must reach for a
 smooth release. Blip the throttle to meet it.
+
+**As built** (`ui/coach.js`): up at the shift point (above half throttle, within 100 rpm);
+up for economy (under 35% throttle, revs over 1.1 x the light-throttle shift speed, and the
+next gear not below 1.6 x idle); down when lugging (over 30% throttle under 1.6 x idle), for
+speed (over 90% throttle and the gear below under 85% of its own shift point), and when
+braking above 3 m/s in a gear taller than the lowest one that keeps the revs under 85% of
+its shift point. Each arrow says which reason. The rev-match needle is dashed and has no
+spring: it shows where the revs need to be, not where they are.
 
 **How smooth a shift was.** On each release the clutch's slip energy is integrated:
 
@@ -683,13 +717,38 @@ behind the gauges, drawn against crank angle over two turns - one full engine cy
 - The lines are in the engine's colours: bank A the needle colour, bank B the second colour,
   the sum the speedometer colour.
 
+## Sound (built after stage 5, at the author's request)
+
+Web Audio, through an `AudioWorklet` (`ui/engine-worklet.js`) that makes the note sample by
+sample on the audio thread; the page (`ui/sound.js`) sets its parameters once a frame and they
+glide over 12 ms, so the note follows the tachometer without stepping.
+
+- **The table** (`ui/sound-table.js`): one engine cycle - two crank turns - of exhaust pulses,
+  one per cylinder, 720 / cylinders degrees apart, each a narrow Gaussian (narrower for fewer
+  cylinders, so a V4 cracks) at a slightly different strength per cylinder, the same for an
+  engine every time. Centred and scaled so every engine is equally loud and only the shape
+  differs.
+- **The pitch** is the table played at the crank's speed: the cycle repeats rpm / 120 times a
+  second, its pulses arrive at the firing frequency, rpm / 60 x cylinders / 2. Checked by
+  rendering each engine at 3000 rpm in Chrome and finding the loudest frequency: 100, 150,
+  200, 250 and 300 Hz, V4 to V12, exactly the firing frequency.
+- **Load** makes it louder (0.25 + 0.75 x load) and brighter (a low-pass filter that opens with
+  load and revs). **The limiter and a stall** are real: with no fuel burning the pulses drop to
+  a soft pumping whoosh, about a tenth of the level, so the limiter stutters.
+- **Intake roar**: filtered noise rising with load and revs. **The starter**: a whine plus the
+  slow compression thumps while the key is held and the engine is not running. **A grind**:
+  harsh noise beating about 40 times a second while a gear refuses to go in.
+- A soft clip rounds the peaks. Sound starts on the first key press or click (browsers allow
+  none before), pauses when the page is hidden, and V or the SOUND button mutes it. Without Web
+  Audio the page carries on silent.
+
 ## Controls
 
 Built in stage 4 (`input/`), the automatic's half; the manual's clutch and stick are stage 5.
 
 | Source | How |
 | --- | --- |
-| Keyboard | Up or W throttle, Down or S brake: held, a pedal ramps toward the floor; released, back up (throttle 2.5 and 4 per second, brake 3 and 5). Shift halves the rates. K or Space held is the start key. P R N D move the lever, Q and E a notch. T toggles traction control, [ and ] cycle the engine |
+| Keyboard | Up or W throttle, Down or S brake: held, a pedal ramps toward the floor; released, back up (throttle 2.5 down and 8 up per second, brake 3 and 5; the clutch 6 down, and up at 1.2 from a standstill or 5 once rolling). Shift halves the rates. K or Space held is the start key. P R N D move the lever, Q and E a notch. T toggles traction control, [ and ] cycle the engine |
 | Mouse and touch | A pedal is pressed anywhere along it - near the top a little, near the bottom all of it - and a finger can slide. Each pointer keeps its own pedal, so two thumbs work two pedals. START is held to crank. The lever and TC are buttons |
 | Game controller, if present | Standard layout: right trigger throttle, left trigger brake, A the start key, bumpers the lever, Y traction control. Optional, never required |
 

@@ -76,6 +76,11 @@ export function drivetrain(engine, chassis, state, inputs, control, box) {
     weNext = 0;
   }
 
+  // The heat the clutch makes while it slips: the torque it carries times the speed difference
+  // across it. A rev-matched shift makes almost none; a dumped one, hundreds of joules.
+  const slipNow = we - box.G * ww;
+  const heat = moved.stuck[0] ? 0 : Math.abs(moved.lambda[0] * slipNow) * DT;
+
   return {
     we: weNext,
     ww: wwNext,
@@ -86,5 +91,6 @@ export function drivetrain(engine, chassis, state, inputs, control, box) {
     tyreStuck: moved.stuck[1],
     brakeStuck: moved.stuck[2],
     clutchNm: moved.lambda[0],
+    slipJ: state.slipJ + heat,
   };
 }

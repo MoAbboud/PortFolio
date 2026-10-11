@@ -79,14 +79,44 @@ function automatic(engine, state, throttle) {
   return { G, gear, autoGear: gear, shiftHold: hold, lockup };
 }
 
+// The manual's synchromesh: whether the gate the stick is pushed into actually engages.
+//
+// The stick asks for a gear (the `gear` input); the box decides. Out of gear to neutral always
+// works. From neutral into a gear works if the clutch is down - the synchro can then match the
+// gearbox to the wheels - or if the engine is already turning at the speed the new gear needs,
+// within 3%: a clutchless shift done right. Anything else grinds, and the box stays in neutral
+// until the clutch goes down or the revs come to meet it. Reverse has no synchro: it goes in
+// only with the car all but stopped.
+//
+// Going from one gear to another passes through neutral, as the stick does: one step out, then
+// the next step in.
+const MATCHED = 0.03;
+const REVERSE_MAX_SPEED = 1.0; // m/s
+
+export function manualEngage(engine, state, inputs) {
+  const want = typeof inputs.gear === 'number' ? inputs.gear : 0;
+  const now = state.gear;
+  if (want === now) return { gear: now, grinding: false };
+  if (want === 0 || now !== 0) return { gear: 0, grinding: false };
+
+  const clutchDown = clutchCapacity(engine.gearing, inputs.clutch) === 0;
+  const needed = state.ww * overallRatio(engine.gearing, want);
+  const scale = Math.max(Math.abs(state.we), 50);
+  const matched = Math.abs(state.we - needed) <= MATCHED * scale;
+  const reverseOk = want !== -1 || Math.abs(state.v) < REVERSE_MAX_SPEED;
+  if (reverseOk && (clutchDown || (matched && want !== -1))) return { gear: want, grinding: false };
+  return { gear: 0, grinding: true };
+}
+
 // Everything the drivetrain needs to know about the gearbox this step.
 export function gearbox(engine, state, inputs) {
   const throttle = inputs.thr / PEDAL_MAX;
   if (state.box === 'manual') {
-    const gear = typeof inputs.gear === 'number' ? inputs.gear : 0;
+    const { gear, grinding } = manualEngage(engine, state, inputs);
     return {
       G: overallRatio(engine.gearing, gear),
       gear,
+      grinding,
       clutchNm: clutchCapacity(engine.gearing, inputs.clutch),
       converter: false,
       pawlN: 0,

@@ -23,10 +23,27 @@ test('a held key ramps the pedal to the floor; a tap is only a little', () => {
   hold(p, 1);
   assert.equal(p.key, 1);
   p.held = false;
-  hold(p, 0.1);
-  near(p.key, 0.6, 0.02); // released at 4 a second
+  hold(p, 0.05);
+  near(p.key, 0.6, 0.02); // a foot lifts fast: 8 a second
   hold(p, 1);
   assert.equal(p.key, 0);
+});
+
+test('the clutch key comes up slowly to pull away, quickly in a shift', () => {
+  // From the floor to full grip (0.1 of the pedal): at a standstill three quarters of a second,
+  // so the bite point can be found; rolling, under a fifth, so a shift does not flare.
+  const time = (moving) => {
+    const p = createPedal('clutch');
+    p.key = 1;
+    let t = 0;
+    while (p.key > 0.1) {
+      rampPedal(p, 1 / 60, false, moving);
+      t += 1 / 60;
+    }
+    return t;
+  };
+  near(time(false), 0.75, 0.02);
+  near(time(true), 0.18, 0.02);
 });
 
 test('Shift makes the pedals gentler: half the rate both ways', () => {
@@ -42,6 +59,7 @@ test('Shift makes the pedals gentler: half the rate both ways', () => {
 test('the clutch comes up slowly and goes down fast, so a keyboard can find the bite', () => {
   assert.ok(RATES.clutch.release < RATES.clutch.press);
   assert.ok(RATES.clutch.release < RATES.thr.release);
+  assert.ok(RATES.clutch.releaseMoving > RATES.clutch.release);
 });
 
 test('whatever presses hardest wins: keyboard, pointer or controller', () => {

@@ -77,7 +77,8 @@ for (const id of ['v4', 'v12']) {
     const states = drive(engine, {
       from: idling(engine),
       seconds: 3,
-      policy: () => ({ gear: 1, clutch: 0 }),
+      // First with the clutch down, as a driver would - then the clutch dropped.
+      policy: (s, t) => ({ gear: 1, clutch: t < 0.05 ? PEDAL_MAX : 0 }),
     });
     assert.equal(states.at(-1).running, false);
     // Friction fades out over the last few rpm, so a stalled engine still joined to a car that
@@ -102,7 +103,8 @@ test('wheelspin is slower than grip: a dumped clutch at high revs loses to a fed
   const prepare = drive(engine, { from: idling(engine), seconds: 2, policy: () => ({ clutch: PEDAL_MAX, thr: 700 }) });
 
   const dumped = drive(engine, {
-    from: prepare.at(-1), seconds: 5, policy: () => ({ gear: 1, clutch: 0, thr: PEDAL_MAX }),
+    from: prepare.at(-1), seconds: 5,
+    policy: (s, t) => ({ gear: 1, clutch: t < 0.05 ? PEDAL_MAX : 0, thr: PEDAL_MAX }),
   });
   // A careful driver: feeds the clutch in and backs off the throttle when the tyres spin.
   const careful = drive(engine, {
