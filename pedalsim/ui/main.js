@@ -1,11 +1,11 @@
 // The page: one engine at a time, its gauges built by running it.
 //
-// Stage 3: the page plays scripted drives through the simulation in real time. Driving it
-// yourself - keyboard, pointer, the pedals and the stick - is stage 4.
+// Stage 4: driven live - keyboard, mouse, touch or a controller - in the automatic, or played
+// from a scripted drive. The manual's clutch and stick are stage 5.
 
 import { ENGINES } from '../engines/index.js';
 import { initialState, step, DT, SIM_VERSION } from '../sim/step.js';
-import { emptyInputs, applyEvent } from '../sim/inputs.js';
+import { emptyInputs, applyEvent, quantise } from '../sim/inputs.js';
 import { crankTorque, airLoad } from '../sim/engine.js';
 import { RPM_PER_RAD_S } from '../sim/clock.js';
 import { gaugeLayout, lightsLit } from './layout.js';
@@ -17,11 +17,14 @@ import { EngineLines } from './lines.js';
 import { Dyno } from './dyno.js';
 import { TACH, SPEEDO } from './needle.js';
 import { DEMOS } from './demos.js';
+import { Controls } from '../input/controls.js';
+import { moveLever, POSITIONS } from '../input/lever.js';
 
 document.documentElement.dataset.sim = String(SIM_VERSION);
 
 const MAX_STEPS_PER_FRAME = 250; // a background tab does not try to catch up a minute at once
 const SWEEP_SECONDS = 1.2; // the key-on needle sweep
+const HINT_SECONDS = 2.5;
 const MPH = 2.23694;
 const $ = (id) => document.getElementById(id);
 
@@ -50,6 +53,38 @@ let lastGear = 0;
 let lastCut = false;
 let awake = false; // the needles appear with the start key, not before
 
+// Driving live.
+let selector = 'P';
+let tractionControl = true; // the automatic's default; applies from the next start
+let live = { thr: 0, brake: 0, key: false };
+let keyWas = false;
+let hintUntil = 0;
+
+const controls = new Controls({
+  pedals: { thr: $('pedal-thr'), brake: $('pedal-brake') },
+  start: $('start'),
+  lever: Object.fromEntries(POSITIONS.map((p) => [p, $(`lever-${p}`)])),
+  tc: $('tc'),
+}, {
+  lever: (wanted) => moveTo(wanted),
+  tc: () => toggleTraction(),
+  cycle: (by) => cycle(by),
+});
+
+function hint(text) {
+  $('hint').textContent = text;
+  hintUntil = performance.now() + HINT_SECONDS * 1000;
+}
+
+// A fresh automatic, engine off, in Park, ready for the driver.
+function freshCar() {
+  selector = 'P';
+  controls.lever = selector;
+  awake = false;
+  state = initialState(engine, null, { gearbox: 'auto', tractionControl });
+  inputs = { ...emptyInputs(), gear: selector };
+}
+
 function loadEngine(i) {
   index = i;
   engine = ENGINES[i];
@@ -69,9 +104,9 @@ function loadEngine(i) {
     peakKw = Math.max(peakKw, (t * r) / RPM_PER_RAD_S / 1000);
   }
   dyno.setEngine(layout.tach, colours, peakTorque, peakKw);
-  stopDemo();
-  awake = false;
-  state = initialState(engine, null);
+  player = null;
+  $('playing').textContent = '';
+  freshCar();
   paintChrome();
   if (reduceMotion) mode = 'building';
 }
@@ -93,7 +128,21 @@ function cycle(by) {
   if (mode === 'dissolving') return;
   pendingIndex = (index + by + ENGINES.length) % ENGINES.length;
   mode = 'dissolving';
-  stopDemo();
+  player = null;
+}
+
+function moveTo(wanted) {
+  if (player) return;
+  const r = moveLever(selector, wanted, { brake: live.brake, speed: state.v });
+  selector = r.gear;
+  controls.lever = selector;
+  if (r.refused) hint(r.refused);
+}
+
+function toggleTraction() {
+  tractionControl = !tractionControl;
+  if (!state.running) state = { ...state, tractionControl };
+  hint(`traction control ${tractionControl ? 'on' : 'off'}${state.running ? ' from the next start' : ''}`);
 }
 
 function startDemo(make) {
@@ -106,10 +155,31 @@ function startDemo(make) {
   $('playing').textContent = script.name;
 }
 
-function stopDemo() {
+// A demo ends - played out, stopped, or the driver took over - and the car is the driver's
+// again: a fresh automatic, engine off.
+function endDemo() {
   player = null;
-  inputs = emptyInputs();
   $('playing').textContent = '';
+  freshCar();
+}
+
+// This frame's inputs from the controls, rounded once to what the simulation takes.
+function liveInputs(dt, now) {
+  live = controls.read(dt);
+  if (live.key && !keyWas && !state.running) {
+    // Turning the key: traction control as set, and the needles wake with their sweep.
+    state = { ...state, tractionControl };
+    awake = true;
+    sweepFrom = now;
+  }
+  keyWas = live.key;
+  inputs = {
+    thr: quantise(live.thr),
+    brake: quantise(live.brake),
+    clutch: 0,
+    gear: selector,
+    key: live.key ? 1 : 0,
+  };
 }
 
 // Run the simulation forward by the real time that has passed, in whole steps.
@@ -123,15 +193,20 @@ function simulate(seconds) {
         inputs = applyEvent(inputs, channel, value);
         player.next += 1;
       }
-      if (state.step >= steps) stopDemo();
+      if (state.step >= steps) {
+        endDemo();
+        continue;
+      }
     }
     state = step(engine, null, state, inputs);
     carry -= DT;
   }
 }
 
-// Everything that moves with time but draws nothing: the simulation, and the build-up.
-function advance(dt) {
+// Everything that moves with time but draws nothing: the controls, the simulation, the build-up.
+function advance(dt, now) {
+  if (player && controls.busy()) endDemo(); // the driver takes over
+  if (!player) liveInputs(dt, now);
   simulate(dt);
   const rpm = Math.max(0, state.we * RPM_PER_RAD_S);
   const mph = state.v * MPH;
@@ -155,7 +230,7 @@ function frame(now) {
   // read the clock - so the first step can come out negative. Time does not run backwards here.
   const dt = Math.max(0, Math.min(0.1, (now - last) / 1000));
   last = now;
-  const { rpm, mph, torque } = advance(dt);
+  const { rpm, mph, torque } = advance(dt, now);
 
   // The needles: the key-on sweep, then the engine - with a tremble from its firing pulses.
   let rpmShown = rpm;
@@ -181,7 +256,12 @@ function frame(now) {
   lastCut = state.cut;
   lines.draw({ rpm, load: state.load, running: state.running, dt, holes: gaugeHoles() });
   dyno.draw({ dyno: dev.dyno, rpm, torque });
+  drawControls(now, rpm);
+  requestAnimationFrame(frame);
+}
 
+// The shift lights, the gear, the pedals pressed by whatever is pressing them, the lever.
+function drawControls(now, rpm) {
   const shiftAt = state.gear >= 1 && state.gear <= 5 ? layout.tach.shiftMarks[state.gear - 1] : engine.redlineRpm;
   const lit = lightsLit(layout, rpm, shiftAt);
   const flash = rpm >= shiftAt && Math.floor(now / 80) % 2 === 0;
@@ -189,8 +269,15 @@ function frame(now) {
     el.className = i < lit ? (flash ? 'flash' : 'on') : '';
   });
   $('gear').textContent = gearLabel();
-  $('readout').textContent = `${Math.round(rpm)} rpm  ${Math.abs(mph).toFixed(0)} mph`;
-  requestAnimationFrame(frame);
+  $('readout').textContent = `${Math.round(rpm)} rpm  ${Math.abs(state.v * MPH).toFixed(0)} mph`;
+  $('pedal-thr').style.setProperty('--press', String(inputs.thr / 1023));
+  $('pedal-brake').style.setProperty('--press', String(inputs.brake / 1023));
+  const at = typeof inputs.gear === 'string' ? inputs.gear : null;
+  for (const p of POSITIONS) $(`lever-${p}`).classList.toggle('on', p === at);
+  $('start').classList.toggle('running', state.running);
+  $('tc').textContent = `TC ${tractionControl ? 'on' : 'off'}`;
+  $('tc').classList.toggle('on', tractionControl);
+  if (now > hintUntil) $('hint').textContent = state.running ? '' : 'hold K or START to start';
 }
 
 // Where the gauges sit on the lines' canvas, so the lines can keep out of them.
@@ -230,16 +317,8 @@ function resize() {
 $('prev').addEventListener('click', () => cycle(-1));
 $('next').addEventListener('click', () => cycle(1));
 $('build').addEventListener('click', () => { if (mode === 'normal') mode = 'building'; });
-$('stop').addEventListener('click', () => {
-  stopDemo();
-  awake = false;
-  state = initialState(engine, null);
-});
+$('stop').addEventListener('click', () => endDemo());
 DEMOS.forEach((make, i) => $(`demo${i}`).addEventListener('click', () => startDemo(make)));
-window.addEventListener('keydown', (e) => {
-  if (e.key === ']') cycle(1);
-  if (e.key === '[') cycle(-1);
-});
 window.addEventListener('resize', resize);
 
 // Paint the faces only once the fonts have arrived, or the numerals are drawn in a fallback
@@ -262,7 +341,7 @@ if (params.has('demo') && DEMOS[demo]) startDemo(DEMOS[demo]);
 if (params.get('build') === '1') mode = 'building';
 // ?at=12 runs the first 12 seconds at once, at 60 frames a second, before drawing anything.
 const at = Math.min(120, Number(params.get('at')) || 0);
-for (let t = 0; t < at; t += 1 / 60) advance(1 / 60);
+for (let t = 0; t < at; t += 1 / 60) advance(1 / 60, performance.now());
 if (at) sweepFrom = -1;
 last = performance.now();
 requestAnimationFrame(frame);
