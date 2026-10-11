@@ -160,6 +160,15 @@ The pedals and stick are simple on-screen controls that also show what the keybo
    with a higher redline, different spacing and twelve shift lights. That comparison is the
    point.
 
+### J2a - Driving the automatic (built in stage 4)
+
+1. Hold K (or START) for a second: the needles sweep, the engine catches and settles.
+2. Press D: refused - "press the brake to leave Park". Hold Down (brake), press D, release:
+   the car creeps at two or three mph.
+3. Hold Up: the throttle ramps in, the car pulls through the gears. Tap Up for a little.
+4. Press P at speed: refused - "stop before Park". Hold Down to stop, then P.
+5. On a phone, sideways: the left thumb has the lever and START, the right thumb the pedals.
+
 ### J2 - Manual and the coach
 
 1. Switch to manual. Clutch and stick appear active.

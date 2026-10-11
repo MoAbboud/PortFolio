@@ -685,11 +685,26 @@ behind the gauges, drawn against crank angle over two turns - one full engine cy
 
 ## Controls
 
+Built in stage 4 (`input/`), the automatic's half; the manual's clutch and stick are stage 5.
+
 | Source | How |
 | --- | --- |
-| Keyboard | Held, a pedal ramps toward 1; released, toward 0. The clutch rises slower than it falls, so the bite point is findable. Number keys for gears, a key each for start, shift up and down |
-| Mouse and touch | Drag a pedal down; drag the knob; several fingers at once on a phone |
-| Game controller, if present | Triggers for throttle and brake. Optional, never required |
+| Keyboard | Up or W throttle, Down or S brake: held, a pedal ramps toward the floor; released, back up (throttle 2.5 and 4 per second, brake 3 and 5). Shift halves the rates. K or Space held is the start key. P R N D move the lever, Q and E a notch. T toggles traction control, [ and ] cycle the engine |
+| Mouse and touch | A pedal is pressed anywhere along it - near the top a little, near the bottom all of it - and a finger can slide. Each pointer keeps its own pedal, so two thumbs work two pedals. START is held to crank. The lever and TC are buttons |
+| Game controller, if present | Standard layout: right trigger throttle, left trigger brake, A the start key, bumpers the lever, Y traction control. Optional, never required |
+
+Whichever source presses a pedal hardest wins. The page rounds each pedal to a whole number
+once a frame (`quantise`), and the simulation sees only those.
+
+**The lever's rules** (`input/lever.js`): leaving Park needs at least 30% brake; Park and
+Reverse are refused above walking pace (1.5 m/s); each refusal says why under the gear.
+
+**A demo and the driver**: touching any control while a demo plays ends it and hands over a
+fresh automatic with the engine off - taking over a moving demo car would mean inheriting a
+manual box or a speed the driver never chose.
+
+**Traction control** is set before a drive: changing it with the engine running applies at the
+next turn of the key; with the engine off, at once.
 
 ## Files, proposed
 

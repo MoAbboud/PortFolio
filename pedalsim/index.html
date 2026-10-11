@@ -28,7 +28,9 @@
     --accent: rgb(100 200 255);
     --accent-edge: rgb(0 100 200);
     --type: rgb(224 224 224);
-    --gauge: min(40vw, 52vh, 420px);
+    --line: rgb(255 255 255 / 0.18);
+    --gauge: min(30vw, 46vh, 400px);
+    --pedal-h: min(180px, 26vh);
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
@@ -44,34 +46,103 @@
   header, main, footer { position: relative; }
   header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 20px; gap: 12px; flex-wrap: wrap;
+    padding: 12px 20px; gap: 12px; flex-wrap: wrap;
   }
   .brand { font-family: "Boldonse", sans-serif; font-size: 15px; letter-spacing: 0.02em; }
   .picker { display: flex; align-items: center; gap: 10px; }
   .picker b { font-family: "Boldonse", sans-serif; font-weight: 400; font-size: 20px; min-width: 3.4em; text-align: center; }
-  .picker small { font-family: "Bodoni Moda", serif; font-style: italic; opacity: 0.7; }
+  .picker small, .label { font-family: "Bodoni Moda", serif; font-style: italic; opacity: 0.7; }
   button {
     font: inherit; color: var(--type); background: rgb(255 255 255 / 0.06);
-    border: 1px solid rgb(255 255 255 / 0.18); border-radius: 4px; padding: 6px 12px; cursor: pointer;
+    border: 1px solid var(--line); border-radius: 4px; padding: 6px 12px; cursor: pointer;
   }
   button:hover { background: rgb(255 255 255 / 0.12); }
-  #lights { display: flex; justify-content: center; gap: 8px; min-height: 14px; margin: 4px 0 10px; }
+  button.on { border-color: var(--accent); box-shadow: 0 0 10px var(--accent-edge); }
+
+  main {
+    display: grid; align-items: center; justify-items: center; gap: 10px min(3vw, 32px);
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas: "lights lights lights" "left cluster right" "dyno dyno dyno";
+    padding: 0 20px;
+  }
+  #lights { grid-area: lights; display: flex; gap: 8px; min-height: 14px; }
   #lights i { width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--accent-edge); }
   #lights i.on { background: var(--accent); box-shadow: 0 0 10px var(--accent); }
   #lights i.flash { background: rgb(255 100 100); box-shadow: 0 0 14px rgb(255 100 100); }
-  .cluster { display: flex; align-items: center; justify-content: center; gap: min(4vw, 40px); flex-wrap: wrap; padding: 0 16px; }
+  .cluster { grid-area: cluster; display: flex; align-items: center; justify-content: center; gap: min(3vw, 32px); }
   .gauge { position: relative; width: var(--gauge); aspect-ratio: 1; }
-  .gauge.small { width: calc(var(--gauge) * 0.78); }
+  .gauge.small { width: calc(var(--gauge) * 0.8); }
   .gauge canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-  .middle { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 90px; }
-  #gear { font-family: "Boldonse", sans-serif; font-size: 44px; line-height: 1.4; }
+  .middle { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 84px; }
+  #gear { font-family: "Boldonse", sans-serif; font-size: 40px; line-height: 1.4; }
   #readout { font-family: "Bodoni Moda", serif; font-style: italic; opacity: 0.75; white-space: nowrap; }
-  #dyno { display: block; width: min(860px, 92vw); height: 90px; margin: 14px auto 0; }
-  footer { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 12px 16px 24px; }
+  #hint { font-family: "Bodoni Moda", serif; font-style: italic; opacity: 0.8; min-height: 1.5em; text-align: center; max-width: 12em; }
+
+  /* The lever, the start key and traction control: the left hand. */
+  .left { grid-area: left; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .lever { display: flex; flex-direction: column; gap: 4px; padding: 6px; border: 1px solid var(--line); border-radius: 22px; }
+  .lever button {
+    font-family: "Boldonse", sans-serif; width: 40px; height: 34px; padding: 0;
+    border-radius: 17px; border-color: transparent; background: transparent;
+  }
+  .lever button.on { background: var(--accent); color: rgb(0 0 0 / 0.8); box-shadow: 0 0 12px var(--accent); }
+  #start {
+    font-family: "Boldonse", sans-serif; font-size: 11px; width: 62px; height: 62px; border-radius: 50%;
+    touch-action: none; user-select: none;
+  }
+  #start.running { border-color: var(--accent); box-shadow: 0 0 16px var(--accent-edge) inset; }
+  #tc { font-size: 11px; padding: 4px 8px; }
+
+  /* The pedals: the feet. Pressed anywhere along them - higher is less, lower is more. */
+  .right { grid-area: right; display: flex; gap: 12px; align-items: flex-end; }
+  .pedal {
+    --press: 0;
+    position: relative; width: 58px; height: var(--pedal-h); border-radius: 10px;
+    border: 1px solid var(--line); overflow: hidden; touch-action: none; user-select: none; cursor: ns-resize;
+    background: rgb(255 255 255 / 0.03);
+    transform: perspective(400px) rotateX(calc(var(--press) * 22deg)); transform-origin: top;
+  }
+  .pedal::before {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: calc(var(--press) * 100%);
+    background: linear-gradient(to top, var(--accent), transparent); opacity: 0.85;
+  }
+  .pedal.brake::before { background: linear-gradient(to top, rgb(255 100 100), transparent); }
+  .pedal span {
+    position: absolute; left: 0; right: 0; bottom: 8px; text-align: center;
+    font-family: "Boldonse", sans-serif; font-size: 10px; letter-spacing: 0.06em;
+  }
+  .pedal.thr { height: calc(var(--pedal-h) * 1.15); width: 50px; }
+
+  #dyno { grid-area: dyno; display: block; width: min(860px, 92vw); height: 80px; }
+  footer { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 10px 16px 20px; }
   #playing { width: 100%; text-align: center; font-family: "Bodoni Moda", serif; font-style: italic; opacity: 0.7; min-height: 1.5em; }
-  @media (max-width: 700px) {
-    :root { --gauge: min(46vw, 70vh); }
-    #gear { font-size: 30px; }
+  .keys { width: 100%; text-align: center; opacity: 0.55; font-size: 12px; }
+
+  /* A phone on its side: lever on the left thumb, pedals on the right, the gauges between, and
+     the dyno strip shrunk to fit. */
+  @media (max-height: 520px) and (orientation: landscape) {
+    :root { --gauge: min(27vw, 58vh); --pedal-h: 46vh; }
+    header { padding: 6px 14px; }
+    main { gap: 4px 12px; padding: 0 10px; }
+    #gear { font-size: 26px; }
+    #dyno { height: 40px; }
+    .keys { display: none; }
+  }
+  /* A narrow portrait screen: the gear on its own row, the two gauges side by side under it,
+     then the hands - lever on the left, pedals on the right. Nothing may be wider than the
+     screen, so the grid's columns are allowed to shrink. */
+  @media (max-width: 700px) and (orientation: portrait) {
+    :root { --gauge: 50vw; --pedal-h: 24vh; }
+    main {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      grid-template-areas: "lights lights" "cluster cluster" "left right" "dyno dyno";
+      padding: 0 8px;
+    }
+    .cluster { flex-wrap: wrap; gap: 4px 2vw; width: 100%; }
+    .middle { order: -1; width: 100%; }
+    .gauge.small { width: calc(var(--gauge) * 0.8); }
+    .picker b { min-width: 2.6em; }
+    #dyno { width: 94vw; }
   }
 </style>
 </head>
@@ -88,13 +159,28 @@
 </header>
 <main>
   <div id="lights" aria-hidden="true"></div>
+  <div class="left">
+    <div class="lever" role="group" aria-label="Gear lever">
+      <button id="lever-P">P</button>
+      <button id="lever-R">R</button>
+      <button id="lever-N">N</button>
+      <button id="lever-D">D</button>
+    </div>
+    <button id="start" aria-label="Start key: hold to crank">START</button>
+    <button id="tc" aria-label="Traction control">TC on</button>
+  </div>
   <div class="cluster">
     <div class="gauge" id="tach" role="img" aria-label="Tachometer"></div>
     <div class="middle">
-      <div id="gear" aria-label="Gear">N</div>
+      <div id="gear" aria-label="Gear">P</div>
       <div id="readout"></div>
+      <div id="hint" aria-live="polite"></div>
     </div>
     <div class="gauge small" id="speed" role="img" aria-label="Speedometer"></div>
+  </div>
+  <div class="right">
+    <div class="pedal brake" id="pedal-brake" role="slider" aria-label="Brake"><span>BRAKE</span></div>
+    <div class="pedal thr" id="pedal-thr" role="slider" aria-label="Throttle"><span>GAS</span></div>
   </div>
   <canvas id="dyno" aria-label="Torque and power, as measured"></canvas>
 </main>
@@ -105,6 +191,7 @@
   <button id="demo2">Drive the automatic</button>
   <button id="build">Build it all</button>
   <button id="stop">Stop</button>
+  <div class="keys">K or Space hold to start - Up / W gas - Down / S brake - Shift gentler - P R N D or Q / E lever - T traction control - [ ] engine</div>
 </footer>
 <script type="module" src="ui/main.js"></script>
 </body>

@@ -6,7 +6,7 @@ Every stage is checked from a PowerShell terminal on Windows. If a stage cannot 
 that way, it is not finished. Every stage that changes the page is also checked at phone
 width in landscape in the browser's device view.
 
-Stages 0 to 3 are done. Stage 4, live driving, is next.
+Stages 0 to 4 are done. Stage 5, the manual and the coach, is next.
 
 ## Planning
 
@@ -191,12 +191,37 @@ Check:
 
 ## Stage 4 - Live driving, automatic
 
-- [ ] Traction control toggle, applied from the next start; the run log records it
+Done. 140 tests (9 new for the controls). Driven in a real Chrome through its remote-control
+protocol with real key and mouse events - start, the Park interlock, creep, flat out, Park
+refused at speed, braking to a stop, the on-screen throttle pressed and slid. Layouts looked
+at at 1280 x 800, 844 x 390 and, inside a 390 px frame, 390 x 844.
 
-- [ ] Fixed-step loop with the 250-step cap; inputs quantised at the step boundary
-- [ ] Keyboard ramps; pointer drag on pedals; gamepad if present
-- [ ] Engine picker; start key; P-R-N-D
-- [ ] Every engine revs, drives and brakes
+- [x] `input/pedals.js`: keyboard ramps (throttle 2.5 / 4 per second, brake 3 / 5, clutch
+      6 / 1.2 for stage 5), Shift halves them; the hardest of keyboard, pointer and
+      controller wins
+- [x] `input/lever.js`: P-R-N-D; leaving Park needs the brake; Park and Reverse refused
+      above walking pace; a notch at a time from Q / E or the bumpers
+- [x] `input/controls.js`: keyboard, on-screen pedals pressed anywhere along them (top is a
+      little, bottom is all; several fingers at once), hold-to-crank START, lever buttons,
+      traction control button, a standard-layout game controller
+- [x] `ui/main.js`: live inputs each frame, rounded once with `quantise`; the fixed-step loop
+      and its 250-step cap were already there; touching a control during a demo hands the
+      car over (a fresh automatic, engine off); hints for refusals and "hold K or START"
+- [x] Traction control toggle (T, the TC button, controller Y): on by default for the
+      automatic; changes apply at the next turn of the key, or at once with the engine off.
+      Recording it in the run log waits for the run log itself (stage 7)
+- [x] `index.html`: one grid - lever and START on the left, pedals on the right, gauges
+      between; phone landscape puts them under the thumbs; portrait stacks them
+- [x] Every engine revs, drives and brakes (the demos run all five; driven live on the V8)
+- [ ] Calibrating a USB pedal set or wheel: dropped for now. The author has no hardware, a
+      sandbox page cannot keep a calibration, and a standard-layout controller works as is
+
+Check:
+
+    cd pedalsim
+    npm test
+    npx --yes serve .
+    # open the address it prints: hold K, brake + D, then Up - see 02-interaction J2
 
 ## Stage 5 - Manual and the coach
 
