@@ -35,20 +35,31 @@ test("with nothing revealed, the helper is told so", () => {
   assert.match(messages()[0].content, /## What the client has told the player\nNothing yet\./);
 });
 
-test("history is trimmed oldest first to the budget, and never opens with the helper", () => {
+test("every turn is one system and one player message; the helper's old replies are never replayed", () => {
+  const history = [
+    { role: "user", content: "Build it." },
+    { role: "assistant", content: "Done.\n[wrote app.js]" },
+    { role: "user", content: "Add search." },
+    { role: "assistant", content: "[wrote app.js]" },
+  ];
+  const all = messages({ history, message: "Now paging." });
+  assert.deepEqual(all.map((m) => m.role), ["system", "user"]);
+  assert.equal(all[1].content, "Now paging.");
+  assert.match(all[0].content, /## What the player asked for before[^\n]*\n- Build it\.\n- Add search\.\n/);
+  assert.ok(!all[0].content.includes("[wrote"), "no placeholder a model could copy");
+  assert.ok(!messages()[0].content.includes("asked for before"), "no section when there is no history");
+});
+
+test("earlier player messages are dropped oldest first to fit the budget", () => {
   const history = [
     { role: "user", content: "a".repeat(4000) },
-    { role: "assistant", content: "b".repeat(4000) },
     { role: "user", content: "c".repeat(400) },
-    { role: "assistant", content: "d".repeat(400) },
   ];
-  const all = messages({ history, budgetTokens: 100000 });
-  assert.equal(all.length, 6);
-  const trimmed = messages({ history, budgetTokens: 1200 });
-  // Room for the last two turns only (about 4,800 characters less the system message).
-  assert.deepEqual(trimmed.slice(1, -1).map((m) => m.content[0]), ["c", "d"]);
-  const lopsided = messages({ history: history.slice(1), budgetTokens: 100000 });
-  assert.equal(lopsided[1].role, "user", "a leading assistant turn is dropped");
+  const roomy = messages({ history, budgetTokens: 100000 })[0].content;
+  assert.ok(roomy.includes("a".repeat(4000)) && roomy.includes("c".repeat(400)));
+  // About 4,800 characters: the system message itself plus the short message fit, the long one does not.
+  const tight = messages({ history, budgetTokens: 1200 })[0].content;
+  assert.ok(!tight.includes("a".repeat(4000)) && tight.includes("c".repeat(400)));
 });
 
 test("a reply in the asked-for format gives its files, without the marker lines", () => {
