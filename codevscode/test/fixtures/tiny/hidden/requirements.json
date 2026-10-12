@@ -1,0 +1,9 @@
+[
+  {
+    "id": "cap",
+    "category": "efficiency",
+    "phrasings": ["how many words", "is there a limit", "how long is the list"],
+    "answer": "Never more than 10 at once.",
+    "tests": ["efficiency/capped"]
+  }
+]

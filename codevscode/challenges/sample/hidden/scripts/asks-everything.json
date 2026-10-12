@@ -1,0 +1,17 @@
+{
+  "id": "asks-everything",
+  "about": "A player who asked about every hidden requirement and gives the helper careful instructions.",
+  "revealed": [
+    "search",
+    "paging",
+    "limits",
+    "newest-first",
+    "email-case",
+    "lockout"
+  ],
+  "messages": [
+    "Build the whole app from the brief, the interface and the client's answers: app.js and schema.sql. Hash passwords with PBKDF2 from crypto.subtle and a random salt, and use ? placeholders in every query.",
+    "Check every query that touches notes also checks the note belongs to the logged-in person, and add an index on notes for listing one person's notes newest first.",
+    "Go through the client's answers one by one and make sure each is handled: search, paging, length limits, order, email capitals, and the lockout."
+  ]
+}

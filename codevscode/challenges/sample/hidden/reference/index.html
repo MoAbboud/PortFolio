@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Team notes</title>
+  <style>
+    body { font: 16px/1.5 system-ui, sans-serif; max-width: 40rem; margin: 2rem auto; padding: 0 1rem; }
+    form { display: grid; gap: .5rem; margin-bottom: 1.5rem; }
+    li { margin-bottom: 1rem; white-space: pre-wrap; }
+    [role=alert] { color: #a00; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Team notes</h1>
+    <p role="alert" id="message"></p>
+    <form id="login">
+      <label>Email <input name="email" type="email" required autocomplete="username"></label>
+      <label>Password <input name="password" type="password" required minlength="8" autocomplete="current-password"></label>
+      <div><button name="action" value="login">Log in</button> <button name="action" value="signup">Sign up</button></div>
+    </form>
+    <form id="new" hidden>
+      <label>Title <input name="title" required maxlength="200"></label>
+      <label>Note <textarea name="body" rows="4" maxlength="10000"></textarea></label>
+      <div><button>Save</button></div>
+    </form>
+    <ul id="notes"></ul>
+  </main>
+  <script>
+    let token = "";
+    const message = document.getElementById("message");
+
+    async function call(method, path, body) {
+      const response = await fetch(path, {
+        method,
+        headers: { "content-type": "application/json", ...(token && { authorization: `Bearer ${token}` }) },
+        body: body === undefined ? undefined : JSON.stringify(body),
+      });
+      const data = response.status === 204 ? null : await response.json();
+      if (!response.ok) throw new Error(data && data.error ? data.error : `Error ${response.status}`);
+      return data;
+    }
+
+    // Notes are written with textContent, never innerHTML: a note is text, not markup.
+    async function showNotes() {
+      const { notes } = await call("GET", "/notes");
+      const list = document.getElementById("notes");
+      list.replaceChildren(...notes.map((note) => {
+        const item = document.createElement("li");
+        const title = document.createElement("strong");
+        title.textContent = note.title;
+        const remove = document.createElement("button");
+        remove.textContent = "Delete";
+        remove.onclick = () => call("DELETE", `/notes/${note.id}`).then(showNotes, show);
+        item.append(title, document.createElement("br"), note.body, " ", remove);
+        return item;
+      }));
+    }
+
+    function show(error) {
+      message.textContent = error.message;
+    }
+
+    document.getElementById("login").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = new FormData(event.target);
+      const credentials = { email: form.get("email"), password: form.get("password") };
+      try {
+        if (event.submitter.value === "signup") await call("POST", "/signup", credentials);
+        ({ token } = await call("POST", "/login", credentials));
+        event.target.hidden = true;
+        document.getElementById("new").hidden = false;
+        message.textContent = "";
+        await showNotes();
+      } catch (error) {
+        show(error);
+      }
+    });
+
+    document.getElementById("new").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = new FormData(event.target);
+      try {
+        await call("POST", "/notes", { title: form.get("title"), body: form.get("body") });
+        event.target.reset();
+        message.textContent = "";
+        await showNotes();
+      } catch (error) {
+        show(error);
+      }
+    });
+  </script>
+</body>
+</html>
