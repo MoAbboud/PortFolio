@@ -6,7 +6,7 @@ Every stage is checked from a PowerShell terminal on Windows. If a stage cannot 
 that way, it is not finished. Every stage that changes a page is also checked in a real
 browser.
 
-Stage 0 is done. Stage 1's code is built; its Colab runs are next.
+Stage 0 is done. Stage 1's first run scored 0 of 42 everywhere; the second run - scaffold, repair turns, teachers - is next.
 
 ## Planning
 
@@ -79,9 +79,23 @@ The code is built; the runs are the author's, on Colab.
       MLC on Colab's GPU. No Google Drive: the last step zips the results and the 4-bit model
       for the author to download. Gitignored - the author's working copy, uploaded to Colab by
       hand
-- [ ] The author runs Part A on a T4 and sends the table
-- [ ] Part B on the one or two best; the first run may need a name fixed (MLC wheels and
-      templates change between releases)
+- [x] The author runs Part A on a T4 and sends the table. Every candidate 0 of 42; in 7 of 8
+      runs the app did not load (imports of crypto, sqlite3 or files that do not exist; a
+      schema error; replies cut off before the code block closed). The failures are about the
+      game's app shape more than coding skill - see the context log
+- [x] The sample's starter is a scaffold (routing, readJson, reply/fail, bearerToken, route
+      stubs); it loads and passes 1 of 42 (an unknown address answers 404)
+- [x] `runner/check.js` and `tools/check.mjs`: what a player sees when the app does not run
+- [x] Harness repair turns (`repair_turns`, default 0; the notebook uses 2), tested with fakes
+- [x] The helper's prompt states the runtime: no imports, crypto is Web Crypto, the method is
+      upper case, the body is text
+- [x] Notebook: candidates at 16 bits plus teachers Qwen2.5-Coder 7B and 14B at 4 bits
+      (bitsandbytes), REPAIR_TURNS = 2, a `repairs` column
+- [ ] The author pushes, uploads the notebook, runs Part A, sends the results zip
+- [!] Part B - our own 4-bit conversion - is parked. MLC's converter segfaults inside TVM
+      while compiling the quantisation step (MLC nightly, TVM 0.26.dev246), on the GPU and the
+      CPU, under Python 3.13 and 3.12. It returns once a model passes Part A, as an ONNX export
+      quantised to 4 bits and run by transformers.js, which needs no TVM
 - [ ] A bare browser page that loads the best converted build and replays one conversation:
       does it load, time to first token, tokens per second, memory
 - [ ] The results in the context log; the gate decided with the author: challenge size, and

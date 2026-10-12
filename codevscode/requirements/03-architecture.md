@@ -77,7 +77,7 @@ never leaves the server. The format is in 04-data-model; the shape:
 | --- | --- | --- |
 | Brief: a few sentences from the client | Yes | Author |
 | Interface: the routes or functions the app must expose, with their shapes | Yes | Author |
-| Starter files: an empty handler, a minimal front end, a schema stub | Yes | Author |
+| Starter files: a scaffold - routing by a route table, JSON body parsing, reply and fail, a bearer-token helper, each route a stub answering 501 - plus a minimal front end and a schema stub. Every checklist decision is left open | Yes | Author |
 | Hidden requirements: each with a category, several phrasings of the question that unlocks it, the client's answer, and the tests that check it | No | Author |
 | Reference app: a correct, secure, efficient answer | No | Author |
 | Hidden tests: spec, security, efficiency and practicality tests, each tagged with a requirement and a category | No | Author |
@@ -210,7 +210,9 @@ flowchart LR
    trained on top, on the prepared data. Checkpoints go to Google Drive every few hundred
    steps, because a free Colab session can end without warning. At these sizes a run is
    hours, not days.
-2. **Merge.** The adapter is folded into the base weights, giving a normal full model.
+2. **Merge.** The adapter is folded into the base weights, giving a normal full model. MLC's
+   `convert_weight` can do this itself (`--lora-adapter <PEFT folder>`, seen in its help on
+   Colab), so merge and convert may be one step.
 3. **Quantise and convert.** The full model is quantised to 4 bits and converted to the
    browser runtime's format: weight shards, a config with the chat template, and the
    tokenizer. For WebLLM a fine-tune of an architecture it already supports reuses the
@@ -258,6 +260,13 @@ shows a diff of what changed before applying it, so the player reads what the he
 that is half the game.
 
 The helper never sees the hidden tests, the reference app or the coach.
+
+### What the player sees when the app does not run
+
+`runner/check.js`, shared like the runner: does the schema run, does app.js load, does it export
+handle, does it answer a plain `GET /` and `POST /` without crashing. The workspace shows these
+the moment the files change. The harness's repair turns pass back exactly these sentences - what
+a player would paste - and never a hidden test result.
 
 ### The coach
 

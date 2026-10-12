@@ -29,7 +29,7 @@ challenges/<slug>/
   public/
     brief.md            the client's request, vague on purpose
     interface.md        routes, shapes, status codes, the app shape
-    starter/            app.js, schema.sql, index.html
+    starter/            app.js (a scaffold: routing and plumbing done), schema.sql, index.html
   hidden/
     requirements.json   one entry per hidden requirement (below)
     reference/          the author's app
