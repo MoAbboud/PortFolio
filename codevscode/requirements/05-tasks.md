@@ -20,9 +20,10 @@ Planning only. Nothing below stage 0 has started.
 - [x] "Soft engine" means a light engine, where possible. Players can type by hand. All
       model work on Colab; the author's GPU does not matter
 - [ ] The author reads 00-plan and confirms or changes the proposed decisions
-- [ ] The author answers: what "our own LLM" means for the first version (fine-tune of a small
-      open model, proposed); hosted-model-written datasets in or out; Hugging Face for the
-      weights
+- [x] Hugging Face for the weights: yes. Public datasets left out unless needed later; v1
+      trains on our own data
+- [ ] The author confirms the fine-tune route and the naming ("fine-tuned from"), and says
+      whether a from-scratch experiment is wanted
 
 ## Stage 0 - Scaffold and one challenge
 
@@ -109,6 +110,8 @@ Check:
 ## Stage 8 - Datasets and our model v1
 
 - [ ] Train and held-out split of challenges, fixed and recorded
+- [ ] Teacher picked; Colab notebook that generates conversations on train challenges and
+      keeps only those whose app passes the hidden tests
 - [ ] Data manifest with every licence; prepare scripts
 - [ ] Colab notebook: QLoRA fine-tune, merge, convert
 - [ ] Harness: held-out challenges, several seeds, MultiPL-E JavaScript sanity check

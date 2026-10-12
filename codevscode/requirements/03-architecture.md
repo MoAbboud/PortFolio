@@ -205,7 +205,8 @@ flowchart LR
 5. **Publish.** The browser build goes to a public model repo on Hugging Face, named as our
    own (for example `codevscode-helper-1.5b-v1`), with the base model's licence and a notice
    saying what it was fine-tuned from, and a model card carrying the data manifest and the
-   harness numbers. The game pins an exact revision of that repo, so an upload can never
+   harness numbers. Everywhere it is described - the game, the README, the resume - it is
+   "our helper model, fine-tuned from" the base, never just "our own LLM"; see 00-plan. The game pins an exact revision of that repo, so an upload can never
    change the helper under a running match.
 6. **Switch.** A new `models` row; the game's config points at it; new attempts record its
    id. Rolling back is pointing the config at the previous row.
@@ -327,9 +328,9 @@ and is not. See 00-plan's open questions.
 
 ```mermaid
 flowchart LR
-    DS[(Sources<br/>licences recorded)] --> PREP[Prepare<br/>filter, dedupe, format]
+    DS[(Public datasets<br/>in reserve)] -.->|only if needed| PREP[Prepare<br/>filter, dedupe, format]
     CH[(Our challenges<br/>train split only)] --> PREP
-    TE[Teacher: bigger open<br/>model, run locally] --> PREP
+    TE[Teacher: bigger open<br/>model, run on Colab] --> PREP
     PREP --> TRAIN[QLoRA fine-tune<br/>Colab notebook]
     TRAIN --> MERGE[Merge adapter]
     MERGE --> CONV[Convert and quantise<br/>for the browser]
@@ -340,6 +341,9 @@ flowchart LR
     HB -->|loses| KEEP[Keep the base.<br/>Write it up]
 ```
 
+- **Own data first.** The first fine-tune is trained only on our challenges and on
+  conversations a bigger open-weights teacher generates on them, kept only when the resulting
+  app passes the hidden tests. Public datasets wait in reserve (04-data-model).
 - **Challenge split.** Challenges are split once into train and held-out. A held-out
   challenge is never in any training data, its scripted conversations included. The harness
   only reports held-out numbers.
