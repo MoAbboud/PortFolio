@@ -203,6 +203,35 @@ export default [
     },
   },
   {
+    id: "correctness/awkward-text",
+    category: "correctness",
+    requirement: null,
+    title: "Quotes, backslashes and text that looks like code are kept exactly",
+    async run(t) {
+      const token = await member(t);
+      const title = `Ana's "plans" \\ 100% done`;
+      const body = "Remember: '); DROP TABLE notes; -- and \\n are just text.";
+      const saved = await addNote(t, token, title, body);
+      const read = await t.request("GET", `/notes/${saved.id}`, { token });
+      t.equal(read.body.title, title, "title read back");
+      t.equal(read.body.body, body, "body read back");
+      const changed = await t.request("PUT", `/notes/${saved.id}`, { token, body: { title: `${title}'`, body: `'${body}` } });
+      t.equal(changed.status, 200, "changing a note to more awkward text");
+      t.equal(changed.body.title, `${title}'`, "changed title");
+      const list = await t.request("GET", "/notes", { token });
+      t.equal(list.body.notes.length, 1, "notes in the list afterwards");
+    },
+  },
+  {
+    id: "correctness/apostrophe-email",
+    category: "correctness",
+    requirement: null,
+    title: "An email with an apostrophe signs up and logs in",
+    async run(t) {
+      await member(t, "o'brien@example.com");
+    },
+  },
+  {
     id: "correctness/email-any-case-login",
     category: "correctness",
     requirement: "email-case",
