@@ -76,7 +76,9 @@ The code is built; the runs are the author's, on Colab.
       code is reported as not loading
 - [x] `notebooks/01-candidates.ipynb`: Part A, every candidate at full precision under
       transformers; Part B, the finalists converted by us to MLC `q4f16_1` and run through
-      MLC on Colab's GPU. Saves the tables, every reply and every app to Drive
+      MLC on Colab's GPU. No Google Drive: the last step zips the results and the 4-bit model
+      for the author to download. Gitignored - the author's working copy, uploaded to Colab by
+      hand
 - [ ] The author runs Part A on a T4 and sends the table
 - [ ] Part B on the one or two best; the first run may need a name fixed (MLC wheels and
       templates change between releases)
