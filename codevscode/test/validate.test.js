@@ -104,14 +104,13 @@ test("a test whose id does not start with its category, or names a missing requi
   assert.ok(errors.some((e) => e.startsWith('test efficiency/capped: requirement "nope" is not in requirements.json')), errors.join("\n"));
 });
 
-test("a public challenge cannot be held out", async () => {
+test("a split other than train or held_out is caught", async () => {
   const { errors } = await validateChanged((dir) =>
     editJson(path.join(dir, "challenge.json"), (meta) => {
-      meta.split = "held_out";
+      meta.split = "test";
     }),
   );
-  assert.equal(errors.length, 1);
-  assert.match(errors[0], /a public challenge cannot be held out/);
+  assert.deepEqual(errors, ["challenge.json: split must be one of train, held_out"]);
 });
 
 test("a missing file is named", async () => {

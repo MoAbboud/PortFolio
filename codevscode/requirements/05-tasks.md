@@ -6,7 +6,7 @@ Every stage is checked from a PowerShell terminal on Windows. If a stage cannot 
 that way, it is not finished. Every stage that changes a page is also checked in a real
 browser.
 
-Stage 0 is done. Stage 1, the model candidates on Colab, is next.
+Stage 0 is done. Stage 1's code is built; its Colab runs are next.
 
 ## Planning
 
@@ -24,11 +24,12 @@ Stage 0 is done. Stage 1, the model candidates on Colab, is next.
       trains on our own data
 - [x] Fine-tuning confirmed ("go for fine tuning"). A small from-scratch model becomes the
       GitHub Pages prototype (stages P1 and P2)
-- [ ] The author confirms the naming ("our helper model, fine-tuned from ...")
+- [x] The model is called cvchelper ("call it the cvchelper model"), described as fine-tuned
+      from its base
 
 ## Stage 0 - Scaffold and one challenge
 
-Done. 36 Node tests, 4 Python tests; the sample validates.
+Done. 32 Node tests, 4 Python tests; the sample validates.
 
 - [x] `codevscode/` layout: `codevscode/` (Python package), `migrations/`, `tests/` (pytest),
       `runner/` (shared by browser and Node), `tools/`, `test/` (Node), `challenges/`,
@@ -38,9 +39,8 @@ Done. 36 Node tests, 4 Python tests; the sample validates.
       Alembic with an empty baseline migration
 - [x] `.github/workflows/test-codevscode.yml`: the Node suite plus every challenge validated,
       and pytest against a real PostgreSQL service with `REQUIRE_DB=1`
-- [x] Hidden halves of challenges ignored by the root `.gitignore`, the sample excepted -
-      in place before any second challenge exists. Where the private halves are kept is still
-      the author's call
+- [x] Where hidden halves live: in the repo, whole - the author's call. (A gitignore rule for
+      them was written and then removed)
 - [x] The challenge format in JSON (the browser reads it too); `node tools/validate.mjs <dir>`
 - [x] The shared runner: fresh database and module per test, a clock the tests control, query
       counting and query plans for efficiency, stored-value inspection for security
@@ -66,18 +66,30 @@ Check:
 
 ## Stage 1 - Can a browser-sized model build it
 
-- [ ] `notebooks/01-candidates.ipynb` for Colab: convert each candidate from its original
-      weights to the 4-bit browser format, run it on Colab's GPU through the same runtime
-      family, replay the sample's scripted conversations, save the files
-- [ ] Three or four candidates from 03-architecture
-- [ ] Each candidate's files run against the sample's hidden tests (Node on Colab, by the
-      validator's runner, before the judge exists)
-- [ ] A bare browser page that loads the best one or two converted builds and replays one
-      conversation: does it load, time to first token, tokens per second, memory
-- [ ] A results table in the context log: tests passed, valid JavaScript, download size, the
-      browser numbers
-- [ ] The gate decided with the author: challenge size, and the baseline - the smallest model
-      that passes
+The code is built; the runs are the author's, on Colab.
+
+- [x] `helper/prompt.js` and `helper/reply.js`: the helper's prompt and the reply parser, shared
+      by the workspace and the harness; `tools/helper.mjs` exposes them to Python
+- [x] `codevscode/harness.py`: replays a challenge's scripted conversations through any
+      `generate(messages) -> text` and scores the final app with `tools/run.mjs`. Tested with
+      fake models: a perfect helper scores 40 of 40, a silent one leaves the starter, broken
+      code is reported as not loading
+- [x] `notebooks/01-candidates.ipynb`: Part A, every candidate at full precision under
+      transformers; Part B, the finalists converted by us to MLC `q4f16_1` and run through
+      MLC on Colab's GPU. Saves the tables, every reply and every app to Drive
+- [ ] The author runs Part A on a T4 and sends the table
+- [ ] Part B on the one or two best; the first run may need a name fixed (MLC wheels and
+      templates change between releases)
+- [ ] A bare browser page that loads the best converted build and replays one conversation:
+      does it load, time to first token, tokens per second, memory
+- [ ] The results in the context log; the gate decided with the author: challenge size, and
+      the baseline - the smallest model that passes
+
+Check:
+
+    cd codevscode
+    npm test
+    .venv\Scripts\python -m pytest -q
 
 ## Stage P1 - A tiny model trained from scratch
 
@@ -152,7 +164,8 @@ Check:
 - [ ] Train and held-out split of challenges, fixed and recorded
 - [ ] Teacher picked; Colab notebook that generates conversations on train challenges and
       keeps only those whose app passes the hidden tests
-- [ ] Data manifest with every licence; prepare scripts
+- [ ] Data manifest with every licence; prepare scripts that refuse to read a held-out
+      challenge, with a test that proves it
 - [ ] Colab notebook: QLoRA fine-tune, merge, convert
 - [ ] Harness: held-out challenges, several seeds, MultiPL-E JavaScript sanity check
 - [ ] Ship or not by the harness; README numbers either way

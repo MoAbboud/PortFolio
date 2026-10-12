@@ -6,7 +6,7 @@ matters more than the exact fields.
 
 ```mermaid
 flowchart LR
-    CH[(Challenge folders<br/>public half in repo,<br/>hidden half private)] -->|load| PG[(PostgreSQL)]
+    CH[(Challenge folders<br/>in the repo, whole)] -->|load| PG[(PostgreSQL)]
     CH -->|mounted read-only| JB[Judge jobs]
     PG --> JB
     JB --> PG
@@ -67,12 +67,13 @@ anyone asked. A planted bug:
 
 An edit's `find` must occur exactly once. The validator applies each bug to the reference and
 checks it fails exactly the tests in `fails` - no fewer (the tests would miss it) and no more
-(it would break something else too). A public challenge cannot be held out.
+(it would break something else too).
 
-`hidden/` is never in the public repo: the root `.gitignore` ignores
-`codevscode/challenges/*/hidden/` and makes an exception for the sample, which is published
-whole as the demo. Where the private halves are kept and backed up - a private repository is
-the likely answer - is the author's call before the second challenge is written.
+Challenges are tracked whole, hidden halves included - the author's decision: "the hidden
+halves can live on the portfolio fine. no need to hide it." "Hidden" means the game does not
+show it to a player until they earn it, not that it is secret. A held-out challenge is kept out
+of training by the data pipeline refusing to read it (stage 8), which is the only guarantee
+that ever mattered for our own model.
 
 ## Tables
 

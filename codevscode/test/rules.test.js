@@ -1,4 +1,5 @@
-// runner/ is loaded by the browser as well as by Node, so it may import only its own files.
+// runner/ and helper/ are loaded by the browser as well as by Node, so they may import only
+// their own files.
 // A Node import in there would work in every test and then fail in the player's browser.
 
 import assert from "node:assert/strict";
@@ -7,7 +8,9 @@ import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-const RUNNER = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "runner");
+const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+// Every folder whose modules the browser loads.
+const SHARED = ["runner", "helper"];
 
 /** Every import specifier in a module's source. */
 export function importsOf(source) {
@@ -33,12 +36,14 @@ export function runnerProblems(source) {
   return problems;
 }
 
-test("runner/ imports only its own files and uses no Node globals", async () => {
-  const names = (await readdir(RUNNER)).filter((name) => name.endsWith(".js"));
-  assert.ok(names.length >= 4, "runner/ should hold the shared modules");
-  for (const name of names) {
-    const source = await readFile(path.join(RUNNER, name), "utf8");
-    assert.deepEqual(runnerProblems(source), [], name);
+test("runner/ and helper/ import only their own files and use no Node globals", async () => {
+  for (const folder of SHARED) {
+    const names = (await readdir(path.join(ROOT, folder))).filter((name) => name.endsWith(".js"));
+    assert.ok(names.length >= 2, `${folder}/ should hold the shared modules`);
+    for (const name of names) {
+      const source = await readFile(path.join(ROOT, folder, name), "utf8");
+      assert.deepEqual(runnerProblems(source), [], `${folder}/${name}`);
+    }
   }
 });
 

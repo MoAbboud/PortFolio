@@ -223,10 +223,10 @@ flowchart LR
    passes more hidden tests, does not get meaningfully worse on the general JavaScript check,
    and is not bigger.
 5. **Publish.** The browser build goes to a public model repo on Hugging Face, named as our
-   own (for example `codevscode-helper-1.5b-v1`), with the base model's licence and a notice
+   own (`cvchelper-1.5b-v1`, or whatever size wins), with the base model's licence and a notice
    saying what it was fine-tuned from, and a model card carrying the data manifest and the
    harness numbers. Everywhere it is described - the game, the README, the resume - it is
-   "our helper model, fine-tuned from" the base, never just "our own LLM"; see 00-plan. The game pins an exact revision of that repo, so an upload can never
+   "cvchelper, fine-tuned from" the base, never just "our own LLM"; see 00-plan. The game pins an exact revision of that repo, so an upload can never
    change the helper under a running match.
 6. **Switch.** A new `models` row; the game's config points at it; new attempts record its
    id. Rolling back is pointing the config at the previous row.
@@ -241,12 +241,18 @@ file, and do not use the base model's name in a way that suggests its makers end
 
 ### How the helper is asked
 
-Each turn the workspace assembles a prompt from: a fixed system message (the helper's rules
+Built at stage 1 as `helper/prompt.js` and `helper/reply.js`, shared JavaScript that the
+workspace and the harness both call, so a model is measured on the prompt it will get. Each
+turn the prompt is assembled from: a fixed system message (the helper's rules
 and the player's name for it), the brief and the interface, the client answers revealed so
 far, the current files in full, and the last few chat turns. A token budget trims the oldest
 chat first, never the files.
 
-The helper answers with whole files in fenced blocks headed with the file name. A small model
+Earlier helper replies are kept in history with their code replaced by "[wrote app.js]": the
+files are sent whole every turn anyway. The helper answers with whole files in fenced blocks
+whose first line names the file (`// file: app.js`); the parser also accepts a name in the
+fence, on the line before, or a lone block of one language, because small models drift from
+any format, and it never writes a file outside the challenge's list. A small model
 keeps whole-file rewrites more reliably than diffs, and the files are small. The workspace
 shows a diff of what changed before applying it, so the player reads what the helper did -
 that is half the game.
