@@ -18,38 +18,61 @@ flowchart LR
 
 ## Challenge folder
 
+Built at stage 0; `challenges/sample/` is the worked example and `tools/validate.mjs` the
+definition of valid. JSON rather than TOML (the first plan), because the browser reads these
+files too and has no TOML parser.
+
 ```
 challenges/<slug>/
-  challenge.toml        id, version, title, time limit, checklist weights, split (train | held_out)
+  challenge.json        id, version, title, time limit, split (train | held_out), public,
+                        the app's file names, checklist weights
   public/
-    brief.md            the client's request
-    interface.md        routes, shapes, examples
+    brief.md            the client's request, vague on purpose
+    interface.md        routes, shapes, status codes, the app shape
     starter/            app.js, schema.sql, index.html
   hidden/
-    requirements.toml   one entry per hidden requirement (below)
+    requirements.json   one entry per hidden requirement (below)
     reference/          the author's app
-    tests/              spec/, security/, efficiency/, practicality/
-    bugs/               one patch per planted bug, each naming the tests it should fail
-    house-findings/     tests the house files against players
-    defence.toml        stage 9: questions and key points
-    scripts/            scripted conversations for the harness
+    tests/              one .js file per category, each exporting a list of tests
+    bugs.json           the planted bugs: edits to the reference, and the tests each must fail
+    house-findings.js   tests the house files against players, each with a claim
+    scripts/            scripted conversations for the harness, one .json each
+    defence.json        stage 9: questions and key points
 ```
 
 A hidden requirement:
 
 ```
-[[requirement]]
-id = "rate-of-signups"
-category = "efficiency"
-phrasings = ["how many people will sign up", "what load should it handle", "how big will the list get"]
-answer = "We expect about fifty thousand sign-ups in the first week, most of them on launch day."
-tests = ["efficiency/bulk-insert", "efficiency/list-page"]
-threshold = 0.62
+{
+  "id": "lockout",
+  "category": "security",
+  "phrasings": ["what about people guessing passwords", "should there be a limit on login attempts", "..."],
+  "answer": "Someone tried guessing passwords on our old system. After 5 wrong passwords in a row ...",
+  "tests": ["security/lockout-after-five", "security/lockout-ends", "security/lockout-in-a-row"]
+}
 ```
 
-`hidden/` is never in the public repo. Only the sample challenge is published whole, marked as
-spoilers, as the demo. Where the private halves live - a private repository or the private
-root folder - is decided at stage 0.
+A test with `"requirement": null` is a checklist test: expected of every app whether or not
+anyone asked. A planted bug:
+
+```
+{
+  "id": "search-built-from-text",
+  "category": "security",
+  "title": "The search pastes the search text into the SQL",
+  "edits": [{ "file": "app.js", "find": "<exact text in the reference>", "replace": "<buggy text>" }],
+  "fails": ["security/search-injection"]
+}
+```
+
+An edit's `find` must occur exactly once. The validator applies each bug to the reference and
+checks it fails exactly the tests in `fails` - no fewer (the tests would miss it) and no more
+(it would break something else too). A public challenge cannot be held out.
+
+`hidden/` is never in the public repo: the root `.gitignore` ignores
+`codevscode/challenges/*/hidden/` and makes an exception for the sample, which is published
+whole as the demo. Where the private halves are kept and backed up - a private repository is
+the likely answer - is the author's call before the second challenge is written.
 
 ## Tables
 

@@ -15,7 +15,18 @@ disagree, one of them is wrong and it gets fixed rather than worked around.
 [00-plan.md](00-plan.md) is the one to read first: the stage order, the decisions already
 settled with the reason each one was taken, and the open questions still outstanding.
 
-**Status: planning only. There is no code.**
+**Stage 0 is done**: the scaffold, the challenge format with its validator, the test runner
+the browser and the judge will share, and the sample challenge "Team notes" - 40 hidden tests,
+six hidden requirements, six planted bugs. Stage 1, measuring candidate models on Colab, is
+next; a from-scratch model for a GitHub Pages prototype runs alongside (P1, P2).
+
+    cd codevscode
+    npm install
+    npm test                                      runner, validator, rules
+    node tools/validate.mjs challenges/sample     the challenge is consistent
+    node tools/run.mjs challenges/sample <app>    any app folder against the hidden tests
+    docker compose up -d
+    Invoke-RestMethod http://localhost:8020/health
 
 Three things worth stating here so they are not discovered as surprises:
 

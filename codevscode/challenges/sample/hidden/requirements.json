@@ -1,0 +1,74 @@
+[
+  {
+    "id": "search",
+    "category": "correctness",
+    "phrasings": [
+      "how will people find a note",
+      "do you need search",
+      "should people be able to search their notes",
+      "what if someone has lots of notes and wants a particular one"
+    ],
+    "answer": "Oh yes - people need to find a note by a word in its title. GET /notes?q=word should list only the notes whose title contains that word, capitals or not. Just the title, not the text.",
+    "tests": ["correctness/search-title", "correctness/search-nothing"]
+  },
+  {
+    "id": "paging",
+    "category": "efficiency",
+    "phrasings": [
+      "how many notes will people have",
+      "how big will this get",
+      "how many users and notes do you expect",
+      "should the list be paged"
+    ],
+    "answer": "Some of us write a lot - a few people will have thousands of notes. The list should come back a page at a time: 20 by default, ?limit= to ask for a different number but never more than 100, and ?offset= to skip ahead.",
+    "tests": ["efficiency/page-default", "efficiency/page-limit-capped", "efficiency/page-offset"]
+  },
+  {
+    "id": "limits",
+    "category": "practicality",
+    "phrasings": [
+      "how long can a note be",
+      "is there a size limit on notes or titles",
+      "what should happen with a very long note",
+      "how much text goes in a note"
+    ],
+    "answer": "Titles up to 200 characters and notes up to 10,000. If someone sends more, refuse it and tell them why - don't quietly cut it off, they'd lose what they wrote.",
+    "tests": ["practicality/title-limit", "practicality/body-limit"]
+  },
+  {
+    "id": "newest-first",
+    "category": "practicality",
+    "phrasings": [
+      "what order should the notes be in",
+      "how should the list be sorted",
+      "which notes come first"
+    ],
+    "answer": "Newest first, please. The thing I wrote this morning is the thing I'm looking for.",
+    "tests": ["practicality/newest-first"]
+  },
+  {
+    "id": "email-case",
+    "category": "correctness",
+    "phrasings": [
+      "does it matter how people type their email",
+      "are emails case sensitive",
+      "what if someone signs up with capitals in their email",
+      "can two people share an email"
+    ],
+    "answer": "People type their email however their phone capitalises it. Ana@Example.com and ana@example.com are the same person: they should log in either way, and it can't be signed up twice.",
+    "tests": ["correctness/email-any-case-login", "correctness/email-any-case-taken"]
+  },
+  {
+    "id": "lockout",
+    "category": "security",
+    "phrasings": [
+      "what about people guessing passwords",
+      "has anyone attacked your old system",
+      "should there be a limit on login attempts",
+      "what happens after lots of wrong passwords",
+      "are you worried about security"
+    ],
+    "answer": "Someone tried guessing passwords on our old system. After 5 wrong passwords in a row, that account should refuse every login, even the right password, for 15 minutes - answer 429. A right password before that starts the count again.",
+    "tests": ["security/lockout-after-five", "security/lockout-ends", "security/lockout-in-a-row"]
+  }
+]

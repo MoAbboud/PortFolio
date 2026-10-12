@@ -1,0 +1,1 @@
+-- Your tables go here. This file runs into a fresh SQLite database before the app starts.

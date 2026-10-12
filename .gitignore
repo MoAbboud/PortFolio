@@ -131,3 +131,16 @@ deploy/trail-models.tar.gz
 #
 # 06-context.md is already covered by the repo-wide rule above.
 herder/HERDER_SPEC.md
+
+# ============================================================
+# codevscode
+# ============================================================
+codevscode/node_modules/
+codevscode/.venv/
+codevscode/**/__pycache__/
+codevscode/.pytest_cache/
+# The hidden half of a challenge - its requirements, reference app, tests and planted bugs -
+# stays out of the repo: the repo is public, and a hidden test in it is hidden from nobody.
+# The sample challenge is the exception, published whole as the demo and marked as spoilers.
+codevscode/challenges/*/hidden/
+!codevscode/challenges/sample/hidden/

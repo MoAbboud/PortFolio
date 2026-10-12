@@ -1,0 +1,15 @@
+{
+  "id": "sample",
+  "version": 1,
+  "title": "Team notes",
+  "time_limit_minutes": 40,
+  "split": "train",
+  "public": true,
+  "files": ["app.js", "schema.sql", "index.html"],
+  "weights": {
+    "correctness": 250,
+    "security": 200,
+    "efficiency": 100,
+    "practicality": 100
+  }
+}

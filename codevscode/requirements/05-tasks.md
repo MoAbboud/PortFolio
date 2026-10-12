@@ -6,7 +6,7 @@ Every stage is checked from a PowerShell terminal on Windows. If a stage cannot 
 that way, it is not finished. Every stage that changes a page is also checked in a real
 browser.
 
-Planning only. Nothing below stage 0 has started.
+Stage 0 is done. Stage 1, the model candidates on Colab, is next.
 
 ## Planning
 
@@ -22,31 +22,47 @@ Planning only. Nothing below stage 0 has started.
 - [ ] The author reads 00-plan and confirms or changes the proposed decisions
 - [x] Hugging Face for the weights: yes. Public datasets left out unless needed later; v1
       trains on our own data
-- [ ] The author confirms the fine-tune route and the naming ("fine-tuned from"), and says
-      whether a from-scratch experiment is wanted
+- [x] Fine-tuning confirmed ("go for fine tuning"). A small from-scratch model becomes the
+      GitHub Pages prototype (stages P1 and P2)
+- [ ] The author confirms the naming ("our helper model, fine-tuned from ...")
 
 ## Stage 0 - Scaffold and one challenge
 
-- [ ] `codevscode/` layout: `codevscode/` package, `migrations/`, `tests/`, `challenges/`,
-      `judge/`, `web/`, `notebooks/`, `Dockerfile`, `docker-compose.yml`, `requirements.txt`
-- [ ] FastAPI with `/health`; PostgreSQL in Compose; Alembic with an empty first migration
-- [ ] `.github/workflows/test-codevscode.yml`: pytest against a real PostgreSQL service
-- [ ] Decide where the hidden halves of challenges live; gitignore rule in place before any
-      hidden file exists
-- [ ] The challenge format as `challenge.toml` plus folders; `python -m codevscode.challenges
-      validate <slug>`
-- [ ] The sample challenge written by hand: brief, interface, starter, five to eight hidden
-      requirements, reference app, hidden tests in all four categories, three or more planted
-      bugs, house findings, two scripted conversations
-- [ ] Authoring hours recorded in the context log
+Done. 36 Node tests, 4 Python tests; the sample validates.
+
+- [x] `codevscode/` layout: `codevscode/` (Python package), `migrations/`, `tests/` (pytest),
+      `runner/` (shared by browser and Node), `tools/`, `test/` (Node), `challenges/`,
+      `Dockerfile`, `docker-compose.yml` (ports 5435 and 8020), `requirements.txt`,
+      `package.json`. `judge/`, `web/` and `notebooks/` arrive with their stages
+- [x] FastAPI with `/health`, green only at the newest migration; PostgreSQL in Compose;
+      Alembic with an empty baseline migration
+- [x] `.github/workflows/test-codevscode.yml`: the Node suite plus every challenge validated,
+      and pytest against a real PostgreSQL service with `REQUIRE_DB=1`
+- [x] Hidden halves of challenges ignored by the root `.gitignore`, the sample excepted -
+      in place before any second challenge exists. Where the private halves are kept is still
+      the author's call
+- [x] The challenge format in JSON (the browser reads it too); `node tools/validate.mjs <dir>`
+- [x] The shared runner: fresh database and module per test, a clock the tests control, query
+      counting and query plans for efficiency, stored-value inspection for security
+- [x] `node tools/run.mjs <challenge> <app folder>`: any app against the hidden tests, for
+      stage 1
+- [x] The sample challenge, "Team notes": brief, interface, starter, six hidden requirements,
+      reference app, 40 hidden tests in all four categories, six planted bugs each failing
+      exactly one test, three house findings, two scripted conversations. The validator
+      caught two mistakes in it while it was written (a bug's edit that did not match, and a
+      test that could not catch the bug it was for)
+- [!] Authoring hours: the sample was written by me in one session, so it does not measure
+      the author. The author times the second challenge
 
 Check:
 
     cd codevscode
     docker compose up -d
-    Invoke-RestMethod http://localhost:8000/health
-    docker compose exec web pytest
-    docker compose exec web python -m codevscode.challenges validate sample
+    Invoke-RestMethod http://localhost:8020/health
+    docker compose exec web python -m pytest -q
+    npm install
+    npm test
+    node tools/validate.mjs challenges/sample
 
 ## Stage 1 - Can a browser-sized model build it
 
@@ -62,6 +78,30 @@ Check:
       browser numbers
 - [ ] The gate decided with the author: challenge size, and the baseline - the smallest model
       that passes
+
+## Stage P1 - A tiny model trained from scratch
+
+- [ ] Teacher picked (an open-weights coding model that fits a T4 in 4-bit, licence allows
+      training on its outputs)
+- [ ] `notebooks/p1-corpus.ipynb`: made-up briefs in the app shape, the teacher writes apps
+      and edit conversations; kept only if the app loads in the runner and answers a request
+      without crashing; train-split challenges added; held-out never
+- [ ] Our own tokenizer trained on the corpus
+- [ ] `notebooks/p1-train.ipynb`: a small decoder-only model trained from nothing,
+      checkpoints to Drive; size picked from the corpus size
+- [ ] Exported to ONNX at 8 bits; size recorded; loads in a browser
+- [ ] Through the harness on the sample: valid JavaScript rate, tests passed, beside the base
+      models from stage 1
+
+## Stage P2 - The static prototype on GitHub Pages
+
+- [ ] The workspace page in static mode: brief, questions, helper chat, editor, preview, local
+      tests in a worker by the shared runner, score card
+- [ ] Questions matched in the browser (word overlap first; a sentence model only if it
+      measures better on labelled questions)
+- [ ] The tiny model as the helper, in the browser
+- [ ] In `deploy/build-static.mjs` and the Pages workflow at `/codevscode/`; says plainly it
+      is a prototype with a model trained from nothing
 
 ## Stage 2 - The judge and its sandbox
 

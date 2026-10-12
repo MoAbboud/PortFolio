@@ -97,12 +97,32 @@ schema.sql   the tables the app needs, run into a fresh sql.js database
 index.html   a small front end that calls the interface with fetch
 ```
 
-`request` and `response` are plain objects (method, path, query, headers, body; status,
-headers, body). The same module runs in the browser worker for the preview and in Node in the
-judge. Nothing else is importable: no `fetch` to the outside, no filesystem, no timers beyond
-the request. This gives real security items to get right - SQL built from strings, a missing
-ownership check, passwords stored in plain text, user text written into the page unescaped -
-without a real server per player.
+`request` is a plain object - method, path, query, lower-case headers, the raw body text, and
+`time`, the current time in milliseconds - and the response is `{ status, body }`. `db` is a
+thin layer over sql.js with `all`, `get` and `run`. The same module runs in the browser worker
+for the preview and in Node in the judge. It imports nothing (refused before loading), keeps
+every piece of state in the database (it is loaded fresh for every test), and reads the time
+from `request.time`, never `Date.now()`, so the tests control the clock - which is how "locked
+for 15 minutes" gets tested in a millisecond. This gives real security items to get right -
+SQL built from strings, a missing ownership check, passwords stored in plain text, user text
+written into the page unescaped - without a real server per player.
+
+### The shared runner (built, stage 0)
+
+`runner/` is plain ES modules with no Node imports (a test enforces it), so one copy runs the
+tests in the player's browser, in the validator, and in the judge's container. A test is
+`{ id, category, requirement, title, run(t) }`, and `t` gives it:
+
+| `t.` | What for |
+| --- | --- |
+| `request(method, path, { body, raw, token, headers })` | Calls the app; an uncaught error becomes a 500 with `crashed` saying why |
+| `now()`, `advance(ms)` | The clock: it starts at 2026-01-01 and moves a second per request |
+| `queries()`, `resetQueries()`, `queryLog()` | Every query the app made |
+| `fullScans(minRows)` | Queries SQLite answered by reading a whole table of at least that many rows, from `EXPLAIN QUERY PLAN` |
+| `inspect.storedText()` | Every value in every table, blobs decoded - for "no password is stored" |
+| `equal`, `oneOf`, `ok` | Assertions whose messages a player can read |
+
+Each test gets a fresh database from the app's schema and a freshly loaded module.
 
 ## The client and the ask phase
 
@@ -278,11 +298,13 @@ Kinds of job: judge a submission (all hidden tests), check a finding (the findin
 against the reference and against the target), judge a fix (the finding's test plus all
 hidden tests against the fixed files), and the harness's runs.
 
-Efficiency tests compare against the reference app run in the same job: a test passes if the
-player's app stays within a set multiple of the reference's time on a large input, repeated to
-damp noise. Security tests are exploits written as tests (injection, reading another user's
-data, script in stored text, plain-text passwords in the database) plus static rules over the
-source.
+Efficiency tests do not use a stopwatch. They measure what the app asks of the database: how
+many queries a request takes (one per note is the classic mistake), and whether SQLite had to
+read a whole table to answer, from its own query plan. Both come out the same on every machine
+and every run, so an efficiency result is never noise - the stopwatch comparison against the
+reference first proposed here was dropped at stage 0 for that reason. Security tests are
+exploits written as tests (injection, reading another user's data, plain-text or unsalted
+passwords in the database, guessable tokens) plus static rules over the source.
 
 ## Findings and defence
 

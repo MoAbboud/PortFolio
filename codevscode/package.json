@@ -1,0 +1,16 @@
+{
+  "name": "codevscode",
+  "private": true,
+  "type": "module",
+  "description": "Code vs Code - the challenge format, the shared test runner and the validator",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "validate": "node tools/validate.mjs challenges/sample"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "sql.js": "^1.14.2"
+  }
+}
