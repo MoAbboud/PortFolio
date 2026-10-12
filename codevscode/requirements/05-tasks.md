@@ -17,9 +17,12 @@ Planning only. Nothing below stage 0 has started.
       code and the player defends it; players name their helper; coaching in practice, off
       in competition; async first, head-to-head later
 - [x] Requirements folder: README, 00 to 05, and the private context log
+- [x] "Soft engine" means a light engine, where possible. Players can type by hand. All
+      model work on Colab; the author's GPU does not matter
 - [ ] The author reads 00-plan and confirms or changes the proposed decisions
-- [ ] The author answers: what "our own LLM" means for the first version; hosted-model-written
-      datasets in or out; "soft engine"; hand edits; the machine's GPU
+- [ ] The author answers: what "our own LLM" means for the first version (fine-tune of a small
+      open model, proposed); hosted-model-written datasets in or out; Hugging Face for the
+      weights
 
 ## Stage 0 - Scaffold and one challenge
 
@@ -46,15 +49,18 @@ Check:
 
 ## Stage 1 - Can a browser-sized model build it
 
-- [ ] A bare test page that loads a model in the browser and replays a scripted conversation
-      into it, saving the resulting files
-- [ ] Three or four candidates from 03-architecture, each run on the author's machine
-- [ ] One candidate converted to the browser format by us from its original weights
-- [ ] Each candidate's files run against the sample's hidden tests (by the validator's runner,
-      before the judge exists)
-- [ ] A results table in the context log: tests passed, download size, time to first token,
-      tokens per second, memory, valid JavaScript
-- [ ] The gate decided with the author: challenge size, and the baseline model
+- [ ] `notebooks/01-candidates.ipynb` for Colab: convert each candidate from its original
+      weights to the 4-bit browser format, run it on Colab's GPU through the same runtime
+      family, replay the sample's scripted conversations, save the files
+- [ ] Three or four candidates from 03-architecture
+- [ ] Each candidate's files run against the sample's hidden tests (Node on Colab, by the
+      validator's runner, before the judge exists)
+- [ ] A bare browser page that loads the best one or two converted builds and replays one
+      conversation: does it load, time to first token, tokens per second, memory
+- [ ] A results table in the context log: tests passed, valid JavaScript, download size, the
+      browser numbers
+- [ ] The gate decided with the author: challenge size, and the baseline - the smallest model
+      that passes
 
 ## Stage 2 - The judge and its sandbox
 
