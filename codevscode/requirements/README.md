@@ -24,9 +24,10 @@ Three things worth stating here so they are not discovered as surprises:
   quality analyst does: ask the client the right questions, direct the helper, catch what it
   got wrong, review the other player's app for bugs, and defend their own. The checklist -
   security, efficiency, practicality, correctness - decides who wins, not who typed fastest.
-- **The helper is our own model and it runs in the player's browser.** No hosted model, no
-  provider key, no per-request cost. A small open-weights coding model is fine-tuned on data
-  we assemble, measured against the model it started from, and only shipped if it wins.
+- **The helper is our own fine-tune and it runs in the player's browser.** No hosted model,
+  no provider key, no per-request cost. A small open-weights coding model is fine-tuned on
+  Colab on our own data, measured against the model it started from, and only shipped if it
+  wins. It is always described as fine-tuned from its base, by name.
 - **Matches are asynchronous first.** Two players take the same challenge at different
   times, then review and defend each other's apps over a window of days, like a code review.
   Live head-to-head comes later. Until there are players, the opponent is the house: the
