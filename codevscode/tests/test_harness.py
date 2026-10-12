@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from codevscode.harness import PROJECT, load_challenge, measure, replay, score, summarise
+from codevscode.harness import PROJECT, check, load_challenge, measure, replay, score, summarise
 
 SAMPLE = PROJECT / "challenges" / "sample"
 
@@ -53,7 +53,8 @@ def test_a_helper_that_writes_no_code_leaves_the_starter() -> None:
     summary = summarise(score(challenge, played.files))
 
     assert played.files == challenge.starter
-    assert summary["passed"] == 0
+    # The scaffolded starter routes, so an unknown address already answers 404.
+    assert summary["passed"] == 1
     assert summary["loads"] is True
 
 
@@ -97,3 +98,46 @@ def test_the_sample_loads_with_its_answers_and_scripts() -> None:
     assert challenge.id == "sample"
     assert set(challenge.answers) == {"search", "paging", "limits", "newest-first", "email-case", "lockout"}
     assert set(challenge.scripts) == {"asks-everything", "asks-nothing"}
+
+
+def app_block(source: str) -> str:
+    return f"```js\n// file: app.js\n{source}\n```"
+
+
+def test_repair_turns_pass_back_what_the_workspace_shows_until_the_app_runs() -> None:
+    challenge = load_challenge(SAMPLE)
+    handle = "export async function handle() { return { status: 404 }; }"
+    broken = app_block(f"import crypto from 'crypto';\n{handle}")
+    fixed = app_block(handle)
+    seen: list[str] = []
+
+    def model(messages: list[dict[str, str]]) -> str:
+        seen.append(messages[-1]["content"])
+        return fixed if "does not run" in messages[-1]["content"] else broken
+
+    played = replay(challenge, "asks-nothing", model, repair_turns=2)
+
+    assert [t.repair for t in played.turns] == [False, True]
+    assert seen[1] == (
+        "The app does not run. The workspace shows:\n"
+        "- app.js does not load: app.js must not import anything.\n"
+        "Fix it."
+    )
+    assert check(played.files) == []
+
+
+def test_repair_turns_stop_at_the_limit_and_never_start_for_an_app_that_runs() -> None:
+    challenge = load_challenge(SAMPLE)
+    stubborn = app_block("import x from 'x';\nexport async function handle() {}")
+
+    played = replay(challenge, "asks-nothing", lambda m: stubborn, repair_turns=2)
+    assert [t.repair for t in played.turns] == [False, True, True]
+
+    fine = replay(challenge, "asks-nothing", lambda m: "No changes needed.", repair_turns=2)
+    assert [t.repair for t in fine.turns] == [False]
+
+
+def test_the_scaffolded_starter_runs() -> None:
+    assert check(load_challenge(SAMPLE).starter) == []
+
+

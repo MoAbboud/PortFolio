@@ -38,7 +38,7 @@ async function replaceIn(file, find, replace) {
 test("the sample challenge is valid: the reference passes everything, every bug fails exactly its tests", async () => {
   const { errors, notes } = await validateChallenge(SAMPLE);
   assert.deepEqual(errors, []);
-  assert.ok(notes.includes("starter: 0 of 42 tests pass"), notes.join("\n"));
+  assert.ok(notes.includes("starter: 1 of 42 tests pass"), notes.join("\n"));
   assert.equal(notes.filter((note) => note.startsWith("bug ")).length, 6);
 });
 

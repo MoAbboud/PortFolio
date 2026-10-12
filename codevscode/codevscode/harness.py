@@ -94,6 +94,22 @@ class Turn:
     wrote: list[str]
     skipped: list[str]
     seconds: float
+    repair: bool = False
+
+
+def check(files: dict[str, str]) -> list[str]:
+    """What a player would see when the app runs: load errors, schema errors, crashes on a plain
+    request. Never anything from the hidden tests."""
+    with tempfile.TemporaryDirectory(prefix="cvc-check-") as folder:
+        for name, text in files.items():
+            (Path(folder) / name).write_text(text, encoding="utf-8")
+        return _node("tools/check.mjs", None, folder)
+
+
+def repair_message(problems: list[str]) -> str:
+    """What a player types after seeing their app fail to run: the errors, as shown."""
+    listed = "\n".join(f"- {p}" for p in problems)
+    return f"The app does not run. The workspace shows:\n{listed}\nFix it."
 
 
 @dataclass
@@ -110,15 +126,23 @@ def replay(
     *,
     helper_name: str = "cvchelper",
     budget_tokens: int = 12000,
+    repair_turns: int = 0,
 ) -> Replay:
     """Play one scripted conversation: each player message, the model's reply, the files it
-    wrote applied before the next message - exactly as the workspace will."""
+    wrote applied before the next message - exactly as the workspace will.
+
+    Then up to `repair_turns` more turns while the app does not run, each passing back what
+    the workspace would show (load errors, schema errors, crashes) - what any player sees and
+    pastes. Hidden test results are never passed back."""
     script = challenge.scripts[script_id]
     revealed = [challenge.answers[r] for r in script.get("revealed", [])]
     files = dict(challenge.starter)
     history: list[dict[str, str]] = []
     result = Replay(script=script_id, files=files)
-    for message in script["messages"]:
+    messages_to_send = [(message, False) for message in script["messages"]]
+    repairs_left = repair_turns
+    while messages_to_send:
+        message, is_repair = messages_to_send.pop(0)
         messages = helper(
             "messages",
             name=helper_name,
@@ -140,8 +164,13 @@ def replay(
             {"role": "assistant", "content": helper("condense", text=reply)},
         ]
         result.turns.append(
-            Turn(message, reply, sorted(parsed["files"]), parsed["skipped"], seconds)
+            Turn(message, reply, sorted(parsed["files"]), parsed["skipped"], seconds, is_repair)
         )
+        if not messages_to_send and repairs_left > 0:
+            problems = check(files)
+            if problems:
+                messages_to_send.append((repair_message(problems), True))
+                repairs_left -= 1
     result.files = files
     return result
 
@@ -181,6 +210,7 @@ def measure(
                 "script": script_id,
                 **summarise(score(challenge, played.files)),
                 "seconds": round(sum(t.seconds for t in played.turns), 1),
+                "repairs": sum(t.repair for t in played.turns),
                 "files_written": sorted({f for t in played.turns for f in t.wrote}),
                 "replay": played,
             }
