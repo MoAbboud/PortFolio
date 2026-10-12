@@ -106,6 +106,7 @@ The code is built; the runs are the author's, on Colab.
 - [x] Prompt fixed: each turn is one system and one player message; earlier player requests are
       listed in the system message; the helper's replies are never replayed
 - [ ] Run 4: the same notebook after a push - the first run whose repair turns can work
+      (waiting on the free-tier GPU limit to reset; the notebook now stops early without a GPU)
 - [x] Notebook fitted to the free tier: SmolLM2 and the 14B removed with the reasons in the
       cell; a model that runs out of GPU memory is skipped and the rest carry on
 - [!] Part B - our own 4-bit conversion - is parked. MLC's converter segfaults inside TVM
