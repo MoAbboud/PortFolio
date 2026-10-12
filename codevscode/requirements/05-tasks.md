@@ -29,7 +29,7 @@ Stage 0 is done. Stage 1's code is built; its Colab runs are next.
 
 ## Stage 0 - Scaffold and one challenge
 
-Done. 32 Node tests, 4 Python tests; the sample validates.
+Done. 32 Node tests, 4 Python tests; the sample validates. (Later stages add to both: 51 Node and 9 Python after A1.)
 
 - [x] `codevscode/` layout: `codevscode/` (Python package), `migrations/`, `tests/` (pytest),
       `runner/` (shared by browser and Node), `tools/`, `test/` (Node), `challenges/`,
@@ -76,7 +76,9 @@ The code is built; the runs are the author's, on Colab.
       code is reported as not loading
 - [x] `notebooks/01-candidates.ipynb`: Part A, every candidate at full precision under
       transformers; Part B, the finalists converted by us to MLC `q4f16_1` and run through
-      MLC on Colab's GPU. Saves the tables, every reply and every app to Drive
+      MLC on Colab's GPU. No Google Drive: the last step zips the results and the 4-bit model
+      for the author to download. Gitignored - the author's working copy, uploaded to Colab by
+      hand
 - [ ] The author runs Part A on a T4 and sends the table
 - [ ] Part B on the one or two best; the first run may need a name fixed (MLC wheels and
       templates change between releases)
@@ -114,6 +116,40 @@ Check:
 - [ ] The tiny model as the helper, in the browser
 - [ ] In `deploy/build-static.mjs` and the Pages workflow at `/codevscode/`; says plainly it
       is a prototype with a model trained from nothing
+
+## Stage A1 - Planting bugs
+
+Done.
+
+- [x] `analyzer/mutate.js`: twelve operators over app.js and schema.sql, by acorn and source
+      splicing; every app.js mutant parses
+- [x] `tools/mutate.mjs`: each mutant against the hidden tests in its own process with a time
+      limit; the report (mutation score, per operator, the survivors); `--out` dataset rows
+- [x] On the sample: 120 mutants, 52% caught at first; two tests added for the gaps it showed;
+      57% now
+- [x] Tests: each operator on small sources, ids unique, the tiny fixture labelled end to end
+
+Check:
+
+    cd codevscode
+    npm test
+    node tools/mutate.mjs challenges/sample --out data/mutants-sample.jsonl
+
+## Stage A2 - Rules baseline
+
+- [ ] A rule per operator kind, over one function's source; scored on the rows
+
+## Stage A3 - The classifier
+
+- [ ] The label policy settled with the author (declared or test-confirmed, per operator)
+- [ ] Rows from the P1 corpus, labelled by operator
+- [ ] `notebooks/a3-classifier.ipynb`: a code encoder fine-tuned on Colab, multi-label over
+      the four categories; ONNX at 8 bits
+
+## Stage A4 - Measured and put to work
+
+- [ ] Classifier against rules on held-out challenges, per category; README either way
+- [ ] Practice hints, "what you missed", the house's targeting
 
 ## Stage 2 - The judge and its sandbox
 

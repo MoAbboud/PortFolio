@@ -352,6 +352,72 @@ The score card lists every line with the test, question or finding behind it. Pa
 characters are shown on the card without changing the score; typing by hand is normal play
 and is not. See 00-plan's open questions.
 
+## The analyzer
+
+A second model of ours. It reads one function of an app and names the checklist categories it
+is likely to fail. Advisory only: the tests are the judge.
+
+### Planting bugs (built, A1)
+
+`analyzer/mutate.js` parses an app with acorn and applies each operator wherever it fits,
+splicing the source so the rest of the file is untouched; `tools/mutate.mjs` runs the hidden
+tests against every mutant, each in its own Node process with a time limit (a mutated loop
+can spin forever).
+
+| Operator | Declares | The mistake |
+| --- | --- | --- |
+| sql-from-text | security | a query parameter pasted into the SQL text |
+| drop-condition | security | an `AND column = ?` removed - usually an ownership check |
+| weak-random | security | `crypto.getRandomValues` not called |
+| uncap | efficiency | `Math.min(value, CAP)` replaced by the value |
+| drop-index | efficiency | a `CREATE INDEX` removed |
+| drop-lowercase | correctness | `.toLowerCase()` removed |
+| flip-boundary | correctness | `<` and `<=`, `>` and `>=` swapped |
+| drop-await | correctness | an `await` removed |
+| wrong-status | correctness | a status code changed to a neighbouring one |
+| drop-unique | correctness | a `UNIQUE` constraint removed |
+| drop-guard | practicality | an `if (...) return ...` guard removed |
+| drop-trim | practicality | `.trim()` removed |
+
+On the sample's reference: 120 mutants. The first run caught 62 (52%); the biggest gap was
+SQL built from a note's title, which no test exercised with a quote. Two tests were added
+(awkward text round-trips; an email with an apostrophe) and the score rose to 57%. Most of
+what still survives pastes server-made values (salts, hashes, ids, times) into SQL - not
+exploitable by a player, still a flaw, and exactly what the analyzer should flag without a
+test to prove it.
+
+### The dataset
+
+One row per mutant - the function it sits in before and after, the operator, the declared
+category, the categories the tests saw, and whether it was caught - and one row per function
+of the reference, unbroken, labelled with nothing. Sources, all our own:
+
+- mutants of the train-split challenges' reference apps, confirmed by their hidden tests;
+- mutants of the P1 corpus - thousands of small apps in the same shape - labelled by the
+  operator alone, since those apps have no hidden tests;
+- after launch, judged player submissions, with consent.
+
+Held-out challenges are never mutated into training rows.
+
+### The classifier and its baseline (A2, A3)
+
+- **Rules baseline:** a hand-written check per operator kind (SQL built from a template or
+  `+`, `getRandomValues` absent where a token is made, `Math.min` absent around a limit, and
+  so on), scored on the same rows. Mailman's lesson again: the rules may win.
+- **Classifier:** a small code encoder (CodeBERT or UniXcoder class, around 125M parameters)
+  with a multi-label head over the four categories, fine-tuned on Colab, exported to ONNX at
+  8 bits so it can run in the browser.
+- **Measured** per category, precision and recall, on held-out challenges' mutants and clean
+  functions, against the rules. The README reports both.
+
+### Where it is used (A4)
+
+- Practice: hints that point at a function and a category, never the fix.
+- After a match: "what you missed" - findings the analyzer saw in the opponent's app that the
+  player did not file.
+- The house: which of its prepared findings to file first against a player's app.
+- Never in ranked review, which is the skill being scored; never in scoring.
+
 ## The training pipeline and the harness
 
 ```mermaid

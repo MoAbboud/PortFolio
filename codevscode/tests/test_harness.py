@@ -41,7 +41,7 @@ def test_a_perfect_helper_scores_everything() -> None:
 
     assert [row["script"] for row in rows] == ["asks-everything", "asks-nothing"]
     for row in rows:
-        assert row["passed"] == row["of"] == 40, row
+        assert row["passed"] == row["of"] == 42, row
         assert row["loads"] is True
         assert row["files_written"] == ["app.js", "index.html", "schema.sql"]
 

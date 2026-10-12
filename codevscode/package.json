@@ -11,6 +11,8 @@
     "node": ">=22"
   },
   "dependencies": {
+    "acorn": "^8.19.0",
+    "acorn-walk": "^8.3.5",
     "sql.js": "^1.14.2"
   }
 }
