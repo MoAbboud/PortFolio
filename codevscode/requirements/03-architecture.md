@@ -35,7 +35,7 @@ flowchart LR
         BOX[Job container<br/>Node, no network]
     end
     subgraph O[Offline]
-        NB[Training notebooks<br/>Colab]
+        NB[Training notebooks<br/>Colab, all model work]
         CV[Converter<br/>to browser format]
         HB[Harness]
         HF[(Public weights repo)]
@@ -162,8 +162,61 @@ Checked again at stage 1 and stage 11, because licences and releases move. The f
 | SmolLM2 Instruct | 360M, 1.7B | Apache 2.0 | Fully open training data, which suits the "ours" story |
 | StarCoder2 | 3B | BigCode OpenRAIL-M | Code only, no chat tuning; may be too big for a browser |
 
-Stage 1 records for each: hidden tests passed on the sample challenge, download size, time to
-first token, tokens per second, peak memory, and whether it produced valid JavaScript at all.
+Stage 1 records for each, on Colab: hidden tests passed on the sample challenge, download
+size, and whether it produced valid JavaScript at all. Then, for the best one or two, in an
+ordinary browser: does it load, time to first token, tokens per second, memory.
+
+### Shipping the helper
+
+What it takes to go from an open model to the helper in a player's browser. All of it runs on
+Colab; nothing needs the author's own GPU.
+
+```mermaid
+flowchart LR
+    B[Base model<br/>open weights] --> FT[1. QLoRA fine-tune<br/>Colab T4]
+    FT --> AD[(Adapter<br/>tens of MB)]
+    B --> MG[2. Merge]
+    AD --> MG
+    MG --> FULL[(Full model<br/>16-bit)]
+    FULL --> CV[3. Quantise to 4-bit,<br/>convert for the browser]
+    CV --> Q4[(Browser build<br/>shards + config)]
+    Q4 --> HB[4. Harness on Colab<br/>same 4-bit build]
+    HB -->|wins| PUB[5. Publish to a public<br/>weights repo, pinned]
+    PUB --> GAME[6. Game config<br/>points at the pin]
+    GAME --> P[Player's browser:<br/>download once, cache,<br/>run on WebGPU]
+```
+
+1. **Fine-tune.** The base model is loaded in 4-bit on a free T4 and a small LoRA adapter is
+   trained on top, on the prepared data. Checkpoints go to Google Drive every few hundred
+   steps, because a free Colab session can end without warning. At these sizes a run is
+   hours, not days.
+2. **Merge.** The adapter is folded into the base weights, giving a normal full model.
+3. **Quantise and convert.** The full model is quantised to 4 bits and converted to the
+   browser runtime's format: weight shards, a config with the chat template, and the
+   tokenizer. For WebLLM a fine-tune of an architecture it already supports reuses the
+   prebuilt WebGPU model library, so nothing has to be compiled - to be confirmed at stage 1
+   by doing it with the base weights first. The fallback is an ONNX export for
+   transformers.js. Rough sizes after 4-bit: a 0.5B model a few hundred MB, a 1.5B model
+   around a gigabyte.
+4. **Measure.** The same 4-bit build runs in the harness on Colab's GPU, against the base
+   model converted the same way, on held-out challenges with several seeds. It ships if it
+   passes more hidden tests, does not get meaningfully worse on the general JavaScript check,
+   and is not bigger.
+5. **Publish.** The browser build goes to a public model repo on Hugging Face, named as our
+   own (for example `codevscode-helper-1.5b-v1`), with the base model's licence and a notice
+   saying what it was fine-tuned from, and a model card carrying the data manifest and the
+   harness numbers. The game pins an exact revision of that repo, so an upload can never
+   change the helper under a running match.
+6. **Switch.** A new `models` row; the game's config points at it; new attempts record its
+   id. Rolling back is pointing the config at the previous row.
+
+What the player sees: on the first visit the page says how big the helper is and starts
+downloading it with a progress bar, while the brief and the ask phase are already playable.
+Later visits load it from the browser's cache in seconds. The helper's answers stream in as
+they are written.
+
+Licence duties for an Apache 2.0 base: ship the licence, say it was modified, keep any notice
+file, and do not use the base model's name in a way that suggests its makers endorse the game.
 
 ### How the helper is asked
 
@@ -266,9 +319,9 @@ A proposal to be tuned once people play. Out of 1000 per player per match:
 | Defence | 100 | Share of valid findings against you that you fixed |
 | Time | 50 | Share of the time limit left at submission |
 
-The score card lists every line with the test, question or finding behind it. Hand edits and
-pasted characters are shown on the card without changing the score; see 00-plan's open
-questions.
+The score card lists every line with the test, question or finding behind it. Pasted
+characters are shown on the card without changing the score; typing by hand is normal play
+and is not. See 00-plan's open questions.
 
 ## The training pipeline and the harness
 
