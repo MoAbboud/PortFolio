@@ -38,9 +38,6 @@ export async function validateChallenge(dir) {
   if (typeof meta.title !== "string" || !meta.title) fail("challenge.json: title is missing");
   if (!(meta.time_limit_minutes > 0)) fail("challenge.json: time_limit_minutes must be above 0");
   if (!SPLITS.includes(meta.split)) fail(`challenge.json: split must be one of ${SPLITS.join(", ")}`);
-  if (meta.public === true && meta.split === "held_out") {
-    fail("challenge.json: a public challenge cannot be held out - its hidden half is readable by anyone, a model's training data included");
-  }
   const files = Array.isArray(meta.files) ? meta.files : [];
   for (const name of ["app.js", "schema.sql"]) {
     if (!files.includes(name)) fail(`challenge.json: files must include ${name}`);

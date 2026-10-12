@@ -78,6 +78,8 @@ jobs:
       # 5432 here, not the 5435 of a local run: on the runner nothing else wants the port.
       DATABASE_URL: postgresql+psycopg://codevscode:codevscode@localhost:5432/codevscode
       REQUIRE_DB: "1"
+      # The harness tests skip without Node on a laptop; here a skip would hide a failure.
+      REQUIRE_NODE: "1"
 
     steps:
       - uses: actions/checkout@v4
@@ -90,6 +92,16 @@ jobs:
 
       - name: Install
         run: pip install -r requirements.txt
+
+      # The model harness (codevscode/harness.py) calls the game's JavaScript through Node.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: codevscode/package-lock.json
+
+      - name: Install Node packages
+        run: npm ci
 
       # The schema is the migrations, so running them here tests them as well.
       - name: Migrate
