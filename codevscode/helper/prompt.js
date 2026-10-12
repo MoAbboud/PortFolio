@@ -25,28 +25,33 @@ export function fenceFor(name) {
  * - `revealed`: the client's answers the player has unlocked, as strings.
  * - `files`: the app's current files, name -> text. Always sent whole: the helper edits what
  *   is actually there, not what it remembers writing.
- * - `history`: earlier turns, `{ role, content }`, already condensed (see condenseReply).
+ * - `history`: earlier turns, `{ role, content }`. Only the player's earlier messages are used.
  * - `message`: what the player just said.
- * - `budgetTokens`: history is trimmed, oldest first, to fit. Files never are.
+ * - `budgetTokens`: earlier messages are dropped, oldest first, to fit. Files never are.
+ *
+ * Every turn is one system message and one player message. The helper's earlier replies are
+ * never replayed as assistant turns: the files show what it did. Stage 1's second run replayed
+ * them with their code shortened to "[wrote app.js]", and small models copied that format and
+ * answered with placeholders instead of code - every turn after the first wrote nothing.
  */
 export function buildMessages({ name, brief, iface, revealed = [], files, history = [], message, budgetTokens = 12000 }) {
-  const system = systemMessage({ name, brief, iface, revealed, files });
-  const user = { role: "user", content: message };
-  const budget = budgetTokens * CHARS_PER_TOKEN - system.length - message.length;
-  const kept = [];
+  const earlier = history.filter((turn) => turn.role === "user").map((turn) => turn.content);
+  const fixed = systemMessage({ name, brief, iface, revealed, files, asked: [] }).length + message.length;
+  const budget = budgetTokens * CHARS_PER_TOKEN - fixed;
+  const asked = [];
   let used = 0;
-  for (let i = history.length - 1; i >= 0; i--) {
-    const size = history[i].content.length;
-    if (used + size > budget) break;
-    kept.unshift({ role: history[i].role, content: history[i].content });
-    used += size;
+  for (let i = earlier.length - 1; i >= 0; i--) {
+    if (used + earlier[i].length > budget) break;
+    asked.unshift(earlier[i]);
+    used += earlier[i].length;
   }
-  // A conversation must not open with the helper's turn.
-  while (kept.length && kept[0].role !== "user") kept.shift();
-  return [{ role: "system", content: system }, ...kept, user];
+  return [
+    { role: "system", content: systemMessage({ name, brief, iface, revealed, files, asked }) },
+    { role: "user", content: message },
+  ];
 }
 
-function systemMessage({ name, brief, iface, revealed, files }) {
+function systemMessage({ name, brief, iface, revealed, files, asked }) {
   const names = Object.keys(files);
   const example = fenceFor("app.js");
   const fileBlocks = names
@@ -81,15 +86,17 @@ function systemMessage({ name, brief, iface, revealed, files }) {
     "## What the client has told the player",
     told,
     "",
+    ...(asked.length
+      ? ["## What the player asked for before (already worked on - the files show the result)", ...asked.map((m) => `- ${m}`), ""]
+      : []),
     "## The files as they are now",
     fileBlocks,
   ].join("\n");
 }
 
 /**
- * A helper reply as it is kept in history: the prose, with each file block replaced by a
- * note of which file was written. The current files are sent whole every turn, so keeping old
- * copies would spend the budget on code that no longer exists.
+ * A helper reply shortened for display or logs: the prose, with each file block replaced by a
+ * note of which file was written. Not sent back to the model - see buildMessages.
  */
 export function condenseReply(text) {
   return text.replace(/```[^\n]*\n[\s\S]*?```/g, (block) => {

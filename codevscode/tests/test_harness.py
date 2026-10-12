@@ -80,9 +80,11 @@ def test_the_helper_is_told_only_what_the_script_revealed_and_sees_condensed_his
     lockout = challenge.answers["lockout"]
     assert lockout in seen[0][0]["content"]
     assert seen[0][0]["content"].startswith("You are Pixel")
-    # Turn two: the first exchange is in history, its code replaced by a note.
-    assert [m["role"] for m in seen[1]] == ["system", "user", "assistant", "user"]
-    assert seen[1][2]["content"] == "Done.\n[wrote app.js]"
+    # Turn two: one system and one player message. The first request is listed in the system
+    # message; the helper's own reply is not replayed (models copied its placeholders - run 2).
+    assert [m["role"] for m in seen[1]] == ["system", "user"]
+    assert "- " + challenge.scripts["asks-everything"]["messages"][0] in seen[1][0]["content"]
+    assert "[wrote" not in seen[1][0]["content"]
     # And the file the helper wrote is what it now sees.
     assert "return { status: 404 }" in seen[1][0]["content"]
 

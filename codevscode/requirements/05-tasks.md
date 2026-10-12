@@ -6,7 +6,7 @@ Every stage is checked from a PowerShell terminal on Windows. If a stage cannot 
 that way, it is not finished. Every stage that changes a page is also checked in a real
 browser.
 
-Stage 0 is done. Stage 1's first run scored 0 of 42 everywhere; the second run - scaffold, repair turns, teachers - is next.
+Stage 0 is done. Stage 1's first run scored 0 of 42 everywhere; the second (scaffold, repair turns, teachers) got a browser-sized model to 12 of 42. Reading its apps is next.
 
 ## Planning
 
@@ -91,7 +91,24 @@ The code is built; the runs are the author's, on Colab.
       upper case, the body is text
 - [x] Notebook: candidates at 16 bits plus teachers Qwen2.5-Coder 7B and 14B at 4 bits
       (bitsandbytes), REPAIR_TURNS = 2, a `repairs` column
-- [ ] The author pushes, uploads the notebook, runs Part A, sends the results zip
+- [x] Run 2 on Colab's free tier (pasted output, 2026-10-12). Qwen2.5-Coder-1.5B 12 of 42
+      asking nothing (6 correctness, 4 security, 2 practicality) but 2 asking everything;
+      0.5B 1 and 0; Qwen3-1.7B 0 (does not load after 2 repairs) and 1; SmolLM2 1 and 1, its
+      8,192-token context smaller than our 8,776-token prompt; 7B teacher at 4 bits 0 (does not
+      load) and 3; 14B out of GPU memory in attention. Most apps now load
+- [x] Run 3 (free-tier notebook, results zip read 2026-10-12): identical scores to run 2 -
+      greedy decoding is reproducible. The apps explained both puzzles: (1) a harness bug - the
+      helper's earlier replies were replayed with code shortened to "[wrote app.js]", models
+      copied that and wrote nothing, so every turn after the first, repairs included, was a
+      no-op; (2) one crash at the gate decides the score - asks-everything's PBKDF2 instruction
+      led the 1.5B to misuse Web Crypto ("Unrecognized algorithm name") in signup, blocking 36
+      tests; asks-nothing's simpler hashing got through signup and login, then createNote crashed
+- [x] Prompt fixed: each turn is one system and one player message; earlier player requests are
+      listed in the system message; the helper's replies are never replayed
+- [ ] Run 4: the same notebook after a push - the first run whose repair turns can work
+      (waiting on the free-tier GPU limit to reset; the notebook now stops early without a GPU)
+- [x] Notebook fitted to the free tier: SmolLM2 and the 14B removed with the reasons in the
+      cell; a model that runs out of GPU memory is skipped and the rest carry on
 - [!] Part B - our own 4-bit conversion - is parked. MLC's converter segfaults inside TVM
       while compiling the quantisation step (MLC nightly, TVM 0.26.dev246), on the GPU and the
       CPU, under Python 3.13 and 3.12. It returns once a model passes Part A, as an ONNX export
