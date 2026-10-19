@@ -144,8 +144,14 @@ is in the parameters hash: change the car and every engine file is stale until r
 - In a manual, `gear` is the gate the stick is pushed into, not the gear engaged: the
   simulation decides whether it goes in (stage 5), so a replay grinds exactly where the run
   did.
-- Only changes are recorded. Packed as one flat integer array; a 0 to 60 run is a few hundred
-  bytes, small enough for a URL.
+- Only changes are recorded, at the step they take effect, from step 0 - the page's own key
+  turn included. The 0 to 60 run's rules (prelude, countdown, GO, leave in first) are
+  `sim/sixty.js`.
+- Packed by `sim/runlog.js` (built stage 7): unsigned varints - format, `simVersion`, engine
+  id, the first eight hex digits of the engine hash, gearbox, traction control, mode, steps,
+  event count, then per event the steps since the last, a channel number and a value (gears
+  -1..6 as 0..7, the lever's P R N D as 8..11). A keyboard run is 200 to 300 events, about
+  1 KB packed and 800 characters in the link.
 - No time and no score in the log. Both are recomputed from it.
 
 ## The share link
@@ -154,7 +160,10 @@ is in the parameters hash: change the car and every engine file is stale until r
 https://<site>/pedalsim/#run=<base64url( deflate-raw( packed log ) )>
 ```
 
-The fragment never reaches any server. `CompressionStream` in the browser does the deflate.
+The fragment never reaches any server. `CompressionStream` in the browser does the deflate
+(`ui/share.js`, built stage 7). Opening one: unpack, refuse it if `simVersion` or the engine
+hash differ from this page's (it cannot be re-driven faithfully), check it as a script, then
+re-drive it and score it as if it had just been driven here.
 
 ## The gauge layout and development - in memory only
 
@@ -169,15 +178,15 @@ layout[engine] = {
 }
 
 development[engine] = {
-  tach:  Float32Array(bins),            one per 100 rpm, 0..1
-  speed: Float32Array(bins),            one per mph, 0..1
+  tach:  Float32Array(bins),            one per 100 rpm - all 1 since 2026-10-19: faces
+  speed: Float32Array(bins),            one per mph       are shown whole from the start
   events: { redlineSeen, shiftMarkSeen: [per gear] },
   dyno:  Float32Array(bins)             largest full-throttle torque seen per rpm bin
 }
 ```
 
-- Kept per engine, so cycling back restores what that engine had built.
-- Never saved: every refresh starts with empty circles (the author: "each refresh is a new
+- Kept per engine, so cycling back keeps that engine's dyno strip.
+- Never saved: every refresh starts afresh (the author: "each refresh is a new
   run ... its a sandbox that resets").
 - Never read by `sim/`.
 

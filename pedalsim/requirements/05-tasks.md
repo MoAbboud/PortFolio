@@ -6,7 +6,7 @@ Every stage is checked from a PowerShell terminal on Windows. If a stage cannot 
 that way, it is not finished. Every stage that changes the page is also checked at phone
 width in landscape in the browser's device view.
 
-Stages 0 to 6 are done. Stage 7 - the 0 to 60 run, the score, the board and the share link - is next.
+Stages 0 to 7 are done. Stage 8, publishing - README, recording, credits - is next.
 
 ## Planning
 
@@ -318,15 +318,35 @@ Check:
     npm test
     node tools/solve.js                         re-solve all five (about ten minutes)
 
+## Gauges whole from the start (after stage 6)
+
+- [x] The author dropped the build-up: faces whole from the start, no dissolve on cycling, no
+      break on a blown engine, "Build it all" removed (`ui/development.js` `built`)
+
 ## Stage 7 - 0 to 60, score, board, share link
 
-- [ ] Countdown; recorder; ghost sim and ghost needle
-- [ ] Phase split and time lost per phase, summing to the gap (tested)
-- [ ] Score and clean mark; score card
-- [ ] Bests, recent runs and opened links in memory only; watch any run back; a test that
+Done. 203 tests (17 new). Details and what was checked in Chrome: 03-architecture, "The run,
+as built (stage 7)".
+
+- [x] Countdown; recorder; ghost sim and ghost needle (0 TO 60 button, G key)
+- [x] Phase split and time lost per phase, summing to the gap (tested), printed in ms that
+      add up too
+- [x] Score and clean mark; score card (`sim/score.js`, `ui/card.js`)
+- [x] Bests, recent runs and opened links in memory only; watch any run back; a test that
       nothing touches `localStorage`, cookies or IndexedDB
-- [ ] Share link: pack, deflate, base64url in the fragment; open, re-drive, show
-- [ ] Test: a run recorded in headless Chrome scores the same in Node
+- [x] Share link: pack (`sim/runlog.js`), deflate, base64url in the fragment (`ui/share.js`);
+      open, re-drive, show; refused if `SIM_VERSION` or the engine hash differ
+- [x] Test: a run recorded in headless Chrome scores the same in Node
+      (`test/scripts/chrome-v8-run.json`)
+- [x] `sim/replay.js` honours a log's `tractionControl`; engine files carry their `hash`
+- [ ] Someone other than the author does a run on a keyboard and reads the card
+
+Check:
+
+    cd pedalsim
+    npm test
+    npx --yes serve .
+    # open it, M for the manual, G: clutch down (C), 1, a little gas, release on GO
 
 ## Stage 8 - Publish
 

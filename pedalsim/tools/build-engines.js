@@ -57,7 +57,9 @@ export function engineFile(params, shared) {
     '// edit: change the parameters and run `node tools/build-engines.js`.',
     `// parameters sha256 ${hash}`,
     '',
-    `export default ${serialise(buildEngine(params, shared, CHASSIS))};`,
+    // The hash goes in the engine too, so a run log or a perfect run can say which build of
+    // the engine it was driven on.
+    `export default ${serialise({ ...buildEngine(params, shared, CHASSIS), hash })};`,
     '',
   ].join('\n');
 }

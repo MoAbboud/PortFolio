@@ -548,6 +548,45 @@ with a "clean" mark for a run with no grind, no over-rev, no blown engine and lo
 heat (the author's definition: "dont blow out the engine etc"). A stall or a blown engine ends
 the run. Every other mistake already costs time, so it is not penalised twice.
 
+## The run, as built (stage 7)
+
+**The run** (`ui/main.js`, rules from `sim/sixty.js`): 0 TO 60 or G gives a fresh car with the
+gearbox and traction control as set; the page feeds the simulation its own key turn until
+step 3000 (the driver's inputs are ignored until then), READY, a 2 - 1 countdown, GO, then the
+running time. Every input change is recorded at the step it takes effect. The run ends at
+60 mph, on a stall, a blown engine, or 20 s; Stop, another engine or the other gearbox abandon
+it, and traction control cannot be toggled during one.
+
+**The ghost**: the engine's stored perfect run, stepped in the same loop from the same step 0,
+drawn as a thin pale needle on both gauges. It is shown during a run and while one is watched.
+
+**The card** (`sim/score.js`, `ui/card.js`) is worked out by re-driving the recorded log - the
+same path a shared link takes - and the page logs an error if that disagrees with what the
+live run saw. Phases are cut by what the driver did: the launch until the clutch is up and
+gripping in a gear; a gear until the clutch pedal moves or the gear changes; a shift until the
+clutch grips again. Each phase's loss is its time less the perfect run's time over the same
+speeds (highest speed so far); they telescope to the gap, and the card rounds them to
+milliseconds by largest remainder so the printed numbers add up too. Each row says why:
+revs at a shift against the perfect run's, clutch-in time, wheelspin time, limiter time,
+clutch heat.
+
+**Score and clean.** `round(1000 * perfect / yours)` for a finished manual run; the automatic
+is timed, not scored. Clean: no grind, no check engine, no blown engine, and clutch heat no
+more than twice the perfect run's or 150 kJ, whichever is more (a brisk keyboard launch makes
+20 to 60 kJ, a keyboard shift about 30). A run with traction control on is scored against the
+same perfect run and marked "traction control on". False start, leaving in a gear other than
+first, stalling and blowing the engine are named on the card.
+
+**The board**: this visit's runs, newest first; the last ten kept, plus each engine's best
+however old. Each has CARD and WATCH; a card has WATCH, SHARE and AGAIN (BEAT IT on a link).
+Nothing is written to storage, and a test greps the page for any way to.
+
+**Checked in Chrome** (headless, default GL, real key events): a V8 manual run timed 5.925 s
+live and the same to the last bit when its log was re-driven in Node - kept as
+`test/scripts/chrome-v8-run.json`, scored by a test; its link (840 characters) re-drove to the
+same time on a fresh page; an automatic run timed and unscored; watching back with the ghost;
+a false start; the card at 390 px wide.
+
 ## The board and the share link
 
 **The board** lives in memory for as long as the page is open: best score per engine, the
@@ -568,6 +607,14 @@ both. An opened run joins the receiver's board for that page load, so they can r
 drove it: a program could write a perfect input log. The page says so.
 
 ## The interface the engine builds
+
+**Dropped after stage 6 (2026-10-19).** The author: "im over the idea of the gauges showing
+when the tick gets to them, just show the gauge numbers the whole time." The faces are now
+whole from the start (`createDevelopment(layout, true)`): every bin built, the redline and the
+shift marks shown. The reveal shader still draws them - at full development it is a crisp
+face with the film grain - and the dyno strip is still drawn only from full-throttle torque
+the engine has made. Cycling engines swaps the faces at once; a blown engine no longer breaks
+them. "Build it all" is gone. What follows is the design as it was built in stage 3.
 
 The author's idea: the gauges start as empty circles, and revving the engine makes them
 pixelate in. Two pieces of maths: the **layout**, which decides what each face would show,

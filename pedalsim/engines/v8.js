@@ -157,4 +157,5 @@ export default {
       },
     },
   },
+  hash: "fdec99425f161f6fbe4269b2cec43e7e2c1b1147bb292fbe46855e3369913cf0",
 };

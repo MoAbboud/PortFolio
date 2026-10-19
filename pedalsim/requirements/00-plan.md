@@ -2,11 +2,11 @@
 
 ## Objective
 
-**One plain, sporty page of gauges with real engine maths behind it - and the maths builds
-the gauges too.** Cycle through engines from a V4 to a V12. The gauges start as empty circles;
-rev the engine and they pixelate into existence, each part appearing where and as much as the
-engine has actually been. Drive, brake, shift by hand with a coach telling you when, and run
-0 to 60 against the perfect run the page has worked out for that engine.
+**One plain, sporty page of gauges with real engine maths behind it.** Cycle through engines
+from a V4 to a V12, each with gauges laid out from its own figures. Drive, brake, shift by hand
+with a coach telling you when, and run 0 to 60 against the perfect run the page has worked out
+for that engine. (Until 2026-10-19 the gauges also started as empty circles and pixelated in
+where the engine had been; the author dropped that after stage 6.)
 
 Finished, for the first version, when seven things are true:
 
@@ -15,10 +15,8 @@ Finished, for the first version, when seven things are true:
 2. The five engines drive visibly differently in the same car, and each engine's numbers
    (peak torque, peak power, redline, top speed, 0 to 60) come out of its dimensions and
    land in the range real engines of its kind reach. A test fails if they stop doing so.
-3. Every engine's gauges start as empty circles and are built only by running that engine:
-   a stretch of the tachometer appears where the engine has revved, the speedometer where
-   the car has been, the redline only once it has been reached. Nothing on a gauge face is
-   drawn by hand; every tick, number and arc is placed from the engine's own figures.
+3. Nothing on a gauge face is drawn by hand; every tick, number and arc is placed from the
+   engine's own figures, so each engine's gauges differ.
 4. A person who is not the author can pull away and shift through the gears in manual using
    only a keyboard, guided by the coach, without being told how.
 5. A 0 to 60 run produces a score card whose time-lost numbers add up exactly to the gap from
@@ -81,7 +79,11 @@ without the clutch, a starter that will not crank in gear, the check engine ligh
 blown engine, and the shift coach with its rev-match needle. 154 tests. Then the engine
 sound. Then the perfect-run solver: the 0 to 60 run's rules in one module, and for each
 engine the fastest clean run a keyboard-limited driver can make from first gear, stored and
-replayed by a test. 186 tests. Stage 7, the run, the score and the share link, is next.
+replayed by a test. 186 tests. The author then dropped the build-up: the gauges are whole
+from the start. Then the run: a countdown, the perfect run as a ghost needle, a score card
+whose losses per phase add up to the gap, this visit's board, and share links that re-drive
+the run - checked to give the same time in Chrome and Node. 203 tests. Stage 8, publishing,
+is next.
 
 ### Why the maths comes first and headless
 
@@ -124,7 +126,7 @@ measure against, and a leaderboard of raw times says nothing about how well some
 | No server. Standalone, runs on GitHub Pages | "i want it standalone, can run through github pages". The "backend" is the calculation driving the dials |
 | Choose the engine, cycling through them from a V4 up to a V12 | "you select which engine you want to rev up and shift through"; "i should be able to cycle between the cylinders" |
 | The engines are built from their measurements | Confirmed by the author: "yes the engines are built from measurements and such" |
-| The maths builds the interface: gauges start as empty circles and pixelate in as the engine is revved | The author's idea, exchange 3. Feasible; see "The interface is built by the engine" above |
+| Gauges whole from the start | Overturned the author's own exchange-3 idea (empty circles that pixelate in as the engine is revved, built stage 3) after stage 6: "just show the gauge numbers the whole time" |
 | Clean run: no grinding, no blowing the engine, gentle on the clutch | Confirmed by the author: "that sounds good for a clean run, dont blow out the engine etc" |
 | Engine sound: first "later", then pulled forward ahead of the solver once the author could drive it | The author: "engine sound later" (planning), then "i dont hear anything" ... "sound next" after stage 5 |
 | Five engines, V4, V6, V8, V10, V12, cycled in order | The author: "add v10 please". A true V4 - rare in cars, rough by nature - is just another parameter set |
@@ -151,10 +153,7 @@ measure against, and a leaderboard of raw times says nothing about how well some
 | Decision | Reason |
 | --- | --- |
 | A build tool turns the measurements into tables offline, and its output is committed | The tool may use any maths; the live step keeps the determinism rules. The page can show *why* a V12 differs from a V4 |
-| The reveal is display-side: development grows from the simulation's state, and the simulation never reads it | Keeps `sim/` pure and deterministic; a replay rebuilds the same gauges because it produces the same states |
-| Each engine has its own build-up; cycling to another engine dissolves the faces back to empty circles, and returning restores what that engine had built, until a refresh | Each engine's scale is different, so one face cannot serve two |
-| A "build it all" control, also used when the browser asks for reduced motion | Someone who only wants the gauges should not have to earn them |
-| Blowing the engine un-builds it: the faces break back into pixels and empty circles, and the run is not clean | The author's "dont blow out the engine", shown in the interface's own language |
+| ~~The build-up: development grown from the simulation and never read by it, per engine, "build it all", a blown engine breaking the faces~~ | Built stage 3 and 5; retired 2026-10-19 when the author asked for the gauges whole from the start |
 | The 0 to 60 run is not locked behind a built tachometer | Building is an invitation, not a gate. The coach's shift marker does wait until its part of the face exists |
 | One car carries every engine | The engine is then the only variable, and comparisons are fair |
 | Gearing is calculated per engine | Top gear from where power meets drag, first gear to a quarter of top speed, a progression between. Built in stage 2; first gear from grip was tried on paper and dropped - it gave the V12 a 150 mph first gear |
@@ -182,9 +181,10 @@ measure against, and a leaderboard of raw times says nothing about how well some
 | --- | --- | --- |
 | How long should a full build take? | Stage 3 | Proposed: three or four full-throttle pulls to the limiter in neutral build the tachometer; the speedometer builds to whatever speed has been reached. Tuned by feel |
 | What does the empty state show? | Stage 3 | Proposed: the circle outlines and the needle hubs only. The needles appear with the start key |
-| Should the automatic have a 0 to 60 run too? | Stage 7 | Proposed: yes, timed, but not scored - there is no shifting skill in it beyond the launch |
-| Do the perfect runs look believable? | Stage 7 | The author's check. Notable: the V8 changes up at 5400 rpm, not the 7200 redline; the V10 spins through first and is in second by 6 mph; the V12 never shifts; the V10 and V12 are slower by hand than the automatic with traction control |
-| How much clutch heat is still "gentle"? | Stage 7 | The perfect runs make 5 to 58 kJ: a launch off high revs slips the clutch far longer. Proposed: judge it against the engine's perfect run, not one number |
+| Should the automatic have a 0 to 60 run too? | - | Built stage 7 as proposed: timed, not scored. Not confirmed by the author |
+| Do the perfect runs look believable? | - | The author: "it looks good" (2026-10-19), taken as yes. Notable: the V8 changes up at 5400 rpm, not the 7200 redline; the V10 spins through first and is in second by 6 mph; the V12 never shifts; the V10 and V12 are slower by hand than the automatic with traction control |
+| How much clutch heat is still "gentle"? | - | Built stage 7: twice the perfect run's heat or 150 kJ, whichever is more - keyboard shifts make about 30 kJ each, so a lower floor failed ordinary runs. Tune by feel |
+| A run with traction control on | - | Built stage 7: scored against the same (TC off) perfect run and marked on the card. Not confirmed |
 | More engine kinds later | After stage 8 | Turbocharged (boost gauge, lag), diesel (low redline, huge torque), rotary, motorcycle, electric (no gears at all). Each is a parameter set and a few new curves |
 | The sister app | Not this project | Ideas are kept in the context log. Lives in its own folder beside the engine app, may reuse `sim/` |
 
@@ -198,6 +198,5 @@ measure against, and a leaderboard of raw times says nothing about how well some
 | A keyboard is too blunt for a clutch | Visitors stall forever and leave | Pedal ramps, a slow clutch rise, and a done-when test with someone else on a keyboard. The automatic is the default, so nobody starts in manual |
 | Browsers disagree on a shared run | Links show a different score | Determinism rules, quantised inputs, golden traces in Node and Chrome |
 | The page grows features | "Basic page" turns into a dashboard | The author's rule is the guard: one page, gauges. Anything else goes behind a single score card or into the later list |
-| The build-up hides what a driver needs | A newcomer cannot read the revs or see the shift marker | Needles are crisp from the start; the coach's arrows do not depend on the face; "build it all" is one click |
 | The reveal costs too much per frame | Stutter on a phone | Faces are drawn once per engine to a texture; each frame is one shader pass over two small quads with a short array of development values |
 | Copied design code carries a licence | A public repo using code it may not | Nothing is copied from the pen: its shader derives from a Shadertoy shader under non-commercial share-alike. Take the look, write the code, credit the pen as inspiration |

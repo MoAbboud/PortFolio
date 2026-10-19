@@ -16,16 +16,12 @@ how wide, how long a stroke - and its torque, its redline and how quickly it rev
 out of those numbers. The clutch slips and grabs, the tyres grip and spin, the car has weight
 and air resistance. Every needle reports something the simulation actually calculated.
 
-## The gauges build themselves
+## Gauges drawn from the engine
 
-The page starts as two empty circles. Choose an engine and rev it, and the gauges pixelate
-in - coarse blocks first, sharpening as the needle returns - but only where the engine has
-actually been. The tachometer fills in behind the needle; the redline appears the first time
-you reach it; the torque curve draws itself from your full-throttle pulls, like a run on a
-dyno; the speedometer fills up to the fastest you have gone. Every tick and number is placed
-from that engine's own figures, so a V12's dials come out different from a V4's. Change
-engine and the faces dissolve and start again, in that engine's own colours. Blow the engine
-and they break apart.
+Every tick and number is placed from that engine's own figures, so a V12's dials come out
+different from a V4's: a higher redline, different spacing, twelve shift lights. Change
+engine and the page takes that engine's colours. The torque curve under the gauges draws
+itself from your full-throttle pulls, like a run on a dyno.
 
 Behind the gauges, three faint lines trace the engine's power pulses through one full cycle
 (two turns of the crankshaft): each bank of cylinders, and the two added together. A V4's are jagged; a V12's add up
