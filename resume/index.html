@@ -684,6 +684,12 @@ html:not(.scripted) .skill { cursor: default; }
 .proof-list b { font-weight: 600; font-size: .92rem; transition: color .25s var(--ease); }
 .proof-list .l { color: var(--fg-dim); font-size: .8rem; line-height: 1.4; }
 .proof-list a:hover b { color: var(--col-ink); }
+/* A skill shown in many places lists them compactly - two columns, kind above name, the
+   line left out (the name is still the link) - so the panel never outgrows the stage. */
+.proof-list.is-long { grid-template-columns: 1fr 1fr; column-gap: 18px; }
+.proof-list.is-long a { grid-template-columns: 1fr; }
+.proof-list.is-long .k { grid-row: auto; padding: 0 0 2px; }
+.proof-list.is-long .l { display: none; }
 @media (max-width: 1000px) {
   .skill-groups .proof { margin: 4px 0 12px; animation: proof-in .4s var(--ease-out) both; }
 }
@@ -1280,8 +1286,8 @@ html:not(.scripted) .skill { cursor: default; }
             <h3 class="skill-head"><span class="idx">01</span>Languages</h3>
             <ul class="skill-list">
               <li><button type="button" class="skill" data-used="tekkii">PHP</button></li>
-              <li><button type="button" class="skill" data-used="tekkii mailman fallacy herder evaluaters pneumonia">Python</button></li>
-              <li><button type="button" class="skill" data-used="trail site apps">JavaScript</button></li>
+              <li><button type="button" class="skill" data-used="tekkii mailman fallacy herder evaluaters pneumonia codevscode">Python</button></li>
+              <li><button type="button" class="skill" data-used="trail site apps pedalsim codevscode">JavaScript</button></li>
               <li><button type="button" class="skill" data-used="allied">C#</button></li>
               <li><button type="button" class="skill" data-used="allied tekkii mailman">SQL</button></li>
             </ul>
@@ -1291,18 +1297,18 @@ html:not(.scripted) .skill { cursor: default; }
             <ul class="skill-list">
               <li><button type="button" class="skill" data-used="tekkii site">Public-Facing Web Applications</button></li>
               <li><button type="button" class="skill" data-used="tekkii">REST APIs</button></li>
-              <li><button type="button" class="skill" data-used="site trail apps">HTML / CSS</button></li>
+              <li><button type="button" class="skill" data-used="site trail apps pedalsim">HTML / CSS</button></li>
               <li><button type="button" class="skill">Vue.js</button></li>
               <li><button type="button" class="skill">React</button></li>
               <li><button type="button" class="skill">Angular</button></li>
-              <li><button type="button" class="skill" data-used="site trail">Node.js</button></li>
+              <li><button type="button" class="skill" data-used="site trail pedalsim codevscode">Node.js</button></li>
               <li><button type="button" class="skill" data-used="site">Responsive Design</button></li>
             </ul>
           </div>
           <div class="skill-group" data-anim>
             <h3 class="skill-head"><span class="idx">03</span>Databases</h3>
             <ul class="skill-list">
-              <li><button type="button" class="skill" data-used="tekkii mailman herder">PostgreSQL</button></li>
+              <li><button type="button" class="skill" data-used="tekkii mailman herder codevscode">PostgreSQL</button></li>
               <li><button type="button" class="skill" data-used="allied tekkii">SQL Server</button></li>
               <li><button type="button" class="skill" data-used="tekkii">MySQL</button></li>
               <li><button type="button" class="skill" data-used="allied tekkii">Query Optimization</button></li>
@@ -1315,14 +1321,14 @@ html:not(.scripted) .skill { cursor: default; }
           <div class="skill-group" data-anim>
             <h3 class="skill-head"><span class="idx">04</span>Architecture &amp; Delivery</h3>
             <ul class="skill-list">
-              <li><button type="button" class="skill" data-used="tekkii mailman herder">System Design</button></li>
+              <li><button type="button" class="skill" data-used="tekkii mailman herder pedalsim codevscode">System Design</button></li>
               <li><button type="button" class="skill" data-used="tekkii">API Design</button></li>
               <li><button type="button" class="skill" data-used="tekkii">Legacy System Modernization</button></li>
               <li><button type="button" class="skill" data-used="allied">Web Application Security</button></li>
               <li><button type="button" class="skill">Authentication</button></li>
               <li><button type="button" class="skill" data-used="site">Git / GitHub</button></li>
-              <li><button type="button" class="skill" data-used="mailman site">Docker</button></li>
-              <li><button type="button" class="skill" data-used="site">CI/CD Pipelines</button></li>
+              <li><button type="button" class="skill" data-used="mailman site codevscode">Docker</button></li>
+              <li><button type="button" class="skill" data-used="site pedalsim codevscode">CI/CD Pipelines</button></li>
               <li><button type="button" class="skill">Server Administration (SSH/FTP)</button></li>
               <li><button type="button" class="skill" data-used="tekkii">Agile / Scrum</button></li>
               <li><button type="button" class="skill" data-used="allied tekkii independent">Requirements Gathering</button></li>
@@ -1335,7 +1341,7 @@ html:not(.scripted) .skill { cursor: default; }
               <li><button type="button" class="skill" data-used="fallacy">PyTorch</button></li>
               <li><button type="button" class="skill" data-used="fallacy">Fine-Tuning Transformers</button></li>
               <li><button type="button" class="skill" data-used="pneumonia fallacy umkc">Deep Learning</button></li>
-              <li><button type="button" class="skill" data-used="mailman herder evaluaters fallacy">Model Evaluation</button></li>
+              <li><button type="button" class="skill" data-used="mailman herder evaluaters fallacy codevscode">Model Evaluation</button></li>
               <li><button type="button" class="skill" data-used="fallacy herder">Local Models, No Hosted APIs</button></li>
               <li><button type="button" class="skill" data-used="herder">Vector Search</button></li>
             </ul>
@@ -1361,6 +1367,8 @@ html:not(.scripted) .skill { cursor: default; }
         <li data-src="trail" data-kind="Project" data-name="Trail" data-line="Hand-written WebGL2, 620 tests" data-href="/trail/"></li>
         <li data-src="pneumonia" data-kind="Project" data-name="Pneumonia Detection" data-line="Deep learning on chest X-rays" data-href="https://pneumonia-x9mz.onrender.com/"></li>
         <li data-src="evaluaters" data-kind="Project" data-name="Evaluaters" data-line="Structured extraction scored case by case" data-href="https://github.com/MoAbboud/PortFolio/tree/main/evaluaters"></li>
+        <li data-src="pedalsim" data-kind="Project" data-name="Pedalsim" data-line="Engines from bore and stroke, gauges drawn by the maths, 159 tests" data-href="/pedalsim/"></li>
+        <li data-src="codevscode" data-kind="Project" data-name="Code vs Code" data-line="Coding duel with a named AI helper, in progress" data-href="https://github.com/MoAbboud/PortFolio/tree/main/codevscode"></li>
         <li data-src="site" data-kind="Project" data-name="This site" data-line="Written by hand, published by GitHub Actions" data-href="https://github.com/MoAbboud/PortFolio/tree/main/deploy"></li>
         <li data-src="apps" data-kind="Projects" data-name="Browser apps" data-line="Story Takes, WhereYaGo, Snowball, TekTak" data-href="#projects"></li>
         <li data-src="umkc" data-kind="Education" data-name="UMKC" data-line="MS Computer Science, pneumonia course project" data-href="#education"></li>
@@ -1376,7 +1384,7 @@ html:not(.scripted) .skill { cursor: default; }
        because this file is served both at / and at /resume/. -->
   <section class="page wide" id="projects" data-section="Projects">
     <div class="page-inner">
-      <p class="eyebrow" data-anim><b>03</b><span class="sep"></span><span>Projects</span><span class="sep"></span><span class="count">Ten things I have built</span></p>
+      <p class="eyebrow" data-anim><b>03</b><span class="sep"></span><span>Projects</span><span class="sep"></span><span class="count">Twelve things I have built</span></p>
       <h2 class="vh">Projects</h2>
       <div class="spacer" style="height:clamp(12px,2vh,22px)"></div>
       <div class="gallery" data-anim role="region" aria-roledescription="carousel" aria-label="Projects">
@@ -1421,10 +1429,19 @@ html:not(.scripted) .skill { cursor: default; }
                 <span class="go">Code <span aria-hidden="true">→</span></span>
               </span></a></li>
 
+            <li class="gal-slide" aria-roledescription="slide"><a class="gal-card" href="/pedalsim/">
+              <span class="gal-media"><img src="/resume/media/pedalsim.webp" alt="" width="960" height="540" loading="lazy" decoding="async" style="object-position:50% 0"></span>
+              <span class="gal-body">
+                <span class="gal-top"><span class="n">03</span><span>WebGL2 · Web Audio · no engine</span></span>
+                <h3>Pedalsim</h3>
+                <p>Drive a V4, V6, V8, V10 or V12 by its gauges alone. Each engine is built from its real bore and stroke, the gauges draw themselves where the engine has been, and its sound is made from its own firing pulses. 159 tests.</p>
+                <span class="go">Open <span aria-hidden="true">→</span></span>
+              </span></a></li>
+
             <li class="gal-slide" aria-roledescription="slide"><a class="gal-card" href="https://github.com/MoAbboud/PortFolio/tree/main/fallacysuspect" target="_blank" rel="noopener">
               <span class="gal-media"><img src="/resume/media/fallacy-detector.webp" alt="" width="960" height="540" loading="lazy" decoding="async"></span>
               <span class="gal-body">
-                <span class="gal-top"><span class="n">03</span><span>Python · PyTorch · Flask</span></span>
+                <span class="gal-top"><span class="n">04</span><span>Python · PyTorch · Flask</span></span>
                 <h3>Fallacy Detector</h3>
                 <p>Flags passages that may lean on a logical fallacy, as a warning with a confidence, never a verdict. A DistilRoBERTa detector and a DistilBERT typer across 13 fallacy types, trained for the job; no hosted model, no API key.</p>
                 <span class="go">Code <span aria-hidden="true">→</span></span>
@@ -1433,11 +1450,40 @@ html:not(.scripted) .skill { cursor: default; }
             <li class="gal-slide" aria-roledescription="slide"><a class="gal-card" href="/herder/prototype/">
               <span class="gal-media"><img src="/resume/media/herder-prototype.webp" alt="" width="960" height="540" loading="lazy" decoding="async" style="object-position:50% 0"></span>
               <span class="gal-body">
-                <span class="gal-top"><span class="n">04</span><span>FastAPI · pgvector · local models</span></span>
+                <span class="gal-top"><span class="n">05</span><span>FastAPI · pgvector · local models</span></span>
                 <h3>Herder</h3>
                 <span class="gal-status">In progress: a browser prototype runs here; the full system is still in testing</span>
                 <p>Portable memory for AI chat: a long conversation becomes a compact brief where every line traces back to the messages it came from. Benchmarked against a plain summary at the same token budget, on a 261-fact answer key written by hand.</p>
                 <span class="go">Try the prototype <span aria-hidden="true">→</span></span>
+              </span></a></li>
+
+            <li class="gal-slide" aria-roledescription="slide"><a class="gal-card" href="https://github.com/MoAbboud/PortFolio/tree/main/codevscode" target="_blank" rel="noopener">
+              <span class="gal-media" aria-hidden="true">
+                <!-- A match, drawn from the game's own overview. The player's parts are filled. -->
+                <svg viewBox="0 0 400 225" preserveAspectRatio="xMidYMid meet">
+                  <text class="m-cap" x="30" y="34">ONE MATCH</text>
+                  <rect class="m-box"   x="30"  y="52" width="92" height="30" rx="15"/><text class="m-lbl" x="76"  y="72" text-anchor="middle">brief</text>
+                  <path class="m-arrow" d="M126 67 H148 M142 62 L148 67 L142 72"/>
+                  <rect class="m-vivid" x="154" y="52" width="92" height="30" rx="15"/><text class="m-lbl m-on-vivid" x="200" y="72" text-anchor="middle">ask</text>
+                  <path class="m-arrow" d="M250 67 H272 M266 62 L272 67 L266 72"/>
+                  <rect class="m-box"   x="278" y="52" width="92" height="30" rx="15"/><text class="m-lbl" x="324" y="72" text-anchor="middle">build</text>
+                  <path class="m-arrow" d="M324 86 V128 M319 122 L324 128 L329 122"/>
+                  <text class="m-cap" x="314" y="111" text-anchor="end">HELPER WRITES</text>
+                  <rect class="m-vivid" x="278" y="132" width="92" height="30" rx="15"/><text class="m-lbl m-on-vivid" x="324" y="152" text-anchor="middle">review</text>
+                  <path class="m-arrow" d="M274 147 H252 M258 142 L252 147 L258 152"/>
+                  <rect class="m-vivid" x="154" y="132" width="92" height="30" rx="15"/><text class="m-lbl m-on-vivid" x="200" y="152" text-anchor="middle">defend</text>
+                  <path class="m-arrow" d="M150 147 H128 M134 142 L128 147 L134 152"/>
+                  <rect class="m-box"   x="30"  y="132" width="92" height="30" rx="15"/><text class="m-lbl" x="76"  y="152" text-anchor="middle">score</text>
+                  <rect class="m-vivid" x="30" y="190" width="10" height="10" rx="5"/><text class="m-cap" x="48" y="199">THE PLAYER'S PART</text>
+                  <rect class="m-box" x="210" y="190" width="10" height="10" rx="5"/><text class="m-cap" x="228" y="199">QA CHECKLIST DECIDES</text>
+                </svg>
+              </span>
+              <span class="gal-body">
+                <span class="gal-top"><span class="n">06</span><span>Python · JavaScript · Colab</span></span>
+                <h3>Code vs Code</h3>
+                <span class="gal-status">In progress: helper-model trials on Colab; not playable yet</span>
+                <p>A coding duel where an AI helper the player names writes the code. The player wins by asking the client the right questions, catching the helper's mistakes and finding the bugs in the opponent's app, judged by a quality checklist.</p>
+                <span class="go">Code <span aria-hidden="true">→</span></span>
               </span></a></li>
 
             <li class="gal-slide" aria-roledescription="slide"><a class="gal-card" href="https://pneumonia-x9mz.onrender.com/" target="_blank" rel="noopener">
@@ -1459,7 +1505,7 @@ html:not(.scripted) .skill { cursor: default; }
                 </svg>
               </span>
               <span class="gal-body">
-                <span class="gal-top"><span class="n">05</span><span>Python · Deep Learning</span></span>
+                <span class="gal-top"><span class="n">07</span><span>Python · Deep Learning</span></span>
                 <h3>Pneumonia Detection</h3>
                 <p>Deep-learning application classifying chest X-rays for signs of pneumonia. Free hosting, so the first load takes about a minute to wake.</p>
                 <span class="go">Visit <span aria-hidden="true">→</span></span>
@@ -1489,7 +1535,7 @@ html:not(.scripted) .skill { cursor: default; }
                 </svg>
               </span>
               <span class="gal-body">
-                <span class="gal-top"><span class="n">06</span><span>Python · LLM tooling</span></span>
+                <span class="gal-top"><span class="n">08</span><span>Python · LLM tooling</span></span>
                 <h3>Evaluaters</h3>
                 <p>Two AI-engineering pieces: a harness that scores structured extraction case by case, and typed GitHub tools for a triage agent.</p>
                 <span class="go">Code <span aria-hidden="true">→</span></span>
@@ -1498,7 +1544,7 @@ html:not(.scripted) .skill { cursor: default; }
             <li class="gal-slide" aria-roledescription="slide" data-print="no"><a class="gal-card" href="/story-generator/">
               <span class="gal-media"><img src="/resume/media/story-takes.webp" alt="" width="960" height="540" loading="lazy" decoding="async"></span>
               <span class="gal-body">
-                <span class="gal-top"><span class="n">07</span><span>Static · single file</span></span>
+                <span class="gal-top"><span class="n">09</span><span>Static · single file</span></span>
                 <h3>Story Takes</h3>
                 <p>A story told in beats becomes a tree that reveals itself one beat at a time, for narration.</p>
                 <span class="go">Open <span aria-hidden="true">→</span></span>
@@ -1507,7 +1553,7 @@ html:not(.scripted) .skill { cursor: default; }
             <li class="gal-slide" aria-roledescription="slide" data-print="no"><a class="gal-card" href="/whereyago/">
               <span class="gal-media"><img src="/resume/media/whereyago.webp" alt="" width="960" height="540" loading="lazy" decoding="async"></span>
               <span class="gal-body">
-                <span class="gal-top"><span class="n">08</span><span>Static · localStorage</span></span>
+                <span class="gal-top"><span class="n">10</span><span>Static · localStorage</span></span>
                 <h3>WhereYaGo</h3>
                 <p>A day logger: record a good day out stop by stop, then browse and copy other people’s.</p>
                 <span class="go">Open <span aria-hidden="true">→</span></span>
@@ -1516,7 +1562,7 @@ html:not(.scripted) .skill { cursor: default; }
             <li class="gal-slide" aria-roledescription="slide" data-print="no"><a class="gal-card" href="/snowball/">
               <span class="gal-media"><img src="/resume/media/snowball.webp" alt="" width="960" height="540" loading="lazy" decoding="async"></span>
               <span class="gal-body">
-                <span class="gal-top"><span class="n">09</span><span>Static · localStorage</span></span>
+                <span class="gal-top"><span class="n">11</span><span>Static · localStorage</span></span>
                 <h3>Snowball</h3>
                 <p>Branching idea builder: a seed thought grows into a tree that exports as an essay.</p>
                 <span class="go">Open <span aria-hidden="true">→</span></span>
@@ -1525,7 +1571,7 @@ html:not(.scripted) .skill { cursor: default; }
             <li class="gal-slide" aria-roledescription="slide" data-print="no"><a class="gal-card" href="/tektak/">
               <span class="gal-media"><img src="/resume/media/tektak.webp" alt="" width="960" height="540" loading="lazy" decoding="async"></span>
               <span class="gal-body">
-                <span class="gal-top"><span class="n">10</span><span>Static · localStorage</span></span>
+                <span class="gal-top"><span class="n">12</span><span>Static · localStorage</span></span>
                 <h3>TekTak</h3>
                 <p>A hand-curated tracker for online drama, written as summaries rather than video.</p>
                 <span class="go">Open <span aria-hidden="true">→</span></span>
@@ -1931,6 +1977,7 @@ function init() {
       $('.proof-count', proof).textContent = used.length
         ? `Used in ${used.length} ${used.length === 1 ? 'place' : 'places'}`
         : 'No public example on this page';
+      $('.proof-list', proof).classList.toggle('is-long', used.length > 5);
       $('.proof-list', proof).innerHTML = used.map((id, i) => {
         const src = sources[id];
         const ext = /^https?:/.test(src.href);

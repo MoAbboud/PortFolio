@@ -24,6 +24,13 @@ on:
       # worth triggering on. Editing page.html, ui.js or herder.js without regenerating changes
       # nothing a visitor loads, and prototype/tests/test_parity.py is what catches that.
       - herder/prototype/index.html
+      # pedalsim: the published page and the modules it loads.
+      - pedalsim/index.html
+      - pedalsim/engines/**
+      - pedalsim/fonts/**
+      - pedalsim/input/**
+      - pedalsim/sim/**
+      - pedalsim/ui/**
       - deploy/build-static.mjs
       - .github/workflows/pages.yml
   workflow_dispatch:
