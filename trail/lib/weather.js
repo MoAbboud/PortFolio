@@ -107,21 +107,44 @@ export const PRESETS = {
   },
 };
 
-/** Whatever a step names, as numbers. */
-export function resolve(weather) {
+const isHour = (hour) => typeof hour === 'number' && Number.isFinite(hour);
+
+/**
+ * A weather as numbers, **with no hour applied to it**.
+ *
+ * A preset by name, or an object laid over clear air. Whatever hour it carries
+ * is carried, not used: that is the caller's to apply, once.
+ */
+function plain(weather) {
   if (!weather) return PRESETS.clear;
   if (typeof weather === 'string') {
     const preset = PRESETS[weather];
     if (!preset) throw new Error(`unknown weather "${weather}"`);
     return preset;
   }
-  const base = { ...PRESETS.clear, ...weather };
+  return { ...PRESETS.clear, ...weather };
+}
+
+/**
+ * Whatever a step names, as numbers, lit by its hour - or by `hour`, which
+ * wins over the step's own when given.
+ *
+ * **The hour is applied exactly once, here or in `lerpWeather`, and nowhere
+ * else.** The hour's light multiplies the weather's, so a weather that was lit
+ * and then lit again came out dimmer each time. That is a measured number: a
+ * clear night at half past nine drew at 0.064 ambient where it should have been
+ * 0.40, because `lerpWeather` lit both sides and `skyNow` then laid the clock
+ * over the result. The first fix kept an unlit copy on every lit weather, which
+ * quietly ignored any field a caller changed on top of one. Lighting once means
+ * there is nothing to remember: a caller wanting another hour asks for it here.
+ */
+export function resolve(weather, hour) {
+  const base = plain(weather);
+  const at = isHour(hour) ? hour : base.hour;
   // No hour means no clock, and the preset answers on its own exactly as it
   // always did. This is the line that keeps every canvas built before the
   // clock existed looking identical.
-  return typeof base.hour === 'number' && Number.isFinite(base.hour)
-    ? underSky(base, base.hour)
-    : base;
+  return isHour(at) ? underSky(base, at) : base;
 }
 
 /**
@@ -137,53 +160,25 @@ export function resolve(weather) {
  * different things: the hour says how much light there is and the weather says
  * what fraction of it gets through. Overcast at midnight is darker than either
  * on its own, which is correct.
+ *
+ * `base` has to be a weather no hour has lit yet. See `resolve`.
  */
-/**
- * What a weather is **before any hour has touched it**.
- *
- * Kept on every resolved weather, because resolving one twice has to give the
- * same answer as resolving it once - and before this it did not. The hour's
- * light multiplies the weather's, so a second pass multiplied it again:
- *
- *     resolve(step)                      0.40   the hour, through clear air
- *     lerpWeather, which resolves both   0.16   and then asks the sky again
- *     skyNow, laying the clock over it   0.064  a sixth of the light there is
- *
- * That is a measured number, not an example: a clear night at half past nine
- * was drawing at 0.064 ambient, which is why objects were black shapes and why
- * lifting the shader's night fill did nothing anyone could see. The three
- * calls are all deliberate - a blend resolves both sides, and `skyNow`
- * re-resolves on purpose so the clock's hour wins over the step's - so the
- * thing that had to change is that resolving is repeatable.
- */
-const dryOf = (weather) => weather.dry ?? {
-  sky: weather.sky,
-  horizon: weather.horizon,
-  floor: weather.floor,
-  sunColour: weather.sunColour,
-  ambient: weather.ambient,
-  dull: weather.dull ?? 0,
-};
-
 export function underSky(base, hour) {
   const day = atHour(hour);
-  // The weather's own numbers, never the ones an earlier hour already dimmed.
-  const dry = dryOf(base);
-  const dull = Math.min(1, Math.max(0, dry.dull ?? 0));
+  const dull = Math.min(1, Math.max(0, base.dull ?? 0));
   return {
     ...base,
-    dry,
     hour: day.hour,
     sun: day.sun,
     moon: day.moon,
     sunUp: day.sunUp,
     moonUp: day.moonUp,
     night: day.night,
-    sky: mixAll(day.sky, dry.sky, dull),
-    horizon: mixAll(day.horizon, dry.horizon, dull),
-    floor: mixAll(day.floor, dry.floor, dull),
-    sunColour: mixAll(day.sunColour, dry.sunColour, dull),
-    ambient: day.ambient * dry.ambient,
+    sky: mixAll(day.sky, base.sky, dull),
+    horizon: mixAll(day.horizon, base.horizon, dull),
+    floor: mixAll(day.floor, base.floor, dull),
+    sunColour: mixAll(day.sunColour, base.sunColour, dull),
+    ambient: day.ambient * base.ambient,
   };
 }
 
@@ -199,10 +194,14 @@ const mixAll = (a, b, t) => a.map((v, i) => mix(v, b[i], t));
  * Everything numeric interpolates. `scar` does not, because a mark on the
  * ground is a thing that either happened or did not; it belongs to the step
  * being arrived at, and it lands when that step does.
+ *
+ * The two sides are blended **before** any hour lights them, and the blend is
+ * lit once at the end - at `hour` when one is given, which is how the clock's
+ * hour wins over the steps', or else at the hour between the two.
  */
-export function lerpWeather(from, to, t) {
-  const a = resolve(from);
-  const b = resolve(to);
+export function lerpWeather(from, to, t, hour) {
+  const a = plain(from);
+  const b = plain(to);
   const k = Math.min(1, Math.max(0, t));
   const blended = {
     sky: mixAll(a.sky, b.sky, k),
@@ -220,22 +219,8 @@ export function lerpWeather(from, to, t) {
     rain: mix(a.rain ?? 0, b.rain ?? 0, k),
     dull: mix(a.dull ?? 0, b.dull ?? 0, k),
     scar: k >= 0.5 ? b.scar : a.scar,
-    // The two weathers as they were before their hours, blended the same way,
-    // so the result can be asked for a different hour later without the light
-    // it already has being counted twice. See `dryOf`.
-    dry: (() => {
-      const da = dryOf(a);
-      const db = dryOf(b);
-      return {
-        sky: mixAll(da.sky, db.sky, k),
-        horizon: mixAll(da.horizon, db.horizon, k),
-        floor: mixAll(da.floor, db.floor, k),
-        sunColour: mixAll(da.sunColour, db.sunColour, k),
-        ambient: mix(da.ambient, db.ambient, k),
-        dull: mix(da.dull ?? 0, db.dull ?? 0, k),
-      };
-    })(),
   };
+  if (isHour(hour)) return underSky(blended, hour);
 
   // **The hour crosses the clock, not the numbers.** Two hours are two
   // directions, and mixing the vectors sends the sun through the middle of the
@@ -243,8 +228,8 @@ export function lerpWeather(from, to, t) {
   // the evening they are exactly opposite, and the midpoint has no direction at
   // all. Interpolating the hour and asking the sky again is the only thing that
   // produces a sun that travels.
-  const hourA = typeof a.hour === 'number' ? a.hour : null;
-  const hourB = typeof b.hour === 'number' ? b.hour : null;
+  const hourA = isHour(a.hour) ? a.hour : null;
+  const hourB = isHour(b.hour) ? b.hour : null;
   if (hourA === null && hourB === null) return blended;
   return underSky(blended, lerpHour(hourA ?? hourB, hourB ?? hourA, k));
 }
