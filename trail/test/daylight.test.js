@@ -176,3 +176,43 @@ test('underSky never invents light where a weather blocks it', () => {
   assert.ok(dark.ambient <= PRESETS.storm.ambient,
     'a storm at noon should not be brighter than a storm');
 });
+
+// --- the hour is applied once ------------------------------------------------
+
+test('the clock\'s hour lights a step exactly once', () => {
+  // **A clear night was drawing at a sixth of its light**: a step was lit by
+  // its hour, blended, and lit again by the clock's. 0.064 for 0.40, measured.
+  const once = atHour(21.5).ambient * PRESETS.clear.ambient;
+  near(resolve('clear', 21.5).ambient, once, 1e-9);
+  near(resolve({ ...PRESETS.clear, hour: 9 }, 21.5).ambient, once, 1e-9);
+  // And a blend asked for at the clock's hour, which is what `skyNow` does.
+  const blend = lerpWeather({ ...PRESETS.clear, hour: 20 }, { ...PRESETS.clear, hour: 23 }, 0.5, 21.5);
+  near(blend.ambient, once, 1e-9);
+  near(blend.hour, 21.5, 1e-9);
+});
+
+test('the clock\'s hour wins over the hour a step carries', () => {
+  const step = { ...PRESETS.overcast, hour: 7 };
+  assert.deepEqual(resolve(step, 15).sun, atHour(15).sun);
+  assert.deepEqual(resolve(step).sun, atHour(7).sun);
+});
+
+test('a field changed on a weather is the field that is lit', () => {
+  // The first fix for lighting twice kept an unlit copy on every lit weather
+  // and lit from that, so a change made on top of one was quietly ignored.
+  const darker = resolve({ ...PRESETS.storm, ambient: 0.3, hour: 4 }, 12);
+  near(darker.ambient, atHour(12).ambient * 0.3, 1e-9);
+  const clearer = resolve({ ...PRESETS.storm, dull: 0 }, 12);
+  assert.deepEqual(clearer.sky, atHour(12).sky, 'no dullness should leave the hour\'s own sky');
+  assert.equal('dry' in clearer, false, 'nothing is cached on a lit weather any more');
+});
+
+test('a blend of a weather with itself is that weather, lit the same way', () => {
+  const storm = { ...PRESETS.storm, hour: 17 };
+  const blended = lerpWeather(storm, storm, 0.3, 17);
+  const direct = resolve(storm, 17);
+  for (const key of ['sky', 'horizon', 'floor', 'sunColour', 'sun']) {
+    blended[key].forEach((v, i) => near(v, direct[key][i], 1e-9));
+  }
+  near(blended.ambient, direct.ambient, 1e-9);
+});

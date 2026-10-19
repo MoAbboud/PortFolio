@@ -692,7 +692,8 @@ uninspiring thing."* It was one flat colour with a dark edge.
 - [ ] Judge the ring by eye: the bend limit, the plate lip, and whether a solid body reads
       better than an open hoop
 - [ ] Rain still falls in a box around the camera, which is a weather for a flat world
-- [ ] **Picking treats the ring as smooth and it is a polygon.** `ringGround` meets a cylinder,
+- [x] **Picking treats the ring as smooth and it is a polygon.** Done 2026-10-19: `filmGround` and
+      `bendBox` copy the shader's `bend` and are used for every press, at any roll. `ringGround` meets a cylinder,
       but a piece is a flat plate, so a click near a plate's edge is out by up to the sagitta of
       its chord - about a unit at the smallest radius. Harmless so far; it would show as a
       dragged object jumping slightly near an edge

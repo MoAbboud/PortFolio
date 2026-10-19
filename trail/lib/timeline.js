@@ -339,6 +339,10 @@ export function unrollPoint([x, y, z], focus, radius) {
  *
  * Solved in the plane: the z component is along the axis and does not affect
  * whether the ray hits.
+ *
+ * **The app no longer asks this.** The ring is drawn as a polygon of flat
+ * plates, not a smooth cylinder, so a press is read with `filmGround`, which
+ * meets the plates as the shader draws them.
  */
 export function ringGround(ray, focus, radius, minSlope = 0) {
   const ox = ray.origin[0];
@@ -380,6 +384,121 @@ export function ringGround(ray, focus, radius, minSlope = 0) {
   }
 
   return unrollPoint(point, focus, radius);
+}
+
+/**
+ * A point on the flat strip, put where the vertex shader draws it.
+ *
+ * **This is `bend` in render.js, line for line**, and it is not `rollPoint`:
+ * the shader turns each piece rigidly about its own middle, so the ring is a
+ * polygon of flat frames, while `rollPoint` curves every point by its own
+ * position. The two agree at a piece's centre and drift apart toward its edges.
+ * Anything asking where something is *on screen* has to ask this one.
+ *
+ * `roll` blends flat to rolled exactly as `uRoll` does.
+ */
+export function bendPoint([x, y, z], { focus, radius, pitch, roll = 1 }) {
+  if (roll < 0.0005) return [x, y, z];
+  const step = Math.max(0.001, pitch);
+  const centre = Math.floor(x / step + 0.5) * step;
+  const a = (centre - focus) / Math.max(radius, 0.001);
+  const dx = x - centre;
+  const r = radius + y;
+  const rolled = [
+    Math.sin(a) * r + Math.cos(a) * dx,
+    Math.cos(a) * r - Math.sin(a) * dx - radius,
+    z,
+  ];
+  return [
+    x + (rolled[0] - x) * roll,
+    y + (rolled[1] - y) * roll,
+    z,
+  ];
+}
+
+/**
+ * Where a ray meets the ground **as it is drawn**, read back onto the strip.
+ *
+ * Every piece's plate is a flat frame turned about its middle, and a plane
+ * stays a plane whatever the roll, because `bend` is linear along a plate. So
+ * this meets each plate's plane and keeps the nearest hit that lands inside it.
+ * That is exact at any roll, flat included, and it is what `ringGround`'s
+ * smooth cylinder only approximated.
+ *
+ * `height` is the level being dragged along: an object sits on its plate at its
+ * own height, and the grab has to stay on that level or it slides as it moves.
+ *
+ * `minSlope` is how squarely the ray must meet a plate. A grazing ray's hit is
+ * a real point and a useless one - near the horizon one pixel of pointer is
+ * worth two units of world - so a caller following the hand passes a floor and
+ * gets null there instead of a jump.
+ */
+export function filmGround(ray, { focus, radius, pitch, roll = 1, height = 0, minSlope = 0 }) {
+  if (!ray) return null;
+  const [ox, oy, oz] = ray.origin;
+  const [dx, dy, dz] = ray.direction;
+  const floor = Math.max(1e-6, minSlope);
+
+  if (roll < 0.0005) {
+    if (Math.abs(dy) < floor) return null;
+    const t = (height - oy) / dy;
+    if (t <= 0) return null;
+    return [ox + dx * t, height, oz + dz * t];
+  }
+
+  const step = Math.max(0.001, pitch);
+  const here = Math.floor(focus / step + 0.5);
+  // Every plate on the near half of the ring. Past half a turn the plates face
+  // away from the camera and a hit on one would be the inside of the far side.
+  const reach = Math.min(512, Math.floor((Math.PI * radius) / step) + 1);
+  let best = null;
+  for (let k = here - reach; k <= here + reach; k++) {
+    const centre = k * step;
+    const origin = bendPoint([centre, height, 0], { focus, radius, pitch, roll });
+    const along = bendPoint([centre + 1, height, 0], { focus, radius, pitch, roll });
+    // The direction along the plate, and its normal in the plane of the ring.
+    const ux = along[0] - origin[0];
+    const uy = along[1] - origin[1];
+    const length = Math.hypot(ux, uy);
+    const nx = uy / length;
+    const ny = -ux / length;
+    const facing = dx * nx + dy * ny;
+    if (Math.abs(facing) < floor) continue;
+    const t = ((origin[0] - ox) * nx + (origin[1] - oy) * ny) / facing;
+    if (t <= 0 || (best && t >= best.t)) continue;
+    const px = ox + dx * t;
+    const py = oy + dy * t;
+    const offset = ((px - origin[0]) * ux + (py - origin[1]) * uy) / (length * length);
+    if (Math.abs(offset) > step / 2 + 1e-9) continue;
+    best = { t, at: [centre + offset, height, oz + dz * t] };
+  }
+  return best ? best.at : null;
+}
+
+/**
+ * A box on the strip, as an axis-aligned box around where it is drawn.
+ *
+ * Picking is done against what is on screen, so an object on a piece further
+ * round the ring is found where it appears rather than where it would stand on
+ * the flat film. Its eight corners are bent the way the shader bends them and
+ * boxed again, which only ever grows the box, so nothing visible becomes
+ * unclickable.
+ */
+export function bendBox(box, bend) {
+  const min = [Infinity, Infinity, Infinity];
+  const max = [-Infinity, -Infinity, -Infinity];
+  for (let corner = 0; corner < 8; corner++) {
+    const p = bendPoint([
+      corner & 1 ? box.max[0] : box.min[0],
+      corner & 2 ? box.max[1] : box.min[1],
+      corner & 4 ? box.max[2] : box.min[2],
+    ], bend);
+    for (let a = 0; a < 3; a++) {
+      if (p[a] < min[a]) min[a] = p[a];
+      if (p[a] > max[a]) max[a] = p[a];
+    }
+  }
+  return { min, max };
 }
 
 // --- the camera -------------------------------------------------------------

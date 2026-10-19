@@ -9,7 +9,9 @@ import {
   DEFAULT_PIECE,
   groundedRig, distanceFor, PITCH_MIN,
   radiusFor, rollPoint, unrollPoint, ringGround, easeRoll,
+  bendPoint, filmGround, bendBox,
 } from '../lib/timeline.js';
+import { rayThrough } from '../lib/pick.js';
 import { framingToView } from '../lib/camera.js';
 import { orbit, zoom, rise } from '../lib/orbit.js';
 
@@ -345,6 +347,121 @@ test('the near face is picked, not the inside of the far side', () => {
   const hit = ringGround({ origin: [0, R, 0], direction: [0, -1, 0] }, 0, R);
   near(hit[1], 0, 1e-6);
   near(hit[0], 0, 1e-6);
+});
+
+// --- the ground as it is drawn ----------------------------------------------
+
+// A ray from `from` through `to`, which is how a test aims at a point.
+const aim = (from, to) => {
+  const d = [to[0] - from[0], to[1] - from[1], to[2] - from[2]];
+  const n = Math.hypot(...d);
+  return { origin: from, direction: d.map((v) => v / n) };
+};
+
+test('bendPoint is the shader\'s bend, a whole piece turning about its middle', () => {
+  // Copied from `bend` in render.js rather than derived, because the point of
+  // this function is to agree with that one exactly.
+  const pitch = pitchOf(DEFAULT_PIECE);
+  const radius = radiusFor(6, DEFAULT_PIECE);
+  const focus = pitch;
+  const shader = ([x, y, z], roll) => {
+    const centre = Math.floor(x / pitch + 0.5) * pitch;
+    const a = (centre - focus) / radius;
+    const dx = x - centre;
+    const r = radius + y;
+    const rolled = [Math.sin(a) * r + Math.cos(a) * dx, Math.cos(a) * r - Math.sin(a) * dx - radius, z];
+    return [x + (rolled[0] - x) * roll, y + (rolled[1] - y) * roll, z];
+  };
+  for (const p of [[pitch + 3, 0, 2], [2 * pitch - 10, 1.5, -4], [-12, 0, 0]]) {
+    for (const roll of [1, 0.4]) {
+      const got = bendPoint(p, { focus, radius, pitch, roll });
+      shader(p, roll).forEach((v, i) => near(got[i], v, 1e-9));
+    }
+  }
+  // The piece at the top of the ring is not curved at all, only moved under
+  // the camera: a frame of film is flat.
+  const flat = bendPoint([focus + 9, 0, 3], { focus, radius, pitch, roll: 1 });
+  near(flat[0], 9, 1e-9);
+  near(flat[1], 0, 1e-9);
+});
+
+test('a point on any piece is found again by a ray aimed at where it is drawn', () => {
+  // **The reason objects would not move after the first step.** The pointer
+  // has to be read against the ground as drawn, on whichever piece is at the
+  // top, and at every roll the unfurl passes through.
+  const pitch = pitchOf(DEFAULT_PIECE);
+  const radius = radiusFor(3, DEFAULT_PIECE);
+  const eye = [-4, 18, 26];
+  for (const piece of [0, 1, 2]) {
+    for (const roll of [1, 0.6, 0]) {
+      const focus = piece * pitch;
+      const bend = { focus, radius, pitch, roll };
+      for (const offset of [[0, 0], [5, -3], [-11, 4]]) {
+        const spot = [focus + offset[0], 0, offset[1]];
+        const drawn = bendPoint(spot, bend);
+        // Seen from where the camera stands for the drawn world.
+        const from = roll < 0.0005 ? [eye[0] + focus, eye[1], eye[2]] : eye;
+        const found = filmGround(aim(from, drawn), bend);
+        assert.ok(found, `piece ${piece} at roll ${roll} found no ground`);
+        near(found[0], spot[0], 1e-6);
+        near(found[2], spot[2], 1e-6);
+      }
+    }
+  }
+});
+
+test('the ground is met at the height being dragged along', () => {
+  const pitch = pitchOf(DEFAULT_PIECE);
+  const radius = radiusFor(3, DEFAULT_PIECE);
+  const bend = { focus: pitch, radius, pitch, roll: 1, height: 2 };
+  const spot = [pitch + 4, 2, 1];
+  const found = filmGround(aim([0, 20, 24], bendPoint(spot, bend)), bend);
+  near(found[0], spot[0], 1e-6);
+  near(found[1], 2, 1e-9);
+  near(found[2], spot[2], 1e-6);
+});
+
+test('a grazing ray is refused rather than flinging a drag across the world', () => {
+  const pitch = pitchOf(DEFAULT_PIECE);
+  const radius = radiusFor(3, DEFAULT_PIECE);
+  const grazing = { origin: [0, 1, 30], direction: [0, -0.05, -Math.sqrt(1 - 0.0025)] };
+  for (const roll of [1, 0]) {
+    const bend = { focus: 0, radius, pitch, roll };
+    assert.ok(filmGround(grazing, bend), 'without a floor the crossing is a real point');
+    assert.equal(filmGround(grazing, { ...bend, minSlope: 0.15 }), null,
+      `roll ${roll}: a ray lying flat gave a point to drag to`);
+  }
+});
+
+test('the ring\'s camera finds the clock\'s piece, where the strip\'s camera did not', () => {
+  // The bug, kept as a number. The camera stays on the first piece and the
+  // world turns; asking from where the camera would stand on the flat strip
+  // met the ring seventy units away on piece one, and nowhere on piece two.
+  const rig = { yaw: -8, pitch: 20, width: 26, height: 0 };
+  const pitch = pitchOf(DEFAULT_PIECE);
+  const radius = radiusFor(3, DEFAULT_PIECE);
+  for (const piece of [1, 2]) {
+    const bend = { focus: xAt(piece, DEFAULT_PIECE), radius, pitch, roll: 1 };
+    const right = filmGround(rayThrough(framingOf(rig, 0, DEFAULT_PIECE), [0, -0.5]), bend);
+    assert.ok(right, `piece ${piece}: the drawn camera found no ground`);
+    assert.ok(Math.abs(right[0] - bend.focus) < pitch / 2,
+      `piece ${piece}: the press landed on another piece (${right[0]})`);
+  }
+});
+
+test('a box is picked where it is drawn on the ring', () => {
+  const pitch = pitchOf(DEFAULT_PIECE);
+  const radius = radiusFor(3, DEFAULT_PIECE);
+  const bend = { focus: 0, radius, pitch, roll: 1 };
+  // On the next piece round, which the ring has carried down and tilted.
+  const box = { min: [pitch - 1, 0, -1], max: [pitch + 1, 3, 1] };
+  const drawn = bendBox(box, bend);
+  const centre = bendPoint([pitch, 1.5, 0], bend);
+  for (let a = 0; a < 3; a++) {
+    assert.ok(drawn.min[a] <= centre[a] && centre[a] <= drawn.max[a],
+      'the drawn box does not hold the drawn middle of the object');
+  }
+  assert.ok(drawn.max[1] < box.max[1] - 1, 'a piece further round should be drawn lower');
 });
 
 // --- the camera -------------------------------------------------------------
