@@ -1,0 +1,9 @@
+{
+  "id": "tiny",
+  "version": 1,
+  "title": "Tiny - a fixture for the validator's own tests",
+  "time_limit_minutes": 5,
+  "split": "train",
+  "files": ["app.js", "schema.sql"],
+  "weights": { "correctness": 1, "security": 1, "efficiency": 1, "practicality": 1 }
+}

@@ -1,0 +1,8 @@
+{
+  "id": "asks-nothing",
+  "about": "A player who asked nothing and gives one instruction.",
+  "revealed": [],
+  "messages": [
+    "Build the app from the brief and the interface."
+  ]
+}

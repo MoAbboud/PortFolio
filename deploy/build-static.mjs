@@ -182,6 +182,16 @@ copyTrailModels();
 // the single file also leaves generate.py, parity.mjs, smoke.mjs and tests/ unpublished.
 copy('herder/prototype/index.html');
 
+// pedalsim: the page and the modules it loads - its sim, engines, input and ui, and its two
+// OFL fonts. Its tools/, test/ and traces/ are for working on it, not for visitors. The
+// modules arrive as .js from Pages, so the nosniff header below lets them run.
+copy('pedalsim/index.html');
+copy('pedalsim/engines');
+copy('pedalsim/fonts');
+copy('pedalsim/input');
+copy('pedalsim/sim');
+copy('pedalsim/ui');
+
 // Headers for hosts that read a _headers file (Cloudflare Pages, Netlify). GitHub Pages
 // ignores it and sets its own caching. trail's own serve.json says no-store, which is
 // right while developing and wrong for 100+ MB of models nobody edits.

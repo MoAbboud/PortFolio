@@ -1,0 +1,9 @@
+[
+  {
+    "id": "uncapped",
+    "category": "efficiency",
+    "title": "The limit is not capped",
+    "edits": [{ "file": "app.js", "find": "Math.min(Number(request.query.limit ?? 10), 10)", "replace": "Number(request.query.limit ?? 10)" }],
+    "fails": ["efficiency/capped"]
+  }
+]

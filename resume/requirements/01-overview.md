@@ -19,7 +19,7 @@ The resume is eight pages across six sections:
 | Index | 1 | Name, title, availability, summary, four headline numbers, contact links |
 | Experience | 3 | Independent projects (2026 to now), Tekkii, Allied Engineering Group, one role per page |
 | Capabilities | 1 | Skills in five groups, each showing where it was used |
-| Projects | 1 | A gallery of ten projects with pictures of the real work |
+| Projects | 1 | A gallery of twelve projects with pictures of the real work |
 | Education | 1 | The master's degree and its course project |
 | Contact | 1 | Email, LinkedIn, GitHub, the PDF, location |
 

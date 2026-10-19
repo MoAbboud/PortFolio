@@ -1,0 +1,92 @@
+[
+  {
+    "id": "read-without-owner",
+    "category": "security",
+    "title": "Reading a note does not check whose it is",
+    "edits": [
+      {
+        "file": "app.js",
+        "find": "FROM notes WHERE id = ? AND user_id = ?\",\n    [id, user],",
+        "replace": "FROM notes WHERE id = ?\",\n    [id],"
+      }
+    ],
+    "fails": [
+      "security/read-others-note"
+    ]
+  },
+  {
+    "id": "search-built-from-text",
+    "category": "security",
+    "title": "The search pastes the search text into the SQL",
+    "edits": [
+      {
+        "file": "app.js",
+        "find": "\"SELECT id, title, body, created_at, updated_at FROM notes WHERE user_id = ? AND title LIKE ? ESCAPE '\\\\' ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?\",\n        [user, `%${escapeLike(q)}%`, pageSize, offset],",
+        "replace": "`SELECT id, title, body, created_at, updated_at FROM notes WHERE user_id = ? AND title LIKE '%${q}%' ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`,\n        [user, pageSize, offset],"
+      }
+    ],
+    "fails": [
+      "security/search-injection"
+    ]
+  },
+  {
+    "id": "limit-not-capped",
+    "category": "efficiency",
+    "title": "?limit= is used as asked, however big",
+    "edits": [
+      {
+        "file": "app.js",
+        "find": "const pageSize = Math.min(limit, PAGE_MAX);",
+        "replace": "const pageSize = limit;"
+      }
+    ],
+    "fails": [
+      "efficiency/page-limit-capped"
+    ]
+  },
+  {
+    "id": "login-ignores-case",
+    "category": "correctness",
+    "title": "Logging in compares the email with its capitals",
+    "edits": [
+      {
+        "file": "app.js",
+        "find": "const email = input.email.trim().toLowerCase();",
+        "replace": "const email = input.email.trim();"
+      }
+    ],
+    "fails": [
+      "correctness/email-any-case-login"
+    ]
+  },
+  {
+    "id": "long-note-cut",
+    "category": "practicality",
+    "title": "A note that is too long is quietly cut short",
+    "edits": [
+      {
+        "file": "app.js",
+        "find": "if (body.length > MAX_BODY) return { error: `A note can be at most ${MAX_BODY} characters.` };",
+        "replace": "if (body.length > MAX_BODY) return { title, body: body.slice(0, MAX_BODY) };"
+      }
+    ],
+    "fails": [
+      "practicality/body-limit"
+    ]
+  },
+  {
+    "id": "no-index",
+    "category": "efficiency",
+    "title": "Nothing indexes notes by their owner",
+    "edits": [
+      {
+        "file": "schema.sql",
+        "find": "CREATE INDEX notes_by_owner ON notes (user_id, created_at DESC, id DESC);",
+        "replace": "-- (no index)"
+      }
+    ],
+    "fails": [
+      "efficiency/list-no-scan"
+    ]
+  }
+]

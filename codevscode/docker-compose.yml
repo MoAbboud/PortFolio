@@ -1,0 +1,45 @@
+# Local development. Production is a profile in deploy/docker-compose.prod.yml, added when
+# the game is ready to host (stage 11).
+#
+# Host ports are 5435 and 8020: mailman and herder take 5432 and 8000, roamer 5434 and 8010.
+# All of them can run at once.
+#
+# The judge arrives at stage 2, as its own service with no network of its own.
+
+services:
+  db:
+    # postgres:16, the same major version as the production server and the CI job.
+    image: postgres:16
+    environment:
+      POSTGRES_USER: codevscode
+      POSTGRES_PASSWORD: codevscode
+      POSTGRES_DB: codevscode
+    ports:
+      # Exposed so pytest, alembic and psql can reach it from Windows directly.
+      - "5435:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U codevscode -d codevscode"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  web:
+    build: .
+    depends_on:
+      db:
+        # Waits for a database that answers, not just a container that started.
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://codevscode:codevscode@db:5432/codevscode
+    ports:
+      - "8020:8000"
+    volumes:
+      # Source mounted so an edit is picked up without a rebuild.
+      - .:/app
+    # Migrations on start, so `docker compose up` is the whole setup.
+    command: sh -c "alembic upgrade head && uvicorn codevscode.main:app --host 0.0.0.0 --port 8000 --reload"
+
+volumes:
+  pgdata:

@@ -1,0 +1,11 @@
+# Stage 0 - scaffold only. Each later stage adds what it needs when it needs it, as in
+# roamer: a sentence model with the client at stage 3, the email libraries at stage 7.
+fastapi>=0.115
+uvicorn[standard]>=0.32
+sqlalchemy>=2.0.36
+alembic>=1.14
+psycopg[binary]>=3.2
+pydantic>=2.10
+pydantic-settings>=2.7
+pytest>=8.3
+httpx>=0.28
