@@ -20,11 +20,14 @@ tested against the published figures of a real engine of the same bore and strok
 drivetrain - manual and automatic, a clutch, tyres and brakes that grip or slip, traction
 control; the page - gauges that pixelate in where the engine has been; and driving it
 yourself, automatic or manual - clutch, H-pattern stick, grinding, the blown engine - with a
-coach that says when to shift. Stage 6, the perfect-run solver, is next.
+coach that says when to shift; and the perfect run - for each engine, the fastest clean 0 to
+60 a driver limited to the keyboard can make, worked out offline and checked by a test.
+Stage 7, the 0 to 60 run with its score card and share link, is next.
 
     cd pedalsim
     npm test
     node tools/figures.js                       every engine's numbers against its targets
+    node tools/solve.js --check                 the stored perfect runs are current
     node tools/drive.js test/scripts/workout.json --engine v12 --out traces/v12.csv
     npx --yes serve .
 

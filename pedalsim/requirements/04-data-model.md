@@ -89,16 +89,30 @@ export default {
 
 ## Perfect runs - generated
 
-`engines/perfect/<id>.js`, written by `tools/solve.js`.
+`engines/perfect/<id>.js` and `engines/perfect/index.js` (`PERFECT`, by engine id), written
+by `tools/solve.js` (built stage 6). Published with the rest of `engines/`.
 
 ```
 {
-  engine: "v8", engineHash: "...", simVersion: 1, gearbox: "manual",
-  time: 4.917,                           seconds to 60 mph
-  params: { launchRpm, clutchRelease, shiftRpm: [5], liftOnShift },
-  log: <packed run log>                  the ghost replays this
+  engine: "v8", engineHash: "<sha256 of the engine's parameters and the chassis>",
+  simVersion: 3, gearbox: "manual", tractionControl: false,
+  time: 4.47...,                         seconds from GO to 60 mph, interpolated, full precision
+  slipJ: 30000,                          clutch heat over the run, joules
+  shifts: [{ to: 2, rpm: 7150, mph: 51.3 }],   each change after GO: gate, revs, speed
+  params: { launchGear, launchThr, launchClutchRate, floorAt,
+            foot1, spin1, ..., shiftRpm1, lift1, reapply1, clutchRate1, ... },
+  log: { steps, gearbox: "manual", events: [[step, channel, value], ...] }
 }
 ```
+
+- `log` is a script in the replay shape, from step 0 (the page's own key turn included), and
+  ends on the step the car passes 60 mph. It is the truth; `params` are the solver's numbers,
+  rounded, kept to say what the driver did - re-driving them is not guaranteed to give the
+  last digit of `time`.
+- `engineHash` is the same hash as the engine file's header (`parametersHash` in
+  `tools/build-engines.js`). A stored run whose hash or `simVersion` no longer matches is
+  stale; `node tools/solve.js --check` and `test/perfect.test.js` both say so.
+- About 100 to 250 events, most of them pedal ramps in 10 ms steps.
 
 ## The chassis
 
@@ -120,7 +134,7 @@ is in the parameters hash: change the car and every engine file is stale until r
   format: 1, simVersion: 1,
   engine: "v8", engineHash: "...", gearbox: "manual",
   tractionControl: false,                 off by default in a manual, on in an automatic
-  mode: "zero-to-sixty",                 or "free"
+  mode: "zero-to-sixty",                 or "free"; the 0 to 60 rules are sim/sixty.js
   steps: 5310,
   events: [[0, "key", 1], [212, "clutch", 1023], [460, "gear", 1], [903, "thr", 1023], ...]
 }

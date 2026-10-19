@@ -78,8 +78,10 @@ automatic: keyboard, mouse, touch or a controller, on-screen pedals, a hold-to-c
 key, the lever with its interlocks, and the traction control toggle. 140 tests. Then the
 manual: a clutch, an H-pattern stick dragged through its gates, a synchromesh that grinds
 without the clutch, a starter that will not crank in gear, the check engine light and the
-blown engine, and the shift coach with its rev-match needle. 154 tests. Stage 6, the
-perfect-run solver, is next.
+blown engine, and the shift coach with its rev-match needle. 154 tests. Then the engine
+sound. Then the perfect-run solver: the 0 to 60 run's rules in one module, and for each
+engine the fastest clean run a keyboard-limited driver can make from first gear, stored and
+replayed by a test. 186 tests. Stage 7, the run, the score and the share link, is next.
 
 ### Why the maths comes first and headless
 
@@ -160,7 +162,9 @@ measure against, and a leaderboard of raw times says nothing about how well some
 | The clutch, tyres and brakes share one stick or slip rule, through one chain solver | One well-tested piece of maths instead of eight hand-written cases. Built in stage 2 |
 | No gearbox efficiency in the first version | Losses that depend on which way power flows complicate the solver for a few percent; top speeds and times are a few percent generous |
 | The perfect run is solved on the author's machine and committed | Deterministic, instant on the page, and checked by a test |
-| The perfect driver gets no faster shift than a person | Otherwise "perfect" wins by a margin no one can close |
+| The perfect driver gets no faster shift than a person | Otherwise "perfect" wins by a margin no one can close. Built stage 6 as: inputs every 10 ms at most, the keyboard's own pedal rates, the stick only with the clutch down, wheelspin felt 0.15 s late |
+| A 0 to 60 run leaves in first gear (built stage 6) | Otherwise the perfect V8, V10 and V12 runs leave in second and never shift, and a score about shifting has nothing to score |
+| The perfect run is solved with traction control off, the manual's default (built stage 6) | One reference per engine. With it on the times would be quicker; whether a run with it on is scored against its own perfect run is open |
 | Score = 1000 times perfect time over your time, plus a clean mark | Every mistake already costs time; smoothness is shown, not double-counted |
 | The score card splits time lost by phase, summing exactly to the gap | Tells the driver where the time went, which is what makes them try again |
 | A ghost needle shows the perfect run during your run | The clearest picture of "shift here, not there" |
@@ -179,6 +183,8 @@ measure against, and a leaderboard of raw times says nothing about how well some
 | How long should a full build take? | Stage 3 | Proposed: three or four full-throttle pulls to the limiter in neutral build the tachometer; the speedometer builds to whatever speed has been reached. Tuned by feel |
 | What does the empty state show? | Stage 3 | Proposed: the circle outlines and the needle hubs only. The needles appear with the start key |
 | Should the automatic have a 0 to 60 run too? | Stage 7 | Proposed: yes, timed, but not scored - there is no shifting skill in it beyond the launch |
+| Do the perfect runs look believable? | Stage 7 | The author's check. Notable: the V8 changes up at 5400 rpm, not the 7200 redline; the V10 spins through first and is in second by 6 mph; the V12 never shifts; the V10 and V12 are slower by hand than the automatic with traction control |
+| How much clutch heat is still "gentle"? | Stage 7 | The perfect runs make 5 to 58 kJ: a launch off high revs slips the clutch far longer. Proposed: judge it against the engine's perfect run, not one number |
 | More engine kinds later | After stage 8 | Turbocharged (boost gauge, lag), diesel (low redline, huge torque), rotary, motorcycle, electric (no gears at all). Each is a parameter set and a few new curves |
 | The sister app | Not this project | Ideas are kept in the context log. Lives in its own folder beside the engine app, may reuse `sim/` |
 

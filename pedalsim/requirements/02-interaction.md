@@ -183,7 +183,8 @@ The pedals and stick are simple on-screen controls that also show what the keybo
 
 1. Start run, on the V8, manual. Countdown on the gauges.
 2. The ghost needle runs the perfect launch and shifts alongside.
-3. 60 mph: 5.31 s against a perfect 4.92 s. The card says: launch 0.21 s lost to wheelspin;
-   1 to 2 shifted 600 rpm early, 0.09 s; 2 to 3 0.06 s; clutch held in 0.03 s too long.
-4. Copy link. A friend opens it, their page drives the run again, shows the same 5.31 s, and
+3. 60 mph: 4.71 s against a perfect 4.29 s (the V8's stored run). The card says, for
+   example: launch 0.21 s lost to wheelspin; 1 to 2 shifted 1300 rpm late, 0.09 s - the
+   perfect run changes up at 5400, not the redline; clutch held in 0.03 s too long.
+4. Copy link. A friend opens it, their page drives the run again, shows the same 4.71 s, and
    offers to beat it.

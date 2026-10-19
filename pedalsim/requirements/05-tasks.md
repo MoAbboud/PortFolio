@@ -6,7 +6,7 @@ Every stage is checked from a PowerShell terminal on Windows. If a stage cannot 
 that way, it is not finished. Every stage that changes the page is also checked at phone
 width in landscape in the browser's device view.
 
-Stages 0 to 5 are done. Stage 6, the perfect-run solver, is next.
+Stages 0 to 6 are done. Stage 7 - the 0 to 60 run, the score, the board and the share link - is next.
 
 ## Planning
 
@@ -297,16 +297,26 @@ Check:
 
 ## Stage 6 - The perfect-run solver
 
-- [ ] `tools/solve.js`: parameters, interpolated 60 mph crossing, golden section then
-      coordinate descent, human shift limits
-- [ ] `engines/perfect/<id>.js` for all five
-- [ ] Test: every stored perfect run replays to its stored time
+Done, except the author's look at the runs. 186 tests (27 new). Times, shifts and what they
+show are in 03-architecture, "The perfect run", "As built (stage 6)".
+
+- [x] `sim/sixty.js`: the run's rules - prelude, countdown, GO, interpolated 60 mph crossing,
+      false start, leave in first, clean (`test/sixty.test.js`)
+- [x] `tools/solve.js`: the perfect driver (launch, foot, wheelspin limit, shifts), human
+      limits (10 ms inputs, keyboard pedal rates, 0.15 s to feel spin), twelve starts of
+      coordinate descent with golden section; `--engine`, `--check`; `npm run solve`
+- [x] `engines/perfect/<id>.js` for all five, and `engines/perfect/index.js`
+- [x] Test: every stored perfect run replays to its stored time, clean, from first, current
+      with `SIM_VERSION` and the engine, inside the keyboard's limits (`test/perfect.test.js`)
+- [x] `tools/figures.js` prints each perfect run beside the automatic's time
 - [ ] The author drives each engine and checks its perfect run looks believable
 
 Check:
 
-    node tools/solve.js
+    node tools/solve.js --check                 are the stored runs current
+    node tools/figures.js                       each engine's perfect run and its shifts
     npm test
+    node tools/solve.js                         re-solve all five (about ten minutes)
 
 ## Stage 7 - 0 to 60, score, board, share link
 
