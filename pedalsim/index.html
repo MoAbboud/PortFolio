@@ -33,8 +33,11 @@
     --pedal-h: min(180px, 26vh);
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; }
+  /* The page can be taller than the screen (the score card and the board): the gradient runs
+     the body's whole height, and the page beneath it is the bottom colour. */
+  html { margin: 0; height: 100%; background: var(--bottom); }
   body {
+    margin: 0;
     background: linear-gradient(var(--top), var(--bottom));
     transition: background 1s;
     color: var(--type);
@@ -132,6 +135,28 @@
   .pedal.thr { height: calc(var(--pedal-h) * 1.15); width: 50px; }
 
   #dyno { grid-area: dyno; display: block; width: min(860px, 92vw); height: 80px; }
+  #clock { font-family: "Boldonse", sans-serif; font-size: 18px; min-height: 1.6em; letter-spacing: 0.04em; }
+  #run { font-family: "Boldonse", sans-serif; font-size: 11px; border-color: var(--accent); }
+
+  /* The score card and this visit's board, under the gauges. */
+  .sheet { position: relative; width: min(860px, 92vw); margin: 8px auto 0; padding: 12px 16px;
+    border: 1px solid var(--line); border-radius: 8px; background: rgb(0 0 0 / 0.35); }
+  .card-title { font-family: "Bodoni Moda", serif; font-style: italic; opacity: 0.7; margin-bottom: 6px; }
+  .card-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; margin-bottom: 8px; }
+  .card-time { font-family: "Boldonse", sans-serif; font-weight: 400; font-size: 26px; }
+  .card-score { font-family: "Boldonse", sans-serif; font-weight: 400; font-size: 26px; color: var(--accent); }
+  .card-marks { font-family: "Bodoni Moda", serif; font-style: italic; opacity: 0.8; }
+  .sheet table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .sheet th { text-align: left; font-weight: 400; opacity: 0.55; }
+  .sheet td, .sheet th { padding: 3px 8px 3px 0; vertical-align: top; }
+  .sheet td.lost { color: rgb(255 150 50); }
+  .sheet td.note { opacity: 0.65; font-size: 12px; }
+  .sheet tr.total td { border-top: 1px solid var(--line); }
+  .sheet tr.best td:first-child::before { content: "best "; color: var(--accent); }
+  .card-buttons { display: flex; gap: 8px; margin-top: 10px; }
+  .card-link { width: 100%; margin-top: 8px; font: 12px ui-monospace, monospace; color: var(--type);
+    background: rgb(0 0 0 / 0.4); border: 1px solid var(--line); border-radius: 4px; padding: 5px; }
+  .card-proof { margin: 8px 0 0; font-size: 12px; opacity: 0.7; }
   footer { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 10px 16px 20px; }
   #playing { width: 100%; text-align: center; font-family: "Bodoni Moda", serif; font-style: italic; opacity: 0.7; min-height: 1.5em; }
   .keys { width: 100%; text-align: center; opacity: 0.55; font-size: 12px; }
@@ -198,6 +223,7 @@
   <div class="cluster">
     <div class="gauge" id="tach" role="img" aria-label="Tachometer"></div>
     <div class="middle">
+      <div id="clock" aria-live="polite"></div>
       <div id="gear" aria-label="Gear">P</div>
       <div id="readout"></div>
       <div id="coach" class="coach" aria-hidden="true"></div>
@@ -216,14 +242,16 @@
   </div>
   <canvas id="dyno" aria-label="Torque and power, as measured"></canvas>
 </main>
+<section id="card" class="sheet" hidden aria-label="Score card"></section>
+<section id="board" class="sheet" hidden aria-label="This visit's runs"></section>
 <footer>
   <div id="playing"></div>
+  <button id="run">0 TO 60</button>
   <button id="demo0">Rev it</button>
   <button id="demo1">Drive the manual</button>
   <button id="demo2">Drive the automatic</button>
-  <button id="build">Build it all</button>
   <button id="stop">Stop</button>
-  <div class="keys">K or Space hold to start - Up / W gas - Down / S brake - Shift gentler - M automatic or manual - T traction control - V sound - [ ] engine<br>
+  <div class="keys">K or Space hold to start - Up / W gas - Down / S brake - Shift gentler - M automatic or manual - T traction control - V sound - [ ] engine - G a 0 to 60 run<br>
     automatic: P R N D or Q / E the lever - manual: C or A clutch, 1 to 6 gears, R reverse, N neutral, Q / E down / up</div>
 </footer>
 <script type="module" src="ui/main.js"></script>

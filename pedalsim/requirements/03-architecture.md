@@ -467,6 +467,61 @@ flowchart LR
 - **What it reveals**: the best shift is often not at the redline. Where the torque curve
   falls off early, the solver shifts well before it, and the page can say so.
 
+### As built (stage 6)
+
+**The run's rules** live in `sim/sixty.js`, so the solver, the page and a shared link all time
+a run the same way. Step 0: the page turns the key (`PRELUDE`, 0.8 s). Step 3000: the countdown
+- clutch, gear and revs are allowed, rolling faster than 0.1 m/s is a false start. Step 5000:
+GO, the clock starts. The time ends where the car passes 60 mph, interpolated inside the step.
+**The car must leave in first** (`START_GEAR`): without that rule the quickest V8, V10 and V12
+runs leave in second and never shift (V8 4.30 s, V10 4.20 s, V12 4.61 s), and a score about
+shifting has nothing to score. Clean is no grind, no check engine, no blown engine; the clutch
+heat is recorded (`slipJ`) and judged at stage 7.
+
+**The perfect driver** (`tools/solve.js`) is a few numbers turned into inputs at every step:
+
+| Number | What it does |
+| --- | --- |
+| `launchThr` | throttle held through the countdown and off the line |
+| `launchClutchRate` | how fast the clutch comes up from the bite point at GO |
+| `floorAt` | when the throttle goes on after GO |
+| `foot<g>` | how far down the throttle goes in gear g |
+| `spin<g>` | the wheelspin (m/s) allowed in gear g before the foot eases off - all the way off 2 m/s past it |
+| `shiftRpm<g>`, `lift<g>`, `reapply<g>`, `clutchRate<g>` | the change from g: at what revs, the throttle held through it, when it goes back on after the stick moves, how fast the clutch comes up |
+
+**Human limits**, which a keyboard driver could in principle press exactly: inputs change at
+most every 10 ms; every pedal moves at the page's own keyboard rates (`input/pedals.js`
+`RATES`, including the slow clutch from a standstill); the stick moves only once the clutch is
+down, at once, as the number keys do; the driver feels wheelspin 0.15 s late.
+
+The foot that feels wheelspin was not in the plan. Without traction control a tyre that has
+broken loose keeps spinning while the push is more than its sliding grip - full throttle spun
+the V8's tyres through third at 45 mph - so a driver who only floors it or lifts spins every
+gear. The first solver, with no foot, found 5.18 s for the V8 by shifting into third at 11 mph
+to stop the spin.
+
+**The search** is deterministic: twelve starting points (the plan's - launch at peak torque,
+shift at the coach's points - with variations on the launch throttle, the foot and the spin
+limit) each get two rounds of coordinate descent; the best is carried on until a round gains
+under 10 microseconds. Each round moves one number at a time: nine points across its window,
+then golden-section between the best one's neighbours; the window halves each round. Each
+engine takes 1.5 to 3.5 minutes. A single start found 4.88 s for the V12; twelve found 4.64.
+
+**What it found** (traction control off, against the automatic with it on):
+
+| Engine | Perfect manual | Its shifts | Automatic, TC on |
+| --- | --- | --- | --- |
+| V4 | 5.741 s | 1-2 at 8147 rpm, 39 mph; 2-3 at 8141, 56 mph | 5.95 s |
+| V6 | 4.498 s | 1-2 at 6837 rpm, 45 mph | 4.51 s |
+| V8 | 4.287 s | 1-2 at 5404 rpm, 38 mph - 1800 rpm before the redline | 4.33 s |
+| V10 | 4.385 s | 1-2 at 7642 rpm, 6 mph, spinning in first | 4.25 s |
+| V12 | 4.639 s | none: first reaches 60 at the limiter | 4.09 s |
+
+The V8's early shift is the "not at the redline" case: second is still at the grip limit at
+38 mph, so its revs cost nothing and first's spin is left behind. The V10 spins through first
+and is in second by 6 mph - a grip-holding run in first came out near 5.0 s. The V10 and V12
+are slower by hand than the automatic, whose traction control acts every millisecond.
+
 ## The score
 
 **Time lost, phase by phase.** Your run is split into phases: launch, each gear, each shift.
@@ -493,6 +548,45 @@ with a "clean" mark for a run with no grind, no over-rev, no blown engine and lo
 heat (the author's definition: "dont blow out the engine etc"). A stall or a blown engine ends
 the run. Every other mistake already costs time, so it is not penalised twice.
 
+## The run, as built (stage 7)
+
+**The run** (`ui/main.js`, rules from `sim/sixty.js`): 0 TO 60 or G gives a fresh car with the
+gearbox and traction control as set; the page feeds the simulation its own key turn until
+step 3000 (the driver's inputs are ignored until then), READY, a 2 - 1 countdown, GO, then the
+running time. Every input change is recorded at the step it takes effect. The run ends at
+60 mph, on a stall, a blown engine, or 20 s; Stop, another engine or the other gearbox abandon
+it, and traction control cannot be toggled during one.
+
+**The ghost**: the engine's stored perfect run, stepped in the same loop from the same step 0,
+drawn as a thin pale needle on both gauges. It is shown during a run and while one is watched.
+
+**The card** (`sim/score.js`, `ui/card.js`) is worked out by re-driving the recorded log - the
+same path a shared link takes - and the page logs an error if that disagrees with what the
+live run saw. Phases are cut by what the driver did: the launch until the clutch is up and
+gripping in a gear; a gear until the clutch pedal moves or the gear changes; a shift until the
+clutch grips again. Each phase's loss is its time less the perfect run's time over the same
+speeds (highest speed so far); they telescope to the gap, and the card rounds them to
+milliseconds by largest remainder so the printed numbers add up too. Each row says why:
+revs at a shift against the perfect run's, clutch-in time, wheelspin time, limiter time,
+clutch heat.
+
+**Score and clean.** `round(1000 * perfect / yours)` for a finished manual run; the automatic
+is timed, not scored. Clean: no grind, no check engine, no blown engine, and clutch heat no
+more than twice the perfect run's or 150 kJ, whichever is more (a brisk keyboard launch makes
+20 to 60 kJ, a keyboard shift about 30). A run with traction control on is scored against the
+same perfect run and marked "traction control on". False start, leaving in a gear other than
+first, stalling and blowing the engine are named on the card.
+
+**The board**: this visit's runs, newest first; the last ten kept, plus each engine's best
+however old. Each has CARD and WATCH; a card has WATCH, SHARE and AGAIN (BEAT IT on a link).
+Nothing is written to storage, and a test greps the page for any way to.
+
+**Checked in Chrome** (headless, default GL, real key events): a V8 manual run timed 5.925 s
+live and the same to the last bit when its log was re-driven in Node - kept as
+`test/scripts/chrome-v8-run.json`, scored by a test; its link (840 characters) re-drove to the
+same time on a fresh page; an automatic run timed and unscored; watching back with the ghost;
+a false start; the card at 390 px wide.
+
 ## The board and the share link
 
 **The board** lives in memory for as long as the page is open: best score per engine, the
@@ -513,6 +607,14 @@ both. An opened run joins the receiver's board for that page load, so they can r
 drove it: a program could write a perfect input log. The page says so.
 
 ## The interface the engine builds
+
+**Dropped after stage 6 (2026-10-19).** The author: "im over the idea of the gauges showing
+when the tick gets to them, just show the gauge numbers the whole time." The faces are now
+whole from the start (`createDevelopment(layout, true)`): every bin built, the redline and the
+shift marks shown. The reveal shader still draws them - at full development it is a crisp
+face with the film grain - and the dyno strip is still drawn only from full-throttle torque
+the engine has made. Cycling engines swaps the faces at once; a blown engine no longer breaks
+them. "Build it all" is gone. What follows is the design as it was built in stage 3.
 
 The author's idea: the gauges start as empty circles, and revving the engine makes them
 pixelate in. Two pieces of maths: the **layout**, which decides what each face would show,
@@ -771,13 +873,13 @@ next turn of the key; with the engine off, at once.
 pedalsim/
   index.html
   sim/        step, inputs, replay (stage 0); clock, curves, engine (stage 1); chassis,
-              couplings, converter, gearbox, drivetrain (stage 2); coach, score, log
+              couplings, converter, gearbox, drivetrain (stage 2); sixty (stage 6); score, log
   engines/    params.js (entered), v4.js ... v12.js (generated), perfect/*.js (generated)
   ui/         layout (nice numbers, angles), face painter, development field, reveal shader
               and its canvas 2D fallback, needle, lights, dyno, pedals, stick, board, scorecard
   input/      keyboard, pointer, gamepad
   tools/      drive.js (scripted run to CSV); build-engines.js, engine-maths.js, measure.js,
-              figures.js, golden.js (stage 1); solve.js
+              figures.js, golden.js (stage 1); solve.js (stage 6)
   test/
   package.json   "test": "node --test"
 ```
