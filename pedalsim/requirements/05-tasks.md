@@ -6,7 +6,8 @@ Every stage is checked from a PowerShell terminal on Windows. If a stage cannot 
 that way, it is not finished. Every stage that changes the page is also checked at phone
 width in landscape in the browser's device view.
 
-Stages 0 to 7 are done. Stage 8, publishing - README, recording, credits - is next.
+All eight stages are built. Left: the two checks only people can make - someone other than
+the author driving it cold on a keyboard, and a real phone.
 
 ## Planning
 
@@ -350,10 +351,26 @@ Check:
 
 ## Stage 8 - Publish
 
-- [ ] `deploy/build-static.mjs` and `.github/workflows/pages.yml` include pedalsim
+Done.
+
+- [x] `deploy/build-static.mjs` and `.github/workflows/pages.yml` include pedalsim (done from
+      the resume session, 2026-10-19; checked: the build now carries `engines/perfect/`,
+      `sim/score.js`, `sim/runlog.js`, `ui/share.js`, `ui/card.js`, and leaves out the README,
+      credits, media, tools and tests; a run driven on the built site under `/pedalsim/`
+      re-drove from its link to the same time)
 - [x] `.github/workflows/test-pedalsim.yml` running `node --test` (done at stage 0)
-- [ ] The badge in the root README
-- [ ] README: what it is, a recording, how to run it, what a shared run proves and does not
-- [ ] Credits file: Filip Zrnzevic's pen as the inspiration (no code taken), and each font with
-      its licence
-- [ ] Root README lists pedalsim
+- [x] The badge in the root README
+- [x] `pedalsim/README.md`: what it is, a recording (`media/run.webp`, a keyboard-driven V8
+      run captured from headless Chrome's screencast, 10 fps, 1.1 MB), how to run it, what a
+      shared run proves and does not
+- [x] `pedalsim/CREDITS.md`: Filip Zrnzevic's pen as the inspiration (no code taken; CodePen's
+      MIT statement re-checked; Shadertoy's default licence noted), each font with its licence,
+      the engine references
+- [x] Root README lists pedalsim (row brought up to date)
+- [x] The resume's pedalsim card text brought up to date (no more "gauges draw themselves";
+      203 tests)
+
+Check:
+
+    node deploy/build-static.mjs      from the repository root; deploy/dist/pedalsim/
+    npx --yes serve deploy/dist       then /pedalsim/

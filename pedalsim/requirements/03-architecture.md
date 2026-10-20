@@ -890,4 +890,6 @@ text/plain on this machine and modules refuse to load.
 ## Deployment
 
 GitHub Pages, with the rest of the static site, at `/pedalsim/`: added to
-`deploy/build-static.mjs` and the Pages workflow's paths. Nothing else.
+`deploy/build-static.mjs` and the Pages workflow's paths. Nothing else. Published: the page,
+`engines/` (with `perfect/`), `fonts/`, `input/`, `sim/`, `ui/`. Not published: `tools/`,
+`test/`, `traces/`, `media/`, the README and credits.
