@@ -15,7 +15,7 @@ is wrong and it gets fixed rather than worked around.
 [00-plan.md](00-plan.md) is the one to read first: the stage order, the decisions already
 settled with the reason each one was taken, and the open questions still outstanding.
 
-**Stages 0 to 7 are done**: the scaffold; five engines built from their measurements, each
+**All eight stages are built**: the scaffold; five engines built from their measurements, each
 tested against the published figures of a real engine of the same bore and stroke; the
 drivetrain - manual and automatic, a clutch, tyres and brakes that grip or slip, traction
 control; the page - gauges laid out from each engine's own figures; driving it yourself,
@@ -23,8 +23,9 @@ automatic or manual - clutch, H-pattern stick, grinding, the blown engine - with
 says when to shift; the perfect run - for each engine, the fastest clean 0 to 60 a driver
 limited to the keyboard can make, worked out offline and checked by a test; and the 0 to 60
 run itself - a countdown, the perfect run as a ghost needle, a score card whose time lost
-per phase adds up to the gap, this visit's board, and a link that carries the run. Stage 8,
-publishing it properly (README, recording, credits), is next.
+per phase adds up to the gap, this visit's board, and a link that carries the run; and
+publishing it - the project README with a recording, credits, the badge. What is left is
+someone other than the author trying it, and a real phone.
 
     cd pedalsim
     npm test

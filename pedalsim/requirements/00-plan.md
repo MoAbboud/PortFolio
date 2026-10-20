@@ -62,7 +62,7 @@ flowchart LR
 | 7 | 0 to 60, score, board, share link | Countdown, run recorder, ghost needle, phase-by-phase time lost, the score and the clean mark, bests and recent runs held in memory until a refresh, share links that re-drive on open. A test: a run recorded in headless Chrome scores the same in Node |
 | 8 | Publish | In `deploy/build-static.mjs` and the Pages workflow; README with what it is, a short recording, how to run it, what a shared run does and does not prove; root README lists it |
 
-**Stages 0 to 5 are done.** The scaffold, the determinism rules enforced by a test, the
+**All eight stages are built** (stage history below). The scaffold, the determinism rules enforced by a test, the
 replay, the trace tool, the empty-circle page and CI; then the five engines built from their
 measurements - each one's torque, power and redline inside the published figures of a real
 engine of the same bore and stroke - running in neutral with a starter, an idle controller, a
@@ -82,8 +82,10 @@ engine the fastest clean run a keyboard-limited driver can make from first gear,
 replayed by a test. 186 tests. The author then dropped the build-up: the gauges are whole
 from the start. Then the run: a countdown, the perfect run as a ghost needle, a score card
 whose losses per phase add up to the gap, this visit's board, and share links that re-drive
-the run - checked to give the same time in Chrome and Node. 203 tests. Stage 8, publishing,
-is next.
+the run - checked to give the same time in Chrome and Node. 203 tests. Then publishing: a
+README with a recording, a credits file, the badge, the root README and the resume's card.
+**All eight stages are built.** Left: the done-when checks only people can make (someone else
+on a keyboard; a real phone).
 
 ### Why the maths comes first and headless
 
