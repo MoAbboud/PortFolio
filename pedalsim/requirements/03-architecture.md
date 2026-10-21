@@ -612,7 +612,7 @@ Built 2026-10-21, display only - `sim/` computes exactly what it did before (gol
   phase's speed band shaded between the two curves - its width is the time lost at that speed -
   and labelled with the phase's loss where there is room. Green where a phase beat the perfect
   run.
-- Closed by default: MATHS button or H. Checked in Chrome during a V8 run (clutch saturated at
+- Open from the start (the author, 2026-10-21); MATHS button or H hides and shows it. Checked in Chrome during a V8 run (clutch saturated at
   722 Nm, 195 kW to heat, tyres spinning 8.8 m/s) and at 390 px wide.
 
 ## The board and the share link

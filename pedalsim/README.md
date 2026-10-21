@@ -44,7 +44,7 @@ decision and what was tried and dropped are in [requirements/](requirements/).
   the same speeds, so the losses add up exactly to the gap - and still do once rounded to
   milliseconds on the card. A chart draws your speed against the perfect run's with each
   phase's loss shaded between them. Score = 1000 x perfect time / your time.
-- **The maths, shown as it happens.** MATHS (or H) opens a panel under the gauges: the
+- **The maths, shown as it happens.** A panel under the gauges, open from the start and hidden with MATHS (or H), shows the
   drivetrain as a chain - engine, clutch, gearbox, tyres, car, brakes - with what each link is
   carrying and whether each friction joint is gripping or slipping, and under it the sums with
   this moment's numbers in them, down to `a = (tyres - air - rolling - brakes) / mass`. It is

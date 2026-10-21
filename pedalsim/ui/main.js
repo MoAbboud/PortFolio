@@ -81,7 +81,8 @@ let lastShiftJ = null;
 let run = null; // { events, last, watch } while one is being driven
 let ghost = null; // the engine's perfect run, stepped alongside: { log, state, inputs, next }
 
-// The maths panel: the last step's starting state and inputs, so it can show that step again.
+// The maths panel - open from the start (the author's call), MATHS or H to hide it: the last
+// step's starting state and inputs, so it can show that step again.
 const maths = new MathsPanel($('maths-panel'));
 let lastBefore = null;
 let lastUsed = null;
