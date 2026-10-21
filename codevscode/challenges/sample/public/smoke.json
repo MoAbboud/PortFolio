@@ -1,0 +1,12 @@
+{
+  "about": "Using the app the way a player does in the preview: sign up, log in, write a note, read it back, change it, delete it. Only crashes are reported - never whether an answer was right. That is what the hidden tests are for.",
+  "steps": [
+    { "method": "POST", "path": "/signup", "body": { "email": "trying@example.com", "password": "trying it out" } },
+    { "method": "POST", "path": "/login", "body": { "email": "trying@example.com", "password": "trying it out" }, "keep": { "token": "token" } },
+    { "method": "POST", "path": "/notes", "auth": true, "body": { "title": "First note", "body": "Hello" }, "keep": { "id": "id" } },
+    { "method": "GET", "path": "/notes", "auth": true },
+    { "method": "GET", "path": "/notes/{id}", "auth": true },
+    { "method": "PUT", "path": "/notes/{id}", "auth": true, "body": { "title": "First note, changed", "body": "Hello again" } },
+    { "method": "DELETE", "path": "/notes/{id}", "auth": true }
+  ]
+}

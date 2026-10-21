@@ -105,7 +105,16 @@ The code is built; the runs are the author's, on Colab.
       tests; asks-nothing's simpler hashing got through signup and login, then createNote crashed
 - [x] Prompt fixed: each turn is one system and one player message; earlier player requests are
       listed in the system message; the helper's replies are never replayed
-- [ ] Run 4: the same notebook after a push - the first run whose repair turns can work
+- [x] Run 4 (2026-10-21, after the prompt fix was pushed): later turns now write code. The 7B
+      at 4 bits, told everything, reached 13 of 42 (8 correctness, 4 security) after three turns
+      and one repair; the 1.5B is unchanged (12 asking nothing, 2 asking everything). Every app
+      still dies on one crash in the main path - a deleted scaffold helper (bearerToken,
+      readJson), a Web Crypto call that does not exist, an undefined value bound to SQL - and
+      the repair turns never saw them: the check only tried GET / and POST /
+- [x] `public/smoke.json` for the sample and check.js walking it: crashes along sign up, log in
+      and the note routes are now what a repair turn passes back. Validator checks the
+      walk-through is well formed and the reference walks it cleanly. Tests: 57 Node, 12 pytest
+- [ ] Run 5: same notebook after a push - repair turns that can see the real crashes
       (waiting on the free-tier GPU limit to reset; the notebook now stops early without a GPU)
 - [x] Notebook fitted to the free tier: SmolLM2 and the 14B removed with the reasons in the
       cell; a model that runs out of GPU memory is skipped and the rest carry on
