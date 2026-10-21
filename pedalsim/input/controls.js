@@ -5,7 +5,7 @@
 //   Shift (held)         gentler pedals      K or Space (held)  start key
 //   T                    traction control    [ and ]            previous / next engine
 //   M                    automatic / manual    V                  sound on / off
-//   G                    a 0 to 60 run
+//   G                    a 0 to 60 run    H                  the maths panel
 //
 //   automatic:  P R N D the lever, Q / E a notch up or down
 //   manual:     C or A (held) the clutch, 1 to 6 the gears, R reverse, N neutral,
@@ -90,9 +90,10 @@ export class Controls {
       if (code === 'KeyM') this.on.box();
       if (code === 'KeyV') this.on.sound?.();
       if (code === 'KeyG') this.on.run?.();
+      if (code === 'KeyH') this.on.maths?.();
       if (code === 'BracketLeft') this.on.cycle(-1);
       if (code === 'BracketRight') this.on.cycle(1);
-      handled = handled || ['KeyQ', 'KeyE', 'KeyT', 'KeyM', 'KeyV', 'KeyG'].includes(code);
+      handled = handled || ['KeyQ', 'KeyE', 'KeyT', 'KeyM', 'KeyV', 'KeyG', 'KeyH'].includes(code);
     }
     // Arrows and Space would otherwise scroll the page while driving.
     if (handled) e.preventDefault();

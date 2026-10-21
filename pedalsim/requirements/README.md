@@ -24,8 +24,9 @@ says when to shift; the perfect run - for each engine, the fastest clean 0 to 60
 limited to the keyboard can make, worked out offline and checked by a test; and the 0 to 60
 run itself - a countdown, the perfect run as a ghost needle, a score card whose time lost
 per phase adds up to the gap, this visit's board, and a link that carries the run; and
-publishing it - the project README with a recording, credits, the badge. What is left is
-someone other than the author trying it, and a real phone.
+publishing it - the project README with a recording, credits, the badge; and since, a maths
+panel showing the simulation's working live, and a race chart on the score card. What is left
+is someone other than the author trying it, and a real phone.
 
     cd pedalsim
     npm test

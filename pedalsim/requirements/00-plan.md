@@ -84,8 +84,9 @@ from the start. Then the run: a countdown, the perfect run as a ghost needle, a 
 whose losses per phase add up to the gap, this visit's board, and share links that re-drive
 the run - checked to give the same time in Chrome and Node. 203 tests. Then publishing: a
 README with a recording, a credits file, the badge, the root README and the resume's card.
-**All eight stages are built.** Left: the done-when checks only people can make (someone else
-on a keyboard; a real phone).
+**All eight stages are built.** Then, at the author's request, a maths panel that shows the
+simulation working as you drive, and a chart on the score card. 206 tests. Left: the
+done-when checks only people can make (someone else on a keyboard; a real phone).
 
 ### Why the maths comes first and headless
 

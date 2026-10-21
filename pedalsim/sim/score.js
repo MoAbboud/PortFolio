@@ -183,6 +183,7 @@ export function scoreRun(engine, log, perfect) {
     phases: [],
   };
   card.clean = r.clean && card.gentle;
+  if (r.finished) card.curves = { yours: curve(yours.rows, r.time), perfect: curve(best.rows, perfect.time) };
   if (!card.scored) return card;
   card.score = Math.round((1000 * perfect.time) / r.time);
   card.phases = measure(yours.rows, cut(yours.rows), r.time, best.at).map((p) => {
@@ -191,6 +192,20 @@ export function scoreRun(engine, log, perfect) {
     return { ...p, perfectRpm: match ? match.rpm : null };
   });
   return card;
+}
+
+// Highest speed so far against time, every CURVE_EVERY steps and at the crossing: what the card's
+// chart draws, and what the time lost is measured on. [seconds after GO, mph]
+const CURVE_EVERY = 10;
+function curve(rows, endTime) {
+  const out = [];
+  for (let i = 0; i < rows.length; i += CURVE_EVERY) {
+    const t = seconds(rows[i]);
+    if (t >= endTime) break;
+    out.push([t, rows[i].top * 2.23694]);
+  }
+  out.push([endTime, MPH_60 * 2.23694]);
+  return out;
 }
 
 // Why a run did not finish or was not clean, in a word or two, or null.

@@ -370,6 +370,16 @@ Done.
 - [x] The resume's pedalsim card text brought up to date (no more "gauges draw themselves";
       203 tests)
 
+## The maths panel (after stage 8)
+
+Done. 206 tests (3 new). See 03-architecture, "The maths panel".
+
+- [x] `sim/drivetrain.js` `drivetrainParts` and `sim/engine.js` torque parts, golden unchanged
+- [x] `ui/insight.js`: `explain()`, the chain, the sums; MATHS button and H key
+- [x] `sim/score.js` curves and `ui/card.js` race chart with the phases shaded
+- [x] `test/insight.test.js`: the panel's numbers are the step's own and satisfy F = ma
+- [x] Checked in Chrome during a run and at 390 px
+
 Check:
 
     node deploy/build-static.mjs      from the repository root; deploy/dist/pedalsim/
