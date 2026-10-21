@@ -30,6 +30,8 @@ challenges/<slug>/
     brief.md            the client's request, vague on purpose
     interface.md        routes, shapes, status codes, the app shape
     starter/            app.js (a scaffold: routing and plumbing done), schema.sql, index.html
+    smoke.json          a public walk-through of the routes (sign up, log in, use them); only
+                        crashes on it are ever reported, never right or wrong answers
   hidden/
     requirements.json   one entry per hidden requirement (below)
     reference/          the author's app

@@ -264,7 +264,10 @@ The helper never sees the hidden tests, the reference app or the coach.
 ### What the player sees when the app does not run
 
 `runner/check.js`, shared like the runner: does the schema run, does app.js load, does it export
-handle, does it answer a plain `GET /` and `POST /` without crashing. The workspace shows these
+handle, does it answer a plain `GET /` and `POST /` without crashing - and does it get through
+the challenge's public walk-through (`public/smoke.json`: sign up, log in, write a note, read it,
+change it, delete it) without crashing. Only crashes count; whether an answer was right is the
+hidden tests' business. The validator checks the reference walks it cleanly. The workspace shows these
 the moment the files change. The harness's repair turns pass back exactly these sentences - what
 a player would paste - and never a hidden test result.
 

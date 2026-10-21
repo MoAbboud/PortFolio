@@ -97,13 +97,15 @@ class Turn:
     repair: bool = False
 
 
-def check(files: dict[str, str]) -> list[str]:
+def check(files: dict[str, str], challenge: Challenge | None = None) -> list[str]:
     """What a player would see when the app runs: load errors, schema errors, crashes on a plain
-    request. Never anything from the hidden tests."""
+    request, and - given a challenge - crashes while using it along the challenge's public
+    walk-through (smoke.json). Never anything from the hidden tests."""
     with tempfile.TemporaryDirectory(prefix="cvc-check-") as folder:
         for name, text in files.items():
             (Path(folder) / name).write_text(text, encoding="utf-8")
-        return _node("tools/check.mjs", None, folder)
+        extra = [str(challenge.dir)] if challenge else []
+        return _node("tools/check.mjs", None, folder, *extra)
 
 
 def repair_message(problems: list[str]) -> str:
@@ -167,7 +169,7 @@ def replay(
             Turn(message, reply, sorted(parsed["files"]), parsed["skipped"], seconds, is_repair)
         )
         if not messages_to_send and repairs_left > 0:
-            problems = check(files)
+            problems = check(files, challenge)
             if problems:
                 messages_to_send.append((repair_message(problems), True))
                 repairs_left -= 1
