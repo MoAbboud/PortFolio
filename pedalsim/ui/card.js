@@ -43,6 +43,104 @@ export function marks(card) {
   return out;
 }
 
+// The time it took the run to first reach a speed, along a curve of [seconds, mph] whose speed
+// never falls (it is the highest speed so far).
+function timeAt(curve, mph) {
+  if (mph <= curve[0][1]) return curve[0][0];
+  for (let i = 1; i < curve.length; i++) {
+    const [t1, v1] = curve[i];
+    if (v1 >= mph) {
+      const [t0, v0] = curve[i - 1];
+      return v1 === v0 ? t1 : t0 + ((mph - v0) / (v1 - v0)) * (t1 - t0);
+    }
+  }
+  return curve.at(-1)[0];
+}
+
+// The curve between two speeds, with its ends at exactly those speeds.
+function between(curve, lo, hi) {
+  const inside = curve.filter(([, v]) => v > lo && v < hi);
+  return [[timeAt(curve, lo), lo], ...inside, [timeAt(curve, hi), hi]];
+}
+
+const cssColour = (name, fallback) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+
+// Speed against time, your run over the perfect run. Each phase's band of speed is shaded
+// between the two curves: its width at any speed is how far behind (or ahead) you were getting
+// there, and it is labelled with what the phase lost - the numbers in the table below.
+export function drawRace(canvas, card, ms) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+  canvas.width = Math.round(w * dpr);
+  canvas.height = Math.round(h * dpr);
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const { yours, perfect } = card.curves;
+  const pad = { l: 34, r: 58, t: 22, b: 22 };
+  const tMax = Math.ceil(Math.max(yours.at(-1)[0], perfect.at(-1)[0]));
+  const X = (t) => pad.l + (t / tMax) * (w - pad.l - pad.r);
+  const Y = (v) => h - pad.b - (v / 60) * (h - pad.t - pad.b);
+  const accent = cssColour('--accent', 'rgb(255 200 0)');
+  const type = cssColour('--type', 'rgb(224 224 224)');
+
+  ctx.font = '11px system-ui, sans-serif';
+  ctx.fillStyle = type;
+  ctx.strokeStyle = 'rgb(255 255 255 / 0.12)';
+  ctx.lineWidth = 1;
+  for (let t = 0; t <= tMax; t++) {
+    ctx.beginPath(); ctx.moveTo(X(t), Y(0)); ctx.lineTo(X(t), Y(60)); ctx.stroke();
+    ctx.globalAlpha = 0.6; ctx.textAlign = 'center'; ctx.fillText(`${t} s`, X(t), h - 6); ctx.globalAlpha = 1;
+  }
+  for (const v of [0, 20, 40, 60]) {
+    ctx.beginPath(); ctx.moveTo(X(0), Y(v)); ctx.lineTo(X(tMax), Y(v)); ctx.stroke();
+    ctx.globalAlpha = 0.6; ctx.textAlign = 'right'; ctx.fillText(String(v), pad.l - 6, Y(v) + 4); ctx.globalAlpha = 1;
+  }
+
+  // The phases' bands.
+  card.phases.forEach((p, i) => {
+    const lo = p.mphFrom;
+    const hi = Math.min(60, p.mphTo);
+    if (hi - lo < 0.05) return;
+    const a = between(perfect, lo, hi);
+    const b = between(yours, lo, hi).reverse();
+    ctx.beginPath();
+    [...a, ...b].forEach(([t, v], k) => (k ? ctx.lineTo(X(t), Y(v)) : ctx.moveTo(X(t), Y(v))));
+    ctx.closePath();
+    ctx.fillStyle = p.lost >= 0 ? `rgb(255 150 50 / ${i % 2 ? 0.16 : 0.32})` : `rgb(120 220 140 / ${i % 2 ? 0.16 : 0.32})`;
+    ctx.fill();
+    const mid = (lo + hi) / 2;
+    if (Y(lo) - Y(hi) >= 11 && Math.abs(ms[i]) >= 5) {
+      ctx.fillStyle = type;
+      ctx.globalAlpha = 0.85;
+      ctx.textAlign = 'left';
+      const x = X(Math.max(timeAt(yours, mid), timeAt(perfect, mid))) + 6;
+      ctx.fillText(`${p.phase} ${ms[i] > 0 ? '+' : ''}${(ms[i] / 1000).toFixed(3)}`, Math.min(x, w - pad.r + 2), Y(mid) + 4);
+      ctx.globalAlpha = 1;
+    }
+  });
+
+  const line = (curve, colour, width) => {
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    curve.forEach(([t, v], k) => (k ? ctx.lineTo(X(t), Y(v)) : ctx.moveTo(X(t), Y(v))));
+    ctx.stroke();
+  };
+  ctx.globalAlpha = 0.7;
+  line(perfect, type, 1.5);
+  ctx.globalAlpha = 1;
+  line(yours, accent, 2);
+
+  ctx.textAlign = 'left';
+  ctx.fillStyle = accent;
+  ctx.fillText('you', pad.l + 6, pad.t - 4);
+  ctx.fillStyle = type;
+  ctx.globalAlpha = 0.7;
+  ctx.fillText('perfect run      mph against seconds from GO', pad.l + 40, pad.t - 4);
+  ctx.globalAlpha = 1;
+}
+
 // entry: { card, log, shared }. on: { watch, share, again }.
 export function renderCard(host, entry, on) {
   const { card } = entry;
@@ -53,8 +151,8 @@ export function renderCard(host, entry, on) {
     el('span', { class: 'card-marks' }, marks(card).join(' - ')));
 
   let table = null;
+  const ms = card.phases.length ? lostInMs(card) : [];
   if (card.phases.length) {
-    const ms = lostInMs(card);
     const total = ms.reduce((a, b) => a + b, 0);
     table = el('table', {},
       el('tr', {}, el('th', {}, ''), el('th', {}, 'took'), el('th', {}, 'lost'), el('th', {}, '')),
@@ -80,9 +178,11 @@ export function renderCard(host, entry, on) {
   const note = entry.shared
     ? el('p', { class: 'card-proof' }, 'A shared run, re-driven here from its inputs: the time and the score are this page\'s own. It proves the run is possible in this simulation, not that a person drove it.')
     : null;
-  const parts = [el('div', { class: 'card-title' }, `${LABELS[card.engine] ?? card.engine} ${card.gearbox}, 0 to 60`), head, table, buttons, link, note];
+  const chart = card.curves ? el('canvas', { class: 'card-chart', 'aria-label': 'Speed against time: your run and the perfect run, the time lost in each phase shaded' }) : null;
+  const parts = [el('div', { class: 'card-title' }, `${LABELS[card.engine] ?? card.engine} ${card.gearbox}, 0 to 60`), head, chart, table, buttons, link, note];
   host.replaceChildren(...parts.filter(Boolean));
   host.hidden = false;
+  if (chart) drawRace(chart, card, ms);
 }
 
 // Each engine's best scored run among the entries, by engine id.

@@ -97,6 +97,7 @@ The link is the only thing that leaves a browser, and only when a driver chooses
 | UC-9 | Challenger | Keep a best | Finishes a run better than before | The run is the new best for that engine until the page is refreshed, and can be watched again |
 | UC-10 | Challenger | Share a run | Copies its link | A link that holds the inputs, not the score |
 | UC-11 | Receiver | See a shared run | Opens the link | The page re-drives the run, shows the score it earns, and offers "beat it" on the same engine |
+| UC-12 | Curious | See the maths | MATHS or H | The drivetrain as a chain with each joint gripping or slipping, and the sums with this moment's numbers in them, updating as they drive |
 
 ## The page
 

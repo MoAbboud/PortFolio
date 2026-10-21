@@ -31,6 +31,7 @@ import { coach } from './coach.js';
 import { EngineSound } from './sound.js';
 import { linkFor, runFromHash } from './share.js';
 import { renderCard, renderBoard, bests } from './card.js';
+import { explain, MathsPanel } from './insight.js';
 
 document.documentElement.dataset.sim = String(SIM_VERSION);
 
@@ -79,6 +80,13 @@ let lastShiftJ = null;
 // The 0 to 60 run.
 let run = null; // { events, last, watch } while one is being driven
 let ghost = null; // the engine's perfect run, stepped alongside: { log, state, inputs, next }
+
+// The maths panel: the last step's starting state and inputs, so it can show that step again.
+const maths = new MathsPanel($('maths-panel'));
+let lastBefore = null;
+let lastUsed = null;
+let mathsAt = 0;
+const MATHS_EVERY = 0.12; // seconds between refreshes, slow enough to read
 const board = []; // this visit's runs, newest first: { card, log, shared }
 
 const controls = new Controls({
@@ -94,6 +102,7 @@ const controls = new Controls({
   box: () => switchBox(),
   sound: () => toggleSound(),
   run: () => startRun(),
+  maths: () => toggleMaths(),
 });
 const sound = new EngineSound();
 const stick = new Stick($('stick'), (n) => askGear(n, false));
@@ -192,6 +201,13 @@ function moveTo(wanted) {
   selector = r.gear;
   controls.lever = selector;
   if (r.refused) hint(r.refused);
+}
+
+function toggleMaths() {
+  const open = maths.toggle();
+  $('maths').classList.toggle('on', open);
+  mathsAt = 0;
+  hint(open ? 'the maths, as it happens' : 'maths hidden');
 }
 
 function toggleSound() {
@@ -416,6 +432,8 @@ function simulate(seconds) {
     }
     const used = run ? runInputs(state.step) : inputs;
     if (run) record(used);
+    lastBefore = state;
+    lastUsed = used;
     state = step(engine, null, state, used);
     if (ghost) stepGhost();
     if (run) {
@@ -500,6 +518,10 @@ function frame(now) {
   });
   drawClock();
   drawControls(now, rpm, advice);
+  if (maths.open && lastBefore && now / 1000 - mathsAt >= MATHS_EVERY) {
+    mathsAt = now / 1000;
+    maths.update(explain(engine, lastBefore, lastUsed));
+  }
   requestAnimationFrame(frame);
 }
 
@@ -595,6 +617,7 @@ $('stop').addEventListener('click', () => {
 });
 $('box').addEventListener('click', () => switchBox());
 $('sound').addEventListener('click', () => toggleSound());
+$('maths').addEventListener('click', () => toggleMaths());
 // Browsers allow no sound until the visitor presses something; the first press starts it.
 for (const type of ['pointerdown', 'keydown']) window.addEventListener(type, () => sound.start());
 document.addEventListener('visibilitychange', () => sound.visible(!document.hidden));

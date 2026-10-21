@@ -587,6 +587,34 @@ live and the same to the last bit when its log was re-driven in Node - kept as
 same time on a fresh page; an automatic run timed and unscored; watching back with the ghost;
 a false start; the card at 390 px wide.
 
+## The maths panel (after stage 8)
+
+The author: "is there a way we can show the math happening behind the scene in the frontend?"
+Built 2026-10-21, display only - `sim/` computes exactly what it did before (golden unchanged).
+
+- **How it gets the numbers.** The page keeps the state each step started from and the inputs
+  it was given. `ui/insight.js` `explain()` runs that step's pieces again - `engineControl`,
+  `gearbox`, and `drivetrainParts`, split out of `sim/drivetrain.js` so it returns every force
+  in the chain (the solver's joint forces: clutch in Nm at the crank, tyres as wheel torque,
+  brakes in N), the drag, rolling resistance, rear load and grip. `engineControl` also returns
+  its torque's parts (combustion, starter, losses, throttle, air target); the step copies only
+  the fields it keeps, so none of it reaches the state.
+- **What it shows.** The chain - ENGINE, CLUTCH (or CONVERTER), GEARBOX, TYRES, CAR, BRAKES
+  (PARK when the pawl holds) - each friction joint lit gripping or slipping; then the sums with
+  the numbers in: air load, torque, power, clutch, gearbox, weight transfer, tyre grip, drag,
+  rolling, and `a = (tyres - air - rolling - brakes) / mass`. A slipping joint is shown carrying
+  all it can hold, which is what slipping means. Refreshed every 0.12 s so it can be read.
+- **Tested** (`test/insight.test.js`): over two perfect runs, `explain()` gives the step's own
+  acceleration and clutch torque, the joint forces satisfy F = ma to a millionth, the torque
+  parts sum to the torque, and every line has its numbers.
+- **The score card's chart** (`ui/card.js` `drawRace`): highest speed so far against time from
+  GO, yours over the perfect run's (`card.curves`, every 10 ms, from `sim/score.js`), each
+  phase's speed band shaded between the two curves - its width is the time lost at that speed -
+  and labelled with the phase's loss where there is room. Green where a phase beat the perfect
+  run.
+- Closed by default: MATHS button or H. Checked in Chrome during a V8 run (clutch saturated at
+  722 Nm, 195 kW to heat, tyres spinning 8.8 m/s) and at 390 px wide.
+
 ## The board and the share link
 
 **The board** lives in memory for as long as the page is open: best score per engine, the

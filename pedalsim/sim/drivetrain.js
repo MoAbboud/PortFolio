@@ -27,7 +27,10 @@ const STOPPED_RPM = 5;
 // them through every gear.
 const SPIN_FADE = 4;
 
-export function drivetrain(engine, chassis, state, inputs, control, box) {
+// Every force in the chain for one step, as well as where it leaves the bodies. The step uses
+// only some of it (drivetrain() below); the page's maths panel shows all of it, by running the
+// same step again from the same state - so what it shows is exactly what the car did.
+export function drivetrainParts(engine, chassis, state, inputs, control, box) {
   const { we, ww, v } = state;
   const r = chassis.wheelRadius;
   const mass = chassis.massWithoutEngine + engine.mass;
@@ -70,6 +73,12 @@ export function drivetrain(engine, chassis, state, inputs, control, box) {
   ];
 
   const moved = advance(bodies, joints, DT);
+  return { moved, engineTorque, wheelTorque, drag, rolling, rearShare, rearLoad, spin, spinGrip, brakeN, clutchNm, mass, weight, r };
+}
+
+export function drivetrain(engine, chassis, state, inputs, control, box) {
+  const { we, ww } = state;
+  const { moved } = drivetrainParts(engine, chassis, state, inputs, control, box);
   let [weNext, wwNext, vNext] = moved.vel;
   if (!moved.stuck[0] && !control.running && inputs.key !== 1
     && Math.abs(weNext * RPM_PER_RAD_S) < STOPPED_RPM) {

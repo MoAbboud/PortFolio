@@ -13,7 +13,7 @@ calculation behind every needle is the point.
 card splits the 1.612 s gap by phase - most of it wheelspin in first, and a 1-2 shift at
 7100 rpm where the perfect run changes up at 5600.*
 
-**Status: all eight stages are built.** 203 tests. Not yet done: anyone but the author
+**Status: all eight stages are built.** 206 tests. Not yet done: anyone but the author
 driving it from a keyboard cold, and a real phone (it has only been checked at phone sizes in
 Chrome). The plan, the reasoning behind every
 decision and what was tried and dropped are in [requirements/](requirements/).
@@ -42,21 +42,28 @@ decision and what was tried and dropped are in [requirements/](requirements/).
 - **A score card that adds up.** A run is cut into the launch, each gear and each shift by
   what the driver did. Each phase is charged its time less the time the perfect run took over
   the same speeds, so the losses add up exactly to the gap - and still do once rounded to
-  milliseconds on the card. Score = 1000 x perfect time / your time.
+  milliseconds on the card. A chart draws your speed against the perfect run's with each
+  phase's loss shaded between them. Score = 1000 x perfect time / your time.
+- **The maths, shown as it happens.** MATHS (or H) opens a panel under the gauges: the
+  drivetrain as a chain - engine, clutch, gearbox, tyres, car, brakes - with what each link is
+  carrying and whether each friction joint is gripping or slipping, and under it the sums with
+  this moment's numbers in them, down to `a = (tyres - air - rolling - brakes) / mass`. It is
+  the simulation's last step run again from the same state, so the numbers are exactly what the
+  car did - a test checks that they add up to Newton's second law every time.
 
 ## Run it
 
 Node 20 or later (CI runs 24), from PowerShell. There is no install step and no dependency.
 
     cd pedalsim
-    npm test                          203 tests, a few seconds
+    npm test                          206 tests, a few seconds
     npx --yes serve .                 then open the address it prints
 
 `npx serve` matters: the page is ES modules, and a server that sends `.js` as `text/plain`
 (Python's `http.server` on some machines) stops them loading.
 
 Keys: K or Space held starts it, Up / W gas, Down / S brake, M manual or automatic, G a 0 to 60
-run. In the manual: C or A the clutch, 1 to 6 the gears, N neutral. The on-screen pedals, lever
+run, H the maths panel. In the manual: C or A the clutch, 1 to 6 the gears, N neutral. The on-screen pedals, lever
 and stick work with a mouse or two thumbs, and a game controller works too.
 
 The working tools, none of which the page needs:

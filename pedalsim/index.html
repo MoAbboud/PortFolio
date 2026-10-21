@@ -94,7 +94,7 @@
     touch-action: none; user-select: none;
   }
   #start.running { border-color: var(--accent); box-shadow: 0 0 16px var(--accent-edge) inset; }
-  #tc, #box, #sound { font-size: 11px; padding: 4px 8px; }
+  #tc, #box, #sound, #maths { font-size: 11px; padding: 4px 8px; }
 
   /* The manual: the stick in place of the lever, and a clutch pedal. */
   #stick { width: 116px; height: 87px; touch-action: none; cursor: grab; }
@@ -157,6 +157,27 @@
   .card-link { width: 100%; margin-top: 8px; font: 12px ui-monospace, monospace; color: var(--type);
     background: rgb(0 0 0 / 0.4); border: 1px solid var(--line); border-radius: 4px; padding: 5px; }
   .card-proof { margin: 8px 0 0; font-size: 12px; opacity: 0.7; }
+  .card-chart { display: block; width: 100%; height: 220px; margin: 4px 0 10px; }
+
+  /* The maths panel: the drivetrain as a chain, then the sums with this step's numbers in. */
+  .mx-chain { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; margin-bottom: 10px; }
+  .mx-node { display: flex; flex-direction: column; gap: 1px; padding: 6px 9px; min-width: 104px;
+    border: 1px solid var(--line); border-radius: 6px; font-size: 12px; font-variant-numeric: tabular-nums; }
+  .mx-node b { font-family: "Boldonse", sans-serif; font-weight: 400; font-size: 10px; letter-spacing: 0.05em; }
+  .mx-node i { font-family: "Bodoni Moda", serif; font-size: 12px; }
+  .mx-joint.gripping, .mx-joint.holding { border-color: var(--accent); box-shadow: 0 0 8px var(--accent-edge) inset; }
+  .mx-joint.slipping, .mx-joint.spinning, .mx-joint.slowing { border-color: rgb(255 150 50); box-shadow: 0 0 10px rgb(255 150 50 / 0.6) inset; }
+  .mx-joint.slipping i, .mx-joint.spinning i { color: rgb(255 150 50); }
+  .mx-joint.open, .mx-joint.off, .mx-joint.idle { opacity: 0.55; }
+  .mx-arrow { align-self: center; opacity: 0.4; }
+  .mx-list { display: grid; gap: 5px; font-size: 12px; font-variant-numeric: tabular-nums; }
+  .mx-row { display: grid; grid-template-columns: 76px 1fr; column-gap: 10px; }
+  .mx-row b { grid-row: span 3; font-weight: 400; font-family: "Bodoni Moda", serif; font-style: italic; opacity: 0.8; }
+  .mx-formula { opacity: 0.55; }
+  .mx-worked { font-family: ui-monospace, monospace; font-size: 11.5px; overflow-wrap: anywhere; }
+  .mx-note { color: rgb(255 150 50); }
+  .mx-foot { margin: 10px 0 0; font-size: 12px; opacity: 0.6; }
+  @media (max-width: 700px) { .mx-node { min-width: 0; flex: 1 1 40%; } .mx-arrow { display: none; } .mx-row { grid-template-columns: 1fr; } .mx-row b { grid-row: auto; } }
   footer { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 10px 16px 20px; }
   #playing { width: 100%; text-align: center; font-family: "Bodoni Moda", serif; font-style: italic; opacity: 0.7; min-height: 1.5em; }
   .keys { width: 100%; text-align: center; opacity: 0.55; font-size: 12px; }
@@ -219,6 +240,7 @@
     <button id="tc" aria-label="Traction control">TC on</button>
     <button id="box" aria-label="Automatic or manual">AUTO</button>
     <button id="sound" aria-label="Sound on or off">SOUND on</button>
+    <button id="maths" aria-label="Show the maths">MATHS</button>
   </div>
   <div class="cluster">
     <div class="gauge" id="tach" role="img" aria-label="Tachometer"></div>
@@ -242,6 +264,7 @@
   </div>
   <canvas id="dyno" aria-label="Torque and power, as measured"></canvas>
 </main>
+<section id="maths-panel" class="sheet" hidden aria-label="The maths behind the gauges"></section>
 <section id="card" class="sheet" hidden aria-label="Score card"></section>
 <section id="board" class="sheet" hidden aria-label="This visit's runs"></section>
 <footer>
@@ -251,7 +274,7 @@
   <button id="demo1">Drive the manual</button>
   <button id="demo2">Drive the automatic</button>
   <button id="stop">Stop</button>
-  <div class="keys">K or Space hold to start - Up / W gas - Down / S brake - Shift gentler - M automatic or manual - T traction control - V sound - [ ] engine - G a 0 to 60 run<br>
+  <div class="keys">K or Space hold to start - Up / W gas - Down / S brake - Shift gentler - M automatic or manual - T traction control - V sound - [ ] engine - G a 0 to 60 run - H the maths<br>
     automatic: P R N D or Q / E the lever - manual: C or A clutch, 1 to 6 gears, R reverse, N neutral, Q / E down / up</div>
 </footer>
 <script type="module" src="ui/main.js"></script>
