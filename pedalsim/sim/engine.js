@@ -147,5 +147,10 @@ export function engineControl(engine, state, inputs) {
   const losses = lookup(engine.friction, rpm < 0 ? -rpm : rpm) + engine.pumpingNm * (1 - load);
   const torque = combustion + starter - losses * clamp(rpm / FRICTION_FADE_RPM, -1, 1);
 
-  return { running, load, idleI, cut, tc, blown, checkEngine, torque };
+  // The parts of the torque ride along for the page's maths panel; the step copies only the
+  // fields it keeps, so they never reach the state.
+  return {
+    running, load, idleI, cut, tc, blown, checkEngine, torque,
+    throttle, target, combustion, starter, losses: losses * clamp(rpm / FRICTION_FADE_RPM, -1, 1),
+  };
 }

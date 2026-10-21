@@ -1,0 +1,2 @@
+-- Your tables go here. This file runs into a fresh SQLite database before the app starts.
+-- SQLite: INTEGER PRIMARY KEY, TEXT, UNIQUE, CREATE INDEX; times are INTEGER milliseconds.

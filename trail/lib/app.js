@@ -15,7 +15,7 @@ import {
   assemble, assembleMeshes, contactShadows, bounds, place, objectBoxes,
 } from './scene.js';
 import { surfaceNets, fromTriangles } from './mesh.js';
-import { toNdc, insideFrame, rayThrough, pick, groundPoint, dragTo, rotateBy } from './pick.js';
+import { toNdc, insideFrame, rayThrough, pick, dragTo, rotateBy } from './pick.js';
 import {
   viewProjection, drift, autoMove, routeAtHour, stepAround, lerpFraming, linear,
   easeInOut,
@@ -25,8 +25,8 @@ import {
 // everything is what the overview does.
 import { orbit, zoom, rise, tidy, centreOf } from './orbit.js';
 import {
-  framingOf, revealFraming, veilFor, fogFor, pitchOf, radiusFor, ringGround, xAt, easeRoll,
-  DEFAULT_PIECE,
+  framingOf, revealFraming, veilFor, fogFor, pitchOf, radiusFor, filmGround, bendBox, xAt,
+  easeRoll, DEFAULT_PIECE,
 } from './timeline.js';
 import { createRenderer } from './render.js';
 import { lerpWeather, resolve as resolveWeather, stampsUpTo } from './weather.js';
@@ -112,6 +112,25 @@ const el = (id) => {
   error.missingId = id;
   throw error;
 };
+
+/**
+ * Text written only when it is different.
+ *
+ * **For anything the frame writes.** Writing the same text again still
+ * replaces the node and marks the page's layout dirty, and the renderer reads
+ * the canvas's size straight afterwards - so ten readouts rewritten with what
+ * they already said cost a full layout on every frame.
+ */
+function show(id, text) {
+  const node = el(id);
+  if (node.textContent !== text) node.textContent = text;
+  return node;
+}
+
+/** The same, for one style property. */
+function styleOf(node, property, value) {
+  if (node.style[property] !== value) node.style[property] = value;
+}
 
 let toastTimer;
 function say(message) {
@@ -356,6 +375,9 @@ async function main() {
   // The surface as last handed to the renderer, so a move can rewrite one
   // object's slice of it. Null until something has been meshed.
   let meshScene = null;
+  // True when something moved while the cubes were showing, so the surface no
+  // longer matches the placements and has to be built again before it is seen.
+  let meshStale = false;
   // A drawn preview, kept so reopening the library is instant. Declared here
   // rather than beside the panel that fills it, so that the code which releases
   // a model can reach every cache it remains in - a function reading a
@@ -411,8 +433,10 @@ async function main() {
     renderer.uploadMesh(merged);
     el('s-tris').textContent = merged.triangles.toLocaleString();
     // Kept so a move can write one object's slice of it rather than building
-    // the whole surface again. See `slideMesh`.
+    // the whole surface again, with where each slice was built. See `slideMesh`.
     meshScene = merged;
+    meshScene.at = layout.map((p) => [...p.at]);
+    meshStale = false;
     return merged;
   }
 
@@ -426,25 +450,46 @@ async function main() {
    * travel with it or a swaying branch would sway about where the tree used to
    * be.
    *
+   * **Written from where the slice was first taken hold of, never added to.**
+   * Adding each move's difference into the Float32 buffer rounds on every
+   * pointer event, so a long drag walked the surface away from the cubes,
+   * which are placed afresh from `placement.at` each time. The object being
+   * dragged keeps a copy of its own slice, and each move is that copy plus one
+   * offset - one rounding, however long the drag.
+   *
    * Returns false when there is nothing uploaded to slide, which sends the
    * caller back to the full rebuild.
    */
-  function slideMesh(index, delta) {
+  function slideMesh(index, at) {
     const range = meshScene?.ranges?.[index];
-    if (!range || (!delta[0] && !delta[1] && !delta[2])) return !!range;
+    const was = meshScene?.at?.[index];
+    if (!range || !was) return false;
     const { positions, pivots, motion } = meshScene;
-    for (let v = range.start; v < range.start + range.count; v++) {
-      positions[v * 3] += delta[0];
-      positions[v * 3 + 1] += delta[1];
-      positions[v * 3 + 2] += delta[2];
+    const from = range.start * 3;
+    const to = from + range.count * 3;
+    if (meshScene.held?.index !== index) {
+      meshScene.held = {
+        index,
+        at: was,
+        positions: positions.slice(from, to),
+        pivots: pivots.slice(from, to),
+      };
+    }
+    const held = meshScene.held;
+    const delta = [at[0] - held.at[0], at[1] - held.at[1], at[2] - held.at[2]];
+    for (let v = range.start, i = 0; v < range.start + range.count; v++, i += 3) {
+      positions[v * 3] = held.positions[i] + delta[0];
+      positions[v * 3 + 1] = held.positions[i + 1] + delta[1];
+      positions[v * 3 + 2] = held.positions[i + 2] + delta[2];
       // Only where a pivot means something. Elsewhere it is zero, and moving
       // zeroes would hand the shader a pivot for a vertex that does not turn.
       if (motion[v * 4]) {
-        pivots[v * 3] += delta[0];
-        pivots[v * 3 + 1] += delta[1];
-        pivots[v * 3 + 2] += delta[2];
+        pivots[v * 3] = held.pivots[i] + delta[0];
+        pivots[v * 3 + 1] = held.pivots[i + 1] + delta[1];
+        pivots[v * 3 + 2] = held.pivots[i + 2] + delta[2];
       }
     }
+    meshScene.at[index] = [...at];
     renderer.updateMeshPositions(positions, pivots, range.start, range.count);
     return true;
   }
@@ -456,8 +501,8 @@ async function main() {
    * anything that moves. This used to live inside the mesh rebuild, which meant
    * a dragged object left its shadow behind whenever the cubes were showing.
    */
-  function refreshShadows() {
-    renderer.uploadShadows(contactShadows(scene, layout.map(solid)));
+  function refreshShadows(known) {
+    renderer.uploadShadows(contactShadows(scene, layout.map(solid), known));
   }
 
   /**
@@ -522,8 +567,11 @@ async function main() {
     boxes = objectBoxes(scene);
     extent = bounds(scene);
     el('s-cubes').textContent = scene.count.toLocaleString();
-    remesh();
-    refreshShadows();
+    // The surface is only built while it is the thing being drawn. In the cube
+    // view it waits, and the switch back builds it once.
+    if (surface === 'mesh') remesh();
+    else meshStale = true;
+    refreshShadows(boxes);
     return scene;
   }
 
@@ -533,9 +581,6 @@ async function main() {
    * The cube count cannot change - it is the same grid either way - so the
    * object keeps its slice of the buffers and the rest of the field is left
    * alone entirely.
-   */
-  /**
-   * An object put somewhere else.
    *
    * **The cost of this is felt directly by the hand**, because a drag calls it
    * on every pointer event. Measured at 150ms a call on the example canvas,
@@ -555,6 +600,7 @@ async function main() {
    */
   function reposition(index, placement) {
     const before = layout[index];
+    if (placement === before) return;
     const swapped = keyFor(before) !== keyFor(placement);
     // Same shape, same pose, same size, only somewhere else.
     const slid = !swapped
@@ -590,9 +636,15 @@ async function main() {
 
     // The surface and the shadows are both built from placements, so both have
     // to follow. Shadows regardless of which way the field is being drawn.
-    if (surface === 'mesh' && !(slid && slideMesh(index, delta))) remesh();
+    //
+    // **The surface is not kept up while it is not being drawn**, so a move
+    // in the cube view marks it stale and the switch back rebuilds it. Sliding
+    // it by this move's difference alone used to leave it wherever it was
+    // before every move made in the cubes, apart from the boxes you click on.
+    if (surface !== 'mesh') meshStale = true;
+    else if (!(slid && slideMesh(index, placement.at))) remesh();
     // The boxes are already in hand, so the shadows do not go and find them.
-    renderer.uploadShadows(contactShadows(scene, layout.map(solid), boxes));
+    refreshShadows(boxes);
     autosave();
   }
 
@@ -781,13 +833,12 @@ async function main() {
   }
 
   /**
-   * Where on the film the camera is pointed, in flat strip coordinates.
+   * Where the clock is on the film, in flat strip coordinates.
    *
    * **This is what turns when the clock moves.** In Halo mode the camera never
    * goes anywhere: this is handed to the shader as the place that should be at
    * the top of the ring, and the world rotates to bring it there.
    */
-  /** Where the clock is on the film, in flat strip coordinates. */
   function clockX() {
     const moment = routeAtHour(onStrip(), state.hour);
     if (moment) return centreOf(moment.framing)[0];
@@ -929,17 +980,26 @@ async function main() {
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
   /**
-   * Where a ray meets the ground, in **strip** coordinates.
+   * The framing the last frame was drawn with, which is the only one a pointer
+   * can be read against.
    *
-   * Everything that places, drags or draws works on the flat film - that is
-   * where objects live and where they are saved - so a click has to be read
-   * back onto it. Rolled, the ground is the ring's surface and the answer comes
-   * from `ringGround`; flat, it is the plane it always was.
-   *
-   * Part rolled, during an unfurl, the ring's answer is used: the surface it
-   * describes is the one being looked at for all but the last moment of the
-   * blend, and nobody places an object mid-animation.
+   * **This is why objects would not move on any step but the first.** Rolled
+   * into the ring, the camera stays on the first piece and the world turns to
+   * bring the clock's piece round to it - but the pointer was cast from the
+   * clock's piece on the flat strip, which is where the camera *would* be if
+   * nothing were rolled. On the first piece the two are the same place. On the
+   * second they are a piece apart, and the ray met the ring seventy units from
+   * the cursor or not at all, so a drag either did nothing or flung the object
+   * away. Measured: a press at the same pixel read back 135.6 for 63.0 on piece
+   * one, and null for every sample on piece two.
    */
+  let drawnFraming = null;
+
+  /** How the world is bent right now, which picking and dragging both undo. */
+  const bendNow = () => ({
+    focus: focusX(), radius: ringSize(), pitch: pitchOf(PIECE), roll: state.roll,
+  });
+
   /**
    * How squarely a ray has to meet the ground before a point on it is worth
    * having.
@@ -955,18 +1015,30 @@ async function main() {
    *
    * At 0.15 the fastest the world can move under the cursor is about a fifth
    * of a unit per pixel, and the top fifth of the frame - distant ground,
-   * where nothing is placed by hand anyway - stops answering. `dragTo` leaves
-   * the placement alone when there is no point, so the object waits under the
-   * cursor rather than jumping.
+   * where nothing is placed by hand anyway - stops answering. A press there
+   * waits for the hand to reach usable ground before taking hold, and a move
+   * there leaves the object where it is.
    */
   const GROUND_MIN_SLOPE = 0.15;
 
+  /**
+   * Where a ray meets the ground, in **strip** coordinates.
+   *
+   * Everything that places, drags or draws works on the flat film - that is
+   * where objects live and where they are saved - so a click has to be read
+   * back onto it. The ground is met as the shader draws it, flat or rolled or
+   * anywhere between, so there is no roll at which the answer changes rule.
+   */
   function groundAt(ray, height = 0) {
+    return filmGround(ray, { ...bendNow(), height, minSlope: GROUND_MIN_SLOPE });
+  }
+
+  /** The object under a ray, found where it is drawn rather than where it stands. */
+  function pickAt(ray) {
     if (!ray) return null;
-    if (state.roll > 0.5) {
-      return ringGround(ray, clockX(), ringSize(), GROUND_MIN_SLOPE);
-    }
-    return groundPoint(ray, height, GROUND_MIN_SLOPE);
+    if (state.roll < 0.0005) return pick(ray, boxes);
+    const bend = bendNow();
+    return pick(ray, boxes.map((box) => (box ? bendBox(box, bend) : box)));
   }
 
   /** The ray under the pointer, or null if the pointer is in the letterbox. */
@@ -979,8 +1051,7 @@ async function main() {
       { x: 0, y: 0, w: view.w, h: view.h },
     );
     if (!insideFrame(ndc)) return null;
-    const framing = currentRoute().framing;
-    return rayThrough(framing, ndc);
+    return rayThrough(drawnFraming ?? currentRoute().framing, ndc);
   }
 
   // --- places -----------------------------------------------------------------
@@ -1088,27 +1159,35 @@ async function main() {
   canvas.addEventListener('pointerdown', (event) => {
     canvas.setPointerCapture(event.pointerId);
     const ray = rayAt(event);
-    const hit = ray ? pick(ray, boxes) : null;
+    const hit = pickAt(ray);
 
     // Drawing a place beats everything else: the button was pressed to draw
     // one, and picking an object instead would be ignoring what was asked.
-    if (state.drawingArea && ray) {
+    //
+    // **Held even where the ground does not answer.** A press in the far part
+    // of the frame used to fall through to orbiting the camera while the button
+    // stayed on, so nothing was drawn and nothing said why. The corner is
+    // taken from the first point the hand reaches that does answer.
+    if (state.drawingArea) {
       const ground = groundAt(ray);
-      if (ground) {
-        drag = { x: event.clientX, y: event.clientY, moved: 0, object: null, place: [ground[0], ground[2]] };
-        return;
-      }
+      drag = {
+        x: event.clientX, y: event.clientY, moved: 0, object: null, drawing: true,
+        place: ground ? [ground[0], ground[2]] : null,
+      };
+      return;
     }
 
     // Dragging an object you have already selected moves it. Dragging anything
     // else moves the camera. One click to choose, then drag to arrange, so
     // orbiting never fights with rearranging.
-    if (ray && hit && hit.index === state.selected) {
+    if (hit && hit.index === state.selected) {
       const ground = groundAt(ray, layout[hit.index].at[1]);
-      const at = layout[hit.index].at;
       drag = {
         x: event.clientX, y: event.clientY, moved: 0, object: hit.index,
-        grab: ground ? [at[0] - ground[0], 0, at[2] - ground[2]] : [0, 0, 0],
+        // **Null until there is ground to hold it by.** A zero offset taken
+        // where the ground does not answer put the object's anchor under the
+        // cursor the moment it did, which is a jump of up to half the object.
+        grab: ground ? grabOf(layout[hit.index], ground) : null,
       };
       canvas.classList.add('moving');
       return;
@@ -1127,44 +1206,21 @@ async function main() {
     drag.y = event.clientY;
     drag.moved += Math.abs(dx) + Math.abs(dy);
 
-    if (drag.place) {
-      const ray = rayAt(event);
-      const ground = groundAt(ray);
-      if (ground) drag.placeTo = [ground[0], ground[2]];
-      return;
-    }
-
-    // While a line is being traced, the object stands at its start so the
-    // length and direction can be judged against the world rather than guessed.
-    if (drag.place) {
-      const from = drag.place;
-      const to = drag.placeTo;
-      state.drawingArea = false;
-      canvas.classList.remove('tracing');
-      drag = null;
-      const w = to ? Math.abs(to[0] - from[0]) : 0;
-      const d = to ? Math.abs(to[1] - from[1]) : 0;
-      // A rectangle with no area is a click, and a click is how you change your
-      // mind about having pressed the button.
-      if (w < 0.5 || d < 0.5) { say('nothing drawn - drag a rectangle rather than clicking'); return; }
-      areas.push({
-        at: [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2],
-        size: [w, d],
-        label: '',
-        from: editing(),
-      });
-      uploadAreas();
-      paintAreas();
-      autosave();
-      say(`a place ${w.toFixed(1)} by ${d.toFixed(1)} - give it a name in the panel`);
+    if (drag.drawing) {
+      const ground = groundAt(rayAt(event));
+      if (ground && !drag.place) drag.place = [ground[0], ground[2]];
+      else if (ground) drag.placeTo = [ground[0], ground[2]];
       return;
     }
 
     if (drag.object !== null) {
-      const ray = rayAt(event);
-      if (!ray) return;
-      const ground = groundAt(ray, layout[drag.object].at[1]);
-      reposition(drag.object, dragTo(layout[drag.object], drag.grab, ground));
+      const placement = layout[drag.object];
+      const ground = groundAt(rayAt(event), placement.at[1]);
+      // No ground, no move - and no rebuild, shadows or autosave for a move
+      // of nothing, which is what every pointer event near the horizon was.
+      if (!ground) return;
+      if (!drag.grab) { drag.grab = grabOf(placement, ground); return; }
+      reposition(drag.object, dragTo(placement, drag.grab, ground));
       return;
     }
 
@@ -1174,25 +1230,63 @@ async function main() {
     adjustCamera((f) => orbit(f, -dx * 0.32, dy * 0.26));
   });
 
+  /** Where on an object the ground under the cursor is, so it is held there. */
+  const grabOf = (placement, ground) => [
+    placement.at[0] - ground[0], 0, placement.at[2] - ground[2],
+  ];
+
+  /**
+   * A rectangle dragged out on the ground, made into a place.
+   *
+   * **On release, which is where it always belonged.** This sat in the move
+   * handler behind an earlier branch that returned for the same drag, left
+   * there when tracing a path was taken out, so it never ran: dragging out a
+   * place drew nothing and left the button switched on.
+   */
+  function finishPlace(from, to) {
+    state.drawingArea = false;
+    canvas.classList.remove('tracing');
+    const w = from && to ? Math.abs(to[0] - from[0]) : 0;
+    const d = from && to ? Math.abs(to[1] - from[1]) : 0;
+    // A rectangle with no area is a click, and a click is how you change your
+    // mind about having pressed the button.
+    if (w < 0.5 || d < 0.5) { say('nothing drawn - drag a rectangle rather than clicking'); return; }
+    areas.push({
+      at: [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2],
+      size: [w, d],
+      label: '',
+      from: editing(),
+    });
+    uploadAreas();
+    paintAreas();
+    autosave();
+    say(`a place ${w.toFixed(1)} by ${d.toFixed(1)} - give it a name in the panel`);
+  }
+
   const endDrag = (event) => {
     if (!drag) return;
-
-    // A press that did not really move is a click, and a click chooses.
-    if (drag.moved < 5 && drag.object === null) {
-      const ray = rayAt(event);
-      const hit = ray ? pick(ray, boxes) : null;
-      select(hit ? hit.index : -1);
-    }
-    const moved = drag.moved > 5 && drag.object !== null;
+    const ended = drag;
     drag = null;
     canvas.classList.remove('dragging', 'panning', 'moving');
     if (event && canvas.hasPointerCapture?.(event.pointerId)) {
       canvas.releasePointerCapture(event.pointerId);
     }
+
+    // A cancelled press is not a rectangle anybody finished drawing.
+    if (ended.drawing) {
+      finishPlace(ended.place, event?.type === 'pointercancel' ? null : ended.placeTo);
+      return;
+    }
+
+    // A press that did not really move is a click, and a click chooses.
+    if (ended.moved < 5 && ended.object === null) {
+      const hit = pickAt(rayAt(event));
+      select(hit ? hit.index : -1);
+    }
     // **One gesture is one thing to undo.** A move autosaves on every pointer
     // event and `remember` stays out of the way while the hand is down, so
     // where the object ended up is remembered once, here.
-    if (moved) remember();
+    if (ended.moved > 5 && ended.object !== null) remember();
   };
   canvas.addEventListener('pointerup', endDrag);
   canvas.addEventListener('pointercancel', endDrag);
@@ -2010,6 +2104,35 @@ async function main() {
     };
   };
 
+  /**
+   * Where an object appears in the window, in the client pixels a pointer
+   * event carries - or null before anything has been drawn.
+   *
+   * For a test that presses on an object the way a hand does. Worked out from
+   * the framing the last frame drew with and the world bent the way it is
+   * drawn, which is exactly what a press is read against, so a test cannot
+   * find an object somewhere the pointer would not.
+   */
+  window.__trail.screenOf = (index) => {
+    const box = boxes[index];
+    if (!box || !drawnFraming) return null;
+    const drawn = state.roll < 0.0005 ? box : bendBox(box, bendNow());
+    const centre = [0, 1, 2].map((a) => (drawn.min[a] + drawn.max[a]) / 2);
+    const at = project(viewProjection(drawnFraming).matrix, centre);
+    if (!at) return null;
+    const view = renderer.view.css;
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: rect.left + view.x + (at.x * 0.5 + 0.5) * view.w,
+      y: rect.top + view.y + (1 - (at.y * 0.5 + 0.5)) * view.h,
+    };
+  };
+
+  // Where the surface has an object's slice, or null when there is no surface.
+  // The cubes are placed from the canvas every time; the surface is moved, so
+  // this is the one that can be left behind.
+  window.__trail.surfaceAt = (index) => (meshScene?.at?.[index] ? [...meshScene.at[index]] : null);
+
   window.__trail.route = () => route.map((s) => ({
     text: s.text ?? '', weather: s.weather, framing: { ...s.framing },
     // The hour is what a step is called now, so a test asking about the route
@@ -2185,6 +2308,17 @@ async function main() {
    * reported. Removing the step range from tags is what let it happen: the
    * range used to hide them, and nothing took over the job.
    */
+  // Whether the last frame left any names on the layer.
+  let tagsShown = true;
+
+  /** A 2D layer laid exactly over the frame, written only when the frame moved. */
+  function overlay(layer, view) {
+    styleOf(layer, 'left', `${view.x}px`);
+    styleOf(layer, 'top', `${view.y}px`);
+    styleOf(layer, 'width', `${view.w}px`);
+    styleOf(layer, 'height', `${view.h}px`);
+  }
+
   function drawTags(matrix, step, veil = null) {
     const view = renderer.view.css;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -2192,10 +2326,13 @@ async function main() {
       tags.width = Math.round(view.w * dpr);
       tags.height = Math.round(view.h * dpr);
     }
-    tags.style.left = `${view.x}px`;
-    tags.style.top = `${view.y}px`;
-    tags.style.width = `${view.w}px`;
-    tags.style.height = `${view.h}px`;
+    overlay(tags, view);
+
+    // Nothing named and nothing left on the glass from last frame is a frame
+    // with nothing to do, which is most frames on most canvases.
+    const named = areas.some((a) => a.label) || layout.some((p) => p.label);
+    if (!named && !tagsShown) return;
+    tagsShown = named;
 
     tagCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
     tagCtx.clearRect(0, 0, view.w, view.h);
@@ -2311,10 +2448,7 @@ async function main() {
       penCanvas.height = h;
       inkDirty = true;
     }
-    penCanvas.style.left = `${view.x}px`;
-    penCanvas.style.top = `${view.y}px`;
-    penCanvas.style.width = `${view.w}px`;
-    penCanvas.style.height = `${view.h}px`;
+    overlay(penCanvas, view);
     if (!inkDirty) return;
     inkDirty = false;
     penCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -2492,21 +2626,15 @@ async function main() {
     // weather decides how much light gets through and the hour decides whether
     // there is any - so this takes a clear sky at a late morning hour and
     // nothing about the step reaches it.
-    if (state.overview) {
-      return resolveWeather(skyOf({ weather: 'clear', hour: OVERVIEW_HOUR }));
-    }
-    const base = moment
-      ? (route[moment.fromStep ?? moment.step]
-        ? lerpWeather(
-          skyOf(route[moment.fromStep ?? moment.step]),
-          skyOf(route[moment.step]),
-          moment.into,
-        )
-        : resolveWeather(skyOf(route[moment.step])))
-      : resolveWeather(route[editing()]?.weather ?? state.weather);
+    if (state.overview) return resolveWeather('clear', OVERVIEW_HOUR);
     // The hour under the hand wins over whatever any step says, so the sun
-    // follows the bar rather than snapping between steps.
-    return resolveWeather({ ...base, hour: state.hour });
+    // follows the bar rather than snapping between steps. It is handed in
+    // rather than laid over a weather already lit, which lit it twice.
+    if (!moment) return resolveWeather(route[editing()]?.weather ?? state.weather, state.hour);
+    const from = route[moment.fromStep ?? moment.step];
+    return from
+      ? lerpWeather(skyOf(from), skyOf(route[moment.step]), moment.into, state.hour)
+      : resolveWeather(skyOf(route[moment.step]), state.hour);
   }
 
   /**
@@ -3014,6 +3142,8 @@ async function main() {
 
   const surfaceSeg = segment('surface', () => surface, (v) => {
     surface = v === 'cubes' ? 'cubes' : 'mesh';
+    // Anything moved while the cubes were showing moved the cubes only.
+    if (surface === 'mesh' && meshStale) remesh();
   });
   const weatherSeg = segment('weather', () => state.forcedWeather ?? '', (v) => {
     state.forcedWeather = v || null;
@@ -3127,13 +3257,46 @@ async function main() {
     return hourAcross(box.width ? (event.clientX - box.left) / box.width : 0);
   }
 
+  /**
+   * What the marks on the bar were last built from.
+   *
+   * **The marks used to be thrown away and built again on every call**, and
+   * the frame calls this on every frame while the clock is travelling to an
+   * hour - a fresh button and four listeners per step, sixty times a second,
+   * to show marks that had not moved. Worse, a mark being dragged calls it on
+   * every pointer event, so the button under the hand was replaced by a new
+   * one mid-drag, and a browser releases pointer capture from an element that
+   * leaves the page. Now they are rebuilt only when a step, its hour or the
+   * step being worked on has changed, and never while one is held.
+   */
+  let marksFor = { steps: [], hours: '', editing: -1 };
+  let markHeld = false;
+
+  function marksCurrent() {
+    const hours = route.map((s) => s.hour ?? '-').join(',');
+    return marksFor.editing === editing()
+      && marksFor.hours === hours
+      && marksFor.steps.length === route.length
+      && marksFor.steps.every((s, i) => s === route[i]);
+  }
+
   function paintClock() {
     const ticks = el('ticks');
-    ticks.innerHTML = '';
     const timed = route
       .map((step, index) => ({ step, index }))
       .filter(({ step }) => typeof step.hour === 'number');
 
+    if (!markHeld && !marksCurrent()) paintMarks(ticks, timed);
+    paintNeedle(timed);
+  }
+
+  function paintMarks(ticks, timed) {
+    marksFor = {
+      steps: route.slice(),
+      hours: route.map((s) => s.hour ?? '-').join(','),
+      editing: editing(),
+    };
+    ticks.innerHTML = '';
     for (const { step, index } of timed) {
       const mark = document.createElement('button');
       mark.style.left = `${acrossDay(step.hour) * 100}%`;
@@ -3148,6 +3311,7 @@ async function main() {
       let dragging = false;
       mark.addEventListener('pointerdown', (event) => {
         dragging = true;
+        markHeld = true;
         mark.setPointerCapture?.(event.pointerId);
         state.pinned = index;
         leaveOverview();
@@ -3158,6 +3322,8 @@ async function main() {
       mark.addEventListener('pointermove', (event) => {
         if (!dragging) return;
         step.hour = hourAt(event);
+        // The mark moves itself rather than being built again under the hand.
+        mark.style.left = `${acrossDay(step.hour) * 100}%`;
         // The needle follows the mark, so the sky shows the hour being chosen.
         state.hour = step.hour;
         paintStep();
@@ -3167,6 +3333,7 @@ async function main() {
       const settle = (event) => {
         if (!dragging) return;
         dragging = false;
+        markHeld = false;
         if (event && mark.hasPointerCapture?.(event.pointerId)) {
           mark.releasePointerCapture(event.pointerId);
         }
@@ -3178,6 +3345,8 @@ async function main() {
         const landed = order.indexOf(index);
         rearrange(order, landed);
         say(`step ${landed + 1} happens at ${clockOf(step.hour)}`);
+        // The marks were held while the hand was down, so they catch up now.
+        paintClock();
       };
       mark.addEventListener('pointerup', settle);
       mark.addEventListener('pointercancel', settle);
@@ -3193,11 +3362,13 @@ async function main() {
       });
       ticks.append(mark);
     }
+  }
 
+  function paintNeedle(timed) {
     // The needle is always somewhere, because the hour always means something.
     const at = state.hour;
-    el('needle').style.left = `${acrossDay(at) * 100}%`;
-    el('now-time').textContent = clockOf(at);
+    styleOf(el('needle'), 'left', `${acrossDay(at) * 100}%`);
+    show('now-time', clockOf(at));
     // **Where you are, not how many there are.** This used to read
     // "2 of 2 steps on the clock", which is a count of how many steps have a
     // time - so it never changed as you moved, while reading exactly like a
@@ -3210,7 +3381,7 @@ async function main() {
     const before = stepAround(route, at, -1);
     const after = stepAround(route, at, 1);
 
-    el('now-what').textContent = !route.length
+    show('now-what', !route.length
       ? 'an empty day - drag to move through it, + to add a step'
       : !timed.length
         ? `no steps on the clock yet - ${route.length} waiting for a time`
@@ -3220,9 +3391,9 @@ async function main() {
             ? `between steps ${before.index + 1} and ${after.index + 1}${note}`
             : after
               ? `before step ${after.index + 1}${note}`
-              : `after step ${before.index + 1}${note}`;
-    el('b-time-prev').disabled = !stepAround(route, at, -1);
-    el('b-time-next').disabled = !stepAround(route, at, 1);
+              : `after step ${before.index + 1}${note}`);
+    el('b-time-prev').disabled = !before;
+    el('b-time-next').disabled = !after;
     el('b-step-remove').disabled = !route.length;
   }
 
@@ -3708,7 +3879,9 @@ async function main() {
     let framing;
     let step = state.pinned ?? 0;
     let stepT = 1;
-    let weather = resolveWeather(skyOf(route[step]));
+    // Set by the clock below, which always runs. It was worked out here as
+    // well, from the step, and thrown away every frame.
+    let weather;
 
     // How long the shot in front of you has been held, which is what a slow
     // orbit or push measures itself against. It resets when the moment changes,
@@ -3724,7 +3897,7 @@ async function main() {
       const at = currentRoute();
       framing = drift(autoMove(at.framing, shotHeld, state), now / 1000, swayNow());
       step = at.step;
-      el('s-step').textContent = route.length ? `${at.step + 1} / ${route.length}` : '-';
+      show('s-step', route.length ? `${at.step + 1} / ${route.length}` : '-');
     }
 
     // --- the clock ------------------------------------------------------------
@@ -3764,9 +3937,9 @@ async function main() {
         // both name. `moment.step` is the step being arrived at, which is what
         // the ghosting needs and is a step ahead of where you think you are:
         // it read "2 / 2" everywhere above the first step's hour.
-        el('s-step').textContent = `${editing() + 1} / ${route.length}`;
+        show('s-step', `${editing() + 1} / ${route.length}`);
       } else {
-        el('s-step').textContent = route.length ? `${editing() + 1} / ${route.length}` : 'none';
+        show('s-step', route.length ? `${editing() + 1} / ${route.length}` : 'none');
       }
       weather = skyNow(moment);
     }
@@ -3809,19 +3982,19 @@ async function main() {
     // route: the whole film read through a storm somebody left switched on for
     // one moment of it.
     if (state.forcedWeather && !state.overview) {
-      weather = resolveWeather(skyOf({ weather: state.forcedWeather, hour: state.hour }));
+      weather = resolveWeather(state.forcedWeather, state.hour);
     }
     // Depth fog is left to the weather. It cannot separate the film - a
     // neighbouring piece is beside the camera, not beyond it - so the veil
     // below does that job, and doing both only made the scene itself hazy.
     scarsFor(step);
-    el('s-rain').textContent = `${Math.round((weather.rain ?? 0) * 100)}%`;
+    show('s-rain', `${Math.round((weather.rain ?? 0) * 100)}%`);
 
     const [cx, cz] = centreOf(framing);
-    el('s-height').textContent = (framing.y ?? 0).toFixed(1);
-    el('s-centre').textContent = `${cx.toFixed(1)}, ${cz.toFixed(1)}`;
-    el('s-width').textContent = framing.w.toFixed(1);
-    el('s-angles').textContent = `${(framing.pitch ?? 25).toFixed(0)} / ${(framing.yaw ?? 0).toFixed(0)}`;
+    show('s-height', (framing.y ?? 0).toFixed(1));
+    show('s-centre', `${cx.toFixed(1)}, ${cz.toFixed(1)}`);
+    show('s-width', framing.w.toFixed(1));
+    show('s-angles', `${(framing.pitch ?? 25).toFixed(0)} / ${(framing.yaw ?? 0).toFixed(0)}`);
 
     // **The veil is centred on the piece being looked at**, not on the camera,
     // so what falls away is everything that is not this moment of the film. It
@@ -3864,6 +4037,8 @@ async function main() {
     });
     weather = { ...weather, fogNear: haze.near, fogFar: haze.far };
 
+    // Kept for the pointer, which has to be read against this exact camera.
+    drawnFraming = framing;
     const { matrix, eye, target } = viewProjection(framing);
     renderer.draw({
       focus: [focusX(), 0],
@@ -3892,10 +4067,8 @@ async function main() {
 
     const fill = renderer.view.fill;
     const percent = Math.round(fill * 100);
-    el('s-fill').textContent = percent >= 100
-      ? '100%'
-      : `${percent}%  (enter)`;
-    el('s-fill').style.color = percent >= 99 ? '#7fd4a0' : '#e8c07f';
+    const fillNode = show('s-fill', percent >= 100 ? '100%' : `${percent}%  (enter)`);
+    styleOf(fillNode, 'color', percent >= 99 ? '#7fd4a0' : '#e8c07f');
 
     requestAnimationFrame(frame);
   }

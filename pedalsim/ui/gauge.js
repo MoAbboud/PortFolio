@@ -47,7 +47,8 @@ export class Gauge {
 
   // value: what the needle should show. bins, mean, eventLevel: the development.
   // ghost: a value to mark with a faint second needle (the revs to match), or null.
-  draw({ value, dt, bins, mean, eventLevel = 0, time, marks = [], needle = true, ghost = null }) {
+  // perfect: where the engine's perfect run is at this moment of a 0 to 60 run, or null.
+  draw({ value, dt, bins, mean, eventLevel = 0, time, marks = [], needle = true, ghost = null, perfect = null }) {
     if (!this.scale) return;
     this.reveal.draw(bins, mean, eventLevel, time);
     const angle = chase(this.needle, angleOf(this.scale, value), dt);
@@ -89,6 +90,19 @@ export class Gauge {
       ctx.lineTo(Math.cos(g) * s * 0.43, Math.sin(g) * s * 0.43);
       ctx.stroke();
       ctx.setLineDash([]);
+    }
+
+    // The perfect run's needle: thin, pale and steady, so the driver can see where it is
+    // without mistaking it for their own.
+    if (perfect !== null) {
+      const p = angleOf(this.scale, perfect);
+      ctx.strokeStyle = rgb(this.colours.type, 0.45);
+      ctx.lineWidth = s * 0.006;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(p) * s * 0.18, Math.sin(p) * s * 0.18);
+      ctx.lineTo(Math.cos(p) * s * 0.45, Math.sin(p) * s * 0.45);
+      ctx.stroke();
     }
 
     // The needle: a glowing line from just behind the hub to the ticks.

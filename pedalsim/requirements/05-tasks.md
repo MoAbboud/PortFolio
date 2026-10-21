@@ -6,7 +6,8 @@ Every stage is checked from a PowerShell terminal on Windows. If a stage cannot 
 that way, it is not finished. Every stage that changes the page is also checked at phone
 width in landscape in the browser's device view.
 
-Stages 0 to 5 are done. Stage 6, the perfect-run solver, is next.
+All eight stages are built. Left: the two checks only people can make - someone other than
+the author driving it cold on a keyboard, and a real phone.
 
 ## Planning
 
@@ -297,33 +298,89 @@ Check:
 
 ## Stage 6 - The perfect-run solver
 
-- [ ] `tools/solve.js`: parameters, interpolated 60 mph crossing, golden section then
-      coordinate descent, human shift limits
-- [ ] `engines/perfect/<id>.js` for all five
-- [ ] Test: every stored perfect run replays to its stored time
+Done, except the author's look at the runs. 186 tests (27 new). Times, shifts and what they
+show are in 03-architecture, "The perfect run", "As built (stage 6)".
+
+- [x] `sim/sixty.js`: the run's rules - prelude, countdown, GO, interpolated 60 mph crossing,
+      false start, leave in first, clean (`test/sixty.test.js`)
+- [x] `tools/solve.js`: the perfect driver (launch, foot, wheelspin limit, shifts), human
+      limits (10 ms inputs, keyboard pedal rates, 0.15 s to feel spin), twelve starts of
+      coordinate descent with golden section; `--engine`, `--check`; `npm run solve`
+- [x] `engines/perfect/<id>.js` for all five, and `engines/perfect/index.js`
+- [x] Test: every stored perfect run replays to its stored time, clean, from first, current
+      with `SIM_VERSION` and the engine, inside the keyboard's limits (`test/perfect.test.js`)
+- [x] `tools/figures.js` prints each perfect run beside the automatic's time
 - [ ] The author drives each engine and checks its perfect run looks believable
 
 Check:
 
-    node tools/solve.js
+    node tools/solve.js --check                 are the stored runs current
+    node tools/figures.js                       each engine's perfect run and its shifts
     npm test
+    node tools/solve.js                         re-solve all five (about ten minutes)
+
+## Gauges whole from the start (after stage 6)
+
+- [x] The author dropped the build-up: faces whole from the start, no dissolve on cycling, no
+      break on a blown engine, "Build it all" removed (`ui/development.js` `built`)
 
 ## Stage 7 - 0 to 60, score, board, share link
 
-- [ ] Countdown; recorder; ghost sim and ghost needle
-- [ ] Phase split and time lost per phase, summing to the gap (tested)
-- [ ] Score and clean mark; score card
-- [ ] Bests, recent runs and opened links in memory only; watch any run back; a test that
+Done. 203 tests (17 new). Details and what was checked in Chrome: 03-architecture, "The run,
+as built (stage 7)".
+
+- [x] Countdown; recorder; ghost sim and ghost needle (0 TO 60 button, G key)
+- [x] Phase split and time lost per phase, summing to the gap (tested), printed in ms that
+      add up too
+- [x] Score and clean mark; score card (`sim/score.js`, `ui/card.js`)
+- [x] Bests, recent runs and opened links in memory only; watch any run back; a test that
       nothing touches `localStorage`, cookies or IndexedDB
-- [ ] Share link: pack, deflate, base64url in the fragment; open, re-drive, show
-- [ ] Test: a run recorded in headless Chrome scores the same in Node
+- [x] Share link: pack (`sim/runlog.js`), deflate, base64url in the fragment (`ui/share.js`);
+      open, re-drive, show; refused if `SIM_VERSION` or the engine hash differ
+- [x] Test: a run recorded in headless Chrome scores the same in Node
+      (`test/scripts/chrome-v8-run.json`)
+- [x] `sim/replay.js` honours a log's `tractionControl`; engine files carry their `hash`
+- [ ] Someone other than the author does a run on a keyboard and reads the card
+
+Check:
+
+    cd pedalsim
+    npm test
+    npx --yes serve .
+    # open it, M for the manual, G: clutch down (C), 1, a little gas, release on GO
 
 ## Stage 8 - Publish
 
-- [ ] `deploy/build-static.mjs` and `.github/workflows/pages.yml` include pedalsim
+Done.
+
+- [x] `deploy/build-static.mjs` and `.github/workflows/pages.yml` include pedalsim (done from
+      the resume session, 2026-10-19; checked: the build now carries `engines/perfect/`,
+      `sim/score.js`, `sim/runlog.js`, `ui/share.js`, `ui/card.js`, and leaves out the README,
+      credits, media, tools and tests; a run driven on the built site under `/pedalsim/`
+      re-drove from its link to the same time)
 - [x] `.github/workflows/test-pedalsim.yml` running `node --test` (done at stage 0)
-- [ ] The badge in the root README
-- [ ] README: what it is, a recording, how to run it, what a shared run proves and does not
-- [ ] Credits file: Filip Zrnzevic's pen as the inspiration (no code taken), and each font with
-      its licence
-- [ ] Root README lists pedalsim
+- [x] The badge in the root README
+- [x] `pedalsim/README.md`: what it is, a recording (`media/run.webp`, a keyboard-driven V8
+      run captured from headless Chrome's screencast, 10 fps, 1.1 MB), how to run it, what a
+      shared run proves and does not
+- [x] `pedalsim/CREDITS.md`: Filip Zrnzevic's pen as the inspiration (no code taken; CodePen's
+      MIT statement re-checked; Shadertoy's default licence noted), each font with its licence,
+      the engine references
+- [x] Root README lists pedalsim (row brought up to date)
+- [x] The resume's pedalsim card text brought up to date (no more "gauges draw themselves";
+      203 tests)
+
+## The maths panel (after stage 8)
+
+Done. 206 tests (3 new). See 03-architecture, "The maths panel".
+
+- [x] `sim/drivetrain.js` `drivetrainParts` and `sim/engine.js` torque parts, golden unchanged
+- [x] `ui/insight.js`: `explain()`, the chain, the sums; MATHS button and H key
+- [x] `sim/score.js` curves and `ui/card.js` race chart with the phases shaded
+- [x] `test/insight.test.js`: the panel's numbers are the step's own and satisfy F = ma
+- [x] Checked in Chrome during a run and at 390 px
+
+Check:
+
+    node deploy/build-static.mjs      from the repository root; deploy/dist/pedalsim/
+    npx --yes serve deploy/dist       then /pedalsim/

@@ -18,6 +18,7 @@ database tests.
 
 [![herder](https://github.com/MoAbboud/PortFolio/actions/workflows/test-herder.yml/badge.svg)](https://github.com/MoAbboud/PortFolio/actions/workflows/test-herder.yml)
 [![mailman](https://github.com/MoAbboud/PortFolio/actions/workflows/test-mailman.yml/badge.svg)](https://github.com/MoAbboud/PortFolio/actions/workflows/test-mailman.yml)
+[![pedalsim](https://github.com/MoAbboud/PortFolio/actions/workflows/test-pedalsim.yml/badge.svg)](https://github.com/MoAbboud/PortFolio/actions/workflows/test-pedalsim.yml)
 [![roamer](https://github.com/MoAbboud/PortFolio/actions/workflows/test-roamer.yml/badge.svg)](https://github.com/MoAbboud/PortFolio/actions/workflows/test-roamer.yml)
 [![trail](https://github.com/MoAbboud/PortFolio/actions/workflows/test-trail.yml/badge.svg)](https://github.com/MoAbboud/PortFolio/actions/workflows/test-trail.yml)
 [![whereyago](https://github.com/MoAbboud/PortFolio/actions/workflows/test-whereyago.yml/badge.svg)](https://github.com/MoAbboud/PortFolio/actions/workflows/test-whereyago.yml)
@@ -59,11 +60,13 @@ in the write-up rather than deleted.
 | [fallacysuspect](fallacysuspect/) | Flags passages that may lean on a logical fallacy - a warning with a confidence, never a verdict | `python -m fallacy_warn serve` | Working; one model needs retraining |
 | [evaluaters](evaluaters/) | Two AI-engineering pieces: a harness that scores structured extraction, and typed GitHub tools for a triage agent | `python -m harness run --cases cases.jsonl` | Phase 1 scaffold |
 | [trail](trail/) | A voxel diorama a camera walks through on a timeline, for recording video. Hand-written WebGL2, no engine | open `index.html`, or `npm run serve` | Runs; mid-redesign |
+| [pedalsim](pedalsim/) | Drive a V4 to a V12 by its gauges alone, and run 0 to 60 against the fastest run the simulation allows: engines built from real bore and stroke, a solved perfect run, a score card whose losses add up to the gap, runs shared as links that re-drive themselves | <https://moabboud.dev/pedalsim/>, or `npx serve` in the folder | Stages 0-8 built; 206 tests |
+| [codevscode](codevscode/) | Code vs Code: a coding duel where an AI helper the player names writes the code, and the player asks, reviews and defends; a QA checklist decides | `docker compose up -d` for the API; model work on Colab | Stage 1 model trials; not playable yet |
 | [whereyago](whereyago/) | A day logger: record a good day out stop by stop, browse and copy other people's | `docker compose up` plus `npx expo start` | Vertical slice; sharing unbuilt |
 | [snowball](snowball/) | Branching idea builder: a seed thought grows into a tree you can export as an essay | open `index.html` | Prototype |
 | [tektak](tektak/) | A hand-curated tracker for online drama, written as summaries rather than video | open `index.html`, `admin.html` to edit | Prototype |
 | [story generator](story%20generator/) | Turns a story told in beats into a tree that reveals itself one beat at a time, for narration | open `breakdown-takes.html` | Prototype, two versions |
-| [resume](resume/) | An interactive resume that never scrolls: colour-coded sections, all movement lateral. **The site's front page**, and its Projects pages link everything else | <https://moabboud.dev> | Finished |
+| [resume](resume/) | An interactive resume on a sideways stage, or as one page: colour-coded sections, a project gallery with pictures of the real work, skills that show where they were used. **The site's front page**, and its gallery links everything else | <https://moabboud.dev> | Finished; kept current |
 
 The browser apps are one HTML file plus Tailwind from a CDN and `localStorage`. No build, no server,
 no accounts. The Python projects use Docker Compose and PostgreSQL, and their tests run with `pytest`.
@@ -74,7 +77,8 @@ no accounts. The Python projects use Docker Compose and PostgreSQL, and their te
 that runs in the browser: [trail](https://moabboud.dev/trail/),
 [snowball](https://moabboud.dev/snowball/), [tektak](https://moabboud.dev/tektak/),
 [story generator](https://moabboud.dev/story-generator/),
-[whereyago](https://moabboud.dev/whereyago/).
+[whereyago](https://moabboud.dev/whereyago/), [pedalsim](https://moabboud.dev/pedalsim/), and
+[herder's browser prototype](https://moabboud.dev/herder/prototype/).
 
 - Pneumonia detector: <https://pneumonia-x9mz.onrender.com/> (free hosting, so the first load takes
   about a minute to wake)

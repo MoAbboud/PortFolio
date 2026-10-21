@@ -1,7 +1,8 @@
 // Drive the simulation from a list of input changes.
 //
 // A script is the same shape as a run log: how many steps to run, which gearbox ('manual',
-// the default, or 'auto'), and the events - each a step number, a channel and a value - in
+// the default, or 'auto'), whether traction control is on (the gearbox's default if not
+// said), and the events - each a step number, a channel and a value - in
 // step order. Events at step n are applied before
 // step n is taken. tools/drive.js uses this today; the ghost needle, the perfect-run
 // solver and opening a share link will all use it later, which is why it lives in sim/.
@@ -35,7 +36,7 @@ export function checkScript(script) {
 // step with (state, inputs) - for tracing, or for a ghost that is drawn as it goes.
 export function replay(engine, chassis, script, onStep) {
   checkScript(script);
-  let state = initialState(engine, chassis, { gearbox: script.gearbox });
+  let state = initialState(engine, chassis, { gearbox: script.gearbox, tractionControl: script.tractionControl });
   let inputs = emptyInputs();
   let next = 0;
   const { events, steps } = script;
