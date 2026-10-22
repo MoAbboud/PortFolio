@@ -110,7 +110,7 @@ erDiagram
 | `questions` | id, attempt_id, text, best_requirement_id, similarity, revealed, asked_at | Every question, revealed or not, for the score card and for measuring the matcher |
 | `snapshots` | id, attempt_id, kind (submission, fix), files (jsonb), created_at | Files are small; size-limited at the API |
 | `chat_turns` | id, attempt_id, role, text, created_at | Stored only when the player opted in to training use; otherwise the conversation never leaves the browser |
-| `jobs` | id, kind, snapshot_id, finding_id, status, attempts, locked_at, started_at, finished_at, result (jsonb), error | The judge queue. `locked_at` is read by the reaper; retries up to three |
+| `jobs` | id, kind (judge, house), status (queued, running, done, failed), payload (jsonb: challenge slug and files), result (jsonb: verdict, results, seconds, exit code, stderr tail), error, attempts, max_attempts, locked_at, locked_by, created_at, started_at, finished_at | Built at stage 2 (migration 0002). The judge's queue: claimed with FOR UPDATE SKIP LOCKED; `locked_at` read by the reaper; a sandbox failure retries up to max_attempts. Files travel in the payload until stage 5 adds snapshots |
 | `matches` | id, challenge_id, attempt_a, attempt_b (null while waiting), opponent_kind (player, house), state, review_ends_at, defence_ends_at, published_at | State: waiting, review, defence, done |
 | `findings` | id, match_id, by_attempt, against_attempt, category, claim, test_source, status, reference_result, target_result, filed_at | Status: filed, valid, invalid, fixed, conceded. House findings have by_attempt null |
 | `defences` | id, finding_id, kind (fix, concede), snapshot_id, result, created_at | A fix points at its snapshot |

@@ -83,4 +83,4 @@ def test_a_database_behind_the_newest_migration_is_503_and_says_where_it_is(
 
 
 def test_the_head_is_read_from_the_migrations_folder() -> None:
-    assert migration_head() == "0001_baseline"
+    assert migration_head() == "0002_jobs"

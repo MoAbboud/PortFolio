@@ -301,20 +301,43 @@ sequenceDiagram
     Note over W,D: attempts >= 3 -> failed, shown to the author
 ```
 
-The container, per job:
+Built at stage 2. The container, per job (`codevscode/judge/sandbox.py`, image from
+`judge/Dockerfile`: Node, sql.js and the shared runner, nothing else):
 
-- Node, the test runner, sql.js, and nothing else in the image.
-- `--network none`, read-only root, a small writable temp directory, a non-root user, no
-  added capabilities, the default seccomp profile.
-- Limits: CPU time per test and per job, memory, process count, output size. A test that hits
-  a limit fails; the job does not.
-- Hidden tests come from the hidden store, mounted read-only into that job only. The database
-  is on a network the container is not on.
-- One job per container, thrown away after.
+- `--network none`, `--read-only`, `--cap-drop ALL`, `--security-opt no-new-privileges`,
+  `--user 1000:1000`, `--pids-limit 64`, `--memory 384m` (no swap), `--cpus 1`, 256 open files.
+- The app and the challenge bind-mounted read-only, nothing else - no Docker socket, and the
+  database is on no network the container can reach.
+- A wall-clock limit (90 s), and stdout read only up to 2 MB.
+- One job per container, removed after.
 
-Kinds of job: judge a submission (all hidden tests), check a finding (the finding's test
-against the reference and against the target), judge a fix (the finding's test plus all
-hidden tests against the fixed files), and the harness's runs.
+Inside, the app runs in the same Node process as the tests that grade it, so `judge/entry.mjs`
+keeps it away from its own score:
+
+- `--frozen-intrinsics`: built-ins cannot be changed (`Object.is = () => true` is refused).
+- Every global binding is locked before the app loads (`globalThis.JSON = ...` is refused);
+  frozen intrinsics alone do not cover that.
+- Node's permission model: no child processes, workers or file writes; reads only under the
+  judge and the job.
+- The result is one line written with a `writeSync` captured before any submitted code exists,
+  behind a 128-bit nonce sent on stdin - never in argv, the environment or a file - and built
+  from strings, so no `toJSON` can run. The worker takes the last line carrying the nonce;
+  anything else the app prints is ignored.
+
+Verdicts are about the app and end the job: `ran` (with results), `timeout`, `out_of_memory`,
+`output_limit`, `no_result` (the app stopped the process), `error` (the challenge or app could
+not be loaded). A failure of the sandbox itself - Docker down, the image missing, told apart by
+what Docker prints rather than the exit code, which an app can fake - is retried up to three
+times. Each hostile submission has a test: an endless loop, a memory bomb, spawning processes,
+the network, writing files, flooding stdout, exiting early, exiting with Docker's own error
+code, forging a result line, tampering with built-ins.
+
+The worker (`python -m codevscode.judge.worker`) runs where it can start containers - on the
+host in development; how it runs on the server is stage 11's question.
+
+Kinds of job built: `judge` (the hidden tests) and `house` (the house's findings). Still to
+come: check a finding (its test against the reference and the target), judge a fix, and the
+harness's runs.
 
 Efficiency tests do not use a stopwatch. They measure what the app asks of the database: how
 many queries a request takes (one per note is the classic mistake), and whether SQLite had to

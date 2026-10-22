@@ -80,6 +80,8 @@ jobs:
       REQUIRE_DB: "1"
       # The harness tests skip without Node on a laptop; here a skip would hide a failure.
       REQUIRE_NODE: "1"
+      # The sandbox tests skip without Docker on a laptop; here a skip would hide a failure.
+      REQUIRE_DOCKER: "1"
 
     steps:
       - uses: actions/checkout@v4
@@ -102,6 +104,10 @@ jobs:
 
       - name: Install Node packages
         run: npm ci
+
+      # The judge's job image: the sandbox tests start real containers from it.
+      - name: Build the judge image
+        run: docker build -t codevscode-judge -f judge/Dockerfile .
 
       # The schema is the migrations, so running them here tests them as well.
       - name: Migrate
