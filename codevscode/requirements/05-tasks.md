@@ -114,7 +114,13 @@ The code is built; the runs are the author's, on Colab.
 - [x] `public/smoke.json` for the sample and check.js walking it: crashes along sign up, log in
       and the note routes are now what a repair turn passes back. Validator checks the
       walk-through is well formed and the reference walks it cleanly. Tests: 57 Node, 12 pytest
-- [ ] Run 5: same notebook after a push - repair turns that can see the real crashes
+- [x] Run 5 (2026-10-21): repair turns that see the walk-through's crashes work. The 7B at 4
+      bits, told everything, reached 20 of 42 (13 correctness, 4 security, 3 practicality) and
+      is the first app to finish with no crash at all; the 1.5B told everything went 2 -> 10.
+      Every run used both repair turns; several still crash, and the 1.5B repeated one reply
+      twice. The 7B's remaining failures are mostly two stubs: a fake token ("generated_token",
+      every user is user 1) and a validation that refuses an empty note body
+- [ ] The stage 1 gate, decided with the author (proposal in the context log)
       (waiting on the free-tier GPU limit to reset; the notebook now stops early without a GPU)
 - [x] Notebook fitted to the free tier: SmolLM2 and the 14B removed with the reasons in the
       cell; a model that runs out of GPU memory is skipped and the rest carry on
