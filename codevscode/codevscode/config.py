@@ -6,6 +6,8 @@ gitignored .env file.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,6 +30,26 @@ class Settings(BaseSettings):
     # database tests once skipped on the host with the database up, because its default was
     # `db`.)
     database_url: str = "postgresql+psycopg://codevscode:codevscode@localhost:5435/codevscode"
+
+    # The judge (stage 2). Each job runs in a fresh container from judge_image, built from
+    # judge/Dockerfile. The limits are per job.
+    judge_image: str = "codevscode-judge"
+    judge_timeout_seconds: float = 90.0
+    judge_memory: str = "384m"
+    judge_pids: int = 64
+    judge_cpus: str = "1"
+    # stdout beyond this is not read: the container is stopped and the job is "output_limit".
+    judge_output_limit_bytes: int = 2_000_000
+    # Where each job's files are written for the container to mount. Empty means the system's
+    # temporary folder. Docker Desktop on Windows can mount anything under C:\Users.
+    judge_work_dir: str = ""
+    # The challenge folders the judge reads from.
+    challenges_dir: str = str(Path(__file__).resolve().parents[1] / "challenges")
+    # A running job whose lock is older than this is assumed orphaned (its worker died) and the
+    # reaper puts it back in the queue. Longer than any judge run.
+    job_lock_seconds: int = 300
+    job_max_attempts: int = 3
+    worker_interval_seconds: float = 2.0
 
 
 settings = Settings()

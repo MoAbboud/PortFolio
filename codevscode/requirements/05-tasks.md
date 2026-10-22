@@ -120,7 +120,9 @@ The code is built; the runs are the author's, on Colab.
       Every run used both repair turns; several still crash, and the 1.5B repeated one reply
       twice. The 7B's remaining failures are mostly two stubs: a fake token ("generated_token",
       every user is user 1) and a validation that refuses an empty note body
-- [ ] The stage 1 gate, decided with the author (proposal in the context log)
+- [x] The stage 1 gate ("go for it"): baseline Qwen2.5-Coder-1.5B, teacher Qwen2.5-Coder-7B,
+      Team-notes size, teacher data kept if crash-free and at least half the hidden tests, A1
+      mutation pairs as a second source
       (waiting on the free-tier GPU limit to reset; the notebook now stops early without a GPU)
 - [x] Notebook fitted to the free tier: SmolLM2 and the 14B removed with the reasons in the
       cell; a model that runs out of GPU memory is skipped and the rest carry on
@@ -199,12 +201,32 @@ Check:
 
 ## Stage 2 - The judge and its sandbox
 
-- [ ] `jobs` table, claim with `FOR UPDATE SKIP LOCKED`, reaper, retries
-- [ ] Job image: Node, test runner, sql.js; container flags from 03-architecture
-- [ ] Reference passes all hidden tests; each planted bug fails exactly its tests
-- [ ] Hostile submissions, one test each: endless loop, memory bomb, fork bomb, network call,
-      huge output, reading outside the app folder, writing to the hidden mount
-- [ ] A killed worker's job is picked up again; a third failure marks it failed
+Done. 37 pytest (nothing skipped with the database and Docker up), 57 Node.
+
+- [x] `jobs` table (migration 0002), claim with `FOR UPDATE SKIP LOCKED`, complete, fail with
+      retries, reaper - tested against PostgreSQL, including a claim skipping a row another
+      worker holds
+- [x] `judge/Dockerfile` (253 MB) and `judge/entry.mjs`: frozen intrinsics, locked globals,
+      the permission model, a nonce-marked result written by a captured writeSync
+- [x] `codevscode/judge/sandbox.py`: the container flags, wall-clock limit, output cap,
+      verdicts; sandbox failures told apart from the app's by what Docker prints
+- [x] In the sandbox: the reference passes 42 of 42; each planted bug fails exactly its tests;
+      the house's findings run as their own job kind
+- [x] Hostile submissions, one test each: endless loop, memory bomb, spawning processes,
+      network, writing files, flooding output, exiting early, exiting 125, forging a result
+      line, tampering with built-ins. (Reading the hidden tests is allowed: challenges are public)
+- [x] `python -m codevscode.judge.worker`: reaps, claims, runs, records; a job naming no real
+      challenge is done with an error, not retried; a sandbox failure is retried then failed
+- [x] CI builds the judge image and runs the sandbox tests with REQUIRE_DOCKER=1
+
+Check:
+
+    cd codevscode
+    docker compose up -d db
+    .venv\Scripts\python -m alembic upgrade head
+    docker build -t codevscode-judge -f judge/Dockerfile .
+    .venv\Scripts\python -m pytest -q
+    .venv\Scripts\python -m codevscode.judge.worker --once
 
 ## Stage 3 - The client
 
