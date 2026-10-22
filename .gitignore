@@ -143,6 +143,7 @@ codevscode/.pytest_cache/
 codevscode/data/
 # The Colab notebooks are the author's working copies, uploaded to Colab by hand.
 codevscode/notebooks/01-candidates.ipynb
+codevscode/notebooks/build_01.py
 # Results and model zips downloaded from Colab. A 4-bit model is about 1 GB; GitHub refuses
 # files over 100 MB. The numbers that matter are written into requirements/.
 codevscode/models/
