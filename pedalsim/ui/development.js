@@ -21,14 +21,18 @@ const SETTLE_RATE = 1.2;
 // The redline arc pixelates in over this long once first reached.
 const REDLINE_FADE = 0.8;
 
-export function createDevelopment(layout) {
+// built: every face complete from the start, as the page now shows them (the author, after
+// stage 6: "just show the gauge numbers the whole time"). Only the dyno strip is still drawn
+// from what the engine has done.
+export function createDevelopment(layout, built = false) {
+  const fill = built ? 1 : 0;
   return {
-    tach: new Float32Array(layout.tach.bins),
-    speed: new Float32Array(layout.speed.bins),
-    redlineSeen: false,
-    redline: 0,
+    tach: new Float32Array(layout.tach.bins).fill(fill),
+    speed: new Float32Array(layout.speed.bins).fill(fill),
+    redlineSeen: built,
+    redline: fill,
     dyno: new Float32Array(layout.tach.bins), // largest full-throttle torque per bin, Nm
-    shiftSeen: [],
+    shiftSeen: built ? layout.tach.shiftMarks.map(() => true) : [],
   };
 }
 

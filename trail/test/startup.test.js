@@ -2247,3 +2247,130 @@ test('the library takes one preview a frame, rather than starting the page at on
   assert.match(body, /requestAnimationFrame\(step\)/,
     'the queue never asks for another frame, so it would stop after the first job');
 });
+
+// --- pressing on the world -----------------------------------------------------
+
+/** A press, a few moves and a release on the stage, the way a hand makes them. */
+function gesture(stub, from, to = from, moves = 8) {
+  const stage = stub.element('stage');
+  const fire = (type, x, y) => {
+    for (const fn of stage.listeners.get(type) ?? []) {
+      fn({ type, pointerId: 1, button: 0, shiftKey: false, clientX: x, clientY: y, preventDefault() {} });
+    }
+  };
+  fire('pointerdown', from.x, from.y);
+  for (let i = 1; i <= (from === to ? 0 : moves); i++) {
+    fire('pointermove', from.x + ((to.x - from.x) * i) / moves, from.y + ((to.y - from.y) * i) / moves);
+  }
+  fire('pointerup', to.x, to.y);
+}
+
+/** Let the frame run long enough for the clock and the roll to arrive. */
+async function settle(stub, frames = 240) {
+  stub.allowFrames(frames);
+  for (let i = 0; i < frames + 40; i++) await new Promise((r) => setTimeout(r, 0));
+}
+
+const objectAt = (stub, index) => stub.win.__trail.canvas().objects[index].at;
+
+test('an object on a later piece can be picked up and moved', async () => {
+  // **Reported as "it works on the first step and not on the others."** The
+  // camera stays on the first piece while the ring turns, and the pointer was
+  // cast from where the camera would stand on the flat strip - the same place
+  // on the first piece, a piece away on every other - so the ground under the
+  // cursor was seventy units off or not there at all.
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 60 });
+  await runApp();
+  await openCanvas(stub);
+  await settle(stub);
+  assert.deepEqual(stub.failures, [], 'the page reported a startup failure');
+
+  // The house on each piece: 0, 5 and 9 in the fixture.
+  for (const [piece, index] of [[0, 0], [1, 5], [2, 9]]) {
+    stub.element('ticks').children[piece].listeners.get('click')?.[0]?.();
+    await settle(stub);
+    assert.equal(stub.win.__trail.at().step, piece, `the clock never reached piece ${piece}`);
+
+    const on = stub.win.__trail.screenOf(index);
+    assert.ok(on, `the house on piece ${piece} is not on screen`);
+    gesture(stub, on);
+    assert.equal(stub.win.__trail.posed(), 'house1', `a click on piece ${piece} did not choose the house`);
+
+    const before = objectAt(stub, index);
+    gesture(stub, on, { x: on.x + 140, y: on.y + 30 });
+    const after = objectAt(stub, index);
+    const moved = Math.hypot(after[0] - before[0], after[2] - before[2]);
+    assert.ok(moved > 0.5, `piece ${piece}: the house did not move (${moved.toFixed(2)})`);
+    assert.ok(moved < 12, `piece ${piece}: the house was flung ${moved.toFixed(1)} units`);
+    assert.ok(Math.abs(after[0] - piece * 64) < 32, `piece ${piece}: the house left its piece`);
+  }
+  assert.deepEqual(stub.failures, []);
+  stub.close();
+});
+
+test('a move made in the cube view is on the surface when it comes back', async () => {
+  // The surface is moved rather than rebuilt, and moving it only while it was
+  // showing left it wherever it had been before every move made in the cubes.
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 60 });
+  await runApp();
+  await openCanvas(stub);
+  await settle(stub);
+  const surface = (v) => stub.element('surface').listeners.get('click')?.[0]?.({
+    target: { closest: () => ({ dataset: { v } }) },
+  });
+  const close = (a, b) => a && b && a.every((v, i) => Math.abs(v - b[i]) < 0.01);
+  // The clock opens at noon, between pieces, so go to the first one.
+  stub.element('ticks').children[0].listeners.get('click')?.[0]?.();
+  await settle(stub);
+
+  const on = stub.win.__trail.screenOf(0);
+  gesture(stub, on);
+  assert.equal(stub.win.__trail.posed(), 'house1');
+
+  surface('cubes');
+  gesture(stub, on, { x: on.x + 120, y: on.y });
+  assert.ok(!close(stub.win.__trail.surfaceAt(0), objectAt(stub, 0)),
+    'the drag in the cube view did not move the house, so this proves nothing');
+
+  surface('mesh');
+  assert.ok(close(stub.win.__trail.surfaceAt(0), objectAt(stub, 0)),
+    `the surface was left at ${stub.win.__trail.surfaceAt(0)} with the house at ${objectAt(stub, 0)}`);
+
+  // And a long drag in the surface view ends where the house does, rather
+  // than wherever a few hundred rounded additions add up to.
+  await settle(stub, 20);
+  const again = stub.win.__trail.screenOf(0);
+  gesture(stub, again, { x: again.x - 160, y: again.y + 40 }, 120);
+  assert.ok(close(stub.win.__trail.surfaceAt(0), objectAt(stub, 0)),
+    'the surface drifted from the house over a long drag');
+  assert.deepEqual(stub.failures, []);
+  stub.close();
+});
+
+test('dragging out a place makes one, and puts the button down', async () => {
+  // The code that made the place sat in the move handler behind a branch that
+  // returned first, so it never ran and the button stayed on.
+  const stub = stubBrowser({ ids: declaredIds(), tags: declaredTags(), frames: 60 });
+  await runApp();
+  await openCanvas(stub);
+  await settle(stub);
+  const before = stub.win.__trail.canvas().areas?.length ?? 0;
+
+  stub.element('b-area').listeners.get('click')?.[0]?.();
+  assert.ok(stub.element('stage').classList.contains('tracing'));
+  gesture(stub, { x: 640, y: 740 }, { x: 900, y: 860 });
+  assert.equal(stub.win.__trail.canvas().areas.length, before + 1, 'no place was made');
+  assert.equal(stub.element('stage').classList.contains('tracing'), false,
+    'drawing a place left the button on');
+
+  // A press in the far part of the frame, where the ground does not answer,
+  // waits for ground instead of turning into an orbit.
+  const rig = stub.win.__trail.shot().yaw;
+  stub.element('b-area').listeners.get('click')?.[0]?.();
+  gesture(stub, { x: 800, y: 20 }, { x: 980, y: 860 });
+  assert.equal(stub.win.__trail.shot().yaw, rig, 'a press with no ground under it turned the camera');
+  assert.equal(stub.win.__trail.canvas().areas.length, before + 2,
+    'a place started above the usable ground was not made once the hand reached it');
+  assert.deepEqual(stub.failures, []);
+  stub.close();
+});

@@ -16,7 +16,7 @@ groups pages into the six sections that the rail, the menu and the hue come from
 | `experience-tekkii` | Experience | Tekkii, Full Stack Web Developer, Jan 2023 to Jan 2026 |
 | `experience-allied` | Experience | Allied Engineering Group, Software Engineer, Jun 2019 to Jun 2021 |
 | `capabilities` | Capabilities | Five skill groups and the evidence panel |
-| `projects` | Projects | The gallery of ten |
+| `projects` | Projects | The gallery of twelve |
 | `education` | Education | MS Computer Science, UMKC, and the course project |
 | `contact` | Contact | Email, LinkedIn, GitHub, PDF, location |
 
@@ -60,12 +60,13 @@ Every read and write is wrapped, so a browser that refuses storage gets the defa
 | `media/trail-loop.webm`, `media/trail-poster.webp` | Recorded from Trail's own canvas in headless Chrome | The example scene: ring, into the street, back to the ring | 568 KB, 6 KB |
 | `media/fallacy-detector.webp` | Screenshot of the app running its own models locally | `fallacysuspect/argument.txt` | 35 KB |
 | `media/herder-prototype.webp` | Screenshot of herder's browser prototype (`/herder/prototype/`), after its restyle in the resume's type and palette | Its opening screen with its own sample chat loaded | 36 KB |
+| `media/pedalsim.webp` | Screenshot of pedalsim (`/pedalsim/`) from the site build | Its own automatic-drive demo on the V8, built gauges, at 81 mph | 28 KB |
 | `media/story-takes.webp` | Screenshot of the app | A short demo story, labelled as a sample | 12 KB |
 | `media/whereyago.webp`, `media/tektak.webp`, `media/snowball.webp` | Screenshots of the apps | Their own demo data; Snowball seeded with one thought | 17 to 33 KB |
 | `og.png` | `tools/make-assets.mjs` | `tools/og.html` | 1200x630 |
 | `icon.png` | `tools/make-assets.mjs` | `tools/icon.html` | 180x180 |
 | `Mohamad-Abboud-Resume.pdf` | `tools/make-assets.mjs` | The page printed with scripts off, links made absolute | Two pages |
 
-The Mailman, Pneumonia and Evaluaters pictures are inline SVG in the page. Mailman's
+The Mailman, Pneumonia, Evaluaters and Code vs Code pictures are inline SVG in the page; Code vs Code's draws a match's six steps from the game's own overview. Mailman's
 chart is drawn from the last run of each label in `mailman/evaluations/`; the others show the
 idea and carry no numbers.

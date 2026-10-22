@@ -368,7 +368,9 @@ void main() {
    *
    * There is still a sky at night, so this fills from it. Three things make it
    * read as night rather than as a brightness slider:
-   *   - it only exists below the horizon, fading in as the sun sets;
+   *   - it grows with the shortfall in ambient light, so it is nought at a
+   *     clear noon and fills in through dusk, night, storm, fog and overcast
+   *     alike - see below for why it is not keyed to the sun;
    *   - it is shaped by the normal, so an object keeps its form instead of
    *     flattening into a silhouette;
    *   - it takes the backdrop's colour, so the fill is the colour of the sky
@@ -393,7 +395,7 @@ void main() {
   // 0.16 - so the fill was cutting itself by a third at exactly the hour it
   // existed for. A sixth is enough to read as cool.
   // The numbers were set while the ambient reaching this shader was six times
-  // too small - see dryOf in weather.js - so they were doing the work of a
+  // too small - see resolve in weather.js - so they were doing the work of a
   // bug as well as their own. Re-fitted against the light that is actually
   // there: at a clear nine at night a lit face keeps about half its colour and
   // a shadowed one about a third, which is a scene you can read at a glance
@@ -1413,6 +1415,9 @@ import { axesOf, FOV_Y, ASPECT } from './camera.js';
 export function createRenderer(canvas) {
   const gl = canvas.getContext('webgl2', { antialias: true, alpha: false });
   if (!gl) throw new Error('This needs WebGL2, and this browser did not provide it.');
+  // Attribute locations by program, for `locationOf`. A handful of programs
+  // that live as long as the page, so a plain map.
+  const locations = new Map();
 
   const cube = program(gl, CUBE_VS, CUBE_FS, 'cube');
   const mesh = program(gl, MESH_VS, CUBE_FS, 'mesh');
@@ -1606,8 +1611,23 @@ export function createRenderer(canvas) {
     }
   }
 
+  /**
+   * Where a program keeps an attribute, asked once.
+   *
+   * A program is never relinked, so the answer never changes - and the sky
+   * pass binds its quad every frame, which was asking the driver every frame.
+   * The map is declared at the top of `createRenderer`, because the buffers
+   * are bound before this line is reached.
+   */
+  function locationOf(prog, name) {
+    let known = locations.get(prog);
+    if (!known) { known = new Map(); locations.set(prog, known); }
+    if (!known.has(name)) known.set(name, gl.getAttribLocation(prog, name));
+    return known.get(name);
+  }
+
   function attribute(prog, name, buf, size, divisor = 0) {
-    const location = gl.getAttribLocation(prog, name);
+    const location = locationOf(prog, name);
     if (location < 0) return;
     // **Refused by name rather than bound to nothing.** Enabling an attribute
     // array with no buffer behind it makes every draw call that uses it
@@ -1653,13 +1673,6 @@ export function createRenderer(canvas) {
   }
 
   /**
-   * Rewrite one object's cubes without touching the rest of the field.
-   *
-   * Dragging a house re-uploads a few thousand floats rather than the whole
-   * scene, which is the difference between a smooth drag and a stutter once a
-   * canvas is full.
-   */
-  /**
    * One object's vertices, moved, without rebuilding the surface.
    *
    * `uploadMesh` throws away twelve buffers and a vertex array and builds them
@@ -1683,6 +1696,13 @@ export function createRenderer(canvas) {
     }
   }
 
+  /**
+   * Rewrite one object's cubes without touching the rest of the field.
+   *
+   * Dragging a house re-uploads a few thousand floats rather than the whole
+   * scene, which is the difference between a smooth drag and a stutter once a
+   * canvas is full.
+   */
   function updatePositions(positions, start, count) {
     if (!instanceBuffers.positions || count <= 0) return;
     gl.bindBuffer(gl.ARRAY_BUFFER, instanceBuffers.positions);

@@ -15,26 +15,32 @@ is wrong and it gets fixed rather than worked around.
 [00-plan.md](00-plan.md) is the one to read first: the stage order, the decisions already
 settled with the reason each one was taken, and the open questions still outstanding.
 
-**Stages 0 to 5 are done**: the scaffold; five engines built from their measurements, each
+**All eight stages are built**: the scaffold; five engines built from their measurements, each
 tested against the published figures of a real engine of the same bore and stroke; the
 drivetrain - manual and automatic, a clutch, tyres and brakes that grip or slip, traction
-control; the page - gauges that pixelate in where the engine has been; and driving it
-yourself, automatic or manual - clutch, H-pattern stick, grinding, the blown engine - with a
-coach that says when to shift. Stage 6, the perfect-run solver, is next.
+control; the page - gauges laid out from each engine's own figures; driving it yourself,
+automatic or manual - clutch, H-pattern stick, grinding, the blown engine - with a coach that
+says when to shift; the perfect run - for each engine, the fastest clean 0 to 60 a driver
+limited to the keyboard can make, worked out offline and checked by a test; and the 0 to 60
+run itself - a countdown, the perfect run as a ghost needle, a score card whose time lost
+per phase adds up to the gap, this visit's board, and a link that carries the run; and
+publishing it - the project README with a recording, credits, the badge; and since, a maths
+panel showing the simulation's working live, and a race chart on the score card. What is left
+is someone other than the author trying it, and a real phone.
 
     cd pedalsim
     npm test
     node tools/figures.js                       every engine's numbers against its targets
+    node tools/solve.js --check                 the stored perfect runs are current
     node tools/drive.js test/scripts/workout.json --engine v12 --out traces/v12.csv
     npx --yes serve .
 
 Three things worth stating here so they are not discovered as surprises:
 
-- **It is one page of gauges, and the engine builds them.** Cycle from a V4 to a V12, rev it,
-  drive it through the gears, brake. The gauges start as empty circles and pixelate in only
-  where the engine has been, laid out from that engine's own figures. There is no road and
-  nothing to steer. The page is kept plain on purpose; what is not plain is the calculation
-  behind every needle and every pixel.
+- **It is one page of gauges.** Cycle from a V4 to a V12, rev it, drive it through the gears,
+  brake, and run 0 to 60 against the perfect run. Every gauge is laid out from that engine's
+  own figures. There is no road and nothing to steer. The page is kept plain on purpose; what
+  is not plain is the calculation behind every needle.
 - **There is no server.** It is a static page on GitHub Pages and runs offline. The
   "backend" is the simulation in the browser that drives the dials. It is a sandbox:
   every refresh starts from nothing, and nothing is saved. A good run can be kept only by
