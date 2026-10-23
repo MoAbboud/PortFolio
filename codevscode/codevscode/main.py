@@ -1,7 +1,7 @@
 """The FastAPI application.
 
-Stage 0 serves only /health. The client (stage 3), the workspace (stage 4) and matches
-(stages 5 to 7) are added as routers here.
+/health, and the client: starting an attempt and asking questions (stage 3). The workspace
+(stage 4) and matches (stages 5 to 7) are added as routers here.
 """
 
 from __future__ import annotations
@@ -9,7 +9,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 
 from codevscode import __version__
-from codevscode.api import health
+from codevscode.api import attempts, health
 
 app = FastAPI(
     title="codevscode",
@@ -19,3 +19,4 @@ app = FastAPI(
 )
 
 app.include_router(health.router)
+app.include_router(attempts.router)

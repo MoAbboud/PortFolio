@@ -51,5 +51,17 @@ class Settings(BaseSettings):
     job_max_attempts: int = 3
     worker_interval_seconds: float = 2.0
 
+    # The client (stage 3). "embedding" (a local sentence model) won the measurement on the
+    # sample's labelled questions: 16 of 28 with no false reveal, against 2 of 28 for "lexical"
+    # (python -m codevscode.client.report challenges/sample). A threshold per matcher.
+    client_matcher: str = "embedding"
+    client_threshold_embedding: float = 0.65
+    client_threshold_lexical: float = 0.80
+    # Where fastembed keeps the downloaded sentence model. Empty means its default.
+    client_model_cache: str = ""
+    client_max_question_chars: int = 300
+    client_max_questions: int = 60
+    client_min_seconds_between_questions: float = 1.0
+
 
 settings = Settings()

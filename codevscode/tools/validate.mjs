@@ -199,6 +199,30 @@ export async function validateChallenge(dir) {
   }
   notes.push(`house findings: ${findings.length}, all checked against the reference`);
 
+  // Labelled questions for measuring the client's matcher, if there are any.
+  let labelled;
+  try {
+    labelled = await readJson(path.join(dir, "hidden/questions.json"));
+  } catch (error) {
+    if (error.code !== "ENOENT") fail(`hidden/questions.json: ${error.message}`);
+  }
+  if (labelled) {
+    const questions = Array.isArray(labelled.questions) ? labelled.questions : [];
+    if (!questions.length) fail("hidden/questions.json: questions must be a non-empty list");
+    questions.forEach((q, i) => {
+      if (typeof q.text !== "string" || !q.text.trim()) fail(`hidden/questions.json question ${i + 1}: text is missing`);
+      if (q.requirement !== null && !requirementIds.has(q.requirement)) {
+        fail(`hidden/questions.json question ${i + 1}: requirement ${JSON.stringify(q.requirement)} is not in requirements.json (use null for one that must reveal nothing)`);
+      }
+    });
+    const covered = new Set(questions.map((q) => q.requirement));
+    for (const id of requirementIds) {
+      if (!covered.has(id)) fail(`hidden/questions.json: no question is labelled ${id}, so its matching is never measured`);
+    }
+    if (!covered.has(null)) fail("hidden/questions.json: no question is labelled null, so false reveals are never measured");
+    if (questions.length) notes.push(`labelled questions: ${questions.length}, ${questions.filter((q) => q.requirement === null).length} that must reveal nothing`);
+  }
+
   // Scripted conversations for the harness.
   const scriptDir = path.join(dir, "hidden/scripts");
   const scripts = (await readdir(scriptDir)).filter((name) => name.endsWith(".json"));

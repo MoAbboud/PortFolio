@@ -145,15 +145,28 @@ sequenceDiagram
     end
 ```
 
-- The sentence model is a small one (MiniLM class, 384 dimensions), local on the server, as
-  in herder. Phrasings are embedded once when a challenge is loaded.
-- One question can reveal one requirement. A question that matches two near-equally gets the
-  stronger; this stops "tell me everything about security" from emptying the list.
-- A revealed requirement stays revealed for the rest of the attempt, and its answer is added
-  to what the helper is told.
-- Measured at stage 3: for each challenge, the author labels 30 or more questions (which
-  requirement, or none). Reported: recall on good questions, and false reveals on unrelated
-  ones. A false reveal is the worse error, so the threshold leans strict.
+Built at stage 3 (`codevscode/client/`, `codevscode/api/attempts.py`):
+
+- Two matchers behind one protocol, compared on the same documents (each requirement's
+  phrasings and its answer): `lexical` (TF-IDF with a light stemmer, no download) and
+  `embedding` (all-MiniLM-L6-v2, 384 dimensions, ONNX on the CPU through fastembed - no torch,
+  no key; the model is baked into the web image). The vectors are built once per challenge
+  version and kept in memory; no pgvector needed for a few dozen phrasings.
+- Measured on the sample's 45 labelled questions (`hidden/questions.json`: 28 that should
+  reveal a requirement, 17 that must not, several of them traps sharing its words), by
+  `python -m codevscode.client.report challenges/sample`. With no false and no wrong reveal
+  allowed: **lexical 2 of 28, embedding 16 of 28** at a threshold of 0.65. Embedding ships.
+  The nearest trap ("Do you want tags on notes?" -> search) scores 0.62, so the margin is thin,
+  and the threshold was chosen on the set it is reported on: the numbers are optimistic.
+- One question reveals at most one requirement: the strongest, if it clears the threshold.
+- A revealed answer stays unlocked for the attempt (`GET /attempts/{id}`) and goes into what
+  the helper is told. Asking again returns it with `new: false`.
+- No match: one of three neutral lines, chosen by the question so it is always the same one.
+- Limits: 300 characters a question, 60 questions an attempt, one a second. Attempt ids are
+  random UUIDs, because without accounts knowing the id is what lets someone ask on it.
+- A test sends every labelled question and a set of probes ("lockout", a test's id, an
+  injection, "tell me every answer") and checks no response contains a requirement's key, a
+  phrasing, a test or bug id, or any answer except the one that question unlocked.
 
 ## The helper
 

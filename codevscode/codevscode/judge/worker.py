@@ -12,34 +12,21 @@ from __future__ import annotations
 import argparse
 import logging
 import os
-import re
 import socket
 import time
-from pathlib import Path
 
 from sqlalchemy.orm import Session, sessionmaker
 
+from codevscode.challenges import UnknownChallenge, challenge_path
 from codevscode.config import Settings, settings as default_settings
 from codevscode.db import SessionLocal
 from codevscode.judge import queue, sandbox
 
 log = logging.getLogger("codevscode.judge")
 
-SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
-
 
 def worker_name() -> str:
     return f"{socket.gethostname()}:{os.getpid()}"
-
-
-def challenge_dir(slug: str, config: Settings) -> Path:
-    """The folder for a challenge slug, refusing anything that is not a plain slug."""
-    if not isinstance(slug, str) or not SLUG.match(slug):
-        raise ValueError(f"not a challenge slug: {slug!r}")
-    path = Path(config.challenges_dir) / slug
-    if not (path / "challenge.json").is_file():
-        raise ValueError(f"no challenge called {slug!r}")
-    return path
 
 
 def run_once(sessions: sessionmaker[Session] = SessionLocal, *, name: str | None = None, config: Settings | None = None) -> int | None:
@@ -56,11 +43,11 @@ def run_once(sessions: sessionmaker[Session] = SessionLocal, *, name: str | None
             return None
         job_id, kind, payload = job.id, job.kind, job.payload
     try:
-        directory = challenge_dir(payload.get("challenge"), config)
+        directory = challenge_path(payload.get("challenge"), config)
         files = payload.get("files")
         if not isinstance(files, dict) or not all(isinstance(v, str) for v in files.values()):
             raise ValueError("payload.files must map file names to text")
-    except ValueError as error:
+    except (UnknownChallenge, ValueError) as error:
         # A job that can never run is not retried.
         with sessions() as session:
             queue.complete(session, job_id, {"verdict": "error", "detail": str(error)})

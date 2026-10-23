@@ -99,13 +99,15 @@ flowchart LR
 | 10 | Enough challenges | An authoring checklist and tooling that cut the hours stage 0 measured. As many challenges as a launch needs - the number set from stage 0's authoring time and how often a player would repeat one |
 | 11 | Launch hardening | Rate limits, reporting and moderation of helper names and free text, consent for training on transcripts, terms and privacy pages, licences checked for every model and dataset, the name checked, real email, backups proven by a restore |
 
-**Stages 0, 1, A1 and 2 are done.** Stage 0: the scaffold, the challenge format and its
+**Stages 0, 1, A1, 2 and 3 are done.** Stage 0: the scaffold, the challenge format and its
 validator, the shared runner, the sample challenge "Team notes" (42 hidden tests). Stage 1:
 five Colab runs; with a scaffolded starter and repair turns that see what a player sees, the
 7B teacher builds a crash-free app passing 20 of 42 and the best browser-sized model reaches 12
 - see the gate below. A1: bug planting and the mutation score. Stage 2: the judge - a jobs
 queue with a reaper and retries, and a sandbox container that contains every kind of hostile
-submission tested. Stage 3 (the client) is next; P1 (the tiny model) waits on GPU time.
+submission tested. Stage 3: the client - questions matched by a local sentence model (16 of 28 labelled questions
+unlocked with no false reveal, against 2 for word matching), attempts, limits, and a test that
+nothing hidden leaks. Stage 4 (the workspace) is next; P1 waits on GPU time.
 
 ### Why "can a model build it" comes before anything else
 

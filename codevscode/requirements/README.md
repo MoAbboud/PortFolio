@@ -15,12 +15,13 @@ disagree, one of them is wrong and it gets fixed rather than worked around.
 [00-plan.md](00-plan.md) is the one to read first: the stage order, the decisions already
 settled with the reason each one was taken, and the open questions still outstanding.
 
-**Stages 0, 1, A1 and 2 are done**: the scaffold and the challenge format; the sample
+**Stages 0, 1, A1, 2 and 3 are done**: the scaffold and the challenge format; the sample
 challenge "Team notes" (42 hidden tests, six planted bugs); five Colab runs that picked
 cvchelper's base model (Qwen2.5-Coder-1.5B) and the teacher (Qwen2.5-Coder-7B); bug planting
 with a mutation score; and the judge - a queue with a reaper and retries, and a locked-down
-container that contains every hostile submission tested. Stage 3, the client who answers
-questions, is next.
+container that contains every hostile submission tested; and the client, which answers a
+player's questions from the hidden requirements with a local sentence model and leaks nothing
+else. Stage 4, the workspace, is next.
 
     cd codevscode
     npm install
@@ -32,6 +33,7 @@ questions, is next.
     Invoke-RestMethod http://localhost:8020/health
     docker build -t codevscode-judge -f judge/Dockerfile .
     .venv\Scripts\python -m codevscode.judge.worker   the judge, on the host
+    .venv\Scripts\python -m codevscode.client.report challenges/sample   how well questions match
 
 Three things worth stating here so they are not discovered as surprises:
 
