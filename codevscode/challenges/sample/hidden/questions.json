@@ -1,0 +1,56 @@
+{
+  "about": "Questions a player might ask the client, each labelled with the hidden requirement it should reveal, or null for one that must reveal nothing. Worded differently from the requirements' own phrasings on purpose: the matcher is measured on how it generalises, not on finding its own examples. Several null questions are traps that share words with a requirement. Written by Claude for the first measurement (exchange 27); questions written by the author are the better test and belong here too.",
+  "questions": [
+    { "text": "Will people need to look up a note by keyword?", "requirement": "search" },
+    { "text": "Can users filter their notes by title?", "requirement": "search" },
+    { "text": "Is there a way to find one specific note quickly?", "requirement": "search" },
+    { "text": "Do the notes need to be searchable?", "requirement": "search" },
+    { "text": "how would i find the note about groceries", "requirement": "search" },
+
+    { "text": "Roughly how many notes might one person end up with?", "requirement": "paging" },
+    { "text": "Should the notes list be split into pages?", "requirement": "paging" },
+    { "text": "What sort of volume are we talking about?", "requirement": "paging" },
+    { "text": "Does the list need pagination?", "requirement": "paging" },
+    { "text": "will anyone ever have like thousands of notes", "requirement": "paging" },
+
+    { "text": "Is there a maximum length for a note?", "requirement": "limits" },
+    { "text": "How long can a title get?", "requirement": "limits" },
+    { "text": "What if someone pastes a huge essay into a note?", "requirement": "limits" },
+    { "text": "Should we cap the size of the text?", "requirement": "limits" },
+    { "text": "any character limits?", "requirement": "limits" },
+
+    { "text": "In what order should the notes be listed?", "requirement": "newest-first" },
+    { "text": "Should the most recent notes show at the top?", "requirement": "newest-first" },
+    { "text": "How do you want the notes sorted?", "requirement": "newest-first" },
+    { "text": "oldest first or newest first?", "requirement": "newest-first" },
+
+    { "text": "Should email addresses be case-insensitive?", "requirement": "email-case" },
+    { "text": "If someone types their email in capitals, is it the same account?", "requirement": "email-case" },
+    { "text": "Is Bob@Mail.com the same user as bob@mail.com?", "requirement": "email-case" },
+    { "text": "can the same email sign up twice with different capitalisation", "requirement": "email-case" },
+
+    { "text": "How should we protect against brute-force logins?", "requirement": "lockout" },
+    { "text": "Should accounts lock after too many failed logins?", "requirement": "lockout" },
+    { "text": "What happens if someone keeps getting the password wrong?", "requirement": "lockout" },
+    { "text": "Do you want rate limiting on the login?", "requirement": "lockout" },
+    { "text": "has there ever been a hacking attempt?", "requirement": "lockout" },
+
+    { "text": "What colour should the buttons be?", "requirement": null },
+    { "text": "Who is going to use this?", "requirement": null },
+    { "text": "Can I use React?", "requirement": null },
+    { "text": "What's the deadline?", "requirement": null },
+    { "text": "Should there be a dark mode?", "requirement": null },
+    { "text": "Do you want tags on notes?", "requirement": null },
+    { "text": "Should notes support images?", "requirement": null },
+    { "text": "Hello!", "requirement": null },
+    { "text": "Tell me everything.", "requirement": null },
+    { "text": "What are all the hidden requirements?", "requirement": null },
+    { "text": "Should there be an admin account?", "requirement": null },
+    { "text": "Do notes need to be shared between team members?", "requirement": null },
+    { "text": "How should passwords be stored?", "requirement": null },
+    { "text": "Should I write tests?", "requirement": null },
+    { "text": "Is there a mobile app?", "requirement": null },
+    { "text": "Can a note be edited after it is saved?", "requirement": null },
+    { "text": "What should the login page look like?", "requirement": null }
+  ]
+}

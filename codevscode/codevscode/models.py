@@ -1,12 +1,13 @@
-"""The tables. One so far: the judge's queue (stage 2)."""
+"""The tables: the judge's queue (stage 2), and attempts with their questions (stage 3)."""
 
 from __future__ import annotations
 
+import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import BigInteger, CheckConstraint, DateTime, Index, Integer, Text, func, text
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import BigInteger, Boolean, CheckConstraint, DateTime, Float, ForeignKey, Index, Integer, Text, func, text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from codevscode.db import Base
@@ -52,3 +53,42 @@ class Job(Base):
         Index("jobs_queued", "id", postgresql_where=text("status = 'queued'")),
         Index("jobs_running", "locked_at", postgresql_where=text("status = 'running'")),
     )
+
+
+ATTEMPT_MODES = ("practice", "ranked")
+
+
+class Attempt(Base):
+    """One player taking one challenge. Practice attempts need no account (`player_id` arrives
+    with accounts at stage 7). The id is a random UUID, not a counter: without accounts, knowing
+    an attempt's id is what lets someone ask questions on it, so it must not be guessable."""
+
+    __tablename__ = "attempts"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    challenge: Mapped[str] = mapped_column(Text, nullable=False)
+    challenge_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    mode: Mapped[str] = mapped_column(Text, nullable=False, server_default="practice")
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (CheckConstraint(f"mode IN {ATTEMPT_MODES}", name="attempts_mode"),)
+
+
+class Question(Base):
+    """Every question a player asks the client, revealed or not - for the score card, and to
+    measure the matcher on real questions later. `requirement` is the best match whatever its
+    score; `revealed` says whether it cleared the threshold."""
+
+    __tablename__ = "questions"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    attempt_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("attempts.id", ondelete="CASCADE"), nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    requirement: Mapped[str | None] = mapped_column(Text)
+    score: Mapped[float] = mapped_column(Float, nullable=False)
+    revealed: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    matcher: Mapped[str] = mapped_column(Text, nullable=False)
+    asked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    __table_args__ = (Index("questions_by_attempt", "attempt_id", "asked_at"),)

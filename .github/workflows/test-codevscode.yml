@@ -82,6 +82,8 @@ jobs:
       REQUIRE_NODE: "1"
       # The sandbox tests skip without Docker on a laptop; here a skip would hide a failure.
       REQUIRE_DOCKER: "1"
+      # The client's sentence model, cached between runs (about 90 MB from Hugging Face).
+      CLIENT_MODEL_CACHE: /home/runner/.cache/codevscode-models
 
     steps:
       - uses: actions/checkout@v4
@@ -104,6 +106,12 @@ jobs:
 
       - name: Install Node packages
         run: npm ci
+
+      - name: Cache the sentence model
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/.cache/codevscode-models
+          key: sentence-model-all-MiniLM-L6-v2
 
       # The judge's job image: the sandbox tests start real containers from it.
       - name: Build the judge image

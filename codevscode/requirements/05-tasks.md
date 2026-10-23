@@ -230,10 +230,28 @@ Check:
 
 ## Stage 3 - The client
 
-- [ ] Requirements and phrasing vectors loaded from the challenge
-- [ ] `POST /attempts/{id}/questions` with rate and length limits
-- [ ] Labelled question set for the sample (30 or more); matcher report: recall, false reveals
-- [ ] A test that no response ever contains an unrevealed answer or a test name
+Done. 50 pytest, 58 Node.
+
+- [x] Requirements and phrasing vectors from the challenge folder, built once per challenge
+      version and kept in memory (no challenges or requirements tables - files are enough)
+- [x] Two matchers (lexical, embedding) and `python -m codevscode.client.report`: recall, wrong
+      and false reveals per threshold; embedding chosen, 16 of 28 at 0.65 against lexical 2
+- [x] `hidden/questions.json`: 45 labelled questions, 17 that must reveal nothing; the
+      validator checks every label and that both kinds exist. Written by Claude - questions
+      the author writes are the better test
+- [x] `attempts` and `questions` tables (migration 0003); `POST /attempts`,
+      `GET /attempts/{id}`, `POST /attempts/{id}/questions`, with length, count and rate limits
+- [x] The leak test: no response carries a requirement key, a phrasing, a test or bug id, or an
+      answer the question did not unlock
+- [x] The model baked into the web image; cached in CI
+
+Check:
+
+    cd codevscode
+    docker compose up -d --build
+    .venv\Scripts\python -m codevscode.client.report challenges/sample
+    $a = Invoke-RestMethod -Method Post http://localhost:8020/attempts -ContentType application/json -Body '{"challenge":"sample"}'
+    Invoke-RestMethod -Method Post "http://localhost:8020/attempts/$($a.id)/questions" -ContentType application/json -Body '{"text":"Should accounts lock after too many failed logins?"}'
 
 ## Stage 4 - The workspace and the helper
 

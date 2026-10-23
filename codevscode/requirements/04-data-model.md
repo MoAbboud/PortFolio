@@ -39,6 +39,8 @@ challenges/<slug>/
     bugs.json           the planted bugs: edits to the reference, and the tests each must fail
     house-findings.js   tests the house files against players, each with a claim
     scripts/            scripted conversations for the harness, one .json each
+    questions.json      questions labelled with the requirement they should reveal, or null;
+                        what the client's matcher is measured on
     defence.json        stage 9: questions and key points
 ```
 
@@ -103,11 +105,10 @@ erDiagram
 | `sign_in_links` | token_hash, player_id or email, expires_at, used_at | roamer's pattern: the link opens a page with a button; scanners cannot sign anyone in |
 | `sessions` | id_hash, player_id, expires_at | Secure, HttpOnly, SameSite cookie |
 | `helpers` | player_id, name, updated_at | One per player. Name checked against a list |
-| `challenges` | id, slug, version, title, time_limit_s, split, weights, retired_at | Loaded from the folder; a new version is a new row so old attempts stay judged against what they saw |
-| `requirements` | id, challenge_id, key, category, answer, threshold, phrasing_vectors | Hidden. Vectors computed at load |
+| `challenges`, `requirements` | - | Not built: challenges stay files in the repo (public, hidden halves included), and attempts refer to them by slug and version. Requirements and their vectors are read from the folder and kept in memory. Tables only if the files stop being enough |
 | `models` | id, name, base, method, data_manifest_hash, weights_url, licence, shipped_at | Every model the helper has ever been |
-| `attempts` | id, player_id (null for practice without sign-in), challenge_id, mode (practice, ranked), model_id, started_at, submitted_at, hand_edit_chars, pasted_chars, status | The clock is server time: started_at to submitted_at |
-| `questions` | id, attempt_id, text, best_requirement_id, similarity, revealed, asked_at | Every question, revealed or not, for the score card and for measuring the matcher |
+| `attempts` | Built at stage 3 (migration 0003): id (random UUID), challenge (slug), challenge_version, mode (practice, ranked), started_at, submitted_at. Later: player_id (stage 7), model_id, pasted_chars | The clock is server time: started_at to submitted_at. The id is a UUID so it cannot be guessed |
+| `questions` | Built at stage 3: id, attempt_id, text, requirement (best match, whatever its score), score, revealed, matcher, asked_at | Every question, revealed or not, for the score card and for measuring the matcher on real questions |
 | `snapshots` | id, attempt_id, kind (submission, fix), files (jsonb), created_at | Files are small; size-limited at the API |
 | `chat_turns` | id, attempt_id, role, text, created_at | Stored only when the player opted in to training use; otherwise the conversation never leaves the browser |
 | `jobs` | id, kind (judge, house), status (queued, running, done, failed), payload (jsonb: challenge slug and files), result (jsonb: verdict, results, seconds, exit code, stderr tail), error, attempts, max_attempts, locked_at, locked_by, created_at, started_at, finished_at | Built at stage 2 (migration 0002). The judge's queue: claimed with FOR UPDATE SKIP LOCKED; `locked_at` read by the reaper; a sandbox failure retries up to max_attempts. Files travel in the payload until stage 5 adds snapshots |
