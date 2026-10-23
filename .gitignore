@@ -136,6 +136,9 @@ herder/HERDER_SPEC.md
 # codevscode
 # ============================================================
 codevscode/node_modules/
+# The browser's copy of sql.js is committed on purpose (web/vendor/README.md). Line 2's Laravel
+# rule "vendor/" would hide it, so it is let back in here.
+!codevscode/web/vendor/
 codevscode/.venv/
 codevscode/**/__pycache__/
 codevscode/.pytest_cache/
