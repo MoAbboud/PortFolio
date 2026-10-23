@@ -53,10 +53,15 @@ def embedding() -> EmbeddingMatcher:
 
 
 def test_the_embedding_matcher_keeps_its_measured_recall_with_no_false_reveals(embedding: EmbeddingMatcher) -> None:
-    # The measurement that chose it (exchange 27): 16 of 28 at 0.65, nothing it should not.
-    row = evaluate(embedding, QUESTIONS, settings.client_threshold_embedding)
-    assert (row.false, row.wrong) == (0, 0)
-    assert row.recall >= 16
+    # The measurement that chose it (exchange 27): 16 of 28 "dev" questions at 0.65. Then 34
+    # "fresh" questions added afterwards and scored untouched (exchange 28): 14 of 22, and no
+    # false reveal on any of the 12 new traps.
+    dev = [q for q in QUESTIONS if q["set"] == "dev"]
+    fresh = [q for q in QUESTIONS if q["set"] == "fresh"]
+    for questions, recall in ((dev, 16), (fresh, 14)):
+        row = evaluate(embedding, questions, settings.client_threshold_embedding)
+        assert (row.false, row.wrong) == (0, 0)
+        assert row.recall >= recall
 
 
 def test_it_beats_the_lexical_baseline_at_their_own_best_thresholds(embedding: EmbeddingMatcher) -> None:
@@ -140,7 +145,8 @@ def test_a_question_that_matches_nothing_gets_a_neutral_reply(client: TestClient
     assert client.get(f"/attempts/{attempt}").json()["answers"] == []
 
 
-def test_no_reply_ever_carries_anything_hidden_the_question_did_not_unlock(client: TestClient) -> None:
+def test_no_reply_ever_carries_anything_hidden_the_question_did_not_unlock(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "client_max_questions", 500)
     attempt = start(client)
     probes = [q["text"] for q in QUESTIONS] + [
         "lockout", "security/lockout-after-five", "requirements.json", "SELECT * FROM requirements",

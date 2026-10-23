@@ -42,11 +42,16 @@ class PublicChallenge:
     time_limit_minutes: float
     brief: str
     interface: str
+    files: dict[str, str]
+    smoke: dict | None
 
 
 def public_view(slug: str, config: Settings | None = None) -> PublicChallenge:
     path = challenge_path(slug, config)
     meta = json.loads((path / "challenge.json").read_text(encoding="utf-8"))
+    starter = path / "public" / "starter"
+    files = {name: (starter / name).read_text(encoding="utf-8") if (starter / name).is_file() else "" for name in meta["files"]}
+    smoke_path = path / "public" / "smoke.json"
     return PublicChallenge(
         slug=slug,
         version=meta["version"],
@@ -54,4 +59,6 @@ def public_view(slug: str, config: Settings | None = None) -> PublicChallenge:
         time_limit_minutes=meta["time_limit_minutes"],
         brief=(path / "public" / "brief.md").read_text(encoding="utf-8"),
         interface=(path / "public" / "interface.md").read_text(encoding="utf-8"),
+        files=files,
+        smoke=json.loads(smoke_path.read_text(encoding="utf-8")) if smoke_path.is_file() else None,
     )

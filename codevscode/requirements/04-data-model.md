@@ -126,9 +126,10 @@ erDiagram
 
 | What | Where | Why |
 | --- | --- | --- |
-| Model weights | Cache Storage, managed by the runtime | Downloaded once, often around a gigabyte; the page says so before starting |
-| The open attempt's files and chat | IndexedDB | A refresh mid-build loses nothing. Cleared on submit unless the player keeps it |
-| Helper name, editor settings | localStorage | Conveniences; the server holds the real helper name for signed-in players |
+| Model weights | Cache Storage, managed by the runtime | Downloaded once, often around a gigabyte; the page says so before starting (4b) |
+| The open attempt's id | localStorage `cvc:attempt:<slug>` | Built at 4a: a refresh resumes the same attempt, clock and unlocked answers included (from GET /attempts/{id}) |
+| The open attempt's files | localStorage `cvc:files:<attempt id>` | Built at 4a: a refresh mid-build loses nothing. IndexedDB if drafts outgrow localStorage's few MB |
+| Helper name, editor settings | localStorage | Conveniences; the server holds the real helper name for signed-in players (4b) |
 
 Every read and write to browser storage is wrapped so a private window still plays.
 

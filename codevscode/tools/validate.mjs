@@ -211,6 +211,7 @@ export async function validateChallenge(dir) {
     if (!questions.length) fail("hidden/questions.json: questions must be a non-empty list");
     questions.forEach((q, i) => {
       if (typeof q.text !== "string" || !q.text.trim()) fail(`hidden/questions.json question ${i + 1}: text is missing`);
+      if (q.set !== undefined && !["dev", "fresh"].includes(q.set)) fail(`hidden/questions.json question ${i + 1}: set must be "dev" or "fresh"`);
       if (q.requirement !== null && !requirementIds.has(q.requirement)) {
         fail(`hidden/questions.json question ${i + 1}: requirement ${JSON.stringify(q.requirement)} is not in requirements.json (use null for one that must reveal nothing)`);
       }
