@@ -64,7 +64,11 @@ def choose(rows: list[Row]) -> Row | None:
 
 def report(challenge_dir: Path, matcher_name: str) -> Row | None:
     requirements = load_requirements(challenge_dir)
-    questions = load_questions(challenge_dir)
+    everything = load_questions(challenge_dir)
+    # The threshold is chosen on the "dev" questions only. "fresh" ones are scored afterwards at
+    # that threshold, untouched: the honest number for questions nothing was tuned on.
+    questions = [q for q in everything if q.get("set", "dev") == "dev"]
+    fresh = [q for q in everything if q.get("set") == "fresh"]
     matcher = MATCHERS[matcher_name](requirements)
     rows = [evaluate(matcher, questions, t) for t in THRESHOLDS]
     print(f"\n{matcher_name}: {rows[0].good} questions that should reveal a requirement, {rows[0].empty} that should not")
@@ -81,6 +85,14 @@ def report(challenge_dir: Path, matcher_name: str) -> Row | None:
         got, score = best(matcher, q["text"], chosen.threshold)
         if got != q["requirement"]:
             print(f"   {score:5.2f}  wanted {q['requirement'] or '-':13} got {got or '-':13} {q['text']}")
+    if fresh:
+        row = evaluate(matcher, fresh, chosen.threshold)
+        print(f"fresh questions at {chosen.threshold:.2f}, nothing retuned: recall {row.recall}/{row.good}, "
+              f"wrong {row.wrong}, false {row.false} of {row.empty}")
+        for q in fresh:
+            got, score = best(matcher, q["text"], chosen.threshold)
+            if got != q["requirement"]:
+                print(f"   {score:5.2f}  wanted {q['requirement'] or '-':13} got {got or '-':13} {q['text']}")
     return chosen
 
 

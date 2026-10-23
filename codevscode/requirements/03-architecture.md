@@ -58,8 +58,8 @@ flowchart LR
 
 | Component | Runs where | Job |
 | --- | --- | --- |
-| Workspace page | Browser | The one JavaScript-heavy page. Brief, question panel, helper chat, file editor, preview, local test results, clock. Everything else on the site is server-rendered |
-| App runtime | Browser, a worker | Runs the player's app the same way the judge will: the request handler module and an in-memory SQLite (sql.js) in a worker; the preview iframe's requests are routed to it |
+| Workspace page | Browser | The one JavaScript-heavy page, plain ES modules with no build step (`web/`). Brief and interface (a small escaping Markdown renderer), question panel, clock, file editor, preview, "Try it". Built at stage 4a; the helper chat is 4b. Served at `/play/<slug>` |
+| App runtime | Browser, a worker | `web/app-worker.js`: the player's app on the shared runner and the same sql.js build as the judge (vendored, a test checks the bytes match), in a worker so an endless loop freezes the worker and not the page - after 5 s it is thrown away and a new one started. The preview is the player's index.html in an iframe sandboxed without an origin; `web/bridge.js` replaces its fetch() with messages to the workspace, which hands each request to the worker. Built at stage 4a |
 | Helper runtime | Browser | Loads the model weights once into the browser's cache and generates on WebGPU. WebLLM is the first choice, transformers.js the second; stage 1 picks |
 | Coach | Browser | Rules over what the player has done so far. Practice mode only; the ranked workspace does not load it |
 | Client matcher | Server | Embeds a question with a small sentence model and compares it with every hidden requirement's phrasings. Server-side so hidden material never ships |

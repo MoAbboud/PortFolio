@@ -90,7 +90,9 @@ flowchart LR
 | A4 | Measured and put to work | Classifier against rules on held-out challenges, per category, in the README whichever wins. Then wired in where it is advisory only: practice hints, the post-match "what you missed", and aiming the house's findings. Never in ranked review, never the judge |
 | 2 | The judge and its sandbox | A queue and a worker that run a submission's tests in a container with no network, a read-only filesystem, and limits on time, memory, processes and output. The reference app passes every hidden test; the house app fails exactly its planted bugs and nothing else. Hostile submissions contained, one test each. Stuck jobs reclaimed and failed jobs retried - designed in now, not found later |
 | 3 | The client who answers questions | A player's question is matched against the challenge's hidden requirements on the server; a match reveals the author's answer, no match gets a neutral reply. Hidden material never reaches the browser. The matcher measured on a set of questions the author labels by hand: how often a right question is answered, how often a wrong one gives something away |
-| 4 | The workspace and the helper | A browser page with the brief, the questions panel, the helper chat, an editor, a live preview of the app and a local test run. The helper is the best stage 1 model, running in the browser, with the name the player gives it. The coach is on in practice |
+| 4a | The workspace, without the helper | A browser page with the brief and interface, the questions panel, the clock, a file editor, a live preview of the app (its fetch() calls bridged to the app in a worker, on the judge's own runner and SQLite), and "Try it" - the walk-through, crashes only. Drafts survive a refresh. **Built** |
+| 4b | The helper in the browser | The baseline model (Qwen2.5-Coder-1.5B) running in the player's browser, on the game's own prompt and reply code, named by the player; whole-file answers shown as a diff before they are applied |
+| 4c | The coach and the counters | Coach rules in practice only (the ranked page does not load them); a paste counter |
 | 5 | Practice match end to end | Brief, ask, build, submit, judged, score card - against the clock, against the house, with no account. The first thing worth showing anyone |
 | 6 | Review and defend against the house | The player reviews the house app and files findings, each with a failing test; a finding counts only if the reference app passes it and the house app fails it. The house files its own findings against the player's app; the player fixes or concedes each one. The score card gains a review and a defence line |
 | 7 | Accounts and async matches | Sign-in by email link. Two players paired on the same challenge; each builds alone; then a review window and a defence window; then the result. Ranked mode with the coach off |
@@ -99,7 +101,7 @@ flowchart LR
 | 10 | Enough challenges | An authoring checklist and tooling that cut the hours stage 0 measured. As many challenges as a launch needs - the number set from stage 0's authoring time and how often a player would repeat one |
 | 11 | Launch hardening | Rate limits, reporting and moderation of helper names and free text, consent for training on transcripts, terms and privacy pages, licences checked for every model and dataset, the name checked, real email, backups proven by a restore |
 
-**Stages 0, 1, A1, 2 and 3 are done.** Stage 0: the scaffold, the challenge format and its
+**Stages 0, 1, A1, 2, 3 and 4a are done.** Stage 0: the scaffold, the challenge format and its
 validator, the shared runner, the sample challenge "Team notes" (42 hidden tests). Stage 1:
 five Colab runs; with a scaffolded starter and repair turns that see what a player sees, the
 7B teacher builds a crash-free app passing 20 of 42 and the best browser-sized model reaches 12
@@ -107,7 +109,9 @@ five Colab runs; with a scaffolded starter and repair turns that see what a play
 queue with a reaper and retries, and a sandbox container that contains every kind of hostile
 submission tested. Stage 3: the client - questions matched by a local sentence model (16 of 28 labelled questions
 unlocked with no false reveal, against 2 for word matching), attempts, limits, and a test that
-nothing hidden leaks. Stage 4 (the workspace) is next; P1 waits on GPU time.
+nothing hidden leaks. Stage 4a: the workspace page - brief, questions, clock, editor, a live preview
+bridged to the app in a worker, "Try it" - checked end to end in a real Chrome. Stage 4b (the helper
+in the browser) is next; P1 waits on GPU time.
 
 ### Why "can a model build it" comes before anything else
 
