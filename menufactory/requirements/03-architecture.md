@@ -1,161 +1,281 @@
-# resto-dir - Architecture
+# Menu Factory - Architecture
 
 Internal document. Credentials are referred to by environment variable only.
 
 Nothing here is built yet. This is the design the build starts from, and where it turns out
 to be wrong it is changed here first. Every row marked proposed waits for the author.
 
+A **look** is one complete design in the library. In the code it is a folder of components.
+
+## The language
+
+The author asked for "whatever language is most friendly with animations, digital art and
+more". In a browser that answer is fixed: **JavaScript is the only language a browser runs
+for motion**, and everything the author is likely to reach for - GSAP, Three.js, Lottie,
+Rive, the Web Animations API, React - is JavaScript. Claude Design's own exports are
+standalone HTML whose components are React.
+
+So the proposal is **TypeScript (JavaScript with types) for the whole project**: the looks,
+the site builder, the admin and the tests. One language from the designs to the server
+means a content type declared once is checked everywhere it is used.
+
+This is a change from the repository's habit. mailman, roamer and herder are Python. The
+earlier draft of this document proposed Python and Jinja for the builder; it is superseded,
+because a Python builder would still need JavaScript for every bit of motion and the two
+would have to be kept in step by hand.
+
 ## Stack
 
 | Part | Choice | Why | Rejected |
 | --- | --- | --- | --- |
-| Client site | Plain static HTML and CSS, a few lines of JavaScript for "open now" and the menu jump links | Nothing to run, patch or secure. Opens fast. Hosts free. Works with JavaScript off, except the live "open now" line | A server-rendered app - a running process per client for pages that change once a month. A site builder - the thing being replaced |
-| Build tool | Python and Jinja2, a command that turns one content file and one template into a folder of finished pages (proposed) | Python and Jinja are already used across this repository, run from PowerShell, and need no Node build chain. Output is plain files that any host serves | Rendering the menu in the browser from a JSON file - slower first paint, and search engines read it less reliably. Astro or Eleventy - both good at exactly this, but a second toolchain for one project. Revisit if the Python tool starts reinventing them |
-| Styling | Hand-written CSS per template, with custom properties for the restaurant's colours and fonts (proposed) | A template is a design, so its CSS is the template. Custom properties make one restaurant's brand drop into any template | Tailwind from its CDN, as the portfolio's own small apps use - the CDN build compiles in the visitor's browser and is not meant for production. Tailwind with a build step - Node again, for little gain on three templates |
-| Content file | YAML, validated against a schema (proposed) | The author edits it by hand. YAML reads like a menu; the schema catches a missing price or a closing time before opening time | JSON - correct but unpleasant to hand-edit. A database - nothing here is relational enough to need one, and every client would need one |
-| Images | Pillow, at build time: resize, strip location data, write modern formats with a fallback | Restaurant photos arrive as 8 MB phone pictures. Shrinking them is most of what makes a page fast | An image service or CDN with a key |
-| Fonts | Served with the site's own files | No request to a third party on every page view, which is also a privacy point | Google Fonts linked live - an outside request per visit, and a GDPR complaint has been upheld in Germany over exactly this |
-| Map | A link that opens the diner's own maps app; optionally a small static map image made at build time (proposed) | A phone diner wants directions, which their own app does best. No key, no embedded tracker | Google Maps embed - loads a heavy third-party frame and needs a key for anything beyond the basic embed. An interactive Leaflet map - weight for little use on this page |
-| Visit counts | Cloudflare Web Analytics (proposed) | Free, no cookies, so no cookie banner | Google Analytics - cookies, a consent banner in the EU and UK, more than a restaurant needs |
-| Hosting | Cloudflare Pages, one project per client (proposed) | Free tier allows commercial sites, HTTPS and the domain hook-up are built in, and the author's own domain is already at Cloudflare | GitHub Pages - its terms say it is not for running an online business. The moabboud.dev server - one host for the author's portfolio, and if it fails every client goes down with it |
-| Tests | pytest: the schema, the hours logic, and a render of every template with every sample restaurant (proposed) | The hours logic is the one piece where a bug is visible to every diner | |
-| Accessibility and speed checks | axe-core and Lighthouse run against the built pages in headless Chrome (proposed) | A restaurant buying accessibility needs it checked, not claimed | Checking by eye alone |
+| Language | TypeScript throughout (proposed) | See above | Python for the builder and admin, JavaScript for motion - two languages for one product |
+| Site framework | Astro (proposed) | Built for content sites; outputs plain pages with no JavaScript unless a part asks for it, so a look loads its heavy art only where it is used. Accepts React components directly, which is what Claude Design hands over. Its content collections validate content against a schema | Next.js - an app framework; ships React to every page whether it moves or not. SvelteKit - excellent motion built in, but Claude Design's React components would need rewriting. Plain hand-written HTML - every look re-implements the menu, hours and events |
+| Components from designs | React, inside Astro, only where a look needs interactivity or Claude Design produced it (proposed) | Keeps Claude Design's output usable close to as-is | Rewriting every export by hand |
+| Timeline and scroll motion | GSAP with ScrollTrigger and its other plugins | The standard tool for this work. Free for commercial use since Webflow made it so, including the formerly paid plugins. Its licence restricts building a visual animation builder that competes with Webflow; owners here edit content, never motion, so that does not apply | A motion library per look |
+| 3D and WebGL art | Three.js, with React Three Fiber where a scene sits in a React component (proposed) | The standard for 3D in the browser | Canvas by hand |
+| Designer-made animation | Lottie (from After Effects) and Rive, where a design arrives in those formats (proposed) | Lets art made in other tools drop in | |
+| Less motion / more motion | A shared control and a single setting every look reads (see below) | The author wants both levels on every site | Each look inventing its own |
+| Content schema | Zod, through Astro's content collections (proposed) | One schema checks the sample files now and the admin's data later | A separate schema language |
+| Content source | YAML files for the samples and the first clients; the admin's database once stage 4 exists (proposed) | Astro reads either through the same schema, so the looks never notice the switch | Building the admin before the first look |
+| Owner admin | Payload CMS, self-hosted, with its screens cut down to what an owner needs (proposed - see Owner admin) | Open source, TypeScript, PostgreSQL. Logins, roles, image uploads, drafts and version history are already built and tested | A hand-built admin - every one of those built and secured from scratch. A hosted CMS (Sanity, Contentful) - an account and key per project, and the content lives with a third party |
+| Database | PostgreSQL, on the existing server (proposed) | The server already runs it for mailman | SQLite - fine alone, but the server's backups and tooling are Postgres |
+| Images | sharp, at build time and on upload: resize, strip location data, modern formats with a fallback | | |
+| Fonts | Served with the site's own files | No outside request per page view | Google Fonts linked live |
+| Map | A directions link that opens the guest's own maps app | | A Google Maps embed |
+| Visit counts | Cloudflare Web Analytics (proposed) | Free, no cookies | Google Analytics |
+| Public sites | Built files on Cloudflare Pages, one project per venue (proposed) | Fast, free, and independent of the server | Rendering each page live from the server - every venue goes down when the server does |
+| Tests | Vitest for logic; Playwright in Chrome for pages, both motion levels, phone width and screenshots; axe-core for accessibility; Lighthouse for speed (proposed) | All TypeScript; Playwright can drive the motion control and compare screenshots | |
 
-No part of resto-dir uses a hosted language model, now or later.
+No part of Menu Factory uses a hosted language model, now or later.
+
+## Static or not
+
+The author is not sure yet whether sites should be static files, because owners need to
+change content. The proposal is **both, split where the risk is**:
+
+- **What a guest loads is files.** Built ahead of time, served from a global static host.
+  Fast, nothing to attack, and up even when the server is not.
+- **What an owner edits is an app.** Logins, a database, uploads, previews, history - on the
+  server.
+- **Publishing joins them.** When the owner presses Publish, the server builds that venue's
+  site from the database and uploads the files. A minute or two from Publish to live.
+
+Live-rendered sites would make Publish instant but tie every venue's uptime to one server.
+For pages that change a few times a week, the delay is the better trade.
 
 ## Components
 
 ```mermaid
 flowchart LR
-    subgraph inputs[Inputs]
-        CF[Content file<br/>restaurant.yaml]
-        PH[Photos and logo]
-        T1[Template: Counter]
-        T2[Template: Table]
-        T3[Template: Morning]
+    subgraph design[Design]
+        CD[Claude Design export]
+        L1[Look: cocktail bar 1]
+        L2[Look: cocktail bar 2]
+        SH[Shared: motion control, open now, menu, preview bar]
     end
 
-    subgraph tool[Build tool]
-        VAL[Validate against schema]
-        HRS[Hours: weekly and exceptions]
-        IMG[Image pipeline]
+    subgraph server[Server]
+        ADM[Owner admin - Payload]
+        PG[(PostgreSQL)]
+        PUB[Publish job]
+    end
+
+    subgraph builder[Site builder - Astro]
+        SCH[Schema check]
         RND[Render pages]
+        IMG[Images]
         SD[Structured data]
         MODE[Mode: preview or live]
     end
 
-    subgraph out[Output]
-        DIST[dist/restaurant-slug/]
-    end
-
     subgraph checks[Checks]
-        UNIT[pytest]
-        AXE[Accessibility]
-        LH[Speed]
-        LINKS[Broken links]
+        UNIT[Vitest]
+        PW[Playwright: both motion levels]
+        AXE[axe-core]
+        LH[Lighthouse]
     end
 
-    CF --> VAL --> HRS --> RND
-    PH --> IMG --> RND
-    T1 --> RND
-    T2 --> RND
-    T3 --> RND
-    RND --> SD --> MODE --> DIST
-    DIST --> AXE
-    DIST --> LH
-    DIST --> LINKS
+    HOST[Static host]
+    YAML[Sample YAML files]
+
+    CD --> L1
+    CD --> L2
+    ADM --> PG
+    ADM -->|Publish| PUB
+    PG --> SCH
+    YAML --> SCH
+    PUB --> RND
+    SCH --> RND
+    L1 --> RND
+    L2 --> RND
+    SH --> RND
+    IMG --> RND
+    RND --> SD --> MODE
+    MODE --> PW
+    MODE --> AXE
+    MODE --> LH
+    MODE --> HOST
 ```
 
 ## Proposed layout
 
 ```
-resto-dir/
-  requirements/          this folder
-  resto/                 the build tool (Python package)
-  templates/
-    counter/             pages, CSS, the template's own sample photos
-    table/
-    morning/
-    _shared/             the open-now script, the structured-data block, the preview bar
-  samples/               made-up restaurants, one content file and photo set each
-  schema/                the content file schema
+menufactory/              renamed with the product if the name changes again
+  brand.ts                the working name and everything else that names the product
+  requirements/
+  site/                   the Astro project: the site builder and the library page
+    src/looks/<look>/     one folder per look: components, styles, motion, art, look.json
+    src/shared/           motion control, open now and happy hour, menu, events, preview bar
+    src/content/          the schema, and the sample venues as YAML
+  admin/                  the owner admin (stage 4)
   tests/
-  showcase/              the page that shows every template with every sample
-  dist/                  build output - already ignored by the root .gitignore's dist/ rule
+  dist/                   build output - already ignored by the root .gitignore's dist/ rule
 ```
 
-Real clients' content files and photos do **not** live here. They live in a private
-repository, `resto-clients` or similar, which uses this one's build tool. That keeps the
-public repository free of other businesses' material, and means a client leaving is a folder
-to hand over.
+Each look's `look.json` gives its display name, the kinds of place it suits, its pages, the
+photo uses it asks for, whether it accepts the venue's colours, and its weight budget.
 
-## How a page is made
+`node_modules/` must be ignored: the root `.gitignore` only ignores `/node_modules` at the
+repository root, so this project needs its own rule. Checked at stage 0.
 
-1. The content file is read and validated. A missing required field, a price that is not a
-   number, an hour range that ends before it starts, or an unknown template name stops the
-   build with a message naming the field and line.
-2. Photos are resized for the sizes each template uses, stripped of location data, and
-   written next to the pages.
-3. Each page of the chosen template is rendered: home, menu, and any of about, catering,
-   events or gallery that the content file fills.
-4. A schema.org `Restaurant` block is written into the home page: name, address, phone,
-   cuisine, price range, opening hours and the menu link. Search engines and maps read hours
-   from here.
-5. The mode is applied. **Live**: normal pages and a `sitemap.xml`. **Preview**: every page
-   carries `noindex`, the `robots.txt` disallows everything, and a fixed bar at the top says
-   this is an unofficial preview made by the author, not the restaurant's site.
+Real clients' content, photos, accounts and credentials do **not** live here.
 
-## Open now
+## From a design to a look
 
-The build cannot know the time a diner opens the page, so "open now" is worked out in the
-browser by a small script, from the hours written into the page, in the restaurant's time
-zone (not the diner's). Without JavaScript the full weekly hours table still shows; only the
-live line is missing.
+1. The author designs in Claude Design and exports. Claude Design offers standalone HTML,
+   and a hand-off to Claude Code; the components inside are React. **Stage 0 takes one real
+   export through the steps below as a spike**, because how cleanly an export becomes a look
+   decides how fast the library can grow.
+2. The fixed parts - layout, type, motion, art - stay as the design has them.
+3. Every part that belongs to a venue becomes a slot filled from the content: name, logo,
+   menu, hours, happy hour, events, notices, photos.
+4. The look is rendered with every sample venue and run through the checks in both motion
+   levels. A look that only works with its own sample's text is not finished: a long
+   cocktail name, an 80-item menu, a venue with no interior photos must all still look
+   designed.
 
-The rules it has to get right, each one a test:
+## Less motion, more motion
 
-- Hours that cross midnight: a bar open 5pm to 2am is open at 1am on the next calendar day.
-- Several ranges in a day: lunch 11 to 2, dinner 5 to 10, closed between.
-- Exceptions that beat the weekly hours: closed on Thanksgiving, short hours on Christmas Eve.
-- Daylight saving changes.
-- "Closes soon" in the last 30 minutes, so a diner does not drive over for nothing.
-- Closed for a stretch (holiday, renovation) with a reopening date.
+Every site carries a small, always-visible control with two settings:
 
-The same function, in Python, feeds the build's own checks and the tests, and the JavaScript
-version is tested against the same table of cases.
+- **More motion**: the look's full show.
+- **Less motion**: the same design, with large movement, parallax, 3D scenes and autoplaying
+  video replaced by fades, still frames or nothing. Not a broken or blank version - each look
+  designs its calm state.
+
+The rules:
+
+- The starting setting comes from the guest's device. A device set to reduce motion
+  (`prefers-reduced-motion`) starts on less.
+- The guest's choice is remembered in their own browser only. Nothing is sent anywhere.
+- Every look must implement both. The checks run every page in both.
+- In both settings: content is readable and tappable from the first moment; nothing that
+  moves on its own for more than five seconds lacks a pause (WCAG 2.2.2); nothing flashes
+  more than three times a second.
+
+## Content first, the show around it
+
+"All about flash" and "fast on a phone" pull against each other. They are reconciled by
+order, not by trimming the art:
+
+1. The text - name, open now, the menu link, the address - arrives in the first response and
+   is readable at once. Target: the main content visible within 2.5 seconds on a mid-range
+   phone on a mobile connection (proposed).
+2. The art and motion load after, around that content.
+3. Heavy pieces (3D scenes, video) load only when the guest is about to see them, and only
+   in more-motion mode.
+4. Each look has a weight budget in `look.json`. The builder fails a look over its budget.
+   The numbers are set with the author after the stage 0 spike shows what a real export
+   weighs.
+
+## Owner admin
+
+Proposed: **Payload CMS**, run on the server, with its screens cut down for owners who are
+not technical. Owners control content, not art. 04-data-model has the full list of what an
+owner may change.
+
+- **Short screens.** The first screen is a handful of large buttons: Menu, Hours, Happy hour,
+  Events, Notices, Photos, Look. No developer vocabulary anywhere.
+- **Works on a phone.** Owners will change a price from behind the bar.
+- **Drafts, preview, publish, undo.** Every change is a draft until published; preview shows
+  the real look; every published version is kept and any one can be restored.
+- **One venue per owner.** An owner sees only their own venue. The author's account sees all.
+- **No design controls.** There is no field anywhere that changes layout, motion, fonts or
+  art. The look is a name from the library, and switching it is a request the author
+  approves (proposed).
+- **Uploads checked.** Images only, size-limited, resized and stripped of location data on
+  upload.
+
+Payload's real cost is weight: it is a Next.js application, and the server is shared with
+mailman. **The stage 4 spike measures its memory use on the server before committing to
+it.** If it does not fit, the fallback is a small hand-built admin in Astro's server mode
+with the same screens.
+
+How owners log in - a password, or a link emailed to them - is an open question; an emailed
+link needs a mail relay.
 
 ## Previews for prospects
 
-A preview is built from public information only: the menu, hours and address the restaurant
-already publishes. It uses the restaurant's name, because it is a picture of what their site
-could be, but it is never findable and never passes itself off as theirs:
+A preview uses the venue's own menu, photos and logo, so it is a picture of what their site
+would be. It is never findable and never passes itself off as theirs:
 
-- Hosted at an address that is clearly the author's, not one that looks like the restaurant's.
+- Hosted under the author's own domain, e.g. `preview.<author domain>/<slug>`.
 - `noindex` on every page and a disallow-all `robots.txt`.
-- The preview bar on every page, which cannot be hidden.
+- The preview bar on every page, which a look cannot hide.
 - Deleted when the prospect says no, or after a set time without an answer.
-- The restaurant's own photos and logo used only if the author decides the risk is
-  acceptable (an open question); otherwise the template's stock imagery with their name set
-  in type.
 
-## Hosting and domains
+## Hosting and publishing
 
-- Each client is one Cloudflare Pages project, published from the private client repository.
-- The restaurant registers or keeps the domain in its own name and account. The author is
-  given access to change DNS, never ownership.
-- HTTPS is the host's, automatic.
-- Previews go under a subdomain of the author's own, e.g. `preview.<author domain>/<slug>`.
-- The showcase lives on the author's portfolio site with the made-up restaurants.
+- Each venue's public site is one Cloudflare Pages project. Publishing uploads the built
+  files with Cloudflare's own command-line tool; its token is a server secret,
+  `CLOUDFLARE_API_TOKEN`, never in a file.
+- The admin and its database run on the author's one server, as a compose profile, the same
+  way roamer is planned.
+- The venue owns its domain; the author is given access to change DNS, never ownership.
+- A daily scheduled build per venue drops notices and events whose dates have passed.
+- The library page lives on the author's own site with the made-up venues.
+
+## Tabled: Google reviews and how items are perceived
+
+Picked up after the animations and the core idea work (author, 2026-10-23). Recorded here so
+the design does not block it.
+
+**Getting reviews.** Two routes, researched 2026-10-23:
+
+| | Business Profile API, at build time | Places API, in the guest's browser |
+| --- | --- | --- |
+| Gets | Every review and the overall rating | At most five, chosen by Google |
+| Needs | Google's approval for the API (days to weeks, often refused if vague; the applicant must manage a Business Profile) and the owner's permission | An API key restricted to the domain, and a billing account |
+| Cost | None | Billed per page view after a monthly free allowance |
+| Fits a static site | Yes - fetched daily, written into the page | No - Google's terms forbid storing it |
+
+The Business Profile API was the proposal. Whether its terms allow showing reviews on the
+business's own site must be checked before building.
+
+**Quotes by sentiment.** Each fetched review is marked good, mixed or bad. In the admin, the
+owner chooses which quotes appear on the site - their discretion. The site always also shows
+the overall rating, the total count and a link to all reviews on Google, so a selection is
+never presented as the whole picture (the US Federal Trade Commission's 2024 rule on consumer
+reviews prohibits that misrepresentation).
+
+**How each item is perceived.** An admin view for the owner: for each menu item, how often it
+is mentioned in reviews, how many of those mentions are good, mixed or bad, and the quotes
+themselves. Items are found by their names in the review text. Sentiment is judged without
+any hosted model: a word-list baseline first, then a small model trained and run by the
+author, compared on a hand-labelled set - the same pattern as mailman and fallacysuspect.
+That model may be Python, trained offline; it runs on the server.
 
 ## What is checked before anything is published
 
 | Check | Pass |
 | --- | --- |
-| Schema | The content file validates |
-| Unit tests | Hours logic and every template rendering every sample |
-| Accessibility | No axe-core violations at the AA level on any page |
-| Speed | Lighthouse performance 90 or more on a simulated mid-range phone (number proposed) |
-| Links | Every internal link resolves; every external link answers |
-| Phone width | Every page looked at at 390px wide with no sideways scrolling |
-| Structured data | Valid in Google's Rich Results test or the schema.org validator |
-| Preview mode | A preview build has `noindex` on every page and the bar on every page |
+| Schema | The content validates |
+| Unit tests | Hours, happy hour, the brand-name rule, every look rendering every sample |
+| Both motion levels | Every page renders and works in more and in less; the control switches and is remembered |
+| Accessibility | No axe-core violations at AA, in both motion levels |
+| Content first | Main content visible within the target on a simulated mid-range phone |
+| Weight budget | Within the look's budget |
+| Links | Every internal link resolves |
+| Phone width | Every page at 390px with no sideways scrolling, screenshots kept |
+| Structured data | Valid in the schema.org validator |
+| Preview mode | `noindex` and the preview bar on every page |

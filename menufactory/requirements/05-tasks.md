@@ -1,118 +1,152 @@
-# resto-dir - Task list
+# Menu Factory - Task list
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
 
 Every stage is checked from a PowerShell terminal on Windows. If a stage cannot be checked
 that way, it is not finished. Every stage that changes a page is also checked at phone width
-(390px) in the browser's device view.
+(390px) in both motion levels.
 
-Nothing is started. Stage 0 waits on the author's answers to the proposals in 00-plan.md,
-P1 to P5 in particular.
+Nothing is started. Stage 0 can begin once the author has answered P3 to P5 in 00-plan.md
+(the language and the tools), or says to go ahead on the proposals.
 
-## Stage 0 - Scaffold
+## Stage 0 - Scaffold and motion spike
 
-- [ ] `resto-dir/` layout as in 03-architecture: `resto/`, `templates/`, `samples/`,
-      `schema/`, `tests/`, `requirements.txt`
-- [ ] `git check-ignore -v` on every new folder; confirm `dist/` is ignored and nothing else
-      is (the root `.gitignore` carries broad rules from other templates)
-- [ ] The content file schema, covering every entity in 04-data-model
-- [ ] One made-up restaurant in `samples/`, filled in completely, with photos the author is
-      free to use
-- [ ] The build command: `python -m resto build samples/<slug> --template counter` writes
-      `dist/<slug>/`
-- [ ] Validation errors name the field and the line
-- [ ] Hours logic in Python with a table of cases: crossing midnight, split days, an
-      exception, a closure with a reopening date, a daylight saving change, closes soon
-- [ ] pytest runs from PowerShell
+- [ ] Astro project in `site/` with TypeScript, as in 03-architecture
+- [ ] A `menufactory/node_modules/` rule in the root `.gitignore` - the existing rules only
+      cover the repository root and codevscode. Then `git check-ignore -v` on every new
+      folder, and confirm `dist/` and `node_modules/` are ignored and nothing else is
+- [ ] `brand.ts` with the working name, and the test that fails if the name appears in
+      `site/` or `admin/`
+- [ ] The Zod content schema covering every entity in 04-data-model
+- [ ] A made-up cocktail bar as YAML: late hours, happy hour, a cocktail menu with
+      ingredients, a small food menu, weekly and one-off events, photos the author is free
+      to use
+- [ ] Hours and happy hour logic with the case table in Vitest: past midnight, split days,
+      an exception, a closure with a reopening date, daylight saving, closes soon, happy
+      hour only while open
+- [ ] The less/more motion control: starts from the device setting, remembers the choice,
+      every look reads one setting
+- [ ] **Spike: one real Claude Design export** (the author makes it) taken through
+      "From a design to a look" in 03-architecture: venue content in its slots, both motion
+      levels, rendered at 390px and 1280px. Write what worked and what did not into
+      03-architecture
+- [ ] Weight budgets proposed from the spike's real numbers, agreed with the author
+- [ ] Playwright set up: open a page, switch the motion control, take screenshots
 
 Check:
 
-    cd resto-dir
-    python -m venv .venv
-    .\.venv\Scripts\Activate.ps1
-    pip install -r requirements.txt
-    python -m pytest -q
-    python -m resto build samples\<slug> --template counter
-    npx serve dist\<slug>
+    cd menufactory\site
+    npm install
+    npm test
+    npm run build
+    npx playwright test
+    npm run preview
 
-## Stage 1 - First template: Counter
+## Stage 1 - First cocktail bar look
 
-- [ ] Home page: name, open-now line, order and call buttons, address, above the fold at 390px
-- [ ] Menu page: menus, sections, jump links, prices from `PRICE_OPTION`, dietary tags as
-      icon plus text
-- [ ] Open-now script in the browser, tested against the same case table as the Python
+- [ ] The author's design built into `site/src/looks/<name>/` with `look.json`
+- [ ] Home: name, logo, open-now and happy-hour lines, phone, address readable at once
+- [ ] Menu: sections, jump links, ingredients, prices and pours, happy hour prices marked,
+      tags as icon plus text
+- [ ] Events, past one-off events dropped
 - [ ] Notices with start and end dates
-- [ ] schema.org `Restaurant` block, validated
-- [ ] Image pipeline: resized, location data stripped, `alt` required
-- [ ] Self-hosted fonts; no third-party request on page load
-- [ ] Checks pass: axe-core with no AA violations, Lighthouse performance 90 or more on mobile,
-      no broken links, no sideways scroll at 390px
-- [ ] Works with JavaScript turned off, apart from the open-now line
+- [ ] schema.org `BarOrPub` block, validated
+- [ ] Images: resized, location data stripped, `alt` required
+- [ ] The full show and the designed calm version
+- [ ] Content first: main content visible within the target before the art loads
+- [ ] Checks pass in both motion levels: axe-core AA, weight budget, Lighthouse, 390px
+- [ ] Readable with JavaScript off, apart from the live lines and motion
 
-## Stage 2 - Table and Morning
+## Stage 2 - Second look, switching proven
 
-- [ ] Table template, every page
-- [ ] Morning template, every page
-- [ ] Two more made-up restaurants that suit them
-- [ ] A test that renders every sample in every template
+- [ ] A second cocktail bar look (the author's, or one proposed here and approved)
+- [ ] The sample bar in both looks with only `STYLE.look` changed
+- [ ] A second made-up bar: very long menu, no interior photos, a single-colour logo
+- [ ] A test that renders every sample in every look, in both motion levels
 - [ ] Any field added to the schema has a fallback when empty, and stage 1 still passes
 
-## Stage 3 - Showcase
+## Stage 3 - Library page
 
-- [ ] One page listing the templates, each with a live sample
-- [ ] A switch to see the same restaurant in each template
-- [ ] Passes the same checks as a client site
-- [ ] Decide where it is hosted (00-plan, open question 9)
+- [ ] Every look, each shown with a sample, filter by kind of place
+- [ ] Built from each look's `look.json`; the product name from `brand.ts`
+- [ ] Passes the same checks as a venue site
+- [ ] Where it is hosted (00-plan open question 9)
 
-## Stage 4 - Previews and intake
+## Stage 4 - Owner admin
+
+- [ ] **Spike: Payload on the server.** Install, measure memory beside mailman, decide P27
+- [ ] Owner accounts, one venue each; the author's account sees all
+- [ ] The short first screen: Menu, Hours, Happy hour, Events, Notices, Photos, Look
+- [ ] Every screen usable on a phone; no developer words anywhere
+- [ ] Drafts, preview in the real look, publish, undo to any earlier version
+- [ ] Uploads: images only, size-limited, resized, location data stripped, "describe this
+      photo" asked in plain words
+- [ ] No field anywhere that changes layout, motion, fonts or art - a test checks the
+      admin's editable fields against the "may change" list in 04-data-model
+- [ ] Look screen: the owner's content in other looks, "ask for this look"
+- [ ] Publish job: build the venue from the database, run the checks, upload, report when
+      it is live; a failed check publishes nothing
+- [ ] Watched by hand: someone non-technical changes a price, adds an event and undoes it
+      from a phone, without help. Written down what confused them
+
+## Stage 5 - Previews and intake
 
 - [ ] Preview mode: bar on every page, `noindex` on every page, disallow-all `robots.txt`
 - [ ] A test that fails if a preview build is missing any of the three
-- [ ] Intake checklist for a new client (menus, hours, holidays, photos, logo, links, domain)
-- [ ] `python -m resto check <folder>` reports what is still missing, without building
-- [ ] Private client repository set up, using this tool
-- [ ] Timed: from a public menu to a preview link, target under an hour
+- [ ] Intake checklist (menus, hours, holidays, happy hour, events, photos, logo, socials,
+      domain)
+- [ ] Setting up a new venue in the admin from a public menu, timed: target under an hour
 
-## Stage 5 - Launch kit
+## Stage 6 - Launch kit
 
-- [ ] Publish a sample to Cloudflare Pages on a test domain, end to end, and write down every
-      step
-- [ ] Domain hook-up with the domain in someone else's account, the way a client's will be
-- [ ] Post-launch checklist: HTTPS, structured data, analytics, Google Business Profile hours
-      and website link match the site
-- [ ] Hand-over: the client can download every file of their site
+- [ ] Publish a sample to Cloudflare Pages on a test domain, every step written down
+- [ ] Domain hook-up with the domain in someone else's account
+- [ ] The daily build for expired notices and events
+- [ ] A look switch on the live test site, end to end
 
-## Stage 6 - Business kit
+## Stage 7 - Business kit and fair prices
 
-Not code. Lives in the private tracker, not this repository, except where marked.
+Not code. Lives in the private tracker, except where marked.
 
-- [ ] Find out what Squarespace, Wix, Square Online, Toast's site, BentoBox and Popmenu
-      currently charge a restaurant and include
-- [ ] Find out what Kansas City freelancers charge for a restaurant site
-- [ ] Price list: build fee, care plan, what each includes
-- [ ] Contract: scope, changes included, who owns the domain and the files, accessibility
-      wording (P13), how either side ends it
-- [ ] Invoice method
-- [ ] Business registration and whether Kansas City needs a licence for it
-- [ ] Outreach emails: first contact and one follow-up, CAN-SPAM compliant (honest sender
-      and subject, physical address, a working opt-out)
-- [ ] Private tracker: prospect, where found, current site's problems, preview link, date
-      contacted, answer, follow-up date
+- [ ] Research what is fair: what Squarespace, Wix, Square Online, Toast's site, BentoBox and
+      Popmenu charge and include; what Kansas City freelancers and agencies charge for a
+      designed site; what template marketplaces charge for premium restaurant templates
+- [ ] Plans: prices, switches per month, what happens on cancelling, minimum term
+- [ ] Contract: scope, who owns the domain and the files, accessibility wording, ending it
+- [ ] Invoicing, including a monthly charge
+- [ ] Business registration and whether Kansas City needs a licence
+- [ ] Outreach emails, CAN-SPAM compliant
+- [ ] Private tracker
 
-## Stage 7 - First outreach
+## Stage 8 - First outreach
 
-- [ ] A first list of Kansas City restaurants whose current site has a visible problem
-- [ ] Previews for each
-- [ ] Contacted; answers recorded; opt-outs honoured and previews deleted
-- [ ] What worked, written up: email or walk-in, preview or showcase, which template
+- [ ] A first list of Kansas City cocktail bars whose site does not match the place
+- [ ] Previews for each; contacted; answers recorded; opt-outs honoured, previews deleted
+- [ ] What worked, written up
 
-## Stage 8 - Owner edits (later)
+## Stage 9 - Mexican looks
 
-- [ ] Only if clients ask. Options to weigh then: a form that writes to the client
-      repository, a shared spreadsheet the build reads, a git-backed content editor
+- [ ] A made-up Mexican restaurant sample, and looks for it through the stage 1 checks
 
-## Stage 9 - International (later)
+## Stage 10 - American looks
 
-- [ ] Countries chosen; their cold-contact rules written down before any email
-- [ ] Translated interface strings for the templates; menus in more than one language
-- [ ] Address, phone and price formats per country
+- [ ] A made-up American restaurant sample, and looks for it through the stage 1 checks
+
+## Tabled - reviews and perception
+
+Not ordered against the stages above. Picked up when the author is ready.
+
+- [ ] Choose the reviews route (03-architecture, "Tabled"); a Business Profile for Menu
+      Factory if the Business Profile API is chosen; apply to Google
+- [ ] Fetch reviews daily; keep the last good set when a fetch fails
+- [ ] Mark each review good, mixed or bad: word-list baseline, then the author's own model,
+      scored against a hand-labelled set
+- [ ] Admin: the owner chooses which quotes appear; the site always shows overall rating,
+      count and a link to all reviews
+- [ ] Admin: how each menu item is perceived - mentions, the good/mixed/bad split, quotes
+
+## Later
+
+- [ ] Scheduled look switches by date, for monthly clients
+- [ ] International: countries chosen, outreach rules written down first, translated look
+      text, menus in more than one language, local formats
