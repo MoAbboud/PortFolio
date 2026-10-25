@@ -186,7 +186,10 @@ Obfuscation can cost a little speed; the stage 0 spike measures it on a real loo
 ## From a design to a look
 
 1. The author designs in Claude Design and exports standalone HTML into the right category
-   folder under `designs/`.
+   folder under `designs/`. Claude Design now lives inside Claude: the standalone site
+   (claude.ai/design) closes on 2026-12-14, and a design is a Design canvas in Claude. If an
+   export is awkward, the author can send the canvas link instead; this side reads the
+   canvas and saves it into `designs/<category>/`.
 2. **Stage 0 takes one real export through the steps below as a spike**, because how cleanly
    an export becomes a look decides how fast the library can grow.
 3. The fixed parts - layout, type, motion, art - stay as the design has them. Third-party

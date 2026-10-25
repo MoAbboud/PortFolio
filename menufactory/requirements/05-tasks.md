@@ -45,7 +45,10 @@ Nothing is started. Stage 0 can begin once the author has answered P3 to P5 in 0
       exists, so the scaffold never goes live
 - [x] The obfuscation script, `npm run publish-looks` (P36). Still to measure: its cost on a
       real look's animation, in the spike
-- [ ] **Author: turn `looks-src/` into a private GitHub repository** (GitHub Desktop)
+- [x] `looks-src/` is a private GitHub repository, `menufactory-looks` (2026-10-25; moved up
+      one level after GitHub Desktop created it inside `looks-src/`). Its first commit of the
+      starter look is the author's
+- [x] The obfuscation is seeded, so an unchanged look publishes byte for byte the same
 - [ ] **Spike: one real Claude Design export** (the author makes it) taken through
       "From a design to a look" in 03-architecture: venue content in its slots, both motion
       levels, rendered at 390px and 1280px. Write what worked and what did not into

@@ -36,6 +36,9 @@ const OBFUSCATION = {
   selfDefending: false,
   debugProtection: false,
   transformObjectKeys: false,
+  // A fixed seed: the same source always gives the same output, so an unchanged look does not
+  // show up as changed in git after every publish.
+  seed: 20261025,
 };
 
 if (!fs.existsSync(SRC)) {
@@ -47,6 +50,8 @@ const only = process.argv[2];
 const looks = fs.readdirSync(SRC, { withFileTypes: true })
   .filter((d) => d.isDirectory() && !d.name.startsWith('.'))
   .map((d) => d.name)
+  // A look is a folder with a look.json; anything else (a stray empty folder) is not one.
+  .filter((name) => fs.existsSync(path.join(SRC, name, 'look.json')))
   .filter((name) => !only || name === only);
 
 if (only && looks.length === 0) {

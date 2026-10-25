@@ -67,7 +67,8 @@ for (const name of looks) {
 }
 
 test('every look in looks-src/ has been published', { skip: !fs.existsSync(path.join(ROOT, 'looks-src')) && 'no looks-src/ on this machine' }, () => {
-  const sources = fs.readdirSync(path.join(ROOT, 'looks-src'), { withFileTypes: true }).filter((d) => d.isDirectory() && !d.name.startsWith('.')).map((d) => d.name);
+  const sources = fs.readdirSync(path.join(ROOT, 'looks-src'), { withFileTypes: true }).filter((d) => d.isDirectory() && !d.name.startsWith('.')).map((d) => d.name)
+    .filter((name) => fs.existsSync(path.join(ROOT, 'looks-src', name, 'look.json')));
   for (const name of sources) assert.ok(looks.includes(name), `looks-src/${name} has no published copy; run npm run publish-looks`);
 });
 
