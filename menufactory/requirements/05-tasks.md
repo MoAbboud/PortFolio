@@ -14,42 +14,56 @@ Nothing is started. Stage 0 can begin once the author has answered P3 to P5 in 0
 - [x] `menufactory/designs/` with `cocktail-bar/`, `bar/`, `restaurant/`, gitignored so the
       exports never reach GitHub (2026-10-25)
 - [x] A `menufactory/node_modules/` rule in the root `.gitignore` (2026-10-25)
-- [ ] Plain-files layout as in 03-architecture: `brand.js`, `looks/`, `shared/`,
-      `shared/lib/`, `venues/`, `library/`, `tests/`, `package.json` for development tools
-      only. `git check-ignore -v` on every new folder
-- [ ] GSAP and Three.js copied into `shared/lib/` at pinned versions
-- [ ] `brand.js` with the working name, and the test that fails if the name appears in
-      `looks/`, `shared/`, `library/` or `admin/`
-- [ ] The venue JSON schema covering every entity in 04-data-model, checked by a test
-- [ ] A made-up cocktail bar in `venues/`: late hours, happy hour, a cocktail menu with
-      ingredients, a small food menu, weekly and one-off events, photos the author is free
-      to use
-- [ ] Hours, happy hour and expiry logic with the case table, in Node's test runner: past
-      midnight, split days, an exception, a closure with a reopening date, daylight saving,
-      closes soon, happy hour only while open, a notice past its end date
-- [ ] The motion button: visible on every page, starts from the device setting, remembers
-      the choice, every look reads one setting
+- [x] Plain-files layout as in 03-architecture: `brand.js`, `looks/`, `looks-src/`
+      (ignored), `shared/`, `shared/lib/`, `venues/`, `schema/`, `tests/`, `tools/`,
+      `package.json` for development tools only. `git check-ignore -v` on every new folder
+- [x] GSAP 3.15.0 and Three.js 0.186.1 copied into `shared/lib/` by `npm run pin-libs`, with
+      a test that they match package.json
+- [x] `brand.js` with the working name, and the test that fails if the name appears in
+      `looks/`, `shared/`, `library/`, `admin/` or `venues/`
+- [x] The venue JSON schema covering every entity in 04-data-model, checked by a test
+- [~] A made-up cocktail bar, `venues/quillfeather/`: late hours, holiday exceptions, happy
+      hour, cocktails with ingredients and pours, a long name, a sold-out drink, a small food
+      menu, weekly, monthly and one-off events, notices. Still missing: photos the author is
+      free to use
+- [x] Hours, happy hour and expiry logic with the case table (30 tests): past midnight,
+      split days, exceptions with and without hours, a closure lasting days, both daylight
+      saving changes, closing soon, happy hour past midnight and only while open, notices
+      and events by date
+- [x] The motion button: visible on every page, starts from the device setting, remembers
+      the choice, every look reads one setting - checked in Chrome
+- [x] `shared/render.js`: loads a venue into its look, `?look=` override, preview bar, the
+      motion button added after every look
+- [x] A scaffold look, `starter`, to prove the pipeline before the first real design; never
+      in the library
+- [x] `npm run check`: every venue in every look in headless Chrome, both motion levels,
+      390px and 1280px, axe-core WCAG 2.1 AA, no sideways scroll, screenshots
+- [x] `.github/workflows/test-menufactory.yml` and the badge in the root README
 - [ ] `deploy/build-static.mjs` copies `menufactory/` into the published site, leaving out
-      `requirements/`, `tests/`, `designs/` and development tools; `pages.yml` gains
-      `menufactory/**`
-- [ ] The obfuscation script (P36), if approved, measured on the spike look
+      `requirements/`, `tests/`, `tools/`, `designs/`, `looks-src/` and development tools;
+      `pages.yml` gains `menufactory/**`. Held back on purpose until the first real look
+      exists, so the scaffold never goes live
+- [x] The obfuscation script, `npm run publish-looks` (P36). Still to measure: its cost on a
+      real look's animation, in the spike
+- [ ] **Author: turn `looks-src/` into a private GitHub repository** (GitHub Desktop)
 - [ ] **Spike: one real Claude Design export** (the author makes it) taken through
       "From a design to a look" in 03-architecture: venue content in its slots, both motion
       levels, rendered at 390px and 1280px. Write what worked and what did not into
       03-architecture
 - [ ] Weight budgets proposed from the spike's real numbers, agreed with the author
-- [ ] Playwright set up: open a page, switch the motion control, take screenshots
+- [x] Browser checks set up (puppeteer-core and the installed Chrome): open a page, switch the motion
+      button, take screenshots
 
 Check:
 
     cd menufactory
     npm install
     npm test
-    npx playwright test
-    npx serve .
+    npm run check
+    npm run serve
 
-The last line serves the folder as plain files, the way Pages will; open the address it
-prints and add `/venues/<slug>/`.
+The last line serves the folder as plain files, the way Pages will, and prints the address
+of every sample venue.
 
 ## Stage 1 - First cocktail bar look
 

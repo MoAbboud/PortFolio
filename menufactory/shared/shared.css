@@ -1,0 +1,46 @@
+/* The parts every look carries: the motion button and the preview bar. A look may restyle
+   them through the custom properties, but render.js always adds them. */
+
+.motion-toggle {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 2147483000;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--motion-toggle-border, rgba(255, 255, 255, 0.55));
+  border-radius: 999px;
+  background: var(--motion-toggle-bg, rgba(12, 10, 9, 0.88));
+  color: var(--motion-toggle-fg, #fff);
+  font: 600 14px/1 system-ui, -apple-system, 'Segoe UI', sans-serif;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+
+.motion-toggle:focus-visible {
+  outline: 3px solid var(--motion-toggle-focus, #ffd27a);
+  outline-offset: 3px;
+}
+
+.preview-bar {
+  position: sticky;
+  top: 0;
+  z-index: 2147483001;
+  padding: 10px 16px;
+  background: #fff4cc;
+  color: #1a1400;
+  font: 600 14px/1.4 system-ui, -apple-system, 'Segoe UI', sans-serif;
+  text-align: center;
+}
+
+.preview-bar a {
+  color: inherit;
+}
+
+.load-error {
+  max-width: 40rem;
+  margin: 15vh auto;
+  padding: 0 16px;
+  font: 16px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
