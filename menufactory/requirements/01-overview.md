@@ -33,8 +33,8 @@ thousands for a custom site that is then frozen for years.
 | --- | --- |
 | A designed look | A full design made for a kind of place - motion, digital art, type, layout - with the restaurant's own logo and photos |
 | The library | Every look can be browsed, and the restaurant can see its own menu in each one before choosing |
-| Switch the look | On the monthly plan, the restaurant can move to another look in the library whenever it wants a change. Nothing is re-entered |
-| Less motion, more motion | Every site has a control for the guest: the full show, or a calmer version. It starts from the guest's own device setting and remembers their choice |
+| Switch the look | On the monthly plan, the restaurant can ask to move to another look in the library whenever it wants a change, and the switch is made once it is approved. Nothing is re-entered |
+| Less motion, more motion | A button on every page: the full show, or a calmer version of the same design. It starts from the guest's own device setting and remembers their choice |
 | Owner admin | A simple page where the owner changes the menu, prices, hours, happy hour, events, notices and photos, previews the change and publishes it. The design itself is not editable there, so it cannot be broken |
 | A real menu | Every dish and drink as text: name, description, ingredients, price, and marks such as vegetarian, spicy or zero-proof |
 | Open now and happy hour | Whether the place is open right now, and whether it is happy hour, in its own time zone, including late nights and holidays |
@@ -57,9 +57,10 @@ Prices are not set yet.
 
 ## The library
 
-Looks are grouped by kind of place, and the library grows one kind at a time:
+Looks are grouped by category - cocktail bars, bars, restaurants, and more as the library
+grows. The first to be built:
 
-1. Cocktail bars - first
+1. Cocktail bars
 2. Mexican restaurants
 3. American restaurants
 

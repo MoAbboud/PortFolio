@@ -16,6 +16,9 @@ Google reviews, prices and the rest wait until the looks prove themselves (autho
 
 It is a freelance business first and a portfolio project second.
 
+**It runs on GitHub Pages** (author, 2026-10-25): plain files, no server, no build step, the
+same way the rest of the portfolio is published. See 03-architecture, "The constraint".
+
 Finished, for the first version, when six things are true:
 
 1. At least two cocktail bar looks are in the library, each with a full show and a designed
@@ -62,13 +65,13 @@ flowchart LR
 
 | Stage | What it delivers |
 | --- | --- |
-| 0. Scaffold and motion spike | The TypeScript and Astro project, the brand file and its test, the content schema, a made-up cocktail bar, hours and happy hour logic with tests, the less/more motion control, and **one real Claude Design export taken all the way to a rendered page in both motion levels** |
+| 0. Scaffold and motion spike | The plain-files project, published through the portfolio's Pages workflow; the brand file and its test; the venue JSON schema; a made-up cocktail bar; hours and happy hour logic with tests; the motion button; and **one real Claude Design export taken all the way to a page with venue content in both motion levels** |
 | 1. First cocktail bar look | The author's first design, built into a complete look: home, menu, events, open now, happy hour, structured data, full and calm versions, every check passing |
 | 2. Second look, switching proven | A second cocktail bar look. The same bar in both, changing only the look's name. A second made-up bar to prove the looks are not tuned to one venue |
 | 3. Library page | Every look with every sample, filter by kind of place |
-| 4. Owner admin | The admin on the server: owner logins, the short screens, drafts, preview, publish, undo, uploads, look requests. Starts with a spike measuring whether Payload fits on the server |
-| 5. Previews and intake | Preview mode, the intake checklist, setting up a new venue in the admin |
-| 6. Launch kit | Publishing to Cloudflare Pages on a venue's domain, end to end on a test domain |
+| 4. Owner admin | A git-based admin page on Pages: sign-in, the short screens, saving as a commit, restoring an earlier version, uploads, look requests. Starts with a spike: can a non-technical person sign in and save with Sveltia CMS |
+| 5. Previews and intake | Preview mode, the intake checklist, setting up a new venue |
+| 6. Launch kit | A venue's own repository and Pages site on its own domain (or Cloudflare Pages, see open questions), end to end on a test domain |
 | 7. Business kit and fair prices | Research into what is fair to charge for designed template sites, then plans, contract, invoicing, outreach emails, the private tracker. Not code; can run alongside stages 1 to 6 |
 | 8. First outreach | Kansas City cocktail bars contacted with previews |
 | 9. Mexican looks | Looks and a made-up sample |
@@ -91,15 +94,16 @@ to, and two looks prove the content is not quietly shaped around the first desig
 
 The looks are the product and the author's focus; they are proven first, against sample
 files. But no client can be signed without the admin, because owners will change their own
-content. Since looks read the content through one schema, moving from files to the admin's
-database later costs the looks nothing.
+content. The admin writes the same venue JSON files the samples use, so adding it later costs
+the looks nothing.
 
 ## Decisions settled by the author
 
 | Decision | Source |
 | --- | --- |
 | A freelance business selling restaurant website designs, cold-contacting venues in Kansas City and internationally | Brief, 2026-10-23 |
-| "Menu Factory" is a working name; the name must be easy to switch | 2026-10-23 |
+| "Menu Factory" is a working name and is not final; the name must be easy to switch | 2026-10-23, restated 2026-10-25 |
+| Everything runs on GitHub Pages | 2026-10-25 |
 | The purpose is identity: an elevated look without the large fee | 2026-10-23 |
 | "Win your customers over before they even show up" - it is all about flash | 2026-10-23 |
 | A library venues browse and choose from | 2026-10-23 |
@@ -109,9 +113,12 @@ database later costs the looks nothing.
 | The author designs the looks and the motion, with Claude Design; this design may propose looks | 2026-10-23 |
 | No online ordering and no third-party ordering services. The site stands on its own | 2026-10-23 |
 | Library order: cocktail bars, then Mexican, then American | 2026-10-23 |
-| Less motion and more motion, on every site | 2026-10-23 |
+| Designs are filed by category: cocktail bar, bar, restaurant, and more as the library grows | 2026-10-25 |
+| The designs are kept out of public source control and made as hard to copy as is practical | 2026-10-25 |
+| Less motion and more motion, as a visible button on every page (was P31) | 2026-10-23, button settled 2026-10-25 |
+| Owners ask for a new look and the author approves it (was P30) | 2026-10-25 |
 | Owners get a simple admin to control their site's content, not its art. Must suit owners who are not technical | 2026-10-23 |
-| The language is whatever is friendliest for animation and digital art | 2026-10-23 - TypeScript proposed as the answer (P3) |
+| The language is whatever is friendliest for animation and digital art | 2026-10-23 - plain JavaScript proposed as the answer under the Pages constraint (P3) |
 | Animations and the core idea first; Google reviews and Business Profile work tabled until then | 2026-10-23 |
 | Prices come after research into what is fair for template sites | 2026-10-23 |
 | Reviews, when built: quotes marked good, mixed or bad, shown at the venue's discretion, plus an owner-facing view of how items are perceived online | 2026-10-23 |
@@ -126,15 +133,15 @@ Numbers are kept stable so answers can refer to them. Revised and retired ones s
 | # | Proposal | Instead of |
 | --- | --- | --- |
 | P1 | Settled - see above | |
-| P2 | Revised: guests get built files on a static host; owners edit in an app on the server; Publish rebuilds the files (03-architecture, "Static or not") | All static with no admin; every site rendered live by the server |
-| P3 | Revised: TypeScript throughout, Astro for the sites, React inside Astro where a design needs it | Python and Jinja (the earlier proposal); Next.js; SvelteKit |
-| P4 | Revised: GSAP for timeline and scroll motion, Three.js for 3D, Lottie and Rive for designer-made animation, all served with the site | Tailwind from a CDN; one motion library per look |
-| P5 | Revised: a Zod schema; YAML files for samples and before the admin exists; the admin's database after | A database from the start |
+| P2 | Revised again for Pages: everything is plain files; the owner admin saves by committing to the repository | The server-side admin of the previous draft |
+| P3 | Revised again for Pages: plain HTML, CSS and JavaScript modules, no build step, the same as pedalsim and trail; Astro kept as the upgrade path | TypeScript and Astro with a build (previous draft); Python and Jinja (first draft) |
+| P4 | Revised: GSAP for timeline and scroll motion, Three.js for 3D, lottie-web and Rive where designs arrive in those formats - all copied into `shared/lib/` at pinned versions | Loading them from a CDN |
+| P5 | Revised again: one JSON file per venue, checked by a schema in the tests and the admin | YAML (needs a parser in the browser); a database |
 | P6 | The menu is always text on the page, never only a PDF | Linking the venue's PDF |
 | P7 | Retired - ordering ruled out by the author | |
-| P8 | Public sites on Cloudflare Pages, one project per venue, free tier | GitHub Pages; serving them from the server |
+| P8 | Revised for Pages: the showcase, samples and previews on the portfolio's GitHub Pages; each paying venue its own repository and Pages site, or Cloudflare Pages if GitHub's terms rule it out (open question) | Cloudflare Pages for everything (previous draft) |
 | P9 | The venue owns its domain in its own name | The author registering it |
-| P10 | Code and made-up samples public here; client content, accounts and credentials private | Everything in this repository |
+| P10 | Revised: code and made-up samples public here; a venue's site content is public anyway, so its repository may be public; business records (prices, contracts, prospects) always private | All client content private (previous draft) - a private repository cannot use free Pages |
 | P11 | Previews: `noindex`, a preview bar on every page, deleted on a no | Previews that look like the real site |
 | P12 | Retired - replaced by the owner admin the author asked for | |
 | P13 | WCAG 2.1 AA, checked in both motion levels; contracts promise the target and the checks, not legal compliance | No stated target |
@@ -144,33 +151,42 @@ Numbers are kept stable so answers can refer to them. Revised and retired ones s
 | P17 | Kansas City first; language and currency in the content from day one | Both at once |
 | P18 | Sample venues in the library are made up | Real venues as samples |
 | P19 | Tabled - reviews via the Business Profile API | |
-| P20 | Revised: Publish rebuilds a venue; a daily build also drops expired notices and events | Rebuild only on change |
+| P20 | Revised for Pages: a save republishes through the publish workflow; expired notices and events are hidden by the page itself, so no daily job | A scheduled daily rebuild |
 | P21 | At least two cocktail bar looks before the first outreach | Outreach with one |
 | P22 | Revised: content first, the show around it; heavy art loads late and only in more-motion; a weight budget per look set after the spike | Trimming the art for speed |
 | P23 | Superseded by the author's review design (quotes by sentiment, item perception) - tabled | |
 | P24 | The product name lives only in the brand file; a test fails if it appears elsewhere | Find-and-replace at rename time |
 | P25 | Tabled with reviews | |
 | P26 | Plain links to the venue's social profiles are kept | No outside links at all |
-| P27 | Owner admin on Payload CMS, cut down for non-technical owners, if the stage 4 spike shows it fits the server; a small hand-built admin if not | A hand-built admin from the start; a hosted CMS |
-| P28 | The admin and its database run on the existing server as a compose profile; public sites never depend on it | A second server |
-| P29 | Every owner change is a draft; preview, publish, and undo to any earlier version | Changes going live on save |
-| P30 | Owners see their content in other looks and ask to switch; the author approves | Owners switching looks themselves |
-| P31 | The motion control is always visible, starts from the device setting, and remembers the guest's choice in their browser only | Following the device setting only, with no control |
+| P27 | Revised for Pages: a git-based admin page (Sveltia CMS leading), decided by a stage 4 spike; owners sign in with a GitHub account | Payload on the server (previous draft) - Pages has no server; Decap CMS; a Google Sheet |
+| P28 | Retired - there is no server | |
+| P29 | Revised: every save is a commit, so any earlier version can be restored; drafts and preview-before-save if the admin supports them, checked in the spike | Promising drafts before the spike |
+| P30 | Settled - see above | |
+| P31 | Settled - see above | |
 | P32 | Tabled: review sentiment judged by a word-list baseline then the author's own trained model, never a hosted one | |
-| P33 | Tests: Vitest, Playwright in both motion levels, axe-core, Lighthouse | |
+| P33 | Revised: tests with Node's built-in runner, Playwright in both motion levels, axe-core; development tools only, never published | Vitest (an extra dependency for the same job) |
+| P34 | Third-party code in `shared/lib/`, not `vendor/`, because the root `.gitignore` ignores every `vendor/` folder | |
+| P35 | Done: `designs/` holds Claude Design exports exactly as delivered, by category, gitignored and never published | Publishing or committing the raw exports |
+| P36 | Each look's readable source in a private repository; one script writes an obfuscated copy into `looks/` for publishing (03-architecture, "Protecting the designs") | Readable look code in the public repository |
+| P37 | Looks draw nothing when run on a domain that is not allowed | No check |
+| P38 | An invisible signature in each look's code and art | No way to prove a copy |
+| P39 | The domain's `robots.txt` asks AI and archive crawlers to keep out of `/menufactory/` | Nothing; Cloudflare's proxy and bot blocking for the whole domain |
+| P40 | A copyright notice in every look and the library; contracts license a look, never sell its code | Relying on the default alone |
 
 ## Open questions
 
-1. **P2 - static or not.** The author is unsure. The proposal is the split above: files for
-   guests, an app for owners.
-2. **P27 - which admin.** Payload, or a hand-built one. Decided by the stage 4 spike.
-3. **P30 - may owners switch looks themselves**, or only ask.
-4. **How owners log in** - a password, or a link emailed to them (needs a mail relay).
-5. **How many cocktail bar looks before outreach** - two (P21) or more.
-6. **P26 - social links**, kept or not.
-7. **The first venue** - a real bar at a discount, in return for being the example.
-8. **The business side** - sole proprietor or LLC, a Kansas City licence, invoicing.
-9. **Where the library lives** - moabboud.dev or its own domain under the final name.
+1. **P3 to P5 - the tools.** Plain files, GSAP, Three.js, JSON. Unblocks stage 0.
+2. **P27 - which admin, and whether owners can manage a GitHub sign-in.** Decided by the
+   stage 4 spike, watching a non-technical person do it.
+3. **Where paying venues' sites are hosted.** Their own GitHub Pages site, or Cloudflare
+   Pages. GitHub's terms say Pages is not meant as free hosting to run an online business;
+   this needs reading closely before the first client. The files are the same either way.
+4. **How many cocktail bar looks before outreach** - two (P21) or more.
+5. **P26 - social links**, kept or not.
+6. **The first venue** - a real bar at a discount, in return for being the example.
+7. **The business side** - sole proprietor or LLC, a Kansas City licence, invoicing.
+8. **Where the library lives** - `moabboud.dev/menufactory/` to start; its own domain once
+   the name is final.
 
 ## Tabled questions
 
@@ -203,7 +219,7 @@ author's static host.
 tools such as Unicorn Studio all work by a pasted script. A layer would be:
 
 - One line pasted into the site, `<script src="https://<layer host>/<venue>.js" defer>`,
-  loading one file from a static host.
+  loading one file from a static host - GitHub Pages fits this exactly.
 - A full-page layer above the site that never takes clicks (`pointer-events: none`), drawn in
   canvas or WebGL, inside a shadow root so its styles and the site's cannot collide.
 - The same motion engine, art and less/more motion control as the looks.
@@ -255,13 +271,16 @@ when it starts.
 | Flash makes pages slow on phones | Content first, the show around it (P22); heavy pieces late and only in more-motion; weight budgets |
 | Flash makes some guests ill or locks out screen reader users | The less-motion level designed per look; the device setting respected; checks in both levels |
 | Claude Design exports are hard to turn into looks | The stage 0 spike, on a real export, before anything else |
-| The admin is the first real attack surface: logins, uploads | Payload's tested auth; one venue per owner; image-only, size-limited uploads; no design fields |
-| Payload is too heavy for the shared server | Measured in the stage 4 spike; the hand-built fallback |
-| The server goes down | Public sites are files on another host; only editing pauses |
+| Owners cannot manage a GitHub sign-in | Watched in the stage 4 spike; fallback is the owner sending changes and the author making them |
+| An owner's admin access reaches more than their own venue | Each paying venue in its own repository; an owner is given access to theirs only; no design fields |
+| The menu is filled in by the browser, so some crawlers read less of it | Google reads such pages; if a client needs more, a script writes the content into the HTML before commit - still plain files |
+| Claude Design exports compile React in the browser, which is heavy | Rewritten as plain modules when an export becomes a look; measured in the stage 0 spike |
+| GitHub's terms for paying clients' sites | Open question 3; the same files move to Cloudflare Pages unchanged |
 | A prospect objects to their photos and logo in a preview | Unindexed, labelled, under the author's domain, deleted on request |
 | Commercial use of Claude Design output | Check Claude Design's terms before the first sale |
 | GSAP's licence | Free for commercial use; its one restriction is on visual animation builders, which the admin is not |
 | Cold email law differs by country | Kansas City first; each country's rule written down before emailing there |
 | Accessibility lawsuits against small US business sites | P13, checked on every look in both motion levels |
+| A look is copied from the live site | Nothing shown in a browser can be fully hidden; P36 to P40 make a copy harder to make, unable to run as-is, and provable |
 | A look only works with its own sample text | Every look rendered with every sample, including a long menu and missing photos |
-| Moving from Python habits to TypeScript | One language for the whole project; the repository's Python projects are unaffected |
+| A root `.gitignore` rule silently hides a new folder (as `vendor/` did to codevscode) | `git check-ignore -v` on every new folder; third-party code in `lib/` |
