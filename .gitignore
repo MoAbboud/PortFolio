@@ -162,3 +162,9 @@ menufactory/designs/
 # Development tools only (tests, image resizing); nothing installed is published. The root
 # "/node_modules" rule only covers the repository root.
 menufactory/node_modules/
+# The readable source of each look (P36, author 2026-10-25). Its own private repository lives
+# here; tools/publish-looks.mjs writes the obfuscated copy into looks/, which is what is
+# committed and published.
+menufactory/looks-src/
+# Screenshots and reports from the browser check; regenerated on every run.
+menufactory/tests/output/

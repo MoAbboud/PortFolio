@@ -65,7 +65,7 @@ flowchart LR
 
 | Stage | What it delivers |
 | --- | --- |
-| 0. Scaffold and motion spike | The plain-files project, published through the portfolio's Pages workflow; the brand file and its test; the venue JSON schema; a made-up cocktail bar; hours and happy hour logic with tests; the motion button; and **one real Claude Design export taken all the way to a page with venue content in both motion levels** |
+| 0. Scaffold and motion spike | The plain-files project; the brand file and its test; the venue JSON schema; a made-up cocktail bar; hours and happy hour logic with tests; the motion button; and **one real Claude Design export taken all the way to a page with venue content in both motion levels** |
 | 1. First cocktail bar look | The author's first design, built into a complete look: home, menu, events, open now, happy hour, structured data, full and calm versions, every check passing |
 | 2. Second look, switching proven | A second cocktail bar look. The same bar in both, changing only the look's name. A second made-up bar to prove the looks are not tuned to one venue |
 | 3. Library page | Every look with every sample, filter by kind of place |
@@ -104,6 +104,8 @@ the looks nothing.
 | A freelance business selling restaurant website designs, cold-contacting venues in Kansas City and internationally | Brief, 2026-10-23 |
 | "Menu Factory" is a working name and is not final; the name must be easy to switch | 2026-10-23, restated 2026-10-25 |
 | Everything runs on GitHub Pages | 2026-10-25 |
+| The tools: plain HTML, CSS and JavaScript modules with no build; GSAP, Three.js, lottie-web and Rive pinned in `shared/lib/`; one JSON file per venue (were P3 to P5) | 2026-10-25 |
+| Each look's readable source in a private repository; only an obfuscated copy is published (was P36) | 2026-10-25 |
 | The purpose is identity: an elevated look without the large fee | 2026-10-23 |
 | "Win your customers over before they even show up" - it is all about flash | 2026-10-23 |
 | A library venues browse and choose from | 2026-10-23 |
@@ -134,9 +136,9 @@ Numbers are kept stable so answers can refer to them. Revised and retired ones s
 | --- | --- | --- |
 | P1 | Settled - see above | |
 | P2 | Revised again for Pages: everything is plain files; the owner admin saves by committing to the repository | The server-side admin of the previous draft |
-| P3 | Revised again for Pages: plain HTML, CSS and JavaScript modules, no build step, the same as pedalsim and trail; Astro kept as the upgrade path | TypeScript and Astro with a build (previous draft); Python and Jinja (first draft) |
-| P4 | Revised: GSAP for timeline and scroll motion, Three.js for 3D, lottie-web and Rive where designs arrive in those formats - all copied into `shared/lib/` at pinned versions | Loading them from a CDN |
-| P5 | Revised again: one JSON file per venue, checked by a schema in the tests and the admin | YAML (needs a parser in the browser); a database |
+| P3 | Settled - see above. Astro stays the upgrade path | |
+| P4 | Settled - see above | |
+| P5 | Settled - see above | |
 | P6 | The menu is always text on the page, never only a PDF | Linking the venue's PDF |
 | P7 | Retired - ordering ruled out by the author | |
 | P8 | Revised for Pages: the showcase, samples and previews on the portfolio's GitHub Pages; each paying venue its own repository and Pages site, or Cloudflare Pages if GitHub's terms rule it out (open question) | Cloudflare Pages for everything (previous draft) |
@@ -164,10 +166,10 @@ Numbers are kept stable so answers can refer to them. Revised and retired ones s
 | P30 | Settled - see above | |
 | P31 | Settled - see above | |
 | P32 | Tabled: review sentiment judged by a word-list baseline then the author's own trained model, never a hosted one | |
-| P33 | Revised: tests with Node's built-in runner, Playwright in both motion levels, axe-core; development tools only, never published | Vitest (an extra dependency for the same job) |
+| P33 | Built: Node's built-in test runner; puppeteer-core driving the installed Chrome (as codevscode does) in both motion levels; axe-core; development tools only, never published | Vitest; Playwright, which downloads its own browsers |
 | P34 | Third-party code in `shared/lib/`, not `vendor/`, because the root `.gitignore` ignores every `vendor/` folder | |
 | P35 | Done: `designs/` holds Claude Design exports exactly as delivered, by category, gitignored and never published | Publishing or committing the raw exports |
-| P36 | Each look's readable source in a private repository; one script writes an obfuscated copy into `looks/` for publishing (03-architecture, "Protecting the designs") | Readable look code in the public repository |
+| P36 | Settled - see above. Built: `looks-src/` is gitignored and holds the private repository; `npm run publish-looks` writes the obfuscated copy | |
 | P37 | Looks draw nothing when run on a domain that is not allowed | No check |
 | P38 | An invisible signature in each look's code and art | No way to prove a copy |
 | P39 | The domain's `robots.txt` asks AI and archive crawlers to keep out of `/menufactory/` | Nothing; Cloudflare's proxy and bot blocking for the whole domain |

@@ -18,6 +18,7 @@ database tests.
 
 [![herder](https://github.com/MoAbboud/PortFolio/actions/workflows/test-herder.yml/badge.svg)](https://github.com/MoAbboud/PortFolio/actions/workflows/test-herder.yml)
 [![mailman](https://github.com/MoAbboud/PortFolio/actions/workflows/test-mailman.yml/badge.svg)](https://github.com/MoAbboud/PortFolio/actions/workflows/test-mailman.yml)
+[![menufactory](https://github.com/MoAbboud/PortFolio/actions/workflows/test-menufactory.yml/badge.svg)](https://github.com/MoAbboud/PortFolio/actions/workflows/test-menufactory.yml)
 [![pedalsim](https://github.com/MoAbboud/PortFolio/actions/workflows/test-pedalsim.yml/badge.svg)](https://github.com/MoAbboud/PortFolio/actions/workflows/test-pedalsim.yml)
 [![roamer](https://github.com/MoAbboud/PortFolio/actions/workflows/test-roamer.yml/badge.svg)](https://github.com/MoAbboud/PortFolio/actions/workflows/test-roamer.yml)
 [![trail](https://github.com/MoAbboud/PortFolio/actions/workflows/test-trail.yml/badge.svg)](https://github.com/MoAbboud/PortFolio/actions/workflows/test-trail.yml)

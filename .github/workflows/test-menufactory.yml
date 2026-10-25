@@ -1,0 +1,57 @@
+# menufactory's suite: the hours logic, every venue file against the schema, the brand-name
+# rule, every published look's completeness and weight budget - then every venue in every look
+# in a real headless Chrome, in both motion levels, at phone and desktop width, with axe-core.
+#
+# The readable look source (looks-src/) is a private repository and is not here; the suite
+# runs against the published copies in looks/, which is what visitors get.
+
+name: menufactory
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - menufactory/**
+      - .github/workflows/test-menufactory.yml
+  # No path filter on pull requests, as in the other suites: a required status check that never
+  # runs leaves the pull request waiting for it forever.
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    # The status check's name in branch protection. Unique per workflow.
+    name: menufactory tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: menufactory
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install development tools
+        run: npm ci
+
+      - name: Test
+        run: npm test
+
+      - name: Check in Chrome
+        # ubuntu-latest ships Google Chrome; puppeteer-core drives it rather than downloading one.
+        run: npm run check
+        env:
+          CHROME: /usr/bin/google-chrome
+
+      - name: Keep the screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: menufactory-screenshots
+          path: menufactory/tests/output/
+          if-no-files-found: ignore

@@ -1,0 +1,25 @@
+{
+  "name": "menufactory",
+  "private": true,
+  "type": "module",
+  "description": "Restaurant and bar website looks that run as plain files on GitHub Pages. Development tools only: nothing installed here is published.",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "check": "node tests/browser-check.mjs",
+    "serve": "node tools/serve.mjs",
+    "pin-libs": "node tools/pin-libs.mjs",
+    "publish-looks": "node tools/publish-looks.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "ajv": "8.20.0",
+    "axe-core": "4.14.0",
+    "csso": "5.0.5",
+    "gsap": "3.15.0",
+    "javascript-obfuscator": "4.2.2",
+    "puppeteer-core": "25.16.0",
+    "three": "0.186.1"
+  }
+}

@@ -42,16 +42,26 @@ build to the publish workflow) and of a Payload admin on the server (Pages has n
 | Fonts | Files in the project | No outside request per page view | Google Fonts linked live |
 | Map | A directions link to the guest's own maps app | | A Maps embed |
 | Visit counts | Cloudflare Web Analytics, which is a script and works on any host, or nothing (proposed) | No cookies | Google Analytics |
-| Tests | Node's built-in test runner for the logic; Playwright for pages in both motion levels at phone width with screenshots; axe-core for accessibility (proposed) | Development tools only | |
+| Tests | Node's built-in test runner for the logic; puppeteer-core driving the installed Chrome for pages in both motion levels at phone and desktop width, with screenshots; axe-core for accessibility | Development tools only; the same browser approach as codevscode, so no browser download | Playwright - downloads its own browsers |
 | Owner admin | A git-based admin page served from Pages itself - Sveltia CMS proposed, decided by a stage 4 spike (see Owner admin) | Works with no server: saving is a commit | Payload - needs a server. Decap CMS - the older project Sveltia was built to replace. A Google Sheet - easy, but not the interface the author asked for |
 
 No part of Menu Factory uses a hosted language model, now or later.
 
 ## What a page is
 
-A venue's site is a small folder: an `index.html` that names the venue's JSON file, the JSON
-file, and the venue's photos. The shared code reads the JSON, sees which look it names, loads
-that look's HTML, CSS and motion, and fills the look's slots with the venue's content.
+A venue's site is a small folder: an `index.html` that calls `mount()` from
+`shared/render.js`, the venue's `venue.json`, and its photos. The renderer reads the JSON,
+loads the look it names (`looks/<look>/look.js` and `look.css`), and calls the look's
+`render(root, venue, ctx)`. `ctx` hands the look everything it may use: the open-now and
+happy-hour lines, current notices and upcoming events, price formatting, the directions and
+phone links, the motion level, and GSAP or Three.js on request. The renderer then adds the
+motion button and, on previews, the preview bar - a look cannot leave either out.
+
+`?look=<name>` on a venue's address shows it in another look, for the library, the owner's
+Look screen and the checks.
+
+With JavaScript turned off, a venue page shows only a short note: the content is in the JSON.
+The pre-render script below is also the answer to that, if a client needs it.
 
 **Switching look is one value in the venue's JSON.** Nothing else changes.
 
@@ -104,14 +114,17 @@ menufactory/              renamed with the product if the name changes again
     cocktail-bar/         gitignored: never on GitHub, backed up by OneDrive only
     bar/
     restaurant/
-  looks/<look>/           a finished look: look.html, look.css, look.js, art/, look.json
+  looks-src/<look>/       the readable source of a look - gitignored, its own private repository
+  looks/<look>/           the published look, obfuscated: look.js, look.css, look.json, art/
   shared/                 motion button, render, open now and happy hour, menu, events,
                           preview bar
     lib/                  GSAP, Three.js and the rest, pinned
   venues/<slug>/          made-up sample venues: index.html, venue.json, photos
   library/                the showcase page
   admin/                  the owner admin (stage 4)
+  schema/                 venue.schema.json, the rules every venue.json follows
   tests/                  not published
+  tools/                  pin-libs, publish-looks, serve - not published
   package.json            development tools only; nothing in it is published
 ```
 
