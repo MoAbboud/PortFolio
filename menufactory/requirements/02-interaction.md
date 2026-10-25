@@ -9,8 +9,8 @@
 | Owner | Human, a client's owner or manager | Has bought a plan. Not technical. Wants to change the menu, hours and events themselves, from a phone, without fear of breaking anything. On the monthly plan, wants a new look when they are bored of the old one |
 | Author | Human, designer, builder and seller | Designs the looks (with Claude Design for imagery and motion), builds them, sets up each client, finds and contacts prospects, switches looks for monthly clients. One person |
 | Claude Design | Tool, used by the author | Where the looks' imagery, motion and visual design are made. Exports standalone HTML whose components are React. Not part of a running site |
-| Static host | External system | Serves each venue's public site as files. Cloudflare Pages is proposed |
-| Server | External system | The author's one server. Runs the owner admin and its database |
+| GitHub | External system | Holds the repository; its publish workflow puts the files on GitHub Pages, which serves every site, the library and the owner admin page. There is no server |
+| Copying tools and crawlers | External, unwanted | Anything that saves or scrapes what the live site shows. Cannot be stopped outright; the protections in 03-architecture make a copy harder to make, unable to run as-is, and provable |
 | Domain registrar | External system | Where the venue's domain is registered, in the venue's name |
 | Search engines and maps | External systems | Read the public site's details; often shown to a guest before the site itself |
 | Google Business Profile | External system, tabled | The source of reviews, once that work is picked up |
@@ -31,9 +31,9 @@ flowchart TB
 
     subgraph sys[Menu Factory - inside the boundary]
         LOOK[Looks in the library]
-        ADM[Owner admin]
-        DB[(Venue content)]
-        BLD[Site builder]
+        ADM[Owner admin page]
+        DB[(Venue JSON files)]
+        BLD[Shared code]
         CHK[Checks]
         LIB[Library page]
         PREV[Preview site]
@@ -42,7 +42,7 @@ flowchart TB
 
     subgraph ext[Outside the boundary]
         CD[Claude Design]
-        HOST[Static host]
+        HOST[GitHub Pages]
         REG[Domain registrar]
         SE[Search engines and maps]
         GBP[Google Business Profile - tabled]
@@ -52,8 +52,7 @@ flowchart TB
     CD -->|HTML, React components, art| LOOK
     AU -->|sets up the venue, switches looks| ADM
     OW -->|menu, hours, events, photos| ADM
-    ADM --> DB
-    ADM -->|publish| BLD
+    ADM -->|saves as a commit| DB
     DB --> BLD
     LOOK --> BLD
     BLD --> CHK
@@ -73,8 +72,8 @@ flowchart TB
     GBP -.->|later| ADM
 ```
 
-The guest never touches the admin or the server. If the server is down, every public site
-stays up; only editing pauses.
+The guest never touches the admin. Everything in the diagram is files on GitHub Pages; the
+only moving part is the owner's save, which is a commit that republishes the site.
 
 ## What the system is in the business of
 

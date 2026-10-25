@@ -11,21 +11,28 @@ Nothing is started. Stage 0 can begin once the author has answered P3 to P5 in 0
 
 ## Stage 0 - Scaffold and motion spike
 
-- [ ] Astro project in `site/` with TypeScript, as in 03-architecture
-- [ ] A `menufactory/node_modules/` rule in the root `.gitignore` - the existing rules only
-      cover the repository root and codevscode. Then `git check-ignore -v` on every new
-      folder, and confirm `dist/` and `node_modules/` are ignored and nothing else is
-- [ ] `brand.ts` with the working name, and the test that fails if the name appears in
-      `site/` or `admin/`
-- [ ] The Zod content schema covering every entity in 04-data-model
-- [ ] A made-up cocktail bar as YAML: late hours, happy hour, a cocktail menu with
+- [x] `menufactory/designs/` with `cocktail-bar/`, `bar/`, `restaurant/`, gitignored so the
+      exports never reach GitHub (2026-10-25)
+- [x] A `menufactory/node_modules/` rule in the root `.gitignore` (2026-10-25)
+- [ ] Plain-files layout as in 03-architecture: `brand.js`, `looks/`, `shared/`,
+      `shared/lib/`, `venues/`, `library/`, `tests/`, `package.json` for development tools
+      only. `git check-ignore -v` on every new folder
+- [ ] GSAP and Three.js copied into `shared/lib/` at pinned versions
+- [ ] `brand.js` with the working name, and the test that fails if the name appears in
+      `looks/`, `shared/`, `library/` or `admin/`
+- [ ] The venue JSON schema covering every entity in 04-data-model, checked by a test
+- [ ] A made-up cocktail bar in `venues/`: late hours, happy hour, a cocktail menu with
       ingredients, a small food menu, weekly and one-off events, photos the author is free
       to use
-- [ ] Hours and happy hour logic with the case table in Vitest: past midnight, split days,
-      an exception, a closure with a reopening date, daylight saving, closes soon, happy
-      hour only while open
-- [ ] The less/more motion control: starts from the device setting, remembers the choice,
-      every look reads one setting
+- [ ] Hours, happy hour and expiry logic with the case table, in Node's test runner: past
+      midnight, split days, an exception, a closure with a reopening date, daylight saving,
+      closes soon, happy hour only while open, a notice past its end date
+- [ ] The motion button: visible on every page, starts from the device setting, remembers
+      the choice, every look reads one setting
+- [ ] `deploy/build-static.mjs` copies `menufactory/` into the published site, leaving out
+      `requirements/`, `tests/`, `designs/` and development tools; `pages.yml` gains
+      `menufactory/**`
+- [ ] The obfuscation script (P36), if approved, measured on the spike look
 - [ ] **Spike: one real Claude Design export** (the author makes it) taken through
       "From a design to a look" in 03-architecture: venue content in its slots, both motion
       levels, rendered at 390px and 1280px. Write what worked and what did not into
@@ -35,16 +42,18 @@ Nothing is started. Stage 0 can begin once the author has answered P3 to P5 in 0
 
 Check:
 
-    cd menufactory\site
+    cd menufactory
     npm install
     npm test
-    npm run build
     npx playwright test
-    npm run preview
+    npx serve .
+
+The last line serves the folder as plain files, the way Pages will; open the address it
+prints and add `/venues/<slug>/`.
 
 ## Stage 1 - First cocktail bar look
 
-- [ ] The author's design built into `site/src/looks/<name>/` with `look.json`
+- [ ] The author's design built into `looks/<name>/` with `look.json`
 - [ ] Home: name, logo, open-now and happy-hour lines, phone, address readable at once
 - [ ] Menu: sections, jump links, ingredients, prices and pours, happy hour prices marked,
       tags as icon plus text
@@ -68,24 +77,27 @@ Check:
 ## Stage 3 - Library page
 
 - [ ] Every look, each shown with a sample, filter by kind of place
-- [ ] Built from each look's `look.json`; the product name from `brand.ts`
+- [ ] Built from each look's `look.json`; the product name from `brand.js`
 - [ ] Passes the same checks as a venue site
 - [ ] Where it is hosted (00-plan open question 9)
 
 ## Stage 4 - Owner admin
 
-- [ ] **Spike: Payload on the server.** Install, measure memory beside mailman, decide P27
-- [ ] Owner accounts, one venue each; the author's account sees all
+- [ ] **Spike: Sveltia CMS on Pages.** Admin page served from Pages, the sign-in helper on
+      Cloudflare Workers, a save that commits and republishes. Watch a non-technical person
+      create a GitHub account and sign in. Decide P27
+- [ ] Owner access: each owner reaches their own venue's repository only
 - [ ] The short first screen: Menu, Hours, Happy hour, Events, Notices, Photos, Look
 - [ ] Every screen usable on a phone; no developer words anywhere
-- [ ] Drafts, preview in the real look, publish, undo to any earlier version
+- [ ] Save, restore an earlier version; drafts and preview in the real look if the admin
+      supports them
 - [ ] Uploads: images only, size-limited, resized, location data stripped, "describe this
       photo" asked in plain words
 - [ ] No field anywhere that changes layout, motion, fonts or art - a test checks the
       admin's editable fields against the "may change" list in 04-data-model
 - [ ] Look screen: the owner's content in other looks, "ask for this look"
-- [ ] Publish job: build the venue from the database, run the checks, upload, report when
-      it is live; a failed check publishes nothing
+- [ ] Publishing: a save triggers the publish workflow, the checks run, and a failed check
+      publishes nothing
 - [ ] Watched by hand: someone non-technical changes a price, adds an event and undoes it
       from a phone, without help. Written down what confused them
 
@@ -99,10 +111,13 @@ Check:
 
 ## Stage 6 - Launch kit
 
-- [ ] Publish a sample to Cloudflare Pages on a test domain, every step written down
+- [ ] Read GitHub's Pages terms closely and settle where paying venues are hosted
+      (00-plan open question 3)
+- [ ] A sample venue in its own repository with Pages (or Cloudflare Pages) on a test
+      domain, every step written down
 - [ ] Domain hook-up with the domain in someone else's account
-- [ ] The daily build for expired notices and events
 - [ ] A look switch on the live test site, end to end
+- [ ] The domain lock (P37) allowing that domain, and refusing others
 
 ## Stage 7 - Business kit and fair prices
 

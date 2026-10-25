@@ -2,9 +2,10 @@
 
 Nothing here exists yet. The shape matters more than the exact field names.
 
-The **venue content** is the centre of everything. It is declared once, as a Zod schema, and
-read the same way whether it comes from a sample YAML file or, from stage 4, from the owner
-admin's database. Looks read it; the admin writes it; neither knows about the other.
+The **venue content** is the centre of everything: one JSON file per venue, `venue.json`,
+checked against one schema by the tests and by the owner admin before it saves. The samples
+and the real venues use the same file. Looks read it; the admin writes it; neither knows
+about the other.
 
 The rule the whole project rests on: **a look may only use what the venue content defines.**
 If a look needs a field that is not here, the field is added here first, with a sensible
@@ -129,7 +130,8 @@ erDiagram
 | Field | Rule |
 | --- | --- |
 | `slug` | Lowercase, hyphens, unique. Names the output folder and the preview address |
-| `kind` | `cocktail-bar`, `mexican`, `american` to start; grows with the library. Filters the library; never stops a venue using a look made for another kind |
+| `kind` | The category: `cocktail-bar`, `bar`, `restaurant` to start, the same names as the `designs/` folders; grows with the library. Filters the library; never stops a venue using a look made for another category |
+| `cuisine` | Free text for restaurants - "Mexican", "American". The library's Mexican and American looks are restaurant looks filtered by this |
 | `mode` | `preview` or `live`. Defaults to `preview` |
 | `STYLE.look` | The name of a look. The one value a switch changes. Unknown names stop the build |
 | `STYLE` colours | Optional. Each look's `look.json` says whether it accepts them |
@@ -165,15 +167,15 @@ The author's line: owners control their site's content, not its art.
 
 ## Admin records (stage 4)
 
-On the server, in PostgreSQL, alongside the venue content:
+There is no database. What a database would hold, git already holds:
 
-| Record | Holds |
+| Record | Where it lives |
 | --- | --- |
-| Owner account | Email, login secret or emailed-link state, which venue, role (owner or author) |
-| Venue version | Every published version of a venue's content, who published it, when. Undo restores one |
-| Draft | The unpublished changes |
-| Publish run | When a build started and finished, whether it passed the checks, what went live |
-| Look request | An owner asking to switch look; the author's answer |
+| Owner account | The owner's GitHub account, given access to their venue's repository only |
+| Venue version | Every save is a commit; any earlier version can be restored from the history |
+| Draft | In the admin, if it supports drafts - checked in the stage 4 spike |
+| Publish run | The publish workflow's run in GitHub Actions: when, whether the checks passed |
+| Look request | A note the admin files for the author (an issue on the venue's repository is the simplest form); the author's answer is the switch, or a reply |
 
 ## Tabled: reviews (later)
 
@@ -194,12 +196,13 @@ Kept here so the schema leaves room:
 - Anything about guests.
 - Payment details.
 - Venues' passwords for their domain, Google or social accounts.
-- Credentials in any file. Server secrets are environment variables.
+- Credentials in any file. The few that exist (the admin's sign-in helper, later the reviews
+  job) are GitHub Actions or Cloudflare secrets.
 - **Business records: prospects, plans, prices, contracts, invoices, outreach.** These live
   outside this public repository, in a private tracker.
 
 ## The brand file
 
-`brand.ts`, one for the whole product: `name` ("Menu Factory" for now), the library's
+`brand.js`, one for the whole product: `name` ("Menu Factory" for now), the library's
 address, the author's contact, the preview bar's wording, the optional footer credit. A test
-fails if the name's value appears anywhere else in `site/` or `admin/`.
+fails if the name's value appears anywhere else in `looks/`, `shared/`, `library/` or `admin/`.
