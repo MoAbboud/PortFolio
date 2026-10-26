@@ -264,9 +264,12 @@ Obfuscation can cost a little speed; the stage 0 spike measures it on a real loo
 
 1. The author designs in Claude Design and exports standalone HTML into the right category
    folder under `designs/`. Claude Design now lives inside Claude: the standalone site
-   (claude.ai/design) closes on 2026-12-14, and a design is a Design canvas in Claude. If an
-   export is awkward, the author can send the canvas link instead; this side reads the
-   canvas and saves it into `designs/<category>/`.
+   (claude.ai/design) closes on 2026-12-14, and a design is a Design canvas in Claude. A
+   canvas keeps each artboard as a file (`project/<name>.dc.html`, Claude's own component
+   format, plus `project/canvas.json`), so the reliable hand-over is the canvas link: this side
+   reads those files and saves them into `designs/<category>/`. The canvas's Share > Export
+   menu is the alternative. Either way the artboards are a design, not a look: the spike
+   rewrites them as plain modules, and motion the canvas cannot show is described in words.
 2. **Stage 0 takes one real export through the steps below as a spike**, because how cleanly
    an export becomes a look decides how fast the library can grow.
 3. The fixed parts - layout, type, motion, art - stay as the design has them. Third-party
