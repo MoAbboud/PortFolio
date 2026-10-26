@@ -5,7 +5,7 @@
 // The export is a bundle: the page carries its artboards as gzipped, base64 entries in a
 // "__bundler/manifest" block, and each artboard is itself a bundle - its markup in a
 // "__bundler/template" block, plus Claude's own runtime, React and the fonts in its manifest.
-// This writes, next to the export, an "unpacked/" folder with one folder per artboard:
+// This writes, next to the export, "unpacked/<export name>/" with one folder per artboard:
 // design.html (the markup, fonts referenced by file name) and the packed files beside it.
 //
 // It only reads the file. Nothing in the export is run. designs/ is gitignored.
@@ -37,7 +37,8 @@ if (!file || !fs.existsSync(file)) {
   process.exit(1);
 }
 const outer = fs.readFileSync(file, 'utf8');
-const out = path.join(path.dirname(file), 'unpacked');
+const stem = path.basename(file, path.extname(file)).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const out = path.join(path.dirname(file), 'unpacked', stem);
 fs.mkdirSync(out, { recursive: true });
 
 // Artboard titles, from the iframes the outer page lays out ("More motion - Phone 390").
@@ -47,7 +48,14 @@ if (template) {
   for (const m of JSON.parse(template).matchAll(/<iframe src="about:blank#([0-9a-f-]+)" title="([^"]+)"/g)) titles[m[1]] = m[2];
 }
 
-const boards = entries(outer).filter((e) => e.mime === 'text/html');
+// A whole canvas carries its artboards as HTML entries. A single artboard exported on its own
+// is itself the bundle: its markup is the outer page's template.
+let boards = entries(outer).filter((e) => e.mime === 'text/html');
+if (boards.length === 0 && template) {
+  const title = (JSON.parse(template).match(/<title>([^<]+)<\u002Ftitle>|<title>([^<]+)<\/title>/) || [])[1] || 'artboard';
+  titles.single = title;
+  boards = [{ id: 'single', mime: 'text/html', data: Buffer.from(outer) }];
+}
 if (boards.length === 0) {
   console.error('No artboards found - is this a Claude Design standalone HTML export?');
   process.exit(1);

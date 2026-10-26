@@ -318,6 +318,16 @@ export to a checked look in one session. What that showed:
 The next design should take a fraction of the time: unpack, port the stylesheet, map the
 slots, run the checks.
 
+**Version 2 (2026-10-26)** confirmed that. The author exported a single artboard this time
+(`unpack-design` now handles both shapes) and the changes came over in one session: a new
+type scale, three motion settings (Showtime, Lounge, Calm - the venue picks the first two in
+`style.motion`, the guest's button gives Calm), peels redrawn as curved strips dropped into
+the drink with a ripple and misted oil (now the kit's `orange-peel` and `lemon-peel` for
+every glass), an in-stock Copper Crown (copper, a pear, a lit crown) and sold-out tiles. The
+type is set in Playfair Display, the author's choice. One more port lesson: the shared
+motion button sits outside the look's root, so it needs its own copy of the look's colour
+tokens.
+
 ## Less motion, more motion
 
 On phones under 360px wide the button would sit over the page's own text and buttons, so

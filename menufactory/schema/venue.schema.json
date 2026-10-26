@@ -36,6 +36,7 @@
       "additionalProperties": false,
       "properties": {
         "look": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+        "motion": { "enum": ["showtime", "lounge"], "description": "The motion the guest gets before touching the button: showtime is everything; lounge keeps the opening and the drawings and rests the constant loops. The button always offers calm." },
         "palette": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "description": "One of the palettes the look offers (its look.json). Ignored by looks without palettes." },
         "color_primary": { "$ref": "#/definitions/color" },
         "color_accent": { "$ref": "#/definitions/color" },
@@ -248,7 +249,7 @@
       "additionalProperties": false,
       "properties": {
         "glass": { "enum": ["rocks", "martini", "collins", "coupe"] },
-        "liquid": { "enum": ["amber", "red", "clear", "hibiscus", "ink", "honey", "brine", "pale"] },
+        "liquid": { "enum": ["amber", "red", "clear", "hibiscus", "ink", "honey", "brine", "pale", "copper"] },
         "ice": { "type": "boolean" },
         "garnish": { "$ref": "#/definitions/garnish" },
         "extras": { "type": "array", "uniqueItems": true, "items": { "enum": ["smoke", "bubbles", "twinkle", "quill", "lantern", "fireworks", "crown"] } },
@@ -258,11 +259,11 @@
           "additionalProperties": {
             "type": "object",
             "additionalProperties": false,
-            "properties": { "garnish": { "$ref": "#/definitions/garnish" }, "liquid": { "enum": ["amber", "red", "clear", "hibiscus", "ink", "honey", "brine", "pale"] } }
+            "properties": { "garnish": { "$ref": "#/definitions/garnish" }, "liquid": { "enum": ["amber", "red", "clear", "hibiscus", "ink", "honey", "brine", "pale", "copper"] } }
           }
         }
       }
     },
-    "garnish": { "enum": ["none", "orange-peel", "lemon-peel", "orange-wheel", "lemon-wheel", "lime-wheel", "olive", "orange-coin"] }
+    "garnish": { "enum": ["none", "orange-peel", "lemon-peel", "orange-wheel", "lemon-wheel", "lime-wheel", "olive", "orange-coin", "pear"] }
   }
 }
