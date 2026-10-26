@@ -176,6 +176,8 @@ the looks nothing.
 | The six industry problems - bad sites, wrong hours, invisible to AI search, delivery fees, missed calls, accessibility - are goals alongside the look | 2026-10-26 |
 | Accessibility is a priority, built in from the first look (P41 to P45 settled with it) | 2026-10-26 |
 | Weight budget per look: 300 KB on first load to start | 2026-10-26 |
+| Lamplight's headings in Playfair Display (chosen from four, over the design's Bodoni Moda) | 2026-10-26 |
+| Three motion settings: Showtime and Lounge chosen by the venue, Calm by the guest's button (from the author's version 2 design) | 2026-10-26 |
 | No words cut off by padding, boxes or the motion button, at any width - checked | 2026-10-26 |
 | Library order: cocktail bars, then Mexican, then American | 2026-10-23 |
 | Designs are filed by category: cocktail bar, bar, restaurant, and more as the library grows | 2026-10-25 |

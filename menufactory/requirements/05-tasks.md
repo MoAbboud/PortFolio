@@ -99,8 +99,9 @@ of every sample venue.
 - [x] Readable with JavaScript off, apart from the live lines and motion - checked in Chrome
 - [x] No words cut off at 320, 390, 768 and 1280px; nothing under the motion button on the
       first screen; the button moves to the top corner under 360px
-- [ ] The heading font: the author is choosing between the current Cormorant Garamond and
-      three alternatives (preview in `designs/cocktail-bar/font-options.png`)
+- [x] The heading font: Playfair Display, the author's pick (2026-10-26)
+- [x] Version 2 of the design ported: type scale, Showtime / Lounge / Calm, dropped-in peels,
+      in-stock Copper Crown, sold-out tiles (2026-10-26)
 
 ## Stage 2 - Second look, switching proven
 

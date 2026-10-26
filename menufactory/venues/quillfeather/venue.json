@@ -15,7 +15,8 @@
   },
   "style": {
     "look": "lamplight",
-    "palette": "brass"
+    "palette": "brass",
+    "motion": "showtime"
   },
   "locations": [
     {
@@ -239,8 +240,11 @@
               "sold_out": true,
               "art": {
                 "glass": "coupe",
+                "liquid": "copper",
+                "garnish": "pear",
                 "extras": [
-                  "crown"
+                  "crown",
+                  "twinkle"
                 ]
               }
             }
