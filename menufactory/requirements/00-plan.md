@@ -22,13 +22,30 @@ alongside the look, not instead of it:
 | Missed calls | An estimated 40% of reservation calls go unanswered (source not named) | "Request a table" links to the venue's booking page (Resy, OpenTable or its own), beside the call button | P43 |
 | Accessibility lawsuits | Missouri saw about 85-100 suits over restaurant websites that do not work with screen readers in 2025; one KC deli got a demand letter 20 days after opening a second location. Missouri SB 907 (in force 2026-08-28) gives a business 90 days after a notice to fix the problems before a suit can proceed; Kansas has had a similar law since 2023. Suits increasingly target sites that use accessibility overlay widgets [6] | Accessible from day one: automated checks on every page in both motion levels, a manual keyboard and screen-reader pass on every look, no overlay widgets ever, and a promise to fix any reported problem well inside the 90 days | P13, P50, P52 |
 
-[1] MGH diner survey, via Loyalty360. [2] Yext, on inaccurate business hours. [3] DoorDash and
-SevenRooms 2026 trends report; QSR Magazine on the DoorDash study. [4] Bloom Intelligence on
-the Uberall AI study. [5] ChowNow on delivery commissions. [6] St. Louis Magazine and News
-Tribune (suit counts), KBIA (the KC deli, legislators), NFIB and Consentmo (SB 907),
-AccessibilityChecker (lawsuit statistics, overlays). These are the sources as the author's
-research named them; links are attached before any figure is used in public. What it says
-about the law is how the press reported it, not legal advice.
+Sources, as the author's research gave them (2026-10-26). Check each figure against its page
+before it is used in public; what they say about the law is how the press reported it, not
+legal advice.
+
+1. MGH diner survey, via Loyalty360:
+   <https://loyalty360.org/Content-Gallery/Daily-News/Bad-Website-Experiences-Scare-Away-Diners>
+2. Yext on inaccurate hours:
+   <https://investors.yext.com/news-events/press-releases/detail/32/yext-research-finds-that-nearly-half-of-u-s-consumers>
+3. DoorDash restaurant trends: <https://merchants.doordash.com/en-ca/restaurant-industry-trends>;
+   QSR Magazine on the DoorDash study:
+   <https://qsrmagazine.com/news/ai-is-reshaping-how-diners-discover-restaurants-doordash-study-finds>
+4. Bloom Intelligence on AI restaurant discovery: <https://bloomintelligence.com/blog/ai-restaurant-discovery/>
+5. ChowNow on delivery commissions:
+   <https://get.chownow.com/blog/direct-online-ordering-third-party-dependence/>
+6. St. Louis Magazine: <https://www.stlmag.com/news/ada-website-compliance-restaurants/>;
+   KBIA: <https://www.kbia.org/missouri-news/2026-02-13/legislators-fight-ada-website-lawsuits>;
+   News Tribune: <https://www.newstribune.com/news/2026/apr/28/bill-would-protect-businesses-against-predatory/>;
+   NFIB: <https://www.nfib.com/news/press-release/governor-kehoe-signs-bill-to-stop-ada-lawsuit-abuse-into-law/>;
+   Consentmo: <https://www.consentmo.com/blog-posts/us-response-ada-website-lawsuit-surge-shopify-merchants-guide>;
+   AccessibilityChecker: <https://www.accessibilitychecker.org/blog/ada-website-compliance-lawsuits/>
+7. KC restaurant costs, KCTV5:
+   <https://www.kctv5.com/2026/09/22/antons-closing-after-14-years-some-kc-restaurants-struggle-while-others-grow/>
+
+The 40% missed-calls figure has no source yet.
 
 **What Kansas City sites get wrong** - a check of 13 real KC sites in October 2026 (6
 cocktail bars, 7 independent restaurants; which ones is kept privately - problems are shown

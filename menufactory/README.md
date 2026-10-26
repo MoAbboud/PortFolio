@@ -34,11 +34,14 @@ From PowerShell, in this folder:
 
 ## Adding or changing a look
 
-1. Work in `looks-src/<look>/`: `look.json`, `look.js` (exports `render(root, venue, ctx)`),
+1. A new design from Claude Design: save the HTML export in `designs/<category>/` and run
+   `npm run unpack-design -- "designs/<category>/<file>.html"` to read it.
+2. Work in `looks-src/<look>/`: `look.json`, `look.js` (exports `render(root, venue, ctx)`),
    `look.css`, and any art.
-2. `npm run publish-looks` writes the obfuscated copy into `looks/<look>/`.
-3. `npm test` and `npm run check`.
-4. Commit `looks/` here, and `looks-src/` in its private repository.
+3. `npm run publish-looks` writes the obfuscated copy into `looks/<look>/`.
+4. `npm test` and `npm run check`.
+5. Commit `looks/` here, and `looks-src/` in its private repository.
 
+`looks/lamplight/` is the first real look, from the author's Claude Design design.
 `looks/starter/` is a scaffold that proves the pipeline. It is not a design and is never
 shown in the library.

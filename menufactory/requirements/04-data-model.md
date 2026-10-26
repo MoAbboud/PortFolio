@@ -136,6 +136,10 @@ erDiagram
 | `kind` | The category: `cocktail-bar`, `bar`, `restaurant` to start, the same names as the `designs/` folders; grows with the library. Filters the library; never stops a venue using a look made for another category |
 | `cuisine` | Free text for restaurants - "Mexican", "American". The library's Mexican and American looks are restaurant looks filtered by this |
 | `mode` | `preview` or `live`. Defaults to `preview` |
+| `style.palette` | One of the palettes the look offers in its `look.json` (Lamplight: `brass`, `ember`, `absinthe`). The quickest switch: same look, another mood |
+| `MENU_ITEM.art` | Optional. For looks that draw drinks: `glass` (`rocks`, `martini`, `collins`, `coupe`), `liquid` (`amber`, `red`, `clear`, `hibiscus`, `ink`, `honey`, `brine`, `pale`), `ice`, `garnish` (`orange-peel`, `lemon-peel`, `orange-wheel`, `lemon-wheel`, `lime-wheel`, `olive`, `orange-coin`), `extras` (`smoke`, `bubbles`, `twinkle`, `quill`, `lantern`, `fireworks`, `crown`), and `variants` keyed by a price label (the Martini's "dirty": olive, brine). An item without art is set as text |
+| `MENU_SECTION.display` | Optional: `feature`, `tiles` or `list`. Left out, the look decides - Lamplight stages the first drawn section, tiles the next, and sets undrawn ones as text |
+| `EVENT.icon` | Optional: `mask`. A small drawing on the event's card |
 | `phone_orders` | True when the venue takes orders by phone. The call button then reads "Call to order" (P43) |
 | `order_url` | The venue's own ordering page, https only. Shown as "Order online" after the call button. The site never takes an order itself |
 | `reserve_url` | The venue's booking page - Resy, OpenTable or its own - https only. Shown as "Request a table" |

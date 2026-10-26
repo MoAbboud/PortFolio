@@ -264,9 +264,12 @@ Obfuscation can cost a little speed; the stage 0 spike measures it on a real loo
 
 1. The author designs in Claude Design and exports standalone HTML into the right category
    folder under `designs/`. Claude Design now lives inside Claude: the standalone site
-   (claude.ai/design) closes on 2026-12-14, and a design is a Design canvas in Claude. If an
-   export is awkward, the author can send the canvas link instead; this side reads the
-   canvas and saves it into `designs/<category>/`.
+   (claude.ai/design) closes on 2026-12-14, and a design is a Design canvas in Claude. A
+   canvas keeps each artboard as a file (`project/<name>.dc.html`, Claude's own component
+   format, plus `project/canvas.json`), so the reliable hand-over is the canvas link: this side
+   reads those files and saves them into `designs/<category>/`. The canvas's Share > Export
+   menu is the alternative. Either way the artboards are a design, not a look: the spike
+   rewrites them as plain modules, and motion the canvas cannot show is described in words.
 2. **Stage 0 takes one real export through the steps below as a spike**, because how cleanly
    an export becomes a look decides how fast the library can grow.
 3. The fixed parts - layout, type, motion, art - stay as the design has them. Third-party
@@ -277,6 +280,43 @@ Obfuscation can cost a little speed; the stage 0 spike measures it on a real loo
 6. The look is rendered with every sample venue and checked in both motion levels. A long
    cocktail name, an 80-item menu, a venue with no interior photos must all still look
    designed.
+
+### What the spike found (2026-10-26, the first design: Lamplight)
+
+The author's first design, a cocktail bar page for the made-up Quillfeather Lounge, went from
+export to a checked look in one session. What that showed:
+
+- **The export is a bundle of bundles.** "Standalone HTML" is one page carrying its artboards
+  as gzipped, base64 entries; each artboard is itself a bundle of Claude's component markup,
+  Claude's own runtime, React from a CDN, and the fonts (latin subsets only). `npm run
+  unpack-design -- "<export>.html"` now unpacks it into `designs/<category>/unpacked/`. The
+  four artboards (more and less motion, phone and desktop) were one design with two settings
+  - motion, and an accent palette (Brass, Ember, Absinthe) - not four designs.
+- **The motion was plain CSS.** Keyframes, an IntersectionObserver for sections arriving, a
+  scroll-linked timeline, and SVG's own animation for one morph. No React or GSAP needed in
+  the look. The stylesheet came over nearly verbatim; `.is-more` / `.is-less` became
+  `[data-motion]`, which the shared button sets.
+- **Some art was the venue's, not the look's.** The drink drawings were made for named drinks
+  (a quill over the Inkwell, a paper lantern turning into a coupe). They became a small
+  glassware kit any menu can use - a glass, a liquid, ice, a garnish and extras, asked for per
+  item in `venue.json` (`art`, 04-data-model) - so Quillfeather still looks as designed and
+  another bar's menu draws its own drinks. The accent palettes became `style.palette`.
+- **The design had a placeholder** ("[About Quillfeather: ...]"); the look fills it from the
+  venue's `about`.
+- **Accessibility needed small fixes, all found by the checks:** the two-line name was read as
+  one word ("QuillfeatherLounge") by screen readers - a space between the lines fixed it;
+  ingredients (15px), prices (17px) and happy-hour prices (13px) were under the menu reading
+  sizes (P45) and went to 16, 18 and 16; the design's own motion button gave way to the shared
+  one, restyled to match it.
+- **Weight:** 222 KB on first load - 103 KB of fonts, 82 KB of script (obfuscation roughly
+  doubles the script), 33 KB of styles. The budget was set at 300 KB.
+- **Two bugs were the port's, not the design's,** and are worth knowing for the next one: a
+  CSS animation's `transform` replaces an SVG `transform` attribute, so anything animated must
+  be positioned by a wrapper that is not; and a design's `display` rule can override the
+  `hidden` attribute.
+
+The next design should take a fraction of the time: unpack, port the stylesheet, map the
+slots, run the checks.
 
 ## Less motion, more motion
 

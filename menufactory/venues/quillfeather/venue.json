@@ -10,9 +10,8 @@
   "mode": "live",
   "phone_orders": true,
   "style": {
-    "look": "starter",
-    "color_primary": "#c9a14a",
-    "color_accent": "#8a2b3a"
+    "look": "lamplight",
+    "palette": "brass"
   },
   "locations": [
     {
@@ -25,25 +24,106 @@
       "time_zone": "America/Chicago",
       "hours": {
         "mon": [],
-        "tue": [{ "opens": "17:00", "closes": "00:00" }],
-        "wed": [{ "opens": "17:00", "closes": "00:00" }],
-        "thu": [{ "opens": "17:00", "closes": "01:00" }],
-        "fri": [{ "opens": "16:00", "closes": "02:00" }],
-        "sat": [{ "opens": "16:00", "closes": "02:00" }],
-        "sun": [{ "opens": "15:00", "closes": "22:00" }]
+        "tue": [
+          {
+            "opens": "17:00",
+            "closes": "00:00"
+          }
+        ],
+        "wed": [
+          {
+            "opens": "17:00",
+            "closes": "00:00"
+          }
+        ],
+        "thu": [
+          {
+            "opens": "17:00",
+            "closes": "01:00"
+          }
+        ],
+        "fri": [
+          {
+            "opens": "16:00",
+            "closes": "02:00"
+          }
+        ],
+        "sat": [
+          {
+            "opens": "16:00",
+            "closes": "02:00"
+          }
+        ],
+        "sun": [
+          {
+            "opens": "15:00",
+            "closes": "22:00"
+          }
+        ]
       },
       "exceptions": [
-        { "from": "2026-11-26", "closed": true, "note": "Thanksgiving" },
-        { "from": "2026-12-24", "hours": [{ "opens": "15:00", "closes": "20:00" }], "note": "Christmas Eve" },
-        { "from": "2026-12-25", "closed": true, "note": "Christmas Day" },
-        { "from": "2026-12-31", "hours": [{ "opens": "16:00", "closes": "03:00" }], "note": "New Year's Eve" }
+        {
+          "from": "2026-11-26",
+          "closed": true,
+          "note": "Thanksgiving"
+        },
+        {
+          "from": "2026-12-24",
+          "hours": [
+            {
+              "opens": "15:00",
+              "closes": "20:00"
+            }
+          ],
+          "note": "Christmas Eve"
+        },
+        {
+          "from": "2026-12-25",
+          "closed": true,
+          "note": "Christmas Day"
+        },
+        {
+          "from": "2026-12-31",
+          "hours": [
+            {
+              "opens": "16:00",
+              "closes": "03:00"
+            }
+          ],
+          "note": "New Year's Eve"
+        }
       ],
       "happy_hour": {
-        "tue": [{ "starts": "17:00", "ends": "19:00" }],
-        "wed": [{ "starts": "17:00", "ends": "19:00" }],
-        "thu": [{ "starts": "17:00", "ends": "19:00" }],
-        "fri": [{ "starts": "16:00", "ends": "18:00" }],
-        "sun": [{ "starts": "15:00", "ends": "22:00" }]
+        "tue": [
+          {
+            "starts": "17:00",
+            "ends": "19:00"
+          }
+        ],
+        "wed": [
+          {
+            "starts": "17:00",
+            "ends": "19:00"
+          }
+        ],
+        "thu": [
+          {
+            "starts": "17:00",
+            "ends": "19:00"
+          }
+        ],
+        "fri": [
+          {
+            "starts": "16:00",
+            "ends": "18:00"
+          }
+        ],
+        "sun": [
+          {
+            "starts": "15:00",
+            "ends": "22:00"
+          }
+        ]
       }
     }
   ],
@@ -58,31 +138,107 @@
             {
               "name": "Inkwell",
               "description": "Dark, bitter, a little smoky. The one we are known for.",
-              "ingredients": ["mezcal", "amaro", "black walnut", "orange oil"],
-              "tags": ["house-favourite"],
-              "prices": [{ "amount": 16 }],
-              "happy_hour_price": 12
+              "ingredients": [
+                "mezcal",
+                "amaro",
+                "black walnut",
+                "orange oil"
+              ],
+              "tags": [
+                "house-favourite"
+              ],
+              "prices": [
+                {
+                  "amount": 16
+                }
+              ],
+              "happy_hour_price": 12,
+              "art": {
+                "glass": "rocks",
+                "liquid": "ink",
+                "garnish": "orange-coin",
+                "extras": [
+                  "smoke",
+                  "quill"
+                ]
+              }
             },
             {
               "name": "Paper Lantern",
               "description": "Bright and floral, served up.",
-              "ingredients": ["gin", "elderflower", "yuzu", "egg white"],
-              "prices": [{ "amount": 15 }],
-              "happy_hour_price": 11
+              "ingredients": [
+                "gin",
+                "elderflower",
+                "yuzu",
+                "egg white"
+              ],
+              "prices": [
+                {
+                  "amount": 15
+                }
+              ],
+              "happy_hour_price": 11,
+              "art": {
+                "glass": "coupe",
+                "liquid": "pale",
+                "garnish": "lemon-peel",
+                "extras": [
+                  "lantern"
+                ]
+              }
             },
             {
               "name": "The Long Goodnight With Burnt Honey, Cardamom and a Very Patient Bartender",
               "description": "A name this long is here on purpose: every look has to cope with it.",
-              "ingredients": ["aged rum", "burnt honey", "cardamom", "lemon", "soda"],
-              "tags": ["seasonal"],
-              "prices": [{ "amount": 17 }]
+              "ingredients": [
+                "aged rum",
+                "burnt honey",
+                "cardamom",
+                "lemon",
+                "soda"
+              ],
+              "tags": [
+                "seasonal"
+              ],
+              "prices": [
+                {
+                  "amount": 17
+                }
+              ],
+              "art": {
+                "glass": "collins",
+                "liquid": "honey",
+                "garnish": "lemon-wheel",
+                "extras": [
+                  "bubbles",
+                  "fireworks"
+                ]
+              }
             },
             {
               "name": "Copper Crown",
-              "ingredients": ["bourbon", "spiced pear", "lemon", "cinnamon"],
-              "tags": ["new", "seasonal"],
-              "prices": [{ "amount": 15 }],
-              "sold_out": true
+              "ingredients": [
+                "bourbon",
+                "spiced pear",
+                "lemon",
+                "cinnamon"
+              ],
+              "tags": [
+                "new",
+                "seasonal"
+              ],
+              "prices": [
+                {
+                  "amount": 15
+                }
+              ],
+              "sold_out": true,
+              "art": {
+                "glass": "coupe",
+                "extras": [
+                  "crown"
+                ]
+              }
             }
           ]
         },
@@ -90,17 +246,152 @@
           "name": "Classics",
           "note": "Made the way they were written down.",
           "items": [
-            { "name": "Old Fashioned", "ingredients": ["rye", "demerara", "bitters"], "prices": [{ "amount": 14 }], "happy_hour_price": 10 },
-            { "name": "Negroni", "ingredients": ["gin", "Campari", "sweet vermouth"], "prices": [{ "amount": 14 }], "happy_hour_price": 10 },
-            { "name": "Daiquiri", "ingredients": ["white rum", "lime", "sugar"], "prices": [{ "amount": 13 }] },
-            { "name": "Martini", "description": "Gin or vodka, dry or wet, olive or twist.", "prices": [{ "label": "classic", "amount": 15 }, { "label": "dirty", "amount": 16 }] }
+            {
+              "name": "Old Fashioned",
+              "ingredients": [
+                "rye",
+                "demerara",
+                "bitters"
+              ],
+              "prices": [
+                {
+                  "amount": 14
+                }
+              ],
+              "happy_hour_price": 10,
+              "art": {
+                "glass": "rocks",
+                "liquid": "amber",
+                "garnish": "orange-peel",
+                "extras": [
+                  "twinkle"
+                ]
+              }
+            },
+            {
+              "name": "Negroni",
+              "ingredients": [
+                "gin",
+                "Campari",
+                "sweet vermouth"
+              ],
+              "prices": [
+                {
+                  "amount": 14
+                }
+              ],
+              "happy_hour_price": 10,
+              "art": {
+                "glass": "rocks",
+                "liquid": "red",
+                "garnish": "orange-wheel",
+                "extras": [
+                  "twinkle"
+                ]
+              }
+            },
+            {
+              "name": "Daiquiri",
+              "ingredients": [
+                "white rum",
+                "lime",
+                "sugar"
+              ],
+              "prices": [
+                {
+                  "amount": 13
+                }
+              ],
+              "art": {
+                "glass": "coupe",
+                "liquid": "pale",
+                "garnish": "lime-wheel"
+              }
+            },
+            {
+              "name": "Martini",
+              "description": "Gin or vodka, dry or wet, olive or twist.",
+              "prices": [
+                {
+                  "label": "classic",
+                  "amount": 15
+                },
+                {
+                  "label": "dirty",
+                  "amount": 16
+                }
+              ],
+              "art": {
+                "glass": "martini",
+                "liquid": "clear",
+                "garnish": "lemon-peel",
+                "extras": [
+                  "twinkle"
+                ],
+                "variants": {
+                  "dirty": {
+                    "garnish": "olive",
+                    "liquid": "brine"
+                  }
+                }
+              }
+            }
           ]
         },
         {
           "name": "Zero-proof",
           "items": [
-            { "name": "Quiet Hours", "ingredients": ["hibiscus", "ginger", "lime", "soda"], "tags": ["zero-proof"], "prices": [{ "amount": 9 }] },
-            { "name": "Garden Tonic", "ingredients": ["cucumber", "basil", "tonic"], "tags": ["zero-proof", "vegan"], "prices": [{ "amount": 9 }] }
+            {
+              "name": "Quiet Hours",
+              "ingredients": [
+                "hibiscus",
+                "ginger",
+                "lime",
+                "soda"
+              ],
+              "tags": [
+                "zero-proof"
+              ],
+              "prices": [
+                {
+                  "amount": 9
+                }
+              ],
+              "art": {
+                "glass": "collins",
+                "liquid": "hibiscus",
+                "garnish": "lime-wheel",
+                "extras": [
+                  "bubbles",
+                  "twinkle"
+                ]
+              }
+            },
+            {
+              "name": "Garden Tonic",
+              "ingredients": [
+                "cucumber",
+                "basil",
+                "tonic"
+              ],
+              "tags": [
+                "zero-proof",
+                "vegan"
+              ],
+              "prices": [
+                {
+                  "amount": 9
+                }
+              ],
+              "art": {
+                "glass": "collins",
+                "liquid": "clear",
+                "garnish": "lime-wheel",
+                "extras": [
+                  "bubbles"
+                ]
+              }
+            }
           ]
         }
       ]
@@ -112,24 +403,96 @@
         {
           "name": "Small plates",
           "items": [
-            { "name": "Smoked almonds", "tags": ["vegan", "gluten-free"], "prices": [{ "amount": 6 }] },
-            { "name": "Truffle fries", "description": "Parmesan, chives, aioli.", "tags": ["vegetarian"], "prices": [{ "amount": 9 }], "happy_hour_price": 6 },
-            { "name": "Hot honey chicken bites", "tags": ["spicy"], "prices": [{ "amount": 12 }] },
-            { "name": "Oysters", "description": "Six, with mignonette.", "tags": ["gluten-free", "dairy-free"], "prices": [] }
+            {
+              "name": "Smoked almonds",
+              "tags": [
+                "vegan",
+                "gluten-free"
+              ],
+              "prices": [
+                {
+                  "amount": 6
+                }
+              ]
+            },
+            {
+              "name": "Truffle fries",
+              "description": "Parmesan, chives, aioli.",
+              "tags": [
+                "vegetarian"
+              ],
+              "prices": [
+                {
+                  "amount": 9
+                }
+              ],
+              "happy_hour_price": 6
+            },
+            {
+              "name": "Hot honey chicken bites",
+              "tags": [
+                "spicy"
+              ],
+              "prices": [
+                {
+                  "amount": 12
+                }
+              ]
+            },
+            {
+              "name": "Oysters",
+              "description": "Six, with mignonette.",
+              "tags": [
+                "gluten-free",
+                "dairy-free"
+              ],
+              "prices": []
+            }
           ]
         }
       ]
     }
   ],
   "events": [
-    { "title": "Live jazz trio", "date": "2026-10-29", "starts": "20:00", "repeats": "weekly", "description": "Every Thursday from eight." },
-    { "title": "Vinyl night", "date": "2026-10-30", "starts": "21:00", "repeats": "weekly", "description": "Bring a record; we will play it." },
-    { "title": "Masquerade", "date": "2026-10-31", "starts": "21:00", "description": "Masks at the door, a costume prize at midnight." },
-    { "title": "Rare spirits tasting", "date": "2026-11-05", "starts": "19:00", "repeats": "monthly", "description": "Six pours, one story each." }
+    {
+      "title": "Live jazz trio",
+      "date": "2026-10-29",
+      "starts": "20:00",
+      "repeats": "weekly",
+      "description": "Every Thursday from eight."
+    },
+    {
+      "title": "Vinyl night",
+      "date": "2026-10-30",
+      "starts": "21:00",
+      "repeats": "weekly",
+      "description": "Bring a record; we will play it."
+    },
+    {
+      "title": "Masquerade",
+      "date": "2026-10-31",
+      "starts": "21:00",
+      "description": "Masks at the door, a costume prize at midnight.",
+      "icon": "mask"
+    },
+    {
+      "title": "Rare spirits tasting",
+      "date": "2026-11-05",
+      "starts": "19:00",
+      "repeats": "monthly",
+      "description": "Six pours, one story each."
+    }
   ],
   "notices": [
-    { "text": "Closed for Thanksgiving on November 26. Back on the 27th.", "starts": "2026-11-16", "ends": "2026-11-26" },
-    { "text": "This is a made-up bar. Nothing here is real.", "starts": "2026-01-01" }
+    {
+      "text": "Closed for Thanksgiving on November 26. Back on the 27th.",
+      "starts": "2026-11-16",
+      "ends": "2026-11-26"
+    },
+    {
+      "text": "This is a made-up bar. Nothing here is real.",
+      "starts": "2026-01-01"
+    }
   ],
   "photos": []
 }
