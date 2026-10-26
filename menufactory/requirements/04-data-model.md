@@ -157,6 +157,8 @@ erDiagram
 | `PRICE_OPTION` | One amount for most items; several for sizes or pours; none for "market price" |
 | `EVENT.repeats` | Empty, `weekly` or `monthly`. A past one-off event drops off at the next daily build |
 | `NOTICE` | Shown only between `starts` and `ends` |
+| `MENU.until` | Optional. The last day of a seasonal menu: the page stops showing it after that day, and the content check fails until it is updated |
+| `private_events` | Optional, for bars that take private events: `email` (where the inquiry goes) and `note` (the line above the form). Turns on the event inquiry (P47) |
 | `PHOTO.alt` | Required. In the admin, the upload screen asks "describe this photo" in plain words |
 | `PHOTO.use` | `hero`, `gallery`, `drink`, `dish`, `interior`, `bar`, `team`, `event` |
 | `SOCIAL_LINK.kind` | `instagram`, `facebook`, `tiktok`, `google`, `yelp`, `other`. Ordering and booking are their own fields above, not social links |

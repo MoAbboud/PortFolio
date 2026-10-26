@@ -175,6 +175,8 @@ the looks nothing.
 | Calling in comes first. Then the site links to the venue's own ordering page and booking page (Resy, OpenTable or its own) - "Order online" and "Request a table". It never takes an order, a booking or a payment itself, and embeds no third-party widget | 2026-10-23; revised 2026-10-26 |
 | The six industry problems - bad sites, wrong hours, invisible to AI search, delivery fees, missed calls, accessibility - are goals alongside the look | 2026-10-26 |
 | Accessibility is a priority, built in from the first look (P41 to P45 settled with it) | 2026-10-26 |
+| Weight budget per look: 300 KB on first load to start | 2026-10-26 |
+| No words cut off by padding, boxes or the motion button, at any width - checked | 2026-10-26 |
 | Library order: cocktail bars, then Mexican, then American | 2026-10-23 |
 | Designs are filed by category: cocktail bar, bar, restaurant, and more as the library grows | 2026-10-25 |
 | The designs are kept out of public source control and made as hard to copy as is practical | 2026-10-25 |
@@ -235,15 +237,15 @@ Numbers are kept stable so answers can refer to them. Revised and retired ones s
 | P38 | An invisible signature in each look's code and art | No way to prove a copy |
 | P39 | Revised for AI search: AI search and answer crawlers are welcome on venue pages - that is the point of P41. Only AI training crawlers (GPTBot, CCBot, Google-Extended) are asked to skip `looks/` and `shared/`, the code. Google's own crawler is never blocked from them, since it needs them to draw the page | Asking AI crawlers to keep out of all of `/menufactory/` (previous draft) - it would hide the venues from the AI answers the goals are about |
 | P40 | A copyright notice in every look and the library; contracts license a look, never sell its code | Relying on the default alone |
-| P41 | Settled 2026-10-26: content pre-rendered into each venue's `index.html` (03-architecture) | |
-| P42 | Settled 2026-10-26: structured data with hours, holiday hours and the full menu | |
+| P41 | Settled and built 2026-10-26: `npm run prerender` writes each venue's content into its `index.html`; a test fails when a page is out of step | |
+| P42 | Settled and built 2026-10-26: schema.org JSON-LD with hours, holiday hours and every item with its price | |
 | P43 | Settled 2026-10-26, widened: call button first ("Call to order" with `phone_orders`), then "Order online" (`order_url`) and "Request a table" (`reserve_url`) when the venue has them. Built in the schema and the starter look | |
 | P44 | Settled and built 2026-10-26: name, open-now line, menu link and call button on the first screen at 390x844 | |
 | P45 | Settled and built 2026-10-26: item names and prices at least 18px, details at least 16px at 390px | |
 | P46 | The five-minute audit: `npm run audit <url>` checks a prospect's current site - a text menu or not, hours on the home page, links that go nowhere, template leftovers, an old copyright year, tap-to-call, accessibility (axe) - and writes a one-page report into a private, gitignored `audits/` folder for the author to show the owner in person | Pitching without looking at their site |
-| P47 | An event inquiry for bars - date, headcount, budget, contact - that opens the guest's email app with the details filled in, addressed to the venue. No server, no form service | No inquiry at all; a third-party form service |
+| P47 | Settled and built 2026-10-26: the event inquiry - date, guests, budget, name, contact - opens the guest's email app with the message written (`private_events` in venue.json) | |
 | P48 | The monthly plan includes upkeep, not only look switches: hours and holiday hours (on the site and checked against the Google Business Profile), seasonal menus, events, and watching the domain's renewal | Switching looks only |
-| P49 | A content check in the tests: no zero prices, no placeholder text ("lorem", "write your caption", "menu item"), seasonal menus with an end date flagged once it has passed, the copyright year set by the page, never typed | Trusting every edit |
+| P49 | Settled and built 2026-10-26: the content check (`tools/content-check.mjs`) in the tests - zero prices, placeholder text, a seasonal menu past its `until` date, a typed copyright line | |
 | P50 | No accessibility overlay widgets, ever - suits increasingly target sites that use them | Offering one as a quick fix |
 | P51 | A link check: every order, booking and social link must answer; run in the monthly upkeep and before every launch, outside the per-push tests so a slow outside site cannot fail a commit | Links checked by hand |
 | P52 | A manual accessibility pass on every look before it enters the library: keyboard only, NVDA on Windows, VoiceOver on an iPhone, written up. Automated checks find only part of what a screen-reader user meets | Automated checks alone |

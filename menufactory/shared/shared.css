@@ -18,6 +18,49 @@
   backdrop-filter: blur(6px);
 }
 
+/* An icon beside the words: two still lines for "less motion", waves for "more motion". A
+   look colours it with --motion-toggle-icon. */
+.motion-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.motion-toggle::before {
+  content: "";
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  background: var(--motion-toggle-icon, currentColor);
+  -webkit-mask: var(--motion-icon) center / contain no-repeat;
+  mask: var(--motion-icon) center / contain no-repeat;
+}
+
+.motion-toggle[data-level='more'] {
+  --motion-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M4 9h16M4 15h16'/%3E%3C/svg%3E");
+}
+
+.motion-toggle[data-level='less'] {
+  --motion-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M3 9q3-3 6 0t6 0 6 0M3 15q3-3 6 0t6 0 6 0'/%3E%3C/svg%3E");
+}
+
+/* On the narrowest phones the bottom of the first screen is full of the page's own text and
+   buttons: the button moves to the top-right corner, keeps its 44px target and its name for
+   screen readers, and shows only the icon. A look keeps that corner clear at this width. */
+@media (max-width: 359px) {
+  /* Doubled class: wins over a look's own button styles, which load after this file. */
+  .motion-toggle.motion-toggle {
+    top: max(12px, env(safe-area-inset-top));
+    bottom: auto;
+    width: 44px;
+    padding: 0;
+    gap: 0;
+    justify-content: center;
+    font-size: 0;
+    letter-spacing: 0;
+  }
+}
+
 .motion-toggle:focus-visible {
   outline: 3px solid var(--motion-toggle-focus, #ffd27a);
   outline-offset: 3px;

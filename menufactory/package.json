@@ -9,7 +9,8 @@
     "serve": "node tools/serve.mjs",
     "pin-libs": "node tools/pin-libs.mjs",
     "publish-looks": "node tools/publish-looks.mjs",
-    "unpack-design": "node tools/unpack-design.mjs"
+    "unpack-design": "node tools/unpack-design.mjs",
+    "prerender": "node tools/prerender.mjs"
   },
   "engines": {
     "node": ">=22"

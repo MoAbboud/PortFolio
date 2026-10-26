@@ -320,6 +320,11 @@ slots, run the checks.
 
 ## Less motion, more motion
 
+On phones under 360px wide the button would sit over the page's own text and buttons, so
+it moves to the top-right corner and shows only its icon - still a 44px target, still
+named "Less motion" or "More motion" for screen readers and as a tooltip. A look keeps that
+corner clear at that width (Lamplight hides its three small section links there).
+
 A visible button on every page of every site and of the library (settled), with two settings:
 
 - **More motion**: the look's full show.
@@ -412,7 +417,11 @@ Picked up after the animations and the core idea work. Still compatible with Pag
 | Content first | Main content visible before the art finishes loading |
 | Weight budget | Within the look's budget |
 | No build needed | The published folder works when served as plain files, exactly as Pages will |
-| Phone width | Every page at 390px with no sideways scrolling, screenshots kept |
+| Widths | Every page at 320px (WCAG reflow), 390px, 768px and 1280px with no sideways scrolling, screenshots kept |
+| No words cut off | Every visible piece of text inside every box that clips it and inside the page, after scrolling the whole page through; a strip that scrolls sideways answers for its own edges |
+| Nothing under the motion button | No text under the button on the first screen, nor - for a button at the bottom - at the end of the page |
+| Event inquiry | Filled in and sent in Chrome; the email it opens carries what was typed (P47) |
+| JavaScript off | The page still shows the name, hours, phone and menu (P41) |
 | Preview mode | `noindex` and the preview bar on every preview page |
 | Readable without JavaScript | Every venue's `index.html` holds its name, hours, address, phone and full menu as text, matching its `venue.json` (P41) |
 | Structured data | Valid, with weekly hours, holiday hours and the menu (P42) |
