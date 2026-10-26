@@ -41,6 +41,7 @@ erDiagram
         text language
         text currency
         text mode
+        bool phone_orders
     }
     STYLE {
         text look
@@ -133,6 +134,7 @@ erDiagram
 | `kind` | The category: `cocktail-bar`, `bar`, `restaurant` to start, the same names as the `designs/` folders; grows with the library. Filters the library; never stops a venue using a look made for another category |
 | `cuisine` | Free text for restaurants - "Mexican", "American". The library's Mexican and American looks are restaurant looks filtered by this |
 | `mode` | `preview` or `live`. Defaults to `preview` |
+| `phone_orders` | True when the venue takes orders by phone. The call button then reads "Call to order" (P43). There is no online ordering |
 | `STYLE.look` | The name of a look. The one value a switch changes. Unknown names stop the build |
 | `STYLE` colours | Optional. Each look's `look.json` says whether it accepts them |
 | `logo`, `logo_light` | The venue's logo; a light version for dark looks |

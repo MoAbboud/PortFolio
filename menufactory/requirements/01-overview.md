@@ -27,6 +27,21 @@ The choices on offer are a site builder they pay every month and still have to d
 themselves, the free page that comes with their payment system, or an agency that charges
 thousands for a custom site that is then frozen for years.
 
+And the basics go wrong, across the whole industry:
+
+- **Sites turn guests away.** Most diners look at a restaurant's website before they go,
+  and many are put off by one: hard to get around, a menu that is hard to read, a dated
+  look, a page that does not work on a phone.
+- **The hours are wrong.** People turn up to a closed door because the hours online were
+  out of date.
+- **AI search cannot see them.** More guests ask an AI assistant where to eat. Those
+  assistants can read a menu written as text, but not a photo of one, and most restaurants
+  never come up.
+- **Delivery apps take a cut.** A large share of every order placed through them.
+- **Calls go unanswered.** Many calls to book a table are never picked up.
+
+Menu Factory is built to fix the first four, and the fifth is being worked on.
+
 ## What a restaurant gets
 
 | Capability | Description |
@@ -36,10 +51,13 @@ thousands for a custom site that is then frozen for years.
 | Switch the look | On the monthly plan, the restaurant can ask to move to another look in the library whenever it wants a change, and the switch is made once it is approved. Nothing is re-entered |
 | Less motion, more motion | A button on every page: the full show, or a calmer version of the same design. It starts from the guest's own device setting and remembers their choice |
 | Owner admin | A simple page where the owner changes the menu, prices, hours, happy hour, events, notices and photos, previews the change and publishes it. The design itself is not editable there, so it cannot be broken |
-| A real menu | Every dish and drink as text: name, description, ingredients, price, and marks such as vegetarian, spicy or zero-proof |
+| A real menu | Every dish and drink as text: name, description, ingredients, price, and marks such as vegetarian, spicy or zero-proof. Large enough to read on a phone, never a photo or a PDF |
+| Found by AI search | The menu, hours and address are written into the page as plain text, with the details search engines, maps and AI assistants read, so the restaurant can come up when a guest asks where to eat |
 | Open now and happy hour | Whether the place is open right now, and whether it is happy hour, in its own time zone, including late nights and holidays |
+| The right hours everywhere | The owner changes hours, holiday hours included, in a minute; search engines and maps read the same hours from the page |
 | Events and notices | Live music, DJ nights, specials and closures, each with dates, gone on their own when the date passes |
-| Find and call | Address with directions in the guest's own maps app, a phone number that dials when tapped |
+| Call in | A call button at the top of every page. For places that take phone orders it reads "Call to order": the order goes straight to the restaurant, with no delivery-app commission |
+| Find it | Address with directions in the guest's own maps app |
 | Its own domain | The restaurant owns its domain name, in its own name |
 
 Planned for later: the restaurant's Google reviews on the site, with the owner choosing which
@@ -69,8 +87,8 @@ own kind; any look works with any menu.
 
 ## What it does not do
 
-- Online ordering, delivery or reservations. A Menu Factory site is the restaurant's own
-  site, not a front for an ordering service.
+- Online ordering, delivery or reservations - not for now. Guests order by calling. A Menu
+  Factory site is the restaurant's own site, not a front for an ordering service.
 - Take payments of any kind.
 - Collect guests' personal details. No sign-ups, no tracking cookies.
 - Let the owner edit the design. Owners control their content; the art stays as designed.

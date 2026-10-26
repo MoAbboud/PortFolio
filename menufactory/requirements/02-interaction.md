@@ -85,11 +85,16 @@ only moving part is the owner's save, which is a commit that republishes the sit
 - Letting a non-technical owner change their content safely, with a preview and an undo, and
   without any way to change the design.
 - Showing a guest, quickly, whether the place is open, what it serves and where it is.
+- Keeping the hours right, and the same everywhere a guest might read them.
+- Being readable by search engines and AI assistants: the menu, hours and address as text in
+  the page itself.
+- Turning a visit into a call: the call button always in the first screen.
 - Being honest in outreach: who is writing, what it costs, how to say no.
 
 ## What the system does not care about
 
-- Ordering, delivery, reservations, carts or checkout, from any service.
+- Online ordering, delivery, reservations, carts or checkout, from any service - for now.
+  Ordering is by phone.
 - Payments.
 - Guests' identities. No guest accounts, no newsletter sign-up, no cookies. The only accounts
   are owners' logins to the admin.

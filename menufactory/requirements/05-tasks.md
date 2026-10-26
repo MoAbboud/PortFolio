@@ -76,7 +76,14 @@ of every sample venue.
       tags as icon plus text
 - [ ] Events, past one-off events dropped
 - [ ] Notices with start and end dates
-- [ ] schema.org `BarOrPub` block, validated
+- [ ] `tools/prerender.mjs` (P41): name, call button, address, weekly and holiday hours and
+      the whole menu as plain HTML in each venue's `index.html`; `render.js` removes it once
+      the look has drawn; a test that every page matches its `venue.json`
+- [ ] Structured data (P42): `BarOrPub` / `Restaurant`, opening and special hours, the full
+      menu with prices - validated
+- [ ] Call button in the first screen, "Call to order" when `phone_orders` is set (P43)
+- [ ] First-screen check at 390px: name, open-now line, menu link, call button (P44)
+- [ ] Menu type-size check at 390px (P45)
 - [ ] Images: resized, location data stripped, `alt` required
 - [ ] The full show and the designed calm version
 - [ ] Content first: main content visible within the target before the art loads
@@ -134,6 +141,8 @@ of every sample venue.
       domain, every step written down
 - [ ] Domain hook-up with the domain in someone else's account
 - [ ] A look switch on the live test site, end to end
+- [ ] Hours check: at launch, the site's hours and the Google Business Profile's agree; a
+      monthly reminder to the owner to keep them so (wrong hours online: 44%)
 - [ ] The domain lock (P37) allowing that domain, and refusing others
 
 ## Stage 7 - Business kit and fair prices

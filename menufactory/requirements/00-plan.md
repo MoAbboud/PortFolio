@@ -10,6 +10,20 @@ before they arrive. Each venue gets the look that fits its identity, an elevated
 without an agency's fee, a simple admin to keep its content current, and on the monthly plan
 the freedom to switch to another look. Tired of your basic site? Switch up the look.
 
+**It also answers five problems the whole industry has** (author, 2026-10-26). They are goals
+alongside the look, not instead of it:
+
+| Problem | Evidence the author gathered | What Menu Factory does about it | Where |
+| --- | --- | --- | --- |
+| A bad site turns guests away | A 2019 US survey: 77% of diners check a restaurant's website before going, and 68% have been put off by one - hard navigation 33%, hard-to-read menus 30%, a dated look 30%. 36% skipped ordering because the site did not work on a phone | A designed look (the dated look); the menu as large, real text with section links (the hard-to-read menu); everything a guest came for within one tap of the top (the navigation); every page checked at phone width (the phone) | The looks; P44, P45 |
+| Wrong hours online | A Yext survey: 44% went to a closed business in the past year because the hours online were wrong | Open now worked out live, holiday exceptions, owners change hours themselves; the same hours written for search engines and maps; a check at launch, and monthly after, that the Google Business Profile says the same | `shared/hours.js` (built); P42; stage 6 |
+| Invisible to AI search | 22% of diners have used ChatGPT or Gemini to pick a restaurant, but only 39% of operators have updated their listings for it; a 2026 study found 83% of restaurant locations never appear in AI answers. AI tools can read a text menu, not a photo of one | The menu, hours and address written into the page itself as plain text and structured data, so assistants and crawlers that do not run JavaScript can read them | P41, P42 |
+| Delivery fees | DoorDash and Uber Eats take 20-30% of each order; Uber Eats raised its fees in March 2026 | No online ordering yet. A "Call to order" button at the top of every page for venues that take phone orders: the order goes straight to the restaurant with no commission | P43 |
+| Missed calls | An estimated 40% of reservation calls go unanswered | Not solved yet - and a site that pushes guests to call makes it worse. Open question 9 | Open |
+
+The numbers are the author's research. Each needs its source linked before it appears in
+anything public - the overview, the library, an outreach email.
+
 **The core comes first.** The animations and the idea working, then the business end:
 Google reviews, prices and the rest wait until the looks prove themselves (author,
 2026-10-23).
@@ -19,7 +33,7 @@ It is a freelance business first and a portfolio project second.
 **It runs on GitHub Pages** (author, 2026-10-25): plain files, no server, no build step, the
 same way the rest of the portfolio is published. See 03-architecture, "The constraint".
 
-Finished, for the first version, when six things are true:
+Finished, for the first version, when seven things are true:
 
 1. At least two cocktail bar looks are in the library, each with a full show and a designed
    calm version, passing every check in 03-architecture in both.
@@ -30,7 +44,9 @@ Finished, for the first version, when six things are true:
 4. The library page shows every look and works on a phone.
 5. A non-technical owner can change a price, mark a drink sold out and add an event from a
    phone, preview it, publish it, and undo it, without help.
-6. One real venue is live on its own domain.
+6. A venue's menu, hours and address can be read from its page with JavaScript turned off,
+   and its structured data - menu and holiday hours included - validates.
+7. One real venue is live on its own domain.
 
 There are no dates in this plan. Stages are ordered by what each one needs from the one
 before it.
@@ -113,7 +129,8 @@ the looks nothing.
 | Every look reads the same content (was P1) | Follows from the plans |
 | Venues' own photos and logos, in previews too | 2026-10-23 |
 | The author designs the looks and the motion, with Claude Design; this design may propose looks | 2026-10-23 |
-| No online ordering and no third-party ordering services. The site stands on its own | 2026-10-23 |
+| No online ordering for now - guests order by calling in. No third-party ordering services. The site stands on its own | 2026-10-23; "not yet" and calling in, 2026-10-26 |
+| The five industry problems - bad sites, wrong hours, invisible to AI search, delivery fees, missed calls - are goals alongside the look | 2026-10-26 |
 | Library order: cocktail bars, then Mexican, then American | 2026-10-23 |
 | Designs are filed by category: cocktail bar, bar, restaurant, and more as the library grows | 2026-10-25 |
 | The designs are kept out of public source control and made as hard to copy as is practical | 2026-10-25 |
@@ -172,8 +189,13 @@ Numbers are kept stable so answers can refer to them. Revised and retired ones s
 | P36 | Settled - see above. Built: `looks-src/` is gitignored and holds the private repository; `npm run publish-looks` writes the obfuscated copy | |
 | P37 | Looks draw nothing when run on a domain that is not allowed | No check |
 | P38 | An invisible signature in each look's code and art | No way to prove a copy |
-| P39 | The domain's `robots.txt` asks AI and archive crawlers to keep out of `/menufactory/` | Nothing; Cloudflare's proxy and bot blocking for the whole domain |
+| P39 | Revised for AI search: AI search and answer crawlers are welcome on venue pages - that is the point of P41. Only AI training crawlers (GPTBot, CCBot, Google-Extended) are asked to skip `looks/` and `shared/`, the code. Google's own crawler is never blocked from them, since it needs them to draw the page | Asking AI crawlers to keep out of all of `/menufactory/` (previous draft) - it would hide the venues from the AI answers the goals are about |
 | P40 | A copyright notice in every look and the library; contracts license a look, never sell its code | Relying on the default alone |
+| P41 | Every venue's `index.html` carries its content as plain HTML - name, address, phone, weekly and holiday hours, the full menu - plus structured data, written from `venue.json` by `tools/prerender.mjs`. Run by the author's tools and by the publish workflow when an owner saves; a test fails if a page is out of step with its JSON. The look draws over it | Content only in the JSON, filled in by the browser (previous design) - most AI crawlers do not run JavaScript, so to them the page was empty |
+| P42 | schema.org structured data: `BarOrPub` or `Restaurant` with address, phone, opening hours, special (holiday) hours, price range and the full menu (`Menu`, `MenuSection`, `MenuItem` with prices) | Name and address only |
+| P43 | A tap-to-call button in the first screen of every look, labelled "Call to order" when the venue takes phone orders (a `phone_orders` flag) and "Call" otherwise | A phone number further down the page |
+| P44 | A browser check that the name, the open-now line, the menu link and the call button are on screen without scrolling at 390px | Judged by eye |
+| P45 | Menu readability for every look: item names and prices at least 18px and details at least 16px on a phone, prices lined up, every section one tap from the top of the menu | Left to each look |
 
 ## Open questions
 
@@ -189,6 +211,12 @@ Numbers are kept stable so answers can refer to them. Revised and retired ones s
 7. **The business side** - sole proprietor or LLC, a Kansas City licence, invoicing.
 8. **Where the library lives** - `moabboud.dev/menufactory/` to start; its own domain once
    the name is final.
+9. **Missed calls and booking.** The problem is real, and "call to order" adds calls. A
+   booking system needs a third party (OpenTable, Resy - ruled out so far) or a server (Pages
+   has none). Options that fit the site as it is: a "best times to call" line, a text-message
+   link beside the call button, or a booking request that opens the guest's email app. Or
+   booking becomes its own later decision.
+10. **Sources for the statistics** - each linked before any public use.
 
 ## Tabled questions
 
@@ -283,6 +311,8 @@ when it starts.
 | GSAP's licence | Free for commercial use; its one restriction is on visual animation builders, which the admin is not |
 | Cold email law differs by country | Kansas City first; each country's rule written down before emailing there |
 | Accessibility lawsuits against small US business sites | P13, checked on every look in both motion levels |
+| AI assistants and crawlers that do not run JavaScript see an empty page | P41: the content is in the HTML file itself, with structured data (P42); checked |
+| "Call to order" sends more calls to restaurants that already miss 40% of them | Open question 9 before the first client |
 | A look is copied from the live site | Nothing shown in a browser can be fully hidden; P36 to P40 make a copy harder to make, unable to run as-is, and provable |
 | A look only works with its own sample text | Every look rendered with every sample, including a long menu and missing photos |
 | A root `.gitignore` rule silently hides a new folder (as `vendor/` did to codevscode) | `git check-ignore -v` on every new folder; third-party code in `lib/` |

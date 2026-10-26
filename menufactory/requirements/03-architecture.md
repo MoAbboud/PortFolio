@@ -60,16 +60,36 @@ motion button and, on previews, the preview bar - a look cannot leave either out
 `?look=<name>` on a venue's address shows it in another look, for the library, the owner's
 Look screen and the checks.
 
-With JavaScript turned off, a venue page shows only a short note: the content is in the JSON.
-The pre-render script below is also the answer to that, if a client needs it.
+With JavaScript turned off, a venue page shows its pre-rendered content (below): the name,
+hours, address, phone and the whole menu as plain text. Only the live lines and the motion
+need JavaScript.
 
 **Switching look is one value in the venue's JSON.** Nothing else changes.
 
-**Search engines.** Because the menu is filled in by the browser, the page's text is not in
-the HTML file itself. Google runs JavaScript and reads pages like this; other crawlers do so
-less reliably. For the showcase this does not matter. If a paying venue needs it, the upgrade
-is a small script that writes the content into the HTML before it is committed - still plain
-files on Pages - or Astro. Decided when a client needs it, not before.
+**Readable by search engines and AI assistants: the pre-render (P41).** AI search is one of
+the goals (00-plan), and most AI crawlers read a page's HTML without running its JavaScript.
+A page whose menu only exists after the browser fills it in is empty to them. So
+`tools/prerender.mjs` writes each venue's content into its `index.html`, between two
+markers, from `venue.json`:
+
+- the `<title>` and description;
+- structured data as JSON-LD (P42): `BarOrPub` or `Restaurant` with address, phone, price
+  range, `openingHoursSpecification` for the week and `specialOpeningHoursSpecification` for
+  holidays, and the full menu as `Menu`, `MenuSection` and `MenuItem` with prices;
+- a plain, semantic copy of the name, the call button, the address, the weekly hours and the
+  whole menu.
+
+When the look has drawn, `render.js` removes the plain copy; the look shows the same
+content. The live open-now line cannot be pre-rendered - it depends on the minute the page
+is opened - so the plain copy carries the weekly hours table instead.
+
+It runs when content changes: from the author's tools (`npm run prerender`), and in the
+publish workflow when an owner's save lands - a node script, as `build-static.mjs` already
+is. Pages still serves plain files. A test fails if any venue's `index.html` is out of step
+with its `venue.json`, so a stale page cannot be published.
+
+This reverses the earlier "decided when a client needs it": the AI-search goal makes it a
+requirement for every venue.
 
 ## Components
 
@@ -174,7 +194,7 @@ The layers, from strongest to weakest:
 | Readable look source off GitHub | Each look's readable, commented source lives in a private repository (free on GitHub). One script writes a compacted, obfuscated copy into `looks/` for publishing - still plain files, still Pages. The public repository and the live site only ever hold the obfuscated copy | Proposed (P36) |
 | A copy does not run elsewhere | The look's code checks it is on an allowed domain and draws nothing otherwise. A determined person can remove the check; a lifted page does not simply work | Proposed (P37) |
 | A copy can be proven | An invisible signature in each look's code and art, so a copy can be shown to be one | Proposed (P38) |
-| Crawlers asked to stay out | The domain's `robots.txt` asks AI and archive crawlers to keep out of `/menufactory/`. Only well-behaved crawlers obey. Blocking outright would need Cloudflare's proxy turned on for the whole domain, which changes the portfolio's hosting - not proposed now | Proposed (P39) |
+| Training crawlers asked to skip the code | The domain's `robots.txt` asks AI training crawlers (GPTBot, CCBot, Google-Extended) to skip `looks/` and `shared/`. Venue pages stay open to every search and answer crawler - being found by AI search is a goal. Only well-behaved crawlers obey | Proposed (P39, revised 2026-10-26) |
 | Copyright | The repository has no licence file, so its contents are all rights reserved by default: others may view them, not reuse them. Each look carries a copyright notice; client contracts license the use of a look, never ownership of its code; a copy found online can be taken down with a DMCA notice | In place by default; notices proposed (P40) |
 
 The trade-off of P36: Menu Factory's look code stops being readable in the public portfolio.
@@ -297,3 +317,7 @@ Picked up after the animations and the core idea work. Still compatible with Pag
 | No build needed | The published folder works when served as plain files, exactly as Pages will |
 | Phone width | Every page at 390px with no sideways scrolling, screenshots kept |
 | Preview mode | `noindex` and the preview bar on every preview page |
+| Readable without JavaScript | Every venue's `index.html` holds its name, hours, address, phone and full menu as text, matching its `venue.json` (P41) |
+| Structured data | Valid, with weekly hours, holiday hours and the menu (P42) |
+| First screen | Name, open-now line, menu link and call button on screen without scrolling at 390px (P44) |
+| Menu type sizes | Item names and prices at least 18px, details at least 16px at 390px (P45) |
