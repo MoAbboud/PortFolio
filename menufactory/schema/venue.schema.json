@@ -26,6 +26,7 @@
       "additionalProperties": false,
       "properties": {
         "look": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+        "palette": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "description": "One of the palettes the look offers (its look.json). Ignored by looks without palettes." },
         "color_primary": { "$ref": "#/definitions/color" },
         "color_accent": { "$ref": "#/definitions/color" },
         "logo": { "type": "string" },
@@ -58,6 +59,7 @@
               "properties": {
                 "name": { "type": "string" },
                 "note": { "type": "string" },
+                "display": { "enum": ["feature", "tiles", "list"], "description": "How a look sets the section. Left out, the look decides." },
                 "items": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/item" } }
               }
             }
@@ -77,6 +79,7 @@
           "starts": { "$ref": "#/definitions/time" },
           "repeats": { "enum": ["weekly", "monthly"] },
           "description": { "type": "string" },
+          "icon": { "enum": ["mask"] },
           "photo": { "type": "string" }
         }
       }
@@ -223,8 +226,32 @@
         },
         "happy_hour_price": { "type": "number", "minimum": 0 },
         "photo": { "type": "string" },
-        "sold_out": { "type": "boolean" }
+        "sold_out": { "type": "boolean" },
+        "art": { "$ref": "#/definitions/art" }
       }
-    }
+    },
+    "art": {
+      "type": "object",
+      "description": "A drawn drink, for looks that draw them: a glass, a liquid, ice, a garnish and extras.",
+      "required": ["glass"],
+      "additionalProperties": false,
+      "properties": {
+        "glass": { "enum": ["rocks", "martini", "collins", "coupe"] },
+        "liquid": { "enum": ["amber", "red", "clear", "hibiscus", "ink", "honey", "brine", "pale"] },
+        "ice": { "type": "boolean" },
+        "garnish": { "$ref": "#/definitions/garnish" },
+        "extras": { "type": "array", "uniqueItems": true, "items": { "enum": ["smoke", "bubbles", "twinkle", "quill", "lantern", "fireworks", "crown"] } },
+        "variants": {
+          "type": "object",
+          "description": "Keyed by a price label: what changes when the guest picks that version.",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": { "garnish": { "$ref": "#/definitions/garnish" }, "liquid": { "enum": ["amber", "red", "clear", "hibiscus", "ink", "honey", "brine", "pale"] } }
+          }
+        }
+      }
+    },
+    "garnish": { "enum": ["none", "orange-peel", "lemon-peel", "orange-wheel", "lemon-wheel", "lime-wheel", "olive", "orange-coin"] }
   }
 }

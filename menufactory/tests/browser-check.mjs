@@ -132,6 +132,19 @@ for (const slug of venues) {
             if (small.length) fail(where, `menu type sizes: ${small.join('; ')}`);
           }
 
+          // Scroll through like a guest, so sections that come in as they arrive have arrived
+          // before the accessibility check and the full-page screenshot.
+          await page.evaluate(async () => {
+            for (let y = 0; y < document.documentElement.scrollHeight; y += Math.round(innerHeight * 0.6)) {
+              window.scrollTo({ top: y, behavior: 'instant' });
+              await new Promise((r) => setTimeout(r, 120));
+            }
+            window.scrollTo({ top: 0, behavior: 'instant' });
+          });
+          await new Promise((r) => setTimeout(r, 1500));
+          const hidden = await page.evaluate(() => document.querySelectorAll('.wait').length);
+          if (hidden) fail(where, `${hidden} section(s) never arrived after scrolling through the page`);
+
           await page.addScriptTag({ content: AXE });
           const axe = await page.evaluate(async () => {
             const result = await window.axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] } });

@@ -49,11 +49,10 @@ Nothing is started. Stage 0 can begin once the author has answered P3 to P5 in 0
       one level after GitHub Desktop created it inside `looks-src/`). Its first commit of the
       starter look is the author's
 - [x] The obfuscation is seeded, so an unchanged look publishes byte for byte the same
-- [ ] **Spike: one real Claude Design export** (the author makes it) taken through
-      "From a design to a look" in 03-architecture: venue content in its slots, both motion
-      levels, rendered at 390px and 1280px. Write what worked and what did not into
-      03-architecture
-- [ ] Weight budgets proposed from the spike's real numbers, agreed with the author
+- [x] **Spike: one real Claude Design export** taken through "From a design to a look" -
+      Lamplight, 2026-10-26. Findings in 03-architecture, "What the spike found"
+- [x] `npm run unpack-design` for the next export
+- [~] Weight budgets: Lamplight 222 KB against a proposed 300 KB; the author to agree
 - [x] Browser checks set up (puppeteer-core and the installed Chrome): open a page, switch the motion
       button, take screenshots
 
@@ -70,12 +69,13 @@ of every sample venue.
 
 ## Stage 1 - First cocktail bar look
 
-- [ ] The author's design built into `looks/<name>/` with `look.json`
-- [ ] Home: name, logo, open-now and happy-hour lines, phone, address readable at once
-- [ ] Menu: sections, jump links, ingredients, prices and pours, happy hour prices marked,
-      tags as icon plus text
-- [ ] Events, past one-off events dropped
-- [ ] Notices with start and end dates
+- [x] The author's design built into `looks/lamplight/` with `look.json` (2026-10-26)
+- [x] Home: name, open-now and happy-hour lines, call, directions, readable at once. A logo
+      slot waits for a venue that has one
+- [x] Menu: sections, jump links, ingredients, prices and pours, happy hour prices, tags,
+      drawn drinks from the glassware kit, priced variants (the Martini)
+- [x] Events, past one-off events dropped
+- [x] Notices with start and end dates
 - [ ] `tools/prerender.mjs` (P41): name, call button, address, weekly and holiday hours and
       the whole menu as plain HTML in each venue's `index.html`; `render.js` removes it once
       the look has drawn; a test that every page matches its `venue.json`
@@ -91,9 +91,11 @@ of every sample venue.
       end date, copyright year never typed (P49)
 - [ ] Manual accessibility pass on the first look: keyboard, NVDA, VoiceOver, written up (P52)
 - [ ] Images: resized, location data stripped, `alt` required
-- [ ] The full show and the designed calm version
+- [x] The full show and the designed calm version
 - [ ] Content first: main content visible within the target before the art loads
-- [ ] Checks pass in both motion levels: axe-core AA, weight budget, Lighthouse, 390px
+      (measured with Lighthouse, not yet run)
+- [x] Checks pass in both motion levels: axe-core AA, weight budget, first screen, type
+      sizes, 390px and 1280px. Lighthouse still to add
 - [ ] Readable with JavaScript off, apart from the live lines and motion
 
 ## Stage 2 - Second look, switching proven

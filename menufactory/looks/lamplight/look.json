@@ -1,0 +1,17 @@
+{
+  "name": "Lamplight",
+  "category": "cocktail-bar",
+  "description": "Low light and slow motion: glows, smoke, a swaying feather, drinks drawn and poured as they arrive. Designed by the author in Claude Design.",
+  "pages": [
+    "home"
+  ],
+  "photo_uses": [],
+  "accepts_venue_colours": false,
+  "palettes": [
+    "brass",
+    "ember",
+    "absinthe"
+  ],
+  "uses": [],
+  "budget_kb": 300
+}
