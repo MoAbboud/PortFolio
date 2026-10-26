@@ -81,9 +81,15 @@ of every sample venue.
       the look has drawn; a test that every page matches its `venue.json`
 - [ ] Structured data (P42): `BarOrPub` / `Restaurant`, opening and special hours, the full
       menu with prices - validated
-- [ ] Call button in the first screen, "Call to order" when `phone_orders` is set (P43)
-- [ ] First-screen check at 390px: name, open-now line, menu link, call button (P44)
-- [ ] Menu type-size check at 390px (P45)
+- [x] Call button first, "Call to order" when `phone_orders` is set; "Order online" and
+      "Request a table" when `order_url` / `reserve_url` are set (P43) - schema, renderer and
+      starter look, 2026-10-26
+- [x] First-screen check at 390x844: name, open-now line, menu link, call button (P44)
+- [x] Menu type-size check at 390px (P45); the `data-role` marks every look must carry
+- [ ] Event inquiry for bars that opens the guest's email app (P47)
+- [ ] Content check in the tests: zero prices, placeholder text, seasonal menus past their
+      end date, copyright year never typed (P49)
+- [ ] Manual accessibility pass on the first look: keyboard, NVDA, VoiceOver, written up (P52)
 - [ ] Images: resized, location data stripped, `alt` required
 - [ ] The full show and the designed calm version
 - [ ] Content first: main content visible within the target before the art loads
@@ -143,6 +149,9 @@ of every sample venue.
 - [ ] A look switch on the live test site, end to end
 - [ ] Hours check: at launch, the site's hours and the Google Business Profile's agree; a
       monthly reminder to the owner to keep them so (wrong hours online: 44%)
+- [ ] Link check (P51): every order, booking and social link answers
+- [ ] Domain renewal date recorded and watched (P48) - one KC venue lost its domain to a
+      spam site
 - [ ] The domain lock (P37) allowing that domain, and refusing others
 
 ## Stage 7 - Business kit and fair prices
@@ -158,6 +167,11 @@ Not code. Lives in the private tracker, except where marked.
 - [ ] Business registration and whether Kansas City needs a licence
 - [ ] Outreach emails, CAN-SPAM compliant
 - [ ] Private tracker
+
+- [ ] The five-minute audit, `npm run audit <url>`, into a private `audits/` folder (P46)
+- [ ] What the monthly plan includes (P48), and the accessibility promise for contracts:
+      the target, the checks, a fix well inside SB 907's 90 days - not legal compliance
+- [ ] Links for every source in the research, before any figure is used in public
 
 ## Stage 8 - First outreach
 

@@ -175,6 +175,63 @@ online business. A restaurant's information site sold as a paid service may fall
 side of that. Because the files are plain, the same site moves to Cloudflare Pages (free, and
 allows commercial use) with no code change. Open question in 00-plan.
 
+## What a look must mark
+
+The checks find the parts of a page that matter by a `data-role` attribute, so they work on
+any look, however it is designed. Every look marks:
+
+| `data-role` | On |
+| --- | --- |
+| `open-now` | The live open-now line |
+| `menu-link` | The link to the menu |
+| `call` | The call button |
+| `order`, `reserve` | The "Order online" and "Request a table" buttons, when the venue has them |
+| `item-name`, `price`, `item-detail` | Each menu item's name, its prices, its ingredients and description |
+
+## Calling, ordering and booking
+
+Calling in comes first (author, 2026-10-26): a guest who calls puts the order straight into
+the restaurant, with no delivery-app commission. The call button is in the first screen of
+every look and reads "Call to order" when the venue sets `phone_orders`.
+
+After it, two plain links when the venue has them: "Order online" to `order_url`, the
+venue's own ordering page, and "Request a table" to `reserve_url` - Resy, OpenTable or its
+own. The site embeds nothing from them and passes them nothing. When a venue has a
+commission-free ordering page of its own as well as a delivery app, the own page is the one
+linked.
+
+For bars, an event inquiry (P47) asks for the date, headcount, budget and how to reach the
+guest, then opens the guest's email app with a message to the venue already written. Nothing
+is stored or sent by the site.
+
+Every outside link must answer. A link check (P51) runs before launch and in the monthly
+upkeep, not on every push, so a slow restaurant booking page cannot fail a commit.
+
+## Accessibility
+
+A priority (author, 2026-10-26), and a legal exposure for the clients: Missouri saw about
+85-100 suits over restaurant websites in 2025. The target is WCAG 2.1 AA.
+
+- **Automated, on every push:** axe-core on every page of every look with every sample, in
+  both motion levels, at phone and desktop width; the first-screen and menu type-size checks.
+- **By hand, on every look before it enters the library (P52):** keyboard only (every
+  control reachable, focus always visible, no trap); NVDA on Windows and VoiceOver on an
+  iPhone (the name, open-now line, menu sections and prices read in a sensible order; buttons
+  say what they do). Written up per look. Automated checks find only part of what a
+  screen-reader user meets.
+- **Never an overlay widget (P50).** They do not fix the page, and suits increasingly name
+  sites that use them.
+- **For clients:** the contract promises the target, the checks and a fix for any reported
+  problem well inside the 90 days Missouri's SB 907 allows - not legal compliance.
+
+## The five-minute audit (P46)
+
+`npm run audit <url>` opens a prospect's current site in the same headless Chrome and
+writes a one-page report into `audits/`, a private, gitignored folder: is the menu text or
+an image or PDF, are the hours on the home page, do any links go nowhere, are there template
+leftovers or an old copyright year, does the phone number dial on tap, and what axe-core
+finds. The author takes it to the owner in person; it is never published.
+
 ## Protecting the designs
 
 The author asked whether the designs can be hidden from copying tools and from source
@@ -321,3 +378,6 @@ Picked up after the animations and the core idea work. Still compatible with Pag
 | Structured data | Valid, with weekly hours, holiday hours and the menu (P42) |
 | First screen | Name, open-now line, menu link and call button on screen without scrolling at 390px (P44) |
 | Menu type sizes | Item names and prices at least 18px, details at least 16px at 390px (P45) |
+| Content check | No zero prices, no placeholder text, no seasonal menu past its end date (P49) |
+| Links answer | Every order, booking and social link answers - before launch and monthly (P51) |
+| Manual accessibility pass | Keyboard, NVDA and VoiceOver, written up - every look before the library (P52) |

@@ -39,8 +39,12 @@ And the basics go wrong, across the whole industry:
   never come up.
 - **Delivery apps take a cut.** A large share of every order placed through them.
 - **Calls go unanswered.** Many calls to book a table are never picked up.
+- **Sites shut people out.** Many restaurant sites do not work with a screen reader, and in
+  Missouri and Kansas that has become a steady stream of lawsuits.
+- **Sites go stale.** Last season's menu, a special that ended months ago, a booking button
+  that goes nowhere, a domain that lapsed.
 
-Menu Factory is built to fix the first four, and the fifth is being worked on.
+Menu Factory is built to answer every one of them.
 
 ## What a restaurant gets
 
@@ -56,8 +60,11 @@ Menu Factory is built to fix the first four, and the fifth is being worked on.
 | Open now and happy hour | Whether the place is open right now, and whether it is happy hour, in its own time zone, including late nights and holidays |
 | The right hours everywhere | The owner changes hours, holiday hours included, in a minute; search engines and maps read the same hours from the page |
 | Events and notices | Live music, DJ nights, specials and closures, each with dates, gone on their own when the date passes |
-| Call in | A call button at the top of every page. For places that take phone orders it reads "Call to order": the order goes straight to the restaurant, with no delivery-app commission |
+| Call, order, book | Calling in comes first: a call button at the top of every page, "Call to order" for places that take phone orders, so the order goes straight to the restaurant with no delivery-app commission. Then "Order online" to the restaurant's own ordering page and "Request a table" to its booking page (Resy, OpenTable or its own), when it has them |
+| Private events | For bars: an event inquiry that asks for the date, headcount and budget and goes straight to the venue |
 | Find it | Address with directions in the guest's own maps app |
+| Kept current | On the monthly plan: hours and holiday hours, seasonal menus, events, the hours on Google checked against the site, every button checked to work, and the domain's renewal watched |
+| Usable by everyone | Built to the WCAG 2.1 AA accessibility guidelines from the first day: works with a keyboard and a screen reader, readable text, motion that can be turned down. Checked automatically on every change and by hand on every look. No accessibility overlay widgets |
 | Its own domain | The restaurant owns its domain name, in its own name |
 
 Planned for later: the restaurant's Google reviews on the site, with the owner choosing which
@@ -87,8 +94,9 @@ own kind; any look works with any menu.
 
 ## What it does not do
 
-- Online ordering, delivery or reservations - not for now. Guests order by calling. A Menu
-  Factory site is the restaurant's own site, not a front for an ordering service.
+- Take orders, bookings or payments itself. Guests call, or follow a link to the
+  restaurant's own ordering or booking page. A Menu Factory site is the restaurant's own
+  site, not a front for an ordering service.
 - Take payments of any kind.
 - Collect guests' personal details. No sign-ups, no tracking cookies.
 - Let the owner edit the design. Owners control their content; the art stays as designed.

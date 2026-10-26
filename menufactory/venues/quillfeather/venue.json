@@ -8,6 +8,7 @@
   "language": "en-US",
   "currency": "USD",
   "mode": "live",
+  "phone_orders": true,
   "style": {
     "look": "starter",
     "color_primary": "#c9a14a",

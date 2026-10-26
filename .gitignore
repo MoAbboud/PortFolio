@@ -168,3 +168,6 @@ menufactory/node_modules/
 menufactory/looks-src/
 # Screenshots and reports from the browser check; regenerated on every run.
 menufactory/tests/output/
+# Five-minute audits of prospects' current sites (P46). Problems are shown to an owner in
+# private, never in public.
+menufactory/audits/

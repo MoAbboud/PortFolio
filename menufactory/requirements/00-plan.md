@@ -10,19 +10,43 @@ before they arrive. Each venue gets the look that fits its identity, an elevated
 without an agency's fee, a simple admin to keep its content current, and on the monthly plan
 the freedom to switch to another look. Tired of your basic site? Switch up the look.
 
-**It also answers five problems the whole industry has** (author, 2026-10-26). They are goals
+**It also answers six problems the industry has** (author, 2026-10-26). They are goals
 alongside the look, not instead of it:
 
-| Problem | Evidence the author gathered | What Menu Factory does about it | Where |
+| Problem | Evidence (the author's research) | What Menu Factory does about it | Where |
 | --- | --- | --- | --- |
-| A bad site turns guests away | A 2019 US survey: 77% of diners check a restaurant's website before going, and 68% have been put off by one - hard navigation 33%, hard-to-read menus 30%, a dated look 30%. 36% skipped ordering because the site did not work on a phone | A designed look (the dated look); the menu as large, real text with section links (the hard-to-read menu); everything a guest came for within one tap of the top (the navigation); every page checked at phone width (the phone) | The looks; P44, P45 |
-| Wrong hours online | A Yext survey: 44% went to a closed business in the past year because the hours online were wrong | Open now worked out live, holiday exceptions, owners change hours themselves; the same hours written for search engines and maps; a check at launch, and monthly after, that the Google Business Profile says the same | `shared/hours.js` (built); P42; stage 6 |
-| Invisible to AI search | 22% of diners have used ChatGPT or Gemini to pick a restaurant, but only 39% of operators have updated their listings for it; a 2026 study found 83% of restaurant locations never appear in AI answers. AI tools can read a text menu, not a photo of one | The menu, hours and address written into the page itself as plain text and structured data, so assistants and crawlers that do not run JavaScript can read them | P41, P42 |
-| Delivery fees | DoorDash and Uber Eats take 20-30% of each order; Uber Eats raised its fees in March 2026 | No online ordering yet. A "Call to order" button at the top of every page for venues that take phone orders: the order goes straight to the restaurant with no commission | P43 |
-| Missed calls | An estimated 40% of reservation calls go unanswered | Not solved yet - and a site that pushes guests to call makes it worse. Open question 9 | Open |
+| A bad site turns guests away | 2019 US survey: 77% of diners check a restaurant's website before going, 68% have been put off by one - hard navigation 33%, hard-to-read menus 30%, a dated look 30%; 36% skipped ordering because the site did not work on a phone [1] | A designed look (the dated look); the menu as large, real text with section links (the menu); what a guest came for in the first screen (the navigation); every page checked at phone width (the phone) | The looks; P44, P45 - checked |
+| Wrong hours online | 44% went to a closed business in the past year because the hours online were wrong [2] | Open now worked out live, holiday exceptions, owners change hours themselves, the same hours written for search engines and maps, and a check at launch and every month that the Google Business Profile agrees | `shared/hours.js` (built); P42; P48 |
+| Invisible to AI search | 22% of diners have used ChatGPT or Gemini to pick a restaurant; only 39% of operators have updated their listings for it [3]; a 2026 study: 83% of restaurant locations never appear in AI answers [4]. AI tools read a text menu, not a photo of one | The menu, hours and address written into the page itself as text and structured data | P41, P42 |
+| Delivery fees | DoorDash and Uber Eats take 20-30% of each order; Uber Eats raised its fees in March 2026 [5] | Calling in first: "Call to order" at the top of every page. Then a link to the venue's own ordering page, if it has one. The site never takes an order itself | P43 |
+| Missed calls | An estimated 40% of reservation calls go unanswered (source not named) | "Request a table" links to the venue's booking page (Resy, OpenTable or its own), beside the call button | P43 |
+| Accessibility lawsuits | Missouri saw about 85-100 suits over restaurant websites that do not work with screen readers in 2025; one KC deli got a demand letter 20 days after opening a second location. Missouri SB 907 (in force 2026-08-28) gives a business 90 days after a notice to fix the problems before a suit can proceed; Kansas has had a similar law since 2023. Suits increasingly target sites that use accessibility overlay widgets [6] | Accessible from day one: automated checks on every page in both motion levels, a manual keyboard and screen-reader pass on every look, no overlay widgets ever, and a promise to fix any reported problem well inside the 90 days | P13, P50, P52 |
 
-The numbers are the author's research. Each needs its source linked before it appears in
-anything public - the overview, the library, an outreach email.
+[1] MGH diner survey, via Loyalty360. [2] Yext, on inaccurate business hours. [3] DoorDash and
+SevenRooms 2026 trends report; QSR Magazine on the DoorDash study. [4] Bloom Intelligence on
+the Uberall AI study. [5] ChowNow on delivery commissions. [6] St. Louis Magazine and News
+Tribune (suit counts), KBIA (the KC deli, legislators), NFIB and Consentmo (SB 907),
+AccessibilityChecker (lawsuit statistics, overlays). These are the sources as the author's
+research named them; links are attached before any figure is used in public. What it says
+about the law is how the press reported it, not legal advice.
+
+**What Kansas City sites get wrong** - a check of 13 real KC sites in October 2026 (6
+cocktail bars, 7 independent restaurants; which ones is kept privately - problems are shown
+to an owner in private, never in public):
+
+| Finding | Sites | What Menu Factory does about it |
+| --- | --- | --- |
+| No text menu: PDFs, phone photos, a shared-drive file, empty pages, menu images without descriptions | 8 of 13 | The menu is text (P6, P41) |
+| No hours on the home page, or hours and addresses that disagree with each other | 7 of 13 | Hours and address come from one file, shown once and written once for search engines (P42) |
+| Stale content: last season's menu, a long-past special, an old copyright year | 6 of 13 | Seasonal menus carry an end date and are flagged when it passes; notices expire on their own; the copyright year is never typed by hand (P49) |
+| Template leftovers and dead buttons: "$0" items, placeholder captions, a template's footer, booking buttons that go nowhere | 5 of 13 | A content check refuses placeholders and zero prices (P49); every outside link is checked to answer (P51) |
+| No real way to book a private event | 11 of 13 | An event inquiry - date, headcount, budget - for bars (P47) |
+| A lost domain now hosting spam | 1 of 13 | Domain renewal watched as part of the monthly plan (P48) |
+
+They were built on Wix (4), WordPress (4), Squarespace, Webflow, Duda and Toast - none on the
+restaurant platforms (BentoBox, Popmenu, Owner.com). The owners build them themselves. The
+real competition is a do-it-yourself site builder; the advantage is being local and
+hands-on, and keeping the site current.
 
 **The core comes first.** The animations and the idea working, then the business end:
 Google reviews, prices and the rest wait until the looks prove themselves (author,
@@ -33,7 +57,7 @@ It is a freelance business first and a portfolio project second.
 **It runs on GitHub Pages** (author, 2026-10-25): plain files, no server, no build step, the
 same way the rest of the portfolio is published. See 03-architecture, "The constraint".
 
-Finished, for the first version, when seven things are true:
+Finished, for the first version, when eight things are true:
 
 1. At least two cocktail bar looks are in the library, each with a full show and a designed
    calm version, passing every check in 03-architecture in both.
@@ -46,7 +70,9 @@ Finished, for the first version, when seven things are true:
    phone, preview it, publish it, and undo it, without help.
 6. A venue's menu, hours and address can be read from its page with JavaScript turned off,
    and its structured data - menu and holiday hours included - validates.
-7. One real venue is live on its own domain.
+7. Every look passes the automated accessibility checks in both motion levels and a manual
+   pass with a keyboard and a screen reader.
+8. One real venue is live on its own domain.
 
 There are no dates in this plan. Stages are ordered by what each one needs from the one
 before it.
@@ -129,8 +155,9 @@ the looks nothing.
 | Every look reads the same content (was P1) | Follows from the plans |
 | Venues' own photos and logos, in previews too | 2026-10-23 |
 | The author designs the looks and the motion, with Claude Design; this design may propose looks | 2026-10-23 |
-| No online ordering for now - guests order by calling in. No third-party ordering services. The site stands on its own | 2026-10-23; "not yet" and calling in, 2026-10-26 |
-| The five industry problems - bad sites, wrong hours, invisible to AI search, delivery fees, missed calls - are goals alongside the look | 2026-10-26 |
+| Calling in comes first. Then the site links to the venue's own ordering page and booking page (Resy, OpenTable or its own) - "Order online" and "Request a table". It never takes an order, a booking or a payment itself, and embeds no third-party widget | 2026-10-23; revised 2026-10-26 |
+| The six industry problems - bad sites, wrong hours, invisible to AI search, delivery fees, missed calls, accessibility - are goals alongside the look | 2026-10-26 |
+| Accessibility is a priority, built in from the first look (P41 to P45 settled with it) | 2026-10-26 |
 | Library order: cocktail bars, then Mexican, then American | 2026-10-23 |
 | Designs are filed by category: cocktail bar, bar, restaurant, and more as the library grows | 2026-10-25 |
 | The designs are kept out of public source control and made as hard to copy as is practical | 2026-10-25 |
@@ -191,11 +218,18 @@ Numbers are kept stable so answers can refer to them. Revised and retired ones s
 | P38 | An invisible signature in each look's code and art | No way to prove a copy |
 | P39 | Revised for AI search: AI search and answer crawlers are welcome on venue pages - that is the point of P41. Only AI training crawlers (GPTBot, CCBot, Google-Extended) are asked to skip `looks/` and `shared/`, the code. Google's own crawler is never blocked from them, since it needs them to draw the page | Asking AI crawlers to keep out of all of `/menufactory/` (previous draft) - it would hide the venues from the AI answers the goals are about |
 | P40 | A copyright notice in every look and the library; contracts license a look, never sell its code | Relying on the default alone |
-| P41 | Every venue's `index.html` carries its content as plain HTML - name, address, phone, weekly and holiday hours, the full menu - plus structured data, written from `venue.json` by `tools/prerender.mjs`. Run by the author's tools and by the publish workflow when an owner saves; a test fails if a page is out of step with its JSON. The look draws over it | Content only in the JSON, filled in by the browser (previous design) - most AI crawlers do not run JavaScript, so to them the page was empty |
-| P42 | schema.org structured data: `BarOrPub` or `Restaurant` with address, phone, opening hours, special (holiday) hours, price range and the full menu (`Menu`, `MenuSection`, `MenuItem` with prices) | Name and address only |
-| P43 | A tap-to-call button in the first screen of every look, labelled "Call to order" when the venue takes phone orders (a `phone_orders` flag) and "Call" otherwise | A phone number further down the page |
-| P44 | A browser check that the name, the open-now line, the menu link and the call button are on screen without scrolling at 390px | Judged by eye |
-| P45 | Menu readability for every look: item names and prices at least 18px and details at least 16px on a phone, prices lined up, every section one tap from the top of the menu | Left to each look |
+| P41 | Settled 2026-10-26: content pre-rendered into each venue's `index.html` (03-architecture) | |
+| P42 | Settled 2026-10-26: structured data with hours, holiday hours and the full menu | |
+| P43 | Settled 2026-10-26, widened: call button first ("Call to order" with `phone_orders`), then "Order online" (`order_url`) and "Request a table" (`reserve_url`) when the venue has them. Built in the schema and the starter look | |
+| P44 | Settled and built 2026-10-26: name, open-now line, menu link and call button on the first screen at 390x844 | |
+| P45 | Settled and built 2026-10-26: item names and prices at least 18px, details at least 16px at 390px | |
+| P46 | The five-minute audit: `npm run audit <url>` checks a prospect's current site - a text menu or not, hours on the home page, links that go nowhere, template leftovers, an old copyright year, tap-to-call, accessibility (axe) - and writes a one-page report into a private, gitignored `audits/` folder for the author to show the owner in person | Pitching without looking at their site |
+| P47 | An event inquiry for bars - date, headcount, budget, contact - that opens the guest's email app with the details filled in, addressed to the venue. No server, no form service | No inquiry at all; a third-party form service |
+| P48 | The monthly plan includes upkeep, not only look switches: hours and holiday hours (on the site and checked against the Google Business Profile), seasonal menus, events, and watching the domain's renewal | Switching looks only |
+| P49 | A content check in the tests: no zero prices, no placeholder text ("lorem", "write your caption", "menu item"), seasonal menus with an end date flagged once it has passed, the copyright year set by the page, never typed | Trusting every edit |
+| P50 | No accessibility overlay widgets, ever - suits increasingly target sites that use them | Offering one as a quick fix |
+| P51 | A link check: every order, booking and social link must answer; run in the monthly upkeep and before every launch, outside the per-push tests so a slow outside site cannot fail a commit | Links checked by hand |
+| P52 | A manual accessibility pass on every look before it enters the library: keyboard only, NVDA on Windows, VoiceOver on an iPhone, written up. Automated checks find only part of what a screen-reader user meets | Automated checks alone |
 
 ## Open questions
 
@@ -211,12 +245,10 @@ Numbers are kept stable so answers can refer to them. Revised and retired ones s
 7. **The business side** - sole proprietor or LLC, a Kansas City licence, invoicing.
 8. **Where the library lives** - `moabboud.dev/menufactory/` to start; its own domain once
    the name is final.
-9. **Missed calls and booking.** The problem is real, and "call to order" adds calls. A
-   booking system needs a third party (OpenTable, Resy - ruled out so far) or a server (Pages
-   has none). Options that fit the site as it is: a "best times to call" line, a text-message
-   link beside the call button, or a booking request that opens the guest's email app. Or
-   booking becomes its own later decision.
-10. **Sources for the statistics** - each linked before any public use.
+9. **P46 to P52** - the audit tool, the event inquiry, upkeep in the monthly plan, the
+   content check, no overlays, the link check, the manual accessibility pass.
+10. **Links for the sources** - the research names them; the links are needed before any
+    figure is used in public.
 
 ## Tabled questions
 
@@ -312,7 +344,9 @@ when it starts.
 | Cold email law differs by country | Kansas City first; each country's rule written down before emailing there |
 | Accessibility lawsuits against small US business sites | P13, checked on every look in both motion levels |
 | AI assistants and crawlers that do not run JavaScript see an empty page | P41: the content is in the HTML file itself, with structured data (P42); checked |
-| "Call to order" sends more calls to restaurants that already miss 40% of them | Open question 9 before the first client |
+| "Call to order" sends more calls to restaurants that already miss 40% of them | "Request a table" beside it sends bookings to the venue's booking page (P43) |
+| An order or booking button that goes nowhere - 5 of 13 KC sites had dead buttons | The link check (P51) before launch and every month |
+| Automated accessibility checks pass while a screen-reader user still cannot use the page | The manual pass on every look (P52) |
 | A look is copied from the live site | Nothing shown in a browser can be fully hidden; P36 to P40 make a copy harder to make, unable to run as-is, and provable |
 | A look only works with its own sample text | Every look rendered with every sample, including a long menu and missing photos |
 | A root `.gitignore` rule silently hides a new folder (as `vendor/` did to codevscode) | `git check-ignore -v` on every new folder; third-party code in `lib/` |

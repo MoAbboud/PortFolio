@@ -67,7 +67,16 @@ test('the schema refuses a photo without a description', () => {
   assert.equal(validate(bad), false);
 });
 
-test('the schema refuses an order, delivery or reservation link', () => {
+test('ordering and booking links must be https', () => {
+  const bad = structuredClone(JSON.parse(fs.readFileSync(path.join(ROOT, 'venues', venues[0], 'venue.json'), 'utf8')));
+  bad.order_url = 'http://example.com/order';
+  assert.equal(validate(bad), false);
+  bad.order_url = 'https://example.com/order';
+  bad.reserve_url = 'https://example.com/book';
+  assert.ok(validate(bad), JSON.stringify(validate.errors));
+});
+
+test('ordering and booking are their own fields, not social links', () => {
   const bad = structuredClone(JSON.parse(fs.readFileSync(path.join(ROOT, 'venues', venues[0], 'venue.json'), 'utf8')));
   bad.social = [{ kind: 'order', url: 'https://example.com' }];
   assert.equal(validate(bad), false);

@@ -17,6 +17,9 @@
     "language": { "type": "string", "pattern": "^[a-z]{2}(-[A-Z]{2})?$" },
     "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
     "mode": { "enum": ["preview", "live"] },
+    "phone_orders": { "type": "boolean", "description": "Takes orders by phone. The call button reads Call to order." },
+    "order_url": { "type": "string", "pattern": "^https://", "description": "The venue's own ordering page. The site links to it; it never takes an order itself." },
+    "reserve_url": { "type": "string", "pattern": "^https://", "description": "The venue's booking page (Resy, OpenTable or its own). The site links to it." },
     "style": {
       "type": "object",
       "required": ["look"],

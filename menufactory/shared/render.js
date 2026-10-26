@@ -101,6 +101,10 @@ export async function mount({ venueUrl = './venue.json', host = document.body } 
     price: priceFormatter(venue),
     directions: directionsUrl(place),
     tel: place.phone ? `tel:${place.phone.replace(/[^\d+]/g, '')}` : null,
+    // Calling in comes first: "Call to order" keeps the order off the delivery apps (P43).
+    callLabel: venue.phone_orders ? 'Call to order' : 'Call',
+    orderUrl: venue.order_url ?? null,
+    reserveUrl: venue.reserve_url ?? null,
     asset: (file) => new URL(file, venueHref).href,
     lookAsset: (file) => new URL(file, lookBase).href,
     hours,
