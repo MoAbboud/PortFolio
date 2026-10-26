@@ -45,7 +45,10 @@ Nothing is started. Stage 0 can begin once the author has answered P3 to P5 in 0
       exists, so the scaffold never goes live
 - [x] The obfuscation script, `npm run publish-looks` (P36). Still to measure: its cost on a
       real look's animation, in the spike
-- [ ] **Author: turn `looks-src/` into a private GitHub repository** (GitHub Desktop)
+- [x] `looks-src/` is a private GitHub repository, `menufactory-looks` (2026-10-25; moved up
+      one level after GitHub Desktop created it inside `looks-src/`). Its first commit of the
+      starter look is the author's
+- [x] The obfuscation is seeded, so an unchanged look publishes byte for byte the same
 - [ ] **Spike: one real Claude Design export** (the author makes it) taken through
       "From a design to a look" in 03-architecture: venue content in its slots, both motion
       levels, rendered at 390px and 1280px. Write what worked and what did not into
@@ -73,7 +76,20 @@ of every sample venue.
       tags as icon plus text
 - [ ] Events, past one-off events dropped
 - [ ] Notices with start and end dates
-- [ ] schema.org `BarOrPub` block, validated
+- [ ] `tools/prerender.mjs` (P41): name, call button, address, weekly and holiday hours and
+      the whole menu as plain HTML in each venue's `index.html`; `render.js` removes it once
+      the look has drawn; a test that every page matches its `venue.json`
+- [ ] Structured data (P42): `BarOrPub` / `Restaurant`, opening and special hours, the full
+      menu with prices - validated
+- [x] Call button first, "Call to order" when `phone_orders` is set; "Order online" and
+      "Request a table" when `order_url` / `reserve_url` are set (P43) - schema, renderer and
+      starter look, 2026-10-26
+- [x] First-screen check at 390x844: name, open-now line, menu link, call button (P44)
+- [x] Menu type-size check at 390px (P45); the `data-role` marks every look must carry
+- [ ] Event inquiry for bars that opens the guest's email app (P47)
+- [ ] Content check in the tests: zero prices, placeholder text, seasonal menus past their
+      end date, copyright year never typed (P49)
+- [ ] Manual accessibility pass on the first look: keyboard, NVDA, VoiceOver, written up (P52)
 - [ ] Images: resized, location data stripped, `alt` required
 - [ ] The full show and the designed calm version
 - [ ] Content first: main content visible within the target before the art loads
@@ -131,6 +147,11 @@ of every sample venue.
       domain, every step written down
 - [ ] Domain hook-up with the domain in someone else's account
 - [ ] A look switch on the live test site, end to end
+- [ ] Hours check: at launch, the site's hours and the Google Business Profile's agree; a
+      monthly reminder to the owner to keep them so (wrong hours online: 44%)
+- [ ] Link check (P51): every order, booking and social link answers
+- [ ] Domain renewal date recorded and watched (P48) - one KC venue lost its domain to a
+      spam site
 - [ ] The domain lock (P37) allowing that domain, and refusing others
 
 ## Stage 7 - Business kit and fair prices
@@ -146,6 +167,11 @@ Not code. Lives in the private tracker, except where marked.
 - [ ] Business registration and whether Kansas City needs a licence
 - [ ] Outreach emails, CAN-SPAM compliant
 - [ ] Private tracker
+
+- [ ] The five-minute audit, `npm run audit <url>`, into a private `audits/` folder (P46)
+- [ ] What the monthly plan includes (P48), and the accessibility promise for contracts:
+      the target, the checks, a fix well inside SB 907's 90 days - not legal compliance
+- [ ] Links for every source in the research, before any figure is used in public
 
 ## Stage 8 - First outreach
 

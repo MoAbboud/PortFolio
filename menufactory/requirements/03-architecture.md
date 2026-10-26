@@ -60,16 +60,36 @@ motion button and, on previews, the preview bar - a look cannot leave either out
 `?look=<name>` on a venue's address shows it in another look, for the library, the owner's
 Look screen and the checks.
 
-With JavaScript turned off, a venue page shows only a short note: the content is in the JSON.
-The pre-render script below is also the answer to that, if a client needs it.
+With JavaScript turned off, a venue page shows its pre-rendered content (below): the name,
+hours, address, phone and the whole menu as plain text. Only the live lines and the motion
+need JavaScript.
 
 **Switching look is one value in the venue's JSON.** Nothing else changes.
 
-**Search engines.** Because the menu is filled in by the browser, the page's text is not in
-the HTML file itself. Google runs JavaScript and reads pages like this; other crawlers do so
-less reliably. For the showcase this does not matter. If a paying venue needs it, the upgrade
-is a small script that writes the content into the HTML before it is committed - still plain
-files on Pages - or Astro. Decided when a client needs it, not before.
+**Readable by search engines and AI assistants: the pre-render (P41).** AI search is one of
+the goals (00-plan), and most AI crawlers read a page's HTML without running its JavaScript.
+A page whose menu only exists after the browser fills it in is empty to them. So
+`tools/prerender.mjs` writes each venue's content into its `index.html`, between two
+markers, from `venue.json`:
+
+- the `<title>` and description;
+- structured data as JSON-LD (P42): `BarOrPub` or `Restaurant` with address, phone, price
+  range, `openingHoursSpecification` for the week and `specialOpeningHoursSpecification` for
+  holidays, and the full menu as `Menu`, `MenuSection` and `MenuItem` with prices;
+- a plain, semantic copy of the name, the call button, the address, the weekly hours and the
+  whole menu.
+
+When the look has drawn, `render.js` removes the plain copy; the look shows the same
+content. The live open-now line cannot be pre-rendered - it depends on the minute the page
+is opened - so the plain copy carries the weekly hours table instead.
+
+It runs when content changes: from the author's tools (`npm run prerender`), and in the
+publish workflow when an owner's save lands - a node script, as `build-static.mjs` already
+is. Pages still serves plain files. A test fails if any venue's `index.html` is out of step
+with its `venue.json`, so a stale page cannot be published.
+
+This reverses the earlier "decided when a client needs it": the AI-search goal makes it a
+requirement for every venue.
 
 ## Components
 
@@ -155,6 +175,63 @@ online business. A restaurant's information site sold as a paid service may fall
 side of that. Because the files are plain, the same site moves to Cloudflare Pages (free, and
 allows commercial use) with no code change. Open question in 00-plan.
 
+## What a look must mark
+
+The checks find the parts of a page that matter by a `data-role` attribute, so they work on
+any look, however it is designed. Every look marks:
+
+| `data-role` | On |
+| --- | --- |
+| `open-now` | The live open-now line |
+| `menu-link` | The link to the menu |
+| `call` | The call button |
+| `order`, `reserve` | The "Order online" and "Request a table" buttons, when the venue has them |
+| `item-name`, `price`, `item-detail` | Each menu item's name, its prices, its ingredients and description |
+
+## Calling, ordering and booking
+
+Calling in comes first (author, 2026-10-26): a guest who calls puts the order straight into
+the restaurant, with no delivery-app commission. The call button is in the first screen of
+every look and reads "Call to order" when the venue sets `phone_orders`.
+
+After it, two plain links when the venue has them: "Order online" to `order_url`, the
+venue's own ordering page, and "Request a table" to `reserve_url` - Resy, OpenTable or its
+own. The site embeds nothing from them and passes them nothing. When a venue has a
+commission-free ordering page of its own as well as a delivery app, the own page is the one
+linked.
+
+For bars, an event inquiry (P47) asks for the date, headcount, budget and how to reach the
+guest, then opens the guest's email app with a message to the venue already written. Nothing
+is stored or sent by the site.
+
+Every outside link must answer. A link check (P51) runs before launch and in the monthly
+upkeep, not on every push, so a slow restaurant booking page cannot fail a commit.
+
+## Accessibility
+
+A priority (author, 2026-10-26), and a legal exposure for the clients: Missouri saw about
+85-100 suits over restaurant websites in 2025. The target is WCAG 2.1 AA.
+
+- **Automated, on every push:** axe-core on every page of every look with every sample, in
+  both motion levels, at phone and desktop width; the first-screen and menu type-size checks.
+- **By hand, on every look before it enters the library (P52):** keyboard only (every
+  control reachable, focus always visible, no trap); NVDA on Windows and VoiceOver on an
+  iPhone (the name, open-now line, menu sections and prices read in a sensible order; buttons
+  say what they do). Written up per look. Automated checks find only part of what a
+  screen-reader user meets.
+- **Never an overlay widget (P50).** They do not fix the page, and suits increasingly name
+  sites that use them.
+- **For clients:** the contract promises the target, the checks and a fix for any reported
+  problem well inside the 90 days Missouri's SB 907 allows - not legal compliance.
+
+## The five-minute audit (P46)
+
+`npm run audit <url>` opens a prospect's current site in the same headless Chrome and
+writes a one-page report into `audits/`, a private, gitignored folder: is the menu text or
+an image or PDF, are the hours on the home page, do any links go nowhere, are there template
+leftovers or an old copyright year, does the phone number dial on tap, and what axe-core
+finds. The author takes it to the owner in person; it is never published.
+
 ## Protecting the designs
 
 The author asked whether the designs can be hidden from copying tools and from source
@@ -174,7 +251,7 @@ The layers, from strongest to weakest:
 | Readable look source off GitHub | Each look's readable, commented source lives in a private repository (free on GitHub). One script writes a compacted, obfuscated copy into `looks/` for publishing - still plain files, still Pages. The public repository and the live site only ever hold the obfuscated copy | Proposed (P36) |
 | A copy does not run elsewhere | The look's code checks it is on an allowed domain and draws nothing otherwise. A determined person can remove the check; a lifted page does not simply work | Proposed (P37) |
 | A copy can be proven | An invisible signature in each look's code and art, so a copy can be shown to be one | Proposed (P38) |
-| Crawlers asked to stay out | The domain's `robots.txt` asks AI and archive crawlers to keep out of `/menufactory/`. Only well-behaved crawlers obey. Blocking outright would need Cloudflare's proxy turned on for the whole domain, which changes the portfolio's hosting - not proposed now | Proposed (P39) |
+| Training crawlers asked to skip the code | The domain's `robots.txt` asks AI training crawlers (GPTBot, CCBot, Google-Extended) to skip `looks/` and `shared/`. Venue pages stay open to every search and answer crawler - being found by AI search is a goal. Only well-behaved crawlers obey | Proposed (P39, revised 2026-10-26) |
 | Copyright | The repository has no licence file, so its contents are all rights reserved by default: others may view them, not reuse them. Each look carries a copyright notice; client contracts license the use of a look, never ownership of its code; a copy found online can be taken down with a DMCA notice | In place by default; notices proposed (P40) |
 
 The trade-off of P36: Menu Factory's look code stops being readable in the public portfolio.
@@ -186,7 +263,10 @@ Obfuscation can cost a little speed; the stage 0 spike measures it on a real loo
 ## From a design to a look
 
 1. The author designs in Claude Design and exports standalone HTML into the right category
-   folder under `designs/`.
+   folder under `designs/`. Claude Design now lives inside Claude: the standalone site
+   (claude.ai/design) closes on 2026-12-14, and a design is a Design canvas in Claude. If an
+   export is awkward, the author can send the canvas link instead; this side reads the
+   canvas and saves it into `designs/<category>/`.
 2. **Stage 0 takes one real export through the steps below as a spike**, because how cleanly
    an export becomes a look decides how fast the library can grow.
 3. The fixed parts - layout, type, motion, art - stay as the design has them. Third-party
@@ -294,3 +374,10 @@ Picked up after the animations and the core idea work. Still compatible with Pag
 | No build needed | The published folder works when served as plain files, exactly as Pages will |
 | Phone width | Every page at 390px with no sideways scrolling, screenshots kept |
 | Preview mode | `noindex` and the preview bar on every preview page |
+| Readable without JavaScript | Every venue's `index.html` holds its name, hours, address, phone and full menu as text, matching its `venue.json` (P41) |
+| Structured data | Valid, with weekly hours, holiday hours and the menu (P42) |
+| First screen | Name, open-now line, menu link and call button on screen without scrolling at 390px (P44) |
+| Menu type sizes | Item names and prices at least 18px, details at least 16px at 390px (P45) |
+| Content check | No zero prices, no placeholder text, no seasonal menu past its end date (P49) |
+| Links answer | Every order, booking and social link answers - before launch and monthly (P51) |
+| Manual accessibility pass | Keyboard, NVDA and VoiceOver, written up - every look before the library (P52) |

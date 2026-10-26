@@ -25,6 +25,8 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'tests', 'output');
 const AXE = fs.readFileSync(path.join(ROOT, 'node_modules', 'axe-core', 'axe.min.js'), 'utf8');
 const WIDTHS = [390, 1280];
+// A phone's screen: 390 x 844 (iPhone 12 to 14). The first-screen check uses this height.
+const HEIGHT = { 390: 844, 1280: 900 };
 const LEVELS = ['more', 'less'];
 
 const CHROME = process.env.CHROME ?? (process.platform === 'win32'
@@ -55,7 +57,7 @@ async function openPage({ width, level, reduce = false }) {
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   page.on('requestfailed', (r) => errors.push(`request failed: ${r.url()}`));
-  await page.setViewport({ width, height: 900, deviceScaleFactor: 1 });
+  await page.setViewport({ width, height: HEIGHT[width] ?? 900, deviceScaleFactor: 1 });
   await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: reduce ? 'reduce' : 'no-preference' }]);
   if (level) await page.evaluateOnNewDocument((l) => localStorage.setItem('motion-level', l), level);
   return { page, errors };
@@ -99,6 +101,36 @@ for (const slug of venues) {
           if (state.button !== (level === 'more' ? 'Less motion' : 'More motion')) fail(where, `motion button says "${state.button}"`);
           if (!state.buttonVisible) fail(where, 'motion button is not visible on screen');
           if (state.sideways > 0) fail(where, `scrolls sideways by ${state.sideways}px`);
+
+          if (width === 390) {
+            // P44: what a guest came for is on the first screen, without scrolling.
+            const firstScreen = await page.evaluate((hasPhone) => {
+              const wanted = { name: 'h1', 'open-now line': '[data-role="open-now"]', 'menu link': '[data-role="menu-link"]' };
+              if (hasPhone) wanted['call button'] = '[data-role="call"]';
+              const missing = [];
+              for (const [label, selector] of Object.entries(wanted)) {
+                const el = document.querySelector(selector);
+                const r = el?.getBoundingClientRect();
+                if (!r || r.height === 0 || r.top < 0 || r.bottom > innerHeight) missing.push(label);
+              }
+              return missing;
+            }, Boolean(venue.locations[0].phone));
+            if (firstScreen.length) fail(where, `not on the first screen at 390x844: ${firstScreen.join(', ')}`);
+
+            // P45: menu text a guest can read on a phone.
+            const small = await page.evaluate(() => {
+              const rules = [['item-name', 18], ['price', 18], ['item-detail', 16]];
+              const out = [];
+              for (const [role, min] of rules) {
+                const els = [...document.querySelectorAll(`[data-role="${role}"]`)].filter((el) => el.getClientRects().length > 0);
+                if (els.length === 0) out.push(`no ${role} marked`);
+                const tooSmall = els.filter((el) => parseFloat(getComputedStyle(el).fontSize) < min);
+                if (tooSmall.length) out.push(`${tooSmall.length} ${role} under ${min}px (${getComputedStyle(tooSmall[0]).fontSize})`);
+              }
+              return out;
+            });
+            if (small.length) fail(where, `menu type sizes: ${small.join('; ')}`);
+          }
 
           await page.addScriptTag({ content: AXE });
           const axe = await page.evaluate(async () => {

@@ -15,8 +15,9 @@
 | Search engines and maps | External systems | Read the public site's details; often shown to a guest before the site itself |
 | Google Business Profile | External system, tabled | The source of reviews, once that work is picked up |
 
-There is no ordering, delivery or reservation service in this list. That is deliberate: a
-Menu Factory site stands on its own.
+| Ordering and booking pages | External systems | The venue's own choice: its online ordering page, Resy, OpenTable. The site links to them and does nothing more - no embedded widget, no data passed |
+
+Calling in comes first on every page; the ordering and booking links come after it.
 
 ## Interaction diagram
 
@@ -85,11 +86,19 @@ only moving part is the owner's save, which is a commit that republishes the sit
 - Letting a non-technical owner change their content safely, with a preview and an undo, and
   without any way to change the design.
 - Showing a guest, quickly, whether the place is open, what it serves and where it is.
+- Keeping the hours right, and the same everywhere a guest might read them.
+- Being readable by search engines and AI assistants: the menu, hours and address as text in
+  the page itself.
+- Turning a visit into a call: the call button always in the first screen, then the venue's
+  own ordering and booking pages one tap away.
+- Working for every guest from the first day: keyboard, screen reader, low vision, motion
+  sensitivity.
+- Staying current: no stale menus, no placeholder text, no buttons that go nowhere.
 - Being honest in outreach: who is writing, what it costs, how to say no.
 
 ## What the system does not care about
 
-- Ordering, delivery, reservations, carts or checkout, from any service.
+- Taking orders, bookings or payments itself. It links to the venue's own pages for those.
 - Payments.
 - Guests' identities. No guest accounts, no newsletter sign-up, no cookies. The only accounts
   are owners' logins to the admin.
