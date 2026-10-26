@@ -33,7 +33,10 @@ function apply() {
 
 function paint(button) {
   // The label says what the button will do.
-  button.textContent = level === 'more' ? 'Less motion' : 'More motion';
+  const label = level === 'more' ? 'Less motion' : 'More motion';
+  button.textContent = label;
+  // The same words as a tooltip, for the narrowest phones where only the icon shows.
+  button.title = label;
   button.dataset.level = level;
 }
 

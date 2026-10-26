@@ -9,6 +9,10 @@
   "currency": "USD",
   "mode": "live",
   "phone_orders": true,
+  "private_events": {
+    "email": "events@quillfeather.example",
+    "note": "The back room seats 30, and the whole bar takes 80. Tell us the night and roughly how many, and we will come back with what we can do."
+  },
   "style": {
     "look": "lamplight",
     "palette": "brass"

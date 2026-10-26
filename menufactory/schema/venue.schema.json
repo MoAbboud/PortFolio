@@ -19,6 +19,16 @@
     "mode": { "enum": ["preview", "live"] },
     "phone_orders": { "type": "boolean", "description": "Takes orders by phone. The call button reads Call to order." },
     "order_url": { "type": "string", "pattern": "^https://", "description": "The venue's own ordering page. The site links to it; it never takes an order itself." },
+    "private_events": {
+      "type": "object",
+      "description": "An event inquiry for bars (P47): date, guests, budget - sent from the guest's own email app to this address.",
+      "required": ["email"],
+      "additionalProperties": false,
+      "properties": {
+        "email": { "type": "string", "pattern": "^[^@ ]+@[^@ ]+[.][^@ ]+$" },
+        "note": { "type": "string" }
+      }
+    },
     "reserve_url": { "type": "string", "pattern": "^https://", "description": "The venue's booking page (Resy, OpenTable or its own). The site links to it." },
     "style": {
       "type": "object",
@@ -49,6 +59,7 @@
           "name": { "type": "string" },
           "served": { "type": "string" },
           "note": { "type": "string" },
+          "until": { "$ref": "#/definitions/date", "description": "Last day of a seasonal menu. The page stops showing it after this date, and the content check fails until it is updated." },
           "sections": {
             "type": "array",
             "minItems": 1,

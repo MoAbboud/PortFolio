@@ -52,7 +52,7 @@ Nothing is started. Stage 0 can begin once the author has answered P3 to P5 in 0
 - [x] **Spike: one real Claude Design export** taken through "From a design to a look" -
       Lamplight, 2026-10-26. Findings in 03-architecture, "What the spike found"
 - [x] `npm run unpack-design` for the next export
-- [~] Weight budgets: Lamplight 222 KB against a proposed 300 KB; the author to agree
+- [x] Weight budgets: 300 KB per look, agreed 2026-10-26. Lamplight is at about 227 KB
 - [x] Browser checks set up (puppeteer-core and the installed Chrome): open a page, switch the motion
       button, take screenshots
 
@@ -76,18 +76,18 @@ of every sample venue.
       drawn drinks from the glassware kit, priced variants (the Martini)
 - [x] Events, past one-off events dropped
 - [x] Notices with start and end dates
-- [ ] `tools/prerender.mjs` (P41): name, call button, address, weekly and holiday hours and
+- [x] `tools/prerender.mjs` (P41), `npm run prerender`, 2026-10-26: name, call button, address, weekly and holiday hours and
       the whole menu as plain HTML in each venue's `index.html`; `render.js` removes it once
       the look has drawn; a test that every page matches its `venue.json`
-- [ ] Structured data (P42): `BarOrPub` / `Restaurant`, opening and special hours, the full
+- [x] Structured data (P42), 2026-10-26 - still to paste into Google's Rich Results Test by hand: `BarOrPub` / `Restaurant`, opening and special hours, the full
       menu with prices - validated
 - [x] Call button first, "Call to order" when `phone_orders` is set; "Order online" and
       "Request a table" when `order_url` / `reserve_url` are set (P43) - schema, renderer and
       starter look, 2026-10-26
 - [x] First-screen check at 390x844: name, open-now line, menu link, call button (P44)
 - [x] Menu type-size check at 390px (P45); the `data-role` marks every look must carry
-- [ ] Event inquiry for bars that opens the guest's email app (P47)
-- [ ] Content check in the tests: zero prices, placeholder text, seasonal menus past their
+- [x] Event inquiry for bars that opens the guest's email app (P47), checked in Chrome
+- [x] Content check in the tests: zero prices, placeholder text, seasonal menus past their
       end date, copyright year never typed (P49)
 - [ ] Manual accessibility pass on the first look: keyboard, NVDA, VoiceOver, written up (P52)
 - [ ] Images: resized, location data stripped, `alt` required
@@ -96,7 +96,11 @@ of every sample venue.
       (measured with Lighthouse, not yet run)
 - [x] Checks pass in both motion levels: axe-core AA, weight budget, first screen, type
       sizes, 390px and 1280px. Lighthouse still to add
-- [ ] Readable with JavaScript off, apart from the live lines and motion
+- [x] Readable with JavaScript off, apart from the live lines and motion - checked in Chrome
+- [x] No words cut off at 320, 390, 768 and 1280px; nothing under the motion button on the
+      first screen; the button moves to the top corner under 360px
+- [ ] The heading font: the author is choosing between the current Cormorant Garamond and
+      three alternatives (preview in `designs/cocktail-bar/font-options.png`)
 
 ## Stage 2 - Second look, switching proven
 

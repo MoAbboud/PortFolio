@@ -17,6 +17,7 @@
 import { brand, previewBarText } from '../brand.js';
 import * as hours from './hours.js';
 import { initMotion, getMotion, onMotionChange, mountMotionButton } from './motion.js';
+import { inquiryLink } from './inquiry.js';
 
 const LIB = new URL('./lib/', import.meta.url);
 const loaded = new Map();
@@ -62,6 +63,11 @@ function directionsUrl(location) {
 }
 
 function showError(root, message) {
+  document.documentElement.classList.remove('js');
+  if (document.querySelector('[data-prerendered]')) {
+    root.remove();
+    return;
+  }
   root.innerHTML = `<div class="load-error"><h1>This page could not load</h1><p>${esc(message)}</p></div>`;
 }
 
@@ -87,6 +93,10 @@ export async function mount({ venueUrl = './venue.json', host = document.body } 
     return;
   }
 
+  // A seasonal menu past its last day is not shown (the content check also flags it).
+  const todayHere = hours.localNow(new Date(), venue.locations[0].time_zone).date;
+  venue = { ...venue, menus: venue.menus.filter((m) => !m.until || m.until >= todayHere) };
+
   const lookName = new URLSearchParams(location.search).get('look') || venue.style?.look;
   const lookBase = new URL(`../looks/${encodeURIComponent(lookName)}/`, import.meta.url);
   const place = venue.locations[0];
@@ -105,6 +115,15 @@ export async function mount({ venueUrl = './venue.json', host = document.body } 
     callLabel: venue.phone_orders ? 'Call to order' : 'Call',
     orderUrl: venue.order_url ?? null,
     reserveUrl: venue.reserve_url ?? null,
+    // The private event inquiry (P47), when the venue takes them: fields in, mailto: link out.
+    privateEvents: venue.private_events ?? null,
+    inquiryLink: (fields) => inquiryLink(venue, fields),
+    /** Opens the guest's email app with the inquiry written. Announced first, for the checks. */
+    sendInquiry(fields) {
+      const link = inquiryLink(venue, fields);
+      document.dispatchEvent(new CustomEvent('inquiry', { detail: link }));
+      window.location.href = link;
+    },
     asset: (file) => new URL(file, venueHref).href,
     lookAsset: (file) => new URL(file, lookBase).href,
     hours,
@@ -155,4 +174,7 @@ export async function mount({ venueUrl = './venue.json', host = document.body } 
 
   await look.render(root, venue, ctx);
   mountMotionButton();
+  // The look has drawn: the plain pre-rendered copy (P41) is no longer needed on screen.
+  document.querySelector('[data-prerendered]')?.remove();
+  document.documentElement.dataset.mounted = '1';
 }
