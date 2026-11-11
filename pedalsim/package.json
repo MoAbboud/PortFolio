@@ -10,6 +10,7 @@
     "drive": "node tools/drive.js",
     "build": "node tools/build-engines.js",
     "figures": "node tools/figures.js",
-    "golden": "node tools/golden.js"
+    "golden": "node tools/golden.js",
+    "solve": "node tools/solve.js"
   }
 }

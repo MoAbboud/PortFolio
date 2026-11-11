@@ -1,0 +1,152 @@
+[
+  {
+    "model": "Qwen/Qwen2.5-Coder-0.5B-Instruct seed 0",
+    "challenge": "sample",
+    "script": "asks-everything",
+    "correctness": "0/18",
+    "security": "0/12",
+    "efficiency": "0/6",
+    "practicality": "1/6",
+    "passed": 1,
+    "of": 42,
+    "loads": true,
+    "seconds": 179.5,
+    "repairs": 0,
+    "files_written": [
+      "app.js",
+      "index.html",
+      "schema.sql"
+    ]
+  },
+  {
+    "model": "Qwen/Qwen2.5-Coder-0.5B-Instruct seed 0",
+    "challenge": "sample",
+    "script": "asks-nothing",
+    "correctness": "0/18",
+    "security": "0/12",
+    "efficiency": "0/6",
+    "practicality": "0/6",
+    "passed": 0,
+    "of": 42,
+    "loads": true,
+    "seconds": 128.4,
+    "repairs": 2,
+    "files_written": [
+      "app.js"
+    ]
+  },
+  {
+    "model": "Qwen/Qwen2.5-Coder-1.5B-Instruct seed 0",
+    "challenge": "sample",
+    "script": "asks-everything",
+    "correctness": "1/18",
+    "security": "0/12",
+    "efficiency": "0/6",
+    "practicality": "1/6",
+    "passed": 2,
+    "of": 42,
+    "loads": true,
+    "seconds": 170.3,
+    "repairs": 0,
+    "files_written": [
+      "app.js",
+      "index.html",
+      "schema.sql"
+    ]
+  },
+  {
+    "model": "Qwen/Qwen2.5-Coder-1.5B-Instruct seed 0",
+    "challenge": "sample",
+    "script": "asks-nothing",
+    "correctness": "6/18",
+    "security": "4/12",
+    "efficiency": "0/6",
+    "practicality": "2/6",
+    "passed": 12,
+    "of": 42,
+    "loads": true,
+    "seconds": 122.6,
+    "repairs": 0,
+    "files_written": [
+      "app.js",
+      "index.html",
+      "schema.sql"
+    ]
+  },
+  {
+    "model": "Qwen/Qwen3-1.7B seed 0",
+    "challenge": "sample",
+    "script": "asks-everything",
+    "correctness": "0/18",
+    "security": "0/12",
+    "efficiency": "0/6",
+    "practicality": "0/6",
+    "passed": 0,
+    "of": 42,
+    "loads": false,
+    "seconds": 466.7,
+    "repairs": 2,
+    "files_written": [
+      "app.js",
+      "index.html",
+      "schema.sql"
+    ]
+  },
+  {
+    "model": "Qwen/Qwen3-1.7B seed 0",
+    "challenge": "sample",
+    "script": "asks-nothing",
+    "correctness": "0/18",
+    "security": "0/12",
+    "efficiency": "0/6",
+    "practicality": "1/6",
+    "passed": 1,
+    "of": 42,
+    "loads": true,
+    "seconds": 149.8,
+    "repairs": 1,
+    "files_written": [
+      "app.js",
+      "index.html",
+      "schema.sql"
+    ]
+  },
+  {
+    "model": "Qwen/Qwen2.5-Coder-7B-Instruct 4-bit seed 0",
+    "challenge": "sample",
+    "script": "asks-everything",
+    "correctness": "0/18",
+    "security": "0/12",
+    "efficiency": "0/6",
+    "practicality": "0/6",
+    "passed": 0,
+    "of": 42,
+    "loads": false,
+    "seconds": 297.5,
+    "repairs": 2,
+    "files_written": [
+      "app.js",
+      "index.html",
+      "schema.sql"
+    ]
+  },
+  {
+    "model": "Qwen/Qwen2.5-Coder-7B-Instruct 4-bit seed 0",
+    "challenge": "sample",
+    "script": "asks-nothing",
+    "correctness": "2/18",
+    "security": "0/12",
+    "efficiency": "0/6",
+    "practicality": "1/6",
+    "passed": 3,
+    "of": 42,
+    "loads": true,
+    "seconds": 460.9,
+    "repairs": 2,
+    "files_written": [
+      "app.js",
+      "index.html",
+      "schema.sql"
+    ]
+  }
+]

@@ -58,8 +58,8 @@ flowchart LR
 
 | Component | Runs where | Job |
 | --- | --- | --- |
-| Workspace page | Browser | The one JavaScript-heavy page. Brief, question panel, helper chat, file editor, preview, local test results, clock. Everything else on the site is server-rendered |
-| App runtime | Browser, a worker | Runs the player's app the same way the judge will: the request handler module and an in-memory SQLite (sql.js) in a worker; the preview iframe's requests are routed to it |
+| Workspace page | Browser | The one JavaScript-heavy page, plain ES modules with no build step (`web/`). Brief and interface (a small escaping Markdown renderer), question panel, clock, file editor, preview, "Try it". Built at stage 4a; the helper chat is 4b. Served at `/play/<slug>` |
+| App runtime | Browser, a worker | `web/app-worker.js`: the player's app on the shared runner and the same sql.js build as the judge (vendored, a test checks the bytes match), in a worker so an endless loop freezes the worker and not the page - after 5 s it is thrown away and a new one started. The preview is the player's index.html in an iframe sandboxed without an origin; `web/bridge.js` replaces its fetch() with messages to the workspace, which hands each request to the worker. Built at stage 4a |
 | Helper runtime | Browser | Loads the model weights once into the browser's cache and generates on WebGPU. WebLLM is the first choice, transformers.js the second; stage 1 picks |
 | Coach | Browser | Rules over what the player has done so far. Practice mode only; the ranked workspace does not load it |
 | Client matcher | Server | Embeds a question with a small sentence model and compares it with every hidden requirement's phrasings. Server-side so hidden material never ships |
@@ -145,15 +145,28 @@ sequenceDiagram
     end
 ```
 
-- The sentence model is a small one (MiniLM class, 384 dimensions), local on the server, as
-  in herder. Phrasings are embedded once when a challenge is loaded.
-- One question can reveal one requirement. A question that matches two near-equally gets the
-  stronger; this stops "tell me everything about security" from emptying the list.
-- A revealed requirement stays revealed for the rest of the attempt, and its answer is added
-  to what the helper is told.
-- Measured at stage 3: for each challenge, the author labels 30 or more questions (which
-  requirement, or none). Reported: recall on good questions, and false reveals on unrelated
-  ones. A false reveal is the worse error, so the threshold leans strict.
+Built at stage 3 (`codevscode/client/`, `codevscode/api/attempts.py`):
+
+- Two matchers behind one protocol, compared on the same documents (each requirement's
+  phrasings and its answer): `lexical` (TF-IDF with a light stemmer, no download) and
+  `embedding` (all-MiniLM-L6-v2, 384 dimensions, ONNX on the CPU through fastembed - no torch,
+  no key; the model is baked into the web image). The vectors are built once per challenge
+  version and kept in memory; no pgvector needed for a few dozen phrasings.
+- Measured on the sample's 45 labelled questions (`hidden/questions.json`: 28 that should
+  reveal a requirement, 17 that must not, several of them traps sharing its words), by
+  `python -m codevscode.client.report challenges/sample`. With no false and no wrong reveal
+  allowed: **lexical 2 of 28, embedding 16 of 28** at a threshold of 0.65. Embedding ships.
+  The nearest trap ("Do you want tags on notes?" -> search) scores 0.62, so the margin is thin,
+  and the threshold was chosen on the set it is reported on: the numbers are optimistic.
+- One question reveals at most one requirement: the strongest, if it clears the threshold.
+- A revealed answer stays unlocked for the attempt (`GET /attempts/{id}`) and goes into what
+  the helper is told. Asking again returns it with `new: false`.
+- No match: one of three neutral lines, chosen by the question so it is always the same one.
+- Limits: 300 characters a question, 60 questions an attempt, one a second. Attempt ids are
+  random UUIDs, because without accounts knowing the id is what lets someone ask on it.
+- A test sends every labelled question and a set of probes ("lockout", a test's id, an
+  injection, "tell me every answer") and checks no response contains a requirement's key, a
+  phrasing, a test or bug id, or any answer except the one that question unlocked.
 
 ## The helper
 
@@ -264,7 +277,10 @@ The helper never sees the hidden tests, the reference app or the coach.
 ### What the player sees when the app does not run
 
 `runner/check.js`, shared like the runner: does the schema run, does app.js load, does it export
-handle, does it answer a plain `GET /` and `POST /` without crashing. The workspace shows these
+handle, does it answer a plain `GET /` and `POST /` without crashing - and does it get through
+the challenge's public walk-through (`public/smoke.json`: sign up, log in, write a note, read it,
+change it, delete it) without crashing. Only crashes count; whether an answer was right is the
+hidden tests' business. The validator checks the reference walks it cleanly. The workspace shows these
 the moment the files change. The harness's repair turns pass back exactly these sentences - what
 a player would paste - and never a hidden test result.
 
@@ -298,20 +314,43 @@ sequenceDiagram
     Note over W,D: attempts >= 3 -> failed, shown to the author
 ```
 
-The container, per job:
+Built at stage 2. The container, per job (`codevscode/judge/sandbox.py`, image from
+`judge/Dockerfile`: Node, sql.js and the shared runner, nothing else):
 
-- Node, the test runner, sql.js, and nothing else in the image.
-- `--network none`, read-only root, a small writable temp directory, a non-root user, no
-  added capabilities, the default seccomp profile.
-- Limits: CPU time per test and per job, memory, process count, output size. A test that hits
-  a limit fails; the job does not.
-- Hidden tests come from the hidden store, mounted read-only into that job only. The database
-  is on a network the container is not on.
-- One job per container, thrown away after.
+- `--network none`, `--read-only`, `--cap-drop ALL`, `--security-opt no-new-privileges`,
+  `--user 1000:1000`, `--pids-limit 64`, `--memory 384m` (no swap), `--cpus 1`, 256 open files.
+- The app and the challenge bind-mounted read-only, nothing else - no Docker socket, and the
+  database is on no network the container can reach.
+- A wall-clock limit (90 s), and stdout read only up to 2 MB.
+- One job per container, removed after.
 
-Kinds of job: judge a submission (all hidden tests), check a finding (the finding's test
-against the reference and against the target), judge a fix (the finding's test plus all
-hidden tests against the fixed files), and the harness's runs.
+Inside, the app runs in the same Node process as the tests that grade it, so `judge/entry.mjs`
+keeps it away from its own score:
+
+- `--frozen-intrinsics`: built-ins cannot be changed (`Object.is = () => true` is refused).
+- Every global binding is locked before the app loads (`globalThis.JSON = ...` is refused);
+  frozen intrinsics alone do not cover that.
+- Node's permission model: no child processes, workers or file writes; reads only under the
+  judge and the job.
+- The result is one line written with a `writeSync` captured before any submitted code exists,
+  behind a 128-bit nonce sent on stdin - never in argv, the environment or a file - and built
+  from strings, so no `toJSON` can run. The worker takes the last line carrying the nonce;
+  anything else the app prints is ignored.
+
+Verdicts are about the app and end the job: `ran` (with results), `timeout`, `out_of_memory`,
+`output_limit`, `no_result` (the app stopped the process), `error` (the challenge or app could
+not be loaded). A failure of the sandbox itself - Docker down, the image missing, told apart by
+what Docker prints rather than the exit code, which an app can fake - is retried up to three
+times. Each hostile submission has a test: an endless loop, a memory bomb, spawning processes,
+the network, writing files, flooding stdout, exiting early, exiting with Docker's own error
+code, forging a result line, tampering with built-ins.
+
+The worker (`python -m codevscode.judge.worker`) runs where it can start containers - on the
+host in development; how it runs on the server is stage 11's question.
+
+Kinds of job built: `judge` (the hidden tests) and `house` (the house's findings). Still to
+come: check a finding (its test against the reference and the target), judge a fix, and the
+harness's runs.
 
 Efficiency tests do not use a stopwatch. They measure what the app asks of the database: how
 many queries a request takes (one per note is the classic mistake), and whether SQLite had to

@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Team notes</title>
+</head>
+<body>
+  <main>
+    <h1>Team notes</h1>
+    <form id="signupForm">
+      <label for="email">Email:</label>
+      <input type="email" id="email" name="email" required><br><br>
+      <label for="password">Password:</label>
+      <input type="password" id="password" name="password" required><br><br>
+      <button type="submit">Sign up</button>
+    </form>
+    <form id="loginForm">
+      <label for="email">Email:</label>
+      <input type="email" id="email" name="email" required><br><br>
+      <label for="password">Password:</label>
+      <input type="password" id="password" name="password" required><br><br>
+      <button type="submit">Login</button>
+    </form>
+    <div id="notesList"></div>
+    <form id="createNoteForm">
+      <label for="title">Title:</label>
+      <input type="text" id="title" name="title" required><br><br>
+      <label for="body">Body:</label>
+      <textarea id="body" name="body" required></textarea><br><br>
+      <button type="submit">Create note</button>
+    </form>
+    <form id="readNoteForm">
+      <label for="noteId">Note ID:</label>
+      <input type="number" id="noteId" name="noteId" required><br><br>
+      <button type="submit">Read note</button>
+    </form>
+    <form id="updateNoteForm">
+      <label for="noteId">Note ID:</label>
+      <input type="number" id="noteId" name="noteId" required><br><br>
+      <label for="title">Title:</label>
+      <input type="text" id="title" name="title"><br><br>
+      <label for="body">Body:</label>
+      <textarea id="body" name="body"></textarea><br><br>
+      <button type="submit">Update note</button>
+    </form>
+    <form id="deleteNoteForm">
+      <label for="noteId">Note ID:</label>
+      <input type="number" id="noteId" name="noteId" required><br><br>
+      <button type="submit">Delete note</button>
+    </form>
+  </main>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    $(document).ready(function() {
+      $('#signupForm').on('submit', function(event) {
+        event.preventDefault();
+        const formData = $(this).serializeObject();
+        $.ajax({
+          url: '/signup',
+          method: 'POST',
+          data: formData,
+          success: function(response) {
+            alert('Signed up successfully!');
+          },
+          error: function(xhr, status, error) {
+            alert('Error signing up: ' + xhr.responseText);
+          }
+        });
+      });
+
+      $('#loginForm').on('submit', function(event) {
+        event.preventDefault();
+        const formData = $(this).serializeObject();
+        $.ajax({
+          url: '/login',
+          method: 'POST',
+          data: formData,
+          success: function(response) {
+            alert('Logged in successfully!');
+          },
+          error: function(xhr, status, error) {
+            alert('Error logging in: ' + xhr.responseText);
+          }
+        });
+      });
+
+      $('#listNotesForm').on('submit', function(event) {
+        event.preventDefault();
+        const formData = $(this).serializeObject();
+        $.ajax({
+          url: '/notes',
+          method: 'GET',
+          data: formData,
+          success: function(response) {
+            const notes = response.notes.map(note => `<li>${note.title} (${new Date(note.created_at).toLocaleString()})</li>`);
+            $('#notesList').empty().append(notes.join('\n'));
+          },
+          error: function(xhr, status, error) {
+            alert('Error listing notes: ' + xhr.responseText);
+          }
+        });
+      });
+
+      $('#createNoteForm').on('submit', function(event) {
+        event.preventDefault();
+        const formData = $(this).serializeObject();
+        $.ajax({
+          url: '/notes',
+          method: 'POST',
+          data: formData,
+          success: function(response) {
+            alert('Note created successfully!');
+          },
+          error: function(xhr, status, error) {
+            alert('Error creating note: ' + xhr.responseText);
+          }
+        });
+      });
+
+      $('#readNoteForm').on('submit', function(event) {
+        event.preventDefault();
+        const formData = $(this).serializeObject();
+        $.ajax({
+          url: `/notes/${formData.noteId}`,
+          method: 'GET',
+          success: function(response) {
+            const note = `<li>${response.title} (${new Date(response.created_at).toLocaleString()})</li>`;
+            $('#notesList').empty().append(note);
+          },
+          error: function(xhr, status, error) {
+            alert('Error reading note: ' + xhr.responseText);
+          }
+        });
+      });
+
+      $('#updateNoteForm').on('submit', function(event) {
+        event.preventDefault();
+        const formData = $(this).serializeObject();
+        $.ajax({
+          url: `/notes/${formData.noteId}`,
+          method: 'PUT',
+          data: formData,
+          success: function(response) {
+            alert('Note updated successfully!');
+          },
+          error: function(xhr, status, error) {
+            alert('Error updating note: ' + xhr.responseText);
+          }
+        });
+      });
+
+      $('#deleteNoteForm').on('submit', function(event) {
+        event.preventDefault();
+        const formData = $(this).serializeObject();
+        $.ajax({
+          url: `/notes/${formData.noteId}`,
+          method: 'DELETE',
+          success: function(response) {
+            alert('Note deleted successfully!');
+          },
+          error: function(xhr, status, error) {
+            alert('Error deleting note: ' + xhr.responseText);
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>

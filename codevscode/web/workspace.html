@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Code vs Code</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%232f5bd3'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='15' font-weight='700' fill='white' text-anchor='middle'%3Evs%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/static/web/workspace.css">
+  <script type="module" src="/static/web/workspace.js"></script>
+</head>
+<body>
+  <header class="bar">
+    <div class="title"><strong>Code vs Code</strong> <span id="challenge-title">loading...</span></div>
+    <div class="bar-right">
+      <span class="mode">practice</span>
+      <span id="clock" class="clock" aria-live="polite">--:--</span>
+      <button id="new-attempt" type="button" class="quiet">New attempt</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="column" aria-label="The client">
+      <details open class="panel">
+        <summary>The brief</summary>
+        <div id="brief" class="prose"></div>
+      </details>
+      <details class="panel">
+        <summary>The interface</summary>
+        <div id="interface" class="prose"></div>
+      </details>
+      <div class="panel">
+        <h2>Ask the client</h2>
+        <p class="hint">The client knows more than the brief says, and answers only what you ask.</p>
+        <form id="ask-form" class="ask">
+          <input id="ask-text" type="text" maxlength="300" placeholder="What would you like to know?" autocomplete="off" aria-label="Your question">
+          <button type="submit">Ask</button>
+        </form>
+        <p id="ask-error" class="error" role="alert"></p>
+        <ol id="conversation" class="conversation"></ol>
+        <h3>What the client has told you</h3>
+        <ul id="answers" class="answers"><li class="empty">Nothing yet.</li></ul>
+      </div>
+    </section>
+
+    <section class="column wide" aria-label="Your app">
+      <div class="panel editor-panel">
+        <div class="tabs" role="tablist" id="tabs"></div>
+        <textarea id="editor" spellcheck="false" aria-label="The open file" wrap="off"></textarea>
+        <div class="row">
+          <button id="run" type="button">Run</button>
+          <button id="try" type="button" class="quiet">Try it</button>
+          <button id="reset-file" type="button" class="quiet">Reset this file to the starter</button>
+          <span id="saved" class="hint"></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="column" aria-label="Preview">
+      <div class="panel">
+        <h2>Preview</h2>
+        <iframe id="preview" title="Your app" sandbox="allow-scripts allow-forms"></iframe>
+        <p id="preview-status" class="hint">Press Run to start your app.</p>
+      </div>
+      <div class="panel">
+        <h2>Try it</h2>
+        <p class="hint">Uses your app the way the interface describes - sign up, log in, the note routes - and reports only crashes. Whether the answers are right is for the hidden tests.</p>
+        <ul id="problems" class="problems"></ul>
+      </div>
+      <div class="panel">
+        <h2>Your helper</h2>
+        <p class="hint">The helper - a coding model that runs in your browser - arrives in the next step of this build (stage 4b).</p>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

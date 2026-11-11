@@ -10,6 +10,7 @@ import { ENGINES } from '../engines/index.js';
 import { ENGINES as PARAMS } from '../engines/params.js';
 import { peaks, startUp, freeRev, revTime, autoZeroToSixty } from './measure.js';
 import { CHASSIS } from '../sim/chassis.js';
+import { PERFECT } from '../engines/perfect/index.js';
 
 const KW_TO_HP = 1 / 0.7457;
 const PEDALS = [0.1, 0.2, 0.3, 0.4];
@@ -58,6 +59,11 @@ for (const engine of ENGINES) {
     `top speed ${Math.round(g.topSpeed * 2.23694)} mph`);
   console.log(`  coach changes up at ${engine.coach.upshiftRpm.join(', ')} rpm`);
   console.log(`  automatic, flat out, traction control on: 0-60 mph in ${autoZeroToSixty(engine).toFixed(2)} s`);
+  const best = PERFECT[engine.id];
+  if (best) {
+    const shifts = best.shifts.map((s) => `${s.to - 1}-${s.to} at ${s.rpm} rpm, ${s.mph} mph`).join('; ') || 'no shift';
+    console.log(`  perfect manual run, traction control off: 0-60 mph in ${best.time.toFixed(3)} s (${shifts})`);
+  }
   console.log('');
 }
 console.log(out ? `${out} figure(s) outside their published range` : 'every figure inside its published range');

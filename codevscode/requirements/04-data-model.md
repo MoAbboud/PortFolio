@@ -30,6 +30,8 @@ challenges/<slug>/
     brief.md            the client's request, vague on purpose
     interface.md        routes, shapes, status codes, the app shape
     starter/            app.js (a scaffold: routing and plumbing done), schema.sql, index.html
+    smoke.json          a public walk-through of the routes (sign up, log in, use them); only
+                        crashes on it are ever reported, never right or wrong answers
   hidden/
     requirements.json   one entry per hidden requirement (below)
     reference/          the author's app
@@ -37,6 +39,8 @@ challenges/<slug>/
     bugs.json           the planted bugs: edits to the reference, and the tests each must fail
     house-findings.js   tests the house files against players, each with a claim
     scripts/            scripted conversations for the harness, one .json each
+    questions.json      questions labelled with the requirement they should reveal, or null;
+                        what the client's matcher is measured on
     defence.json        stage 9: questions and key points
 ```
 
@@ -101,14 +105,13 @@ erDiagram
 | `sign_in_links` | token_hash, player_id or email, expires_at, used_at | roamer's pattern: the link opens a page with a button; scanners cannot sign anyone in |
 | `sessions` | id_hash, player_id, expires_at | Secure, HttpOnly, SameSite cookie |
 | `helpers` | player_id, name, updated_at | One per player. Name checked against a list |
-| `challenges` | id, slug, version, title, time_limit_s, split, weights, retired_at | Loaded from the folder; a new version is a new row so old attempts stay judged against what they saw |
-| `requirements` | id, challenge_id, key, category, answer, threshold, phrasing_vectors | Hidden. Vectors computed at load |
+| `challenges`, `requirements` | - | Not built: challenges stay files in the repo (public, hidden halves included), and attempts refer to them by slug and version. Requirements and their vectors are read from the folder and kept in memory. Tables only if the files stop being enough |
 | `models` | id, name, base, method, data_manifest_hash, weights_url, licence, shipped_at | Every model the helper has ever been |
-| `attempts` | id, player_id (null for practice without sign-in), challenge_id, mode (practice, ranked), model_id, started_at, submitted_at, hand_edit_chars, pasted_chars, status | The clock is server time: started_at to submitted_at |
-| `questions` | id, attempt_id, text, best_requirement_id, similarity, revealed, asked_at | Every question, revealed or not, for the score card and for measuring the matcher |
+| `attempts` | Built at stage 3 (migration 0003): id (random UUID), challenge (slug), challenge_version, mode (practice, ranked), started_at, submitted_at. Later: player_id (stage 7), model_id, pasted_chars | The clock is server time: started_at to submitted_at. The id is a UUID so it cannot be guessed |
+| `questions` | Built at stage 3: id, attempt_id, text, requirement (best match, whatever its score), score, revealed, matcher, asked_at | Every question, revealed or not, for the score card and for measuring the matcher on real questions |
 | `snapshots` | id, attempt_id, kind (submission, fix), files (jsonb), created_at | Files are small; size-limited at the API |
 | `chat_turns` | id, attempt_id, role, text, created_at | Stored only when the player opted in to training use; otherwise the conversation never leaves the browser |
-| `jobs` | id, kind, snapshot_id, finding_id, status, attempts, locked_at, started_at, finished_at, result (jsonb), error | The judge queue. `locked_at` is read by the reaper; retries up to three |
+| `jobs` | id, kind (judge, house), status (queued, running, done, failed), payload (jsonb: challenge slug and files), result (jsonb: verdict, results, seconds, exit code, stderr tail), error, attempts, max_attempts, locked_at, locked_by, created_at, started_at, finished_at | Built at stage 2 (migration 0002). The judge's queue: claimed with FOR UPDATE SKIP LOCKED; `locked_at` read by the reaper; a sandbox failure retries up to max_attempts. Files travel in the payload until stage 5 adds snapshots |
 | `matches` | id, challenge_id, attempt_a, attempt_b (null while waiting), opponent_kind (player, house), state, review_ends_at, defence_ends_at, published_at | State: waiting, review, defence, done |
 | `findings` | id, match_id, by_attempt, against_attempt, category, claim, test_source, status, reference_result, target_result, filed_at | Status: filed, valid, invalid, fixed, conceded. House findings have by_attempt null |
 | `defences` | id, finding_id, kind (fix, concede), snapshot_id, result, created_at | A fix points at its snapshot |
@@ -123,9 +126,10 @@ erDiagram
 
 | What | Where | Why |
 | --- | --- | --- |
-| Model weights | Cache Storage, managed by the runtime | Downloaded once, often around a gigabyte; the page says so before starting |
-| The open attempt's files and chat | IndexedDB | A refresh mid-build loses nothing. Cleared on submit unless the player keeps it |
-| Helper name, editor settings | localStorage | Conveniences; the server holds the real helper name for signed-in players |
+| Model weights | Cache Storage, managed by the runtime | Downloaded once, often around a gigabyte; the page says so before starting (4b) |
+| The open attempt's id | localStorage `cvc:attempt:<slug>` | Built at 4a: a refresh resumes the same attempt, clock and unlocked answers included (from GET /attempts/{id}) |
+| The open attempt's files | localStorage `cvc:files:<attempt id>` | Built at 4a: a refresh mid-build loses nothing. IndexedDB if drafts outgrow localStorage's few MB |
+| Helper name, editor settings | localStorage | Conveniences; the server holds the real helper name for signed-in players (4b) |
 
 Every read and write to browser storage is wrapped so a private window still plays.
 

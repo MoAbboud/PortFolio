@@ -136,6 +136,9 @@ herder/HERDER_SPEC.md
 # codevscode
 # ============================================================
 codevscode/node_modules/
+# The browser's copy of sql.js is committed on purpose (web/vendor/README.md). Line 2's Laravel
+# rule "vendor/" would hide it, so it is let back in here.
+!codevscode/web/vendor/
 codevscode/.venv/
 codevscode/**/__pycache__/
 codevscode/.pytest_cache/
@@ -143,8 +146,28 @@ codevscode/.pytest_cache/
 codevscode/data/
 # The Colab notebooks are the author's working copies, uploaded to Colab by hand.
 codevscode/notebooks/01-candidates.ipynb
+codevscode/notebooks/build_01.py
 # Results and model zips downloaded from Colab. A 4-bit model is about 1 GB; GitHub refuses
 # files over 100 MB. The numbers that matter are written into requirements/.
 codevscode/models/
 # Challenges are tracked whole, hidden halves included - the author's decision (2026-10-12):
 # "the hidden halves can live on the portfolio fine. no need to hide it."
+
+# ============================================================
+# menufactory
+# ============================================================
+# The author's Claude Design exports are the product's raw designs and stay off GitHub
+# entirely (author, 2026-10-25). They live only on disk, where OneDrive backs them up.
+menufactory/designs/
+# Development tools only (tests, image resizing); nothing installed is published. The root
+# "/node_modules" rule only covers the repository root.
+menufactory/node_modules/
+# The readable source of each look (P36, author 2026-10-25). Its own private repository lives
+# here; tools/publish-looks.mjs writes the obfuscated copy into looks/, which is what is
+# committed and published.
+menufactory/looks-src/
+# Screenshots and reports from the browser check; regenerated on every run.
+menufactory/tests/output/
+# Five-minute audits of prospects' current sites (P46). Problems are shown to an owner in
+# private, never in public.
+menufactory/audits/

@@ -155,4 +155,5 @@ export default {
       },
     },
   },
+  hash: "cab3049ea839a73f9a818483217f388ca8ff369b167d70bcf42d5bf6ab9011c4",
 };

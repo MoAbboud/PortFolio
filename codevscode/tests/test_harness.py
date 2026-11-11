@@ -140,6 +140,20 @@ def test_repair_turns_stop_at_the_limit_and_never_start_for_an_app_that_runs() -
 
 
 def test_the_scaffolded_starter_runs() -> None:
-    assert check(load_challenge(SAMPLE).starter) == []
+    challenge = load_challenge(SAMPLE)
+    assert check(challenge.starter, challenge) == []
+
+
+def test_repair_turns_pass_back_crashes_from_the_public_walk_through() -> None:
+    # Run 4: the 7B deleted the starter's bearerToken helper; GET / was fine, so the old check saw
+    # nothing. Using the app as the interface describes is what shows a player the crash.
+    challenge = load_challenge(SAMPLE)
+    files = dict(challenge.starter)
+    files["app.js"] = files["app.js"].replace(
+        "async function createNote(request, db) {\n  return notBuilt();",
+        "async function createNote(request, db) {\n  return reply(201, { owner: tokenOwner(request) });",
+    )
+    assert check(files) == []
+    assert check(files, challenge) == ["POST /notes crashed: tokenOwner is not defined"]
 
 

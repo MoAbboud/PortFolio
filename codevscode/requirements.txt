@@ -9,3 +9,7 @@ pydantic>=2.10
 pydantic-settings>=2.7
 pytest>=8.3
 httpx>=0.28
+
+# Stage 3 - the client. A small sentence model (all-MiniLM-L6-v2) run on the CPU through ONNX:
+# no torch. It downloads the model once from a public Hugging Face repo, no key.
+fastembed>=0.7

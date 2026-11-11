@@ -9,6 +9,9 @@ import { replay } from '../sim/replay.js';
 import { RPM_PER_RAD_S, STEPS_PER_SECOND } from '../sim/clock.js';
 import { PEDAL_MAX, emptyInputs } from '../sim/inputs.js';
 import { initialState, step } from '../sim/step.js';
+import { MPH_60 } from '../sim/sixty.js';
+
+export { MPH_60 };
 
 const KEY_HELD_STEPS = 800;
 
@@ -123,4 +126,3 @@ export function autoZeroToSixty(engine) {
   return at < 0 ? Infinity : at / STEPS_PER_SECOND - settle;
 }
 
-export const MPH_60 = 26.8224;

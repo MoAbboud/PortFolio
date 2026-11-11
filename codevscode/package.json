@@ -5,7 +5,8 @@
   "description": "Code vs Code - the challenge format, the shared test runner and the validator",
   "scripts": {
     "test": "node --test test/*.test.js",
-    "validate": "node tools/validate.mjs challenges/sample"
+    "validate": "node tools/validate.mjs challenges/sample",
+    "e2e": "node tools/e2e-workspace.mjs"
   },
   "engines": {
     "node": ">=22"
@@ -14,5 +15,8 @@
     "acorn": "^8.19.0",
     "acorn-walk": "^8.3.5",
     "sql.js": "^1.14.2"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^25.16.0"
   }
 }

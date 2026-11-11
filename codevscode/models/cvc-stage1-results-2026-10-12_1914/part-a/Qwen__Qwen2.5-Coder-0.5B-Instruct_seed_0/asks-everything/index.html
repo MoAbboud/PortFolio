@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Team notes</title>
+</head>
+<body>
+  <h1>Team notes</h1>
+  <ul>
+    {% for note in notes %}
+      <li>
+        <h2>{{ note.title }}</h2>
+        <p>{{ note.body }}</p>
+        <p>Created at: {{ note.created_at }}</p>
+        <p>Updated at: {{ note.updated_at }}</p>
+        <a href="/notes/{{ note.id }}">Edit</a>
+        <a href="/notes/{{ note.id }}/delete">Delete</a>
+      </li>
+    {% endfor %}
+  </ul>
+</body>
+</html>

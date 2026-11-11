@@ -9,6 +9,11 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# The client's sentence model, downloaded at build time so the first question does not wait for
+# it. A public Hugging Face repo; no key. Outside /app, so compose's source mount does not hide it.
+ENV CLIENT_MODEL_CACHE=/models
+RUN python -c "from fastembed import TextEmbedding; TextEmbedding('sentence-transformers/all-MiniLM-L6-v2', cache_dir='/models')"
+
 COPY . .
 
 EXPOSE 8000

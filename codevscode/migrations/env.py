@@ -14,6 +14,9 @@ from sqlalchemy import engine_from_config, pool
 from codevscode.config import settings
 from codevscode.db import Base
 
+# Imported for the side effect of registering every table on Base.metadata.
+from codevscode import models  # noqa: F401
+
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)
 

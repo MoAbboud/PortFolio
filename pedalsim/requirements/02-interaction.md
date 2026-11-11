@@ -68,7 +68,7 @@ The link is the only thing that leaves a browser, and only when a driver chooses
 
 - Where the car is. No road, map, track, scenery, steering or camera.
 - A server, accounts, or a global leaderboard. Sharing is a link.
-- Remembering anything. It is a sandbox: every refresh starts with empty circles, no bests,
+- Remembering anything. It is a sandbox: every refresh starts with no bests,
   default settings. Nothing is written to the browser's storage.
 - Real car brands, model names, trademarks.
 - Exotic engine layouts in the first version: rotary, two-stroke, diesel, turbocharging,
@@ -85,19 +85,19 @@ The link is the only thing that leaves a browser, and only when a driver chooses
 
 | ID | Actor | Goal | Trigger | Result |
 | --- | --- | --- | --- | --- |
-| UC-1 | Driver | Choose an engine | Cycles V4, V6, V8, V10, V12 with one control | The engine is swapped in the same car. The faces dissolve back to empty circles and are laid out again for this engine: its own range, tick spacing, redline, one shift light per cylinder, and the colours cross-fade to that engine's palette. An engine visited earlier since the last refresh comes back as built as it was left |
+| UC-1 | Driver | Choose an engine | Cycles V4, V6, V8, V10, V12 with one control | The engine is swapped in the same car. The faces are laid out again for this engine: its own range, tick spacing, redline, one shift light per cylinder, and the colours cross-fade to that engine's palette. |
 | UC-2 | Driver | Start it | Start key or button | The needles appear and sweep, the engine catches and idles. Idle trembles less the more cylinders there are |
-| UC-3 | Driver | Rev it in neutral | Throttle | The revs rise and settle where the throttle holds them, fall when released, bounce off the limiter if floored. **The tachometer's face pixelates in wherever the needle has been**, the dyno strip draws the torque curve from the pulls, the redline appears the first time it is reached |
-| UC-3a | Driver | Skip the build-up | "Build it all" | Every face resolves fully in a second |
+| UC-3 | Driver | Rev it in neutral | Throttle | The revs rise and settle where the throttle holds them, fall when released, bounce off the limiter if floored. the dyno strip draws the torque curve from the pulls |
 | UC-4 | Driver | Drive in automatic | Selects D, throttle, brake | Creeps, accelerates, shifts up by itself, kicks down when floored, slows when braked |
 | UC-5 | Driver | Drive in manual | Switches to manual, clutch, stick, throttle | Pulls away or stalls; changes gear or grinds; the coach shows up and down arrows and the rev-match target |
 | UC-6 | Driver | Brake | Brake | The speed falls, the revs fall in gear; at a stop in gear without the clutch, it stalls |
-| UC-6a | Driver | Blow the engine | A downshift that drags the revs past the over-rev limit | The engine dies, the faces break back into pixels and empty circles, "new engine" to carry on |
+| UC-6a | Driver | Blow the engine | A downshift that drags the revs past the over-rev limit | The engine dies, "engine blown", NEW ENGINE to carry on; a run in progress ends |
 | UC-7 | Challenger | Do the 0 to 60 run | Starts the run | Countdown, the run, the time, the score card, the ghost of the perfect run |
 | UC-8 | Challenger | See where the time went | Reads the score card | Time lost on the launch and on each shift, shift revs against the best revs, wheelspin, limiter time |
 | UC-9 | Challenger | Keep a best | Finishes a run better than before | The run is the new best for that engine until the page is refreshed, and can be watched again |
 | UC-10 | Challenger | Share a run | Copies its link | A link that holds the inputs, not the score |
 | UC-11 | Receiver | See a shared run | Opens the link | The page re-drives the run, shows the score it earns, and offers "beat it" on the same engine |
+| UC-12 | Curious | See the maths | Open on arrival; MATHS or H toggles it | The drivetrain as a chain with each joint gripping or slipping, and the sums with this moment's numbers in them, updating as they drive |
 
 ## The page
 
@@ -147,19 +147,16 @@ The pedals and stick are simple on-screen controls that also show what the keybo
 
 ### J1 - First visit
 
-1. The page opens on two empty circles and the V4, automatic, engine off.
-2. Start. The needles appear, sweep and settle; the tach trembles at idle, and a few coarse
-   blocks of face appear around the idle mark.
-3. Throttle in neutral: the revs climb, settle, drop when released, and the face fills in
-   behind the needle, coarse blocks first, sharpening as they are revisited. Floored: the
-   limiter, the redline arc appears, and the dyno strip draws the torque curve left to right.
-   A few more pulls and the tachometer is complete.
-4. D, throttle: the speed builds and the speedometer's face pixelates in up to the speed
-   reached. The box shifts at the shift marker; the lights fill.
+1. The page opens on the V4's gauges, automatic, engine off.
+2. Start. The needles appear, sweep and settle; the tach trembles at idle.
+3. Throttle in neutral: the revs climb, settle, drop when released. Floored: the limiter, and
+   the dyno strip draws the torque curve left to right.
+4. D, throttle: the speed builds. The box shifts at the shift marker; the lights fill.
 5. Brake: speed and revs fall together; the box shifts down.
-6. Cycle to the V12. The faces dissolve to empty circles. Rev it: the new tachometer comes in
-   with a higher redline, different spacing and twelve shift lights. That comparison is the
-   point.
+6. Cycle to the V12: its gauges have a higher redline, different spacing and twelve shift
+   lights. That comparison is the point.
+(Until 2026-10-19 the gauges started as empty circles and pixelated in where the engine had
+been; the author dropped that after stage 6.)
 
 ### J2a - Driving the automatic (built in stage 4)
 
@@ -181,9 +178,14 @@ The pedals and stick are simple on-screen controls that also show what the keybo
 
 ### J3 - The 0 to 60 run and a shared link
 
-1. Start run, on the V8, manual. Countdown on the gauges.
-2. The ghost needle runs the perfect launch and shifts alongside.
-3. 60 mph: 5.31 s against a perfect 4.92 s. The card says: launch 0.21 s lost to wheelspin;
-   1 to 2 shifted 600 rpm early, 0.09 s; 2 to 3 0.06 s; clutch held in 0.03 s too long.
-4. Copy link. A friend opens it, their page drives the run again, shows the same 5.31 s, and
-   offers to beat it.
+1. 0 TO 60 (or G), on the V8, manual. The page turns the key; READY, then a two-second
+   countdown: clutch down, first in, revs up. GO.
+2. A thin pale needle on each gauge is the perfect run, alongside.
+3. 60 mph: 4.71 s against a perfect 4.29 s (the V8's stored run). The card says, for
+   example: launch 0.21 s lost to wheelspin; 1 to 2 shifted 1300 rpm late, 0.09 s - the
+   perfect run changes up at 5400, not the redline; clutch held in 0.03 s too long.
+4. SHARE copies a link. A friend opens it, their page drives the run again, shows the same
+   4.71 s and the note that a link proves the run possible, not that a person drove it, and
+   offers BEAT IT.
+5. Leave before GO and the card says false start; leave in second and it is not counted. The
+   automatic is timed, not scored. Refresh, and the board is gone.

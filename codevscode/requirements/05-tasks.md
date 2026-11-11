@@ -6,7 +6,7 @@ Every stage is checked from a PowerShell terminal on Windows. If a stage cannot 
 that way, it is not finished. Every stage that changes a page is also checked in a real
 browser.
 
-Stage 0 is done. Stage 1's first run scored 0 of 42 everywhere; the second (scaffold, repair turns, teachers) got a browser-sized model to 12 of 42. Reading its apps is next.
+Stages 0, 1, A1, 2, 3 and 4a are done. Stage 4b, the helper in the browser, is next.
 
 ## Planning
 
@@ -105,7 +105,24 @@ The code is built; the runs are the author's, on Colab.
       tests; asks-nothing's simpler hashing got through signup and login, then createNote crashed
 - [x] Prompt fixed: each turn is one system and one player message; earlier player requests are
       listed in the system message; the helper's replies are never replayed
-- [ ] Run 4: the same notebook after a push - the first run whose repair turns can work
+- [x] Run 4 (2026-10-21, after the prompt fix was pushed): later turns now write code. The 7B
+      at 4 bits, told everything, reached 13 of 42 (8 correctness, 4 security) after three turns
+      and one repair; the 1.5B is unchanged (12 asking nothing, 2 asking everything). Every app
+      still dies on one crash in the main path - a deleted scaffold helper (bearerToken,
+      readJson), a Web Crypto call that does not exist, an undefined value bound to SQL - and
+      the repair turns never saw them: the check only tried GET / and POST /
+- [x] `public/smoke.json` for the sample and check.js walking it: crashes along sign up, log in
+      and the note routes are now what a repair turn passes back. Validator checks the
+      walk-through is well formed and the reference walks it cleanly. Tests: 57 Node, 12 pytest
+- [x] Run 5 (2026-10-21): repair turns that see the walk-through's crashes work. The 7B at 4
+      bits, told everything, reached 20 of 42 (13 correctness, 4 security, 3 practicality) and
+      is the first app to finish with no crash at all; the 1.5B told everything went 2 -> 10.
+      Every run used both repair turns; several still crash, and the 1.5B repeated one reply
+      twice. The 7B's remaining failures are mostly two stubs: a fake token ("generated_token",
+      every user is user 1) and a validation that refuses an empty note body
+- [x] The stage 1 gate ("go for it"): baseline Qwen2.5-Coder-1.5B, teacher Qwen2.5-Coder-7B,
+      Team-notes size, teacher data kept if crash-free and at least half the hidden tests, A1
+      mutation pairs as a second source
       (waiting on the free-tier GPU limit to reset; the notebook now stops early without a GPU)
 - [x] Notebook fitted to the free tier: SmolLM2 and the 14B removed with the reasons in the
       cell; a model that runs out of GPU memory is skipped and the rest carry on
@@ -184,29 +201,99 @@ Check:
 
 ## Stage 2 - The judge and its sandbox
 
-- [ ] `jobs` table, claim with `FOR UPDATE SKIP LOCKED`, reaper, retries
-- [ ] Job image: Node, test runner, sql.js; container flags from 03-architecture
-- [ ] Reference passes all hidden tests; each planted bug fails exactly its tests
-- [ ] Hostile submissions, one test each: endless loop, memory bomb, fork bomb, network call,
-      huge output, reading outside the app folder, writing to the hidden mount
-- [ ] A killed worker's job is picked up again; a third failure marks it failed
+Done. 37 pytest (nothing skipped with the database and Docker up), 57 Node.
+
+- [x] `jobs` table (migration 0002), claim with `FOR UPDATE SKIP LOCKED`, complete, fail with
+      retries, reaper - tested against PostgreSQL, including a claim skipping a row another
+      worker holds
+- [x] `judge/Dockerfile` (253 MB) and `judge/entry.mjs`: frozen intrinsics, locked globals,
+      the permission model, a nonce-marked result written by a captured writeSync
+- [x] `codevscode/judge/sandbox.py`: the container flags, wall-clock limit, output cap,
+      verdicts; sandbox failures told apart from the app's by what Docker prints
+- [x] In the sandbox: the reference passes 42 of 42; each planted bug fails exactly its tests;
+      the house's findings run as their own job kind
+- [x] Hostile submissions, one test each: endless loop, memory bomb, spawning processes,
+      network, writing files, flooding output, exiting early, exiting 125, forging a result
+      line, tampering with built-ins. (Reading the hidden tests is allowed: challenges are public)
+- [x] `python -m codevscode.judge.worker`: reaps, claims, runs, records; a job naming no real
+      challenge is done with an error, not retried; a sandbox failure is retried then failed
+- [x] CI builds the judge image and runs the sandbox tests with REQUIRE_DOCKER=1
+
+Check:
+
+    cd codevscode
+    docker compose up -d db
+    .venv\Scripts\python -m alembic upgrade head
+    docker build -t codevscode-judge -f judge/Dockerfile .
+    .venv\Scripts\python -m pytest -q
+    .venv\Scripts\python -m codevscode.judge.worker --once
 
 ## Stage 3 - The client
 
-- [ ] Requirements and phrasing vectors loaded from the challenge
-- [ ] `POST /attempts/{id}/questions` with rate and length limits
-- [ ] Labelled question set for the sample (30 or more); matcher report: recall, false reveals
-- [ ] A test that no response ever contains an unrevealed answer or a test name
+Done. 50 pytest, 58 Node.
 
-## Stage 4 - The workspace and the helper
+- [x] Requirements and phrasing vectors from the challenge folder, built once per challenge
+      version and kept in memory (no challenges or requirements tables - files are enough)
+- [x] Two matchers (lexical, embedding) and `python -m codevscode.client.report`: recall, wrong
+      and false reveals per threshold; embedding chosen, 16 of 28 at 0.65 against lexical 2
+- [x] `hidden/questions.json`: 45 labelled questions, 17 that must reveal nothing; the
+      validator checks every label and that both kinds exist. Written by Claude - questions
+      the author writes are the better test
+- [x] `attempts` and `questions` tables (migration 0003); `POST /attempts`,
+      `GET /attempts/{id}`, `POST /attempts/{id}/questions`, with length, count and rate limits
+- [x] The leak test: no response carries a requirement key, a phrasing, a test or bug id, or an
+      answer the question did not unlock
+- [x] The model baked into the web image; cached in CI
 
-- [ ] Workspace page: brief, questions, chat, editor, preview, local tests, clock
-- [ ] App runtime in a worker with sql.js; preview requests routed to it
-- [ ] Helper runtime with the stage 1 baseline; prompt assembly and token budget; whole-file
-      answers shown as a diff before applying
+Check:
+
+    cd codevscode
+    docker compose up -d --build
+    .venv\Scripts\python -m codevscode.client.report challenges/sample
+    $a = Invoke-RestMethod -Method Post http://localhost:8020/attempts -ContentType application/json -Body '{"challenge":"sample"}'
+    Invoke-RestMethod -Method Post "http://localhost:8020/attempts/$($a.id)/questions" -ContentType application/json -Body '{"text":"Should accounts lock after too many failed logins?"}'
+
+## Stage 4a - The workspace, without the helper
+
+Done. 65 Node, 63 pytest, and `npm run e2e` in a real headless Chrome.
+
+- [x] `/play/<slug>` serves `web/workspace.html`; `/static/runner`, `/static/helper`,
+      `/static/web` serve the browser modules with `text/javascript` (set explicitly - Windows can
+      say text/plain) and the wasm as `application/wasm`; `/` goes to the sample
+- [x] `POST /attempts` and `GET /attempts/{id}` return one view: the public half, the starter
+      files, the walk-through, the clock's start, the answers unlocked - so a refresh resumes
+- [x] Brief and interface through `web/markdown.js` (escapes everything first); the questions
+      panel; the clock; tabs and an editor per file; drafts in localStorage, wrapped in try/catch
+- [x] `web/app-worker.js`: the app on the shared runner and the vendored sql.js, a fresh worker
+      after 5 s without an answer; worker start-up errors reported, not timed out
+- [x] `web/bridge.js`: the preview's fetch() in a sandboxed iframe, through the workspace, to the
+      worker; requests in the runner's shape
+- [x] "Try it": the walk-through on the current files, crashes only
+- [x] `tools/e2e-workspace.mjs` (`npm run e2e`, puppeteer-core with the installed Chrome): loads
+      the page, unlocks an answer, puts the reference in the editor, signs up and saves a note
+      inside the preview, sees an endless loop stopped, keeps the draft across a reload, no page
+      errors. Not in CI: it needs the server and a Chrome
+
+Check:
+
+    cd codevscode
+    docker compose up -d --build
+    npm run e2e
+    start http://localhost:8020/play/sample
+
+## Stage 4b - The helper in the browser
+
+- [ ] The baseline (Qwen2.5-Coder-1.5B) in the browser: transformers.js with an ONNX build, or
+      WebLLM - Part B's question, now with a model chosen
+- [ ] The chat panel on `helper/prompt.js` and `helper/reply.js`; whole-file answers as a diff
+      before applying; the client's unlocked answers in the prompt
 - [ ] Helper naming, checked against a list
-- [ ] Coach rules, practice only; ranked build does not include its code
-- [ ] Hand-edit and paste counters
+- [ ] The download said up front, with a progress bar; the ask phase playable meanwhile
+
+## Stage 4c - The coach and the counters
+
+- [ ] Coach rules, practice only; the ranked page does not load them
+- [ ] A paste counter
 
 ## Stage 5 - Practice match end to end
 

@@ -126,3 +126,34 @@ test("a script that reveals an unknown requirement is caught", async () => {
   );
   assert.deepEqual(errors, ["script one.json: reveals ghost, which is not a requirement"]);
 });
+
+test("a malformed walk-through is caught", async () => {
+  const { errors } = await validateChanged((dir) =>
+    writeFile(path.join(dir, "public/smoke.json"), JSON.stringify({ steps: [{ method: "FETCH", path: "words" }] })),
+  );
+  assert.ok(errors.includes("public/smoke.json step 1: method must be one of GET, POST, PUT, PATCH, DELETE"), errors.join("\n"));
+  assert.ok(errors.includes("public/smoke.json step 1: path must start with /"), errors.join("\n"));
+});
+
+test("a walk-through the reference crashes on is caught", async () => {
+  const { errors } = await validateChanged(async (dir) => {
+    await writeFile(path.join(dir, "public/smoke.json"), JSON.stringify({ steps: [{ method: "GET", path: "/words" }] }));
+    await replaceIn(
+      path.join(dir, "hidden/reference/app.js"),
+      "const limit = Math.min",
+      'if (request.method === "GET") throw new Error("boom");\n  const limit = Math.min',
+    );
+  });
+  assert.ok(errors.includes("the reference does not walk public/smoke.json cleanly: GET /words crashed: boom"), errors.join("\n"));
+});
+
+test("labelled questions must point at real requirements and include ones that reveal nothing", async () => {
+  const { errors } = await validateChanged((dir) =>
+    writeFile(
+      path.join(dir, "hidden/questions.json"),
+      JSON.stringify({ questions: [{ text: "how many words?", requirement: "cap" }, { text: "x", requirement: "ghost" }] }),
+    ),
+  );
+  assert.ok(errors.some((e) => e.includes('requirement "ghost" is not in requirements.json')), errors.join("\n"));
+  assert.ok(errors.includes("hidden/questions.json: no question is labelled null, so false reveals are never measured"), errors.join("\n"));
+});

@@ -14,8 +14,11 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { CATEGORIES } from "../runner/runner.js";
+import { checkApp } from "../runner/check.js";
 import { applyEdits } from "../runner/edits.js";
-import { loadModuleArray, loadTests, readApp, readJson, runOnApp } from "./challenge.mjs";
+import { appLoader, loadModuleArray, loadTests, readApp, readJson, runOnApp, sql } from "./challenge.mjs";
+
+const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"];
 
 const SPLITS = ["train", "held_out"];
 const MIN_PHRASINGS = 3;
@@ -126,6 +129,28 @@ export async function validateChallenge(dir) {
   for (const result of referenceFailures) fail(`reference fails ${result.id}: ${result.message}`);
   notes.push(`reference: ${referenceResults.length - referenceFailures.length} of ${referenceResults.length} tests pass`);
 
+  // The public walk-through, if there is one: well formed, and the reference walks it cleanly.
+  // It is what the workspace (and the harness's repair turns) use to show a player their crashes.
+  let smoke;
+  try {
+    smoke = await readJson(path.join(dir, "public/smoke.json"));
+  } catch (error) {
+    if (error.code !== "ENOENT") fail(`public/smoke.json: ${error.message}`);
+  }
+  if (smoke) {
+    const steps = Array.isArray(smoke.steps) ? smoke.steps : [];
+    if (!steps.length) fail("public/smoke.json: steps must be a non-empty list");
+    steps.forEach((step, i) => {
+      if (!METHODS.includes(step.method)) fail(`public/smoke.json step ${i + 1}: method must be one of ${METHODS.join(", ")}`);
+      if (typeof step.path !== "string" || !step.path.startsWith("/")) fail(`public/smoke.json step ${i + 1}: path must start with /`);
+    });
+    if (steps.length) {
+      const problems = await checkApp({ SQL: await sql(), loadApp: appLoader(reference["app.js"]), schema: reference["schema.sql"], smoke });
+      for (const problem of problems) fail(`the reference does not walk public/smoke.json cleanly: ${problem}`);
+      if (!problems.length) notes.push(`smoke walk: ${steps.length} steps, the reference walks them without a crash`);
+    }
+  }
+
   // Each planted bug fails exactly what it says.
   const bugs = await readJson(path.join(dir, "hidden/bugs.json"));
   const bugIds = new Set();
@@ -173,6 +198,31 @@ export async function validateChallenge(dir) {
     if (result.status === "fail") fail(`house finding ${result.id} fails on the reference, so it claims something the challenge does not ask for: ${result.message}`);
   }
   notes.push(`house findings: ${findings.length}, all checked against the reference`);
+
+  // Labelled questions for measuring the client's matcher, if there are any.
+  let labelled;
+  try {
+    labelled = await readJson(path.join(dir, "hidden/questions.json"));
+  } catch (error) {
+    if (error.code !== "ENOENT") fail(`hidden/questions.json: ${error.message}`);
+  }
+  if (labelled) {
+    const questions = Array.isArray(labelled.questions) ? labelled.questions : [];
+    if (!questions.length) fail("hidden/questions.json: questions must be a non-empty list");
+    questions.forEach((q, i) => {
+      if (typeof q.text !== "string" || !q.text.trim()) fail(`hidden/questions.json question ${i + 1}: text is missing`);
+      if (q.set !== undefined && !["dev", "fresh"].includes(q.set)) fail(`hidden/questions.json question ${i + 1}: set must be "dev" or "fresh"`);
+      if (q.requirement !== null && !requirementIds.has(q.requirement)) {
+        fail(`hidden/questions.json question ${i + 1}: requirement ${JSON.stringify(q.requirement)} is not in requirements.json (use null for one that must reveal nothing)`);
+      }
+    });
+    const covered = new Set(questions.map((q) => q.requirement));
+    for (const id of requirementIds) {
+      if (!covered.has(id)) fail(`hidden/questions.json: no question is labelled ${id}, so its matching is never measured`);
+    }
+    if (!covered.has(null)) fail("hidden/questions.json: no question is labelled null, so false reveals are never measured");
+    if (questions.length) notes.push(`labelled questions: ${questions.length}, ${questions.filter((q) => q.requirement === null).length} that must reveal nothing`);
+  }
 
   // Scripted conversations for the harness.
   const scriptDir = path.join(dir, "hidden/scripts");

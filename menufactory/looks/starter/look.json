@@ -1,0 +1,11 @@
+{
+  "name": "Starter",
+  "category": "cocktail-bar",
+  "fixture": true,
+  "description": "A plain scaffold look that proves the pipeline - venue file, look, motion button, checks - before the author's first design. Never shown in the library.",
+  "pages": ["home"],
+  "photo_uses": ["hero"],
+  "accepts_venue_colours": true,
+  "uses": ["gsap", "scrolltrigger"],
+  "budget_kb": 200
+}
