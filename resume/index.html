@@ -964,7 +964,7 @@ html:not(.scripted) .skill { cursor: default; }
    out, full sentences instead of headlines, skills as lines, the
    selected projects only. Always the light tokens.
    ============================================================ */
-@page { size: Letter; margin: 12mm 14mm; }
+@page { size: Letter; margin: 11mm 14mm; }
 @media print {
   html[data-theme] {
     --bg: #fff; --fg: #111; --fg-dim: #333; --fg-faint: #666;
@@ -985,7 +985,7 @@ html:not(.scripted) .skill { cursor: default; }
   #index .eyebrow > :not(.status) { display: none !important; }
   .print-only { display: block; }
 
-  .page { display: block; padding: 0; margin: 0 0 4.5mm; border: 0; }
+  .page { display: block; padding: 0; margin: 0 0 3mm; border: 0; }
   .page-inner { max-width: none; }
   .eyebrow {
     font-size: 7.5pt; letter-spacing: .18em; color: var(--c1i); margin: 0 0 2mm;
@@ -1023,7 +1023,7 @@ html:not(.scripted) .skill { cursor: default; }
   .points li, .points li:last-child { border: 0; break-inside: avoid; }
   .points summary { display: none; }
   details::details-content { content-visibility: visible; display: block; }
-  .points details > p { position: relative; padding: .6mm 0 .6mm 4mm; font-size: 9pt; line-height: 1.42; color: var(--fg); }
+  .points details > p { position: relative; padding: .4mm 0 .4mm 4mm; font-size: 9pt; line-height: 1.42; color: var(--fg); }
   .points details > p::before { content: ''; position: absolute; left: 0; top: 2.3mm; width: 1.6mm; height: .7mm; background: var(--accent); }
   .points strong { font-weight: 600; }
 
@@ -1172,25 +1172,31 @@ html:not(.scripted) .skill { cursor: default; }
       <div class="rule" style="margin:clamp(18px,3vh,28px) 0" data-anim></div>
       <div class="role-grid">
         <div class="role-meta">
-          <h2 class="org"><span class="mask"><span>Independent Projects</span></span></h2>
-          <p class="title" data-anim>Software Engineer</p>
+          <h2 class="org"><span class="mask"><span>Self-Employed</span></span></h2>
+          <p class="title" data-anim>Independent Software Consultant</p>
           <dl data-anim>
             <dt>Dates</dt><dd>Jan 2026 – Present</dd>
             <dt>Place</dt><dd>Kansas City, MO</dd>
-            <dt>Scope</dt><dd>Self-directed, open source</dd>
+            <dt>Scope</dt><dd>Client work and own projects</dd>
           </dl>
-          <div class="tags" data-anim><span>Python</span><span>PyTorch</span><span>DistilRoBERTa</span><span>DistilBERT</span><span>PostgreSQL</span><span>Docker</span><span>GitHub Actions</span><span>Caddy</span><span>WebGL2</span></div>
+          <div class="tags" data-anim><span>Linux</span><span>SSH</span><span>Log Analysis</span><span>Security Hardening</span><span>Python</span><span>PyTorch</span><span>DistilRoBERTa</span><span>DistilBERT</span><span>PostgreSQL</span><span>Docker</span><span>GitHub Actions</span><span>Caddy</span><span>WebGL2</span></div>
         </div>
         <ol class="points">
-          <li data-anim><details open><summary data-n="01">Trained my own ML models end to end, no hosted AI APIs</summary>
+          <li data-anim><details open><summary data-n="01">Traced a client's recurring outages to a SQL injection attack</summary>
+            <p>Diagnosed recurring outages on a client’s production web application, analyzing server and access logs on a <strong>Linux VPS over SSH</strong> to trace them to a <strong>SQL injection attack that locked all 150 workers</strong>.</p></details></li>
+          <li data-anim><details open><summary data-n="02">Advised on attack mitigation and security hardening</summary>
+            <p>Advised the client on attack mitigation and security hardening, turning log findings into clear, prioritized fixes for their <strong>hosting, server, and application layers</strong>.</p></details></li>
+          <li data-anim><details open><summary data-n="03">Ongoing production support for live web applications</summary>
+            <p>Provided ongoing production support for live web applications, delivering fixes, updates, and maintenance.</p></details></li>
+          <li data-anim><details open><summary data-n="04">Trained my own ML models end to end, no hosted AI APIs</summary>
             <p>Designed, trained and evaluated my own machine-learning models end to end in PyTorch, with no hosted AI APIs: a <strong>two-stage classifier</strong> (a DistilRoBERTa detector, then a DistilBERT typer across 13 fallacy types) that flags passages which may lean on a logical fallacy, with a confidence score rather than a verdict (<strong>Fallacy Detector</strong>).</p></details></li>
-          <li data-anim><details open><summary data-n="02">Invoice pipeline at 98.3% field accuracy vs a 75.1% baseline</summary>
+          <li data-anim><details open><summary data-n="05">Invoice pipeline at 98.3% field accuracy vs a 75.1% baseline</summary>
             <p>Built a document-intake pipeline that turns messy invoices into validated PostgreSQL records, with a review queue for the documents it is unsure about. Its own evaluation reports <strong>98.3% field accuracy</strong> against a 75.1% baseline, covered by <strong>355 tests</strong> (<strong>Mailman</strong>).</p></details></li>
-          <li data-anim><details open><summary data-n="03">AI-chat memory benchmarked on a hand-written 261-fact answer key</summary>
+          <li data-anim><details open><summary data-n="06">AI-chat memory benchmarked on a hand-written 261-fact answer key</summary>
             <p>Built portable memory for AI chat: a long conversation becomes a compact brief where every line traces back to the messages it came from, benchmarked against a plain summary at the same token budget on a <strong>261-fact answer key</strong> written by hand (<strong>Herder</strong>).</p></details></li>
-          <li data-anim><details open><summary data-n="04">WebGL2 renderer from scratch, no engine, 620 tests</summary>
+          <li data-anim><details open><summary data-n="07">WebGL2 renderer from scratch, no engine, 620 tests</summary>
             <p>Wrote a WebGL2 renderer from scratch, with no engine, for a voxel diorama a camera walks through on a timeline, for recording video, covered by <strong>620 tests</strong> (<strong>Trail</strong>).</p></details></li>
-          <li data-anim><details open><summary data-n="05">Built and run this site: CI/CD, Docker, own domain</summary>
+          <li data-anim><details open><summary data-n="08">Built and run this site: CI/CD, Docker, own domain</summary>
             <p>Run this site end to end: requirements written before the code, an allowlist build published by <strong>GitHub Actions</strong> on every push, and <strong>Docker Compose with Caddy</strong> for the services that run on a server, on my own domain.</p></details></li>
         </ol>
       </div>
@@ -1324,15 +1330,15 @@ html:not(.scripted) .skill { cursor: default; }
               <li><button type="button" class="skill" data-used="tekkii mailman herder pedalsim codevscode">System Design</button></li>
               <li><button type="button" class="skill" data-used="tekkii">API Design</button></li>
               <li><button type="button" class="skill" data-used="tekkii">Legacy System Modernization</button></li>
-              <li><button type="button" class="skill" data-used="allied">Web Application Security</button></li>
+              <li><button type="button" class="skill" data-used="allied independent">Web Application Security</button></li>
               <li><button type="button" class="skill">Authentication</button></li>
               <li><button type="button" class="skill" data-used="site">Git / GitHub</button></li>
               <li><button type="button" class="skill" data-used="mailman site codevscode">Docker</button></li>
               <li><button type="button" class="skill" data-used="site pedalsim codevscode">CI/CD Pipelines</button></li>
-              <li><button type="button" class="skill">Server Administration (SSH/FTP)</button></li>
+              <li><button type="button" class="skill" data-used="independent">Server Administration (SSH/FTP)</button></li>
               <li><button type="button" class="skill" data-used="tekkii">Agile / Scrum</button></li>
               <li><button type="button" class="skill" data-used="allied tekkii independent">Requirements Gathering</button></li>
-              <li><button type="button" class="skill" data-used="allied tekkii">Stakeholder Communication</button></li>
+              <li><button type="button" class="skill" data-used="allied tekkii independent">Stakeholder Communication</button></li>
             </ul>
           </div>
           <div class="skill-group" data-anim>
@@ -1358,7 +1364,7 @@ html:not(.scripted) .skill { cursor: default; }
 
       <!-- The places a skill can point to. Their lines repeat what the page already says. -->
       <ul class="sources" hidden>
-        <li data-src="independent" data-kind="Role" data-name="Independent Projects" data-line="2026 to now, own projects and models" data-href="#experience"></li>
+        <li data-src="independent" data-kind="Role" data-name="Independent Software Consultant" data-line="Client consulting and own projects, 2026 to now" data-href="#experience"></li>
         <li data-src="tekkii" data-kind="Role" data-name="Tekkii" data-line="Full Stack Web Developer, 2023 to 2026" data-href="#experience-tekkii"></li>
         <li data-src="allied" data-kind="Role" data-name="Allied Engineering Group" data-line="Software Engineer, SWIFT platforms, 2019 to 2021" data-href="#experience-allied"></li>
         <li data-src="mailman" data-kind="Project" data-name="Mailman" data-line="Invoice intake, 98.3% field accuracy, 355 tests" data-href="https://github.com/MoAbboud/PortFolio/tree/main/mailman"></li>

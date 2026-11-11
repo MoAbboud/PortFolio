@@ -12,7 +12,7 @@ groups pages into the six sections that the rail, the menu and the hue come from
 | id | data-section | Content |
 | --- | --- | --- |
 | `index` | Index | Name, title, availability, summary, four stats, quick links |
-| `experience` | Experience | Independent Projects, Jan 2026 to now |
+| `experience` | Experience | Self-Employed, Independent Software Consultant, Jan 2026 to now: client consulting first, then own projects |
 | `experience-tekkii` | Experience | Tekkii, Full Stack Web Developer, Jan 2023 to Jan 2026 |
 | `experience-allied` | Experience | Allied Engineering Group, Software Engineer, Jun 2019 to Jun 2021 |
 | `capabilities` | Capabilities | Five skill groups and the evidence panel |
